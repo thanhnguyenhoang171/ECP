@@ -1,0 +1,30 @@
+services:
+  # MongoDB
+  mongo:
+    image: mongo:6.0
+    container_name: ecp_mongo
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - ecp_network
+    restart: always
+  # Redis cache
+  redis:
+    image: redis:alpine
+    container_name: ecp_redis
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly #Enable persistent disk saving mode.
+    volumes:
+      - redis_data:/data
+    networks:
+      - ecp_network
+    restart: always
+networks:
+  ecp_network:
+    driver: bridge
+volumes:
+  mongo_data:
+  redis_data:
