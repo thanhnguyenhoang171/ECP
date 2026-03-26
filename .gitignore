@@ -186,5 +186,6 @@ node_modules
 psd
 thumb
 sketch
+.turbo
 
 # End of https://www.toptal.com/developers/gitignore/api/react,nextjs,nestjs,node
