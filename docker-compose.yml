@@ -3,7 +3,7 @@ services:
     image: mysql:8.0
     container_name: ecp_mysql
     ports:
-      - '3306:3306'
+      - '3307:3306'
     environment:
       MYSQL_ROOT_PASSWORD: 123258789
       MYSQL_DATABASE: ecp_db
@@ -11,6 +11,45 @@ services:
       MYSQL_PASSWORD: 123258789
     volumes:
       - mysql_data:/var/lib/mysql
+    networks:
+      - ecp_network
+    restart: always
+
+  api:
+    build:
+      context: ./services/ecp_api
+      dockerfile: Dockerfile
+    container_name: ecp_api
+    ports:
+      - '9090:9090'
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ecp_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 123258789
+    networks:
+      - ecp_network
+    depends_on:
+      - mysql
+    restart: always
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    container_name: ecp_admin
+    ports:
+      - '8080:80'
+    networks:
+      - ecp_network
+    restart: always
+
+  storefront:
+    build:
+      context: .
+      dockerfile: apps/storefront/Dockerfile
+    container_name: ecp_storefront
+    ports:
+      - '3000:3000'
     networks:
       - ecp_network
     restart: always
