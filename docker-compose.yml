@@ -21,7 +21,7 @@ services:
       dockerfile: Dockerfile
     container_name: ecp_api
     ports:
-      - '9090:9090'
+      - '9091:9090'
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ecp_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
