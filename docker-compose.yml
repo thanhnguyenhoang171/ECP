@@ -38,7 +38,7 @@ services:
       dockerfile: apps/admin/Dockerfile
     container_name: ecp_admin
     ports:
-      - '8080:80'
+      - '8081:80'
     networks:
       - ecp_network
     restart: always
