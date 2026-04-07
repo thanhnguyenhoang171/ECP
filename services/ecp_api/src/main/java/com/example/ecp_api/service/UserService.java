@@ -4,9 +4,10 @@ import com.example.ecp_api.dto.request.UserRequest;
 import com.example.ecp_api.dto.response.UserResponse;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface UserService {
-    UserResponse registerUser(UserRequest userRequest);
-    UserResponse getUserById(Long id);
+    UserResponse registerUserByUsername(UserRequest userRequest);
+    UserResponse getUserById(UUID id);
     List<UserResponse> getAllUsers();
 }
