@@ -11,9 +11,3 @@ public class ResourceNotFoundException extends RuntimeException {
         super(message);
     }
 }
-
-
-//public User getUserById(Long id) {
-//    return userRepository.findById(id)
-//            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + id));
-//}
