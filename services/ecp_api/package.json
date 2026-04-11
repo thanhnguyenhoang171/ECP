@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "mvnw.cmd clean package -DskipTests",
+    "build": "mvn clean package -DskipTests",
     "dev": "mvnw.cmd spring-boot:run"
   }
 }
