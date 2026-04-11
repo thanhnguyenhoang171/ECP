@@ -7,7 +7,7 @@ const Register: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = React.useState(false);
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: Record<string, unknown>) => {
     setLoading(true);
     try {
       console.log('Register values:', values);
@@ -15,7 +15,7 @@ const Register: React.FC = () => {
       // await authService.register(values);
       message.success('Đăng ký tài khoản thành công!');
       navigate('/login');
-    } catch (error) {
+    } catch {
       // Lỗi đã được xử lý ở axiosInstance
     } finally {
       setLoading(false);

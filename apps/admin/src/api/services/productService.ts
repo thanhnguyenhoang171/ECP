@@ -2,7 +2,7 @@ import axiosInstance from '../axiosInstance';
 
 export const productService = {
   // Lấy danh sách sản phẩm
-  getProducts: (params?: any) => {
+  getProducts: (params?: Record<string, unknown>) => {
     return axiosInstance.get('/products', { params });
   },
 
@@ -12,12 +12,12 @@ export const productService = {
   },
 
   // Tạo sản phẩm mới
-  createProduct: (data: any) => {
+  createProduct: (data: Record<string, unknown>) => {
     return axiosInstance.post('/products', data);
   },
 
   // Cập nhật sản phẩm
-  updateProduct: (id: string | number, data: any) => {
+  updateProduct: (id: string | number, data: Record<string, unknown>) => {
     return axiosInstance.put(`/products/${id}`, data);
   },
 

@@ -7,7 +7,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = React.useState(false);
 
-  const onFinish = (values: any) => {
+  const onFinish = (values: Record<string, unknown>) => {
     setLoading(true);
     console.log('Login values:', values);
     
