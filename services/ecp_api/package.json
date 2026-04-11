@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "mvn clean package -DskipTests",
-    "dev": "mvnw.cmd spring-boot:run"
+    "build": "node -e \"const cmd = require('os').platform() === 'win32' ? 'mvnw.cmd' : 'mvn'; require('child_process').execSync(`${cmd} clean package -DskipTests`, {stdio: 'inherit'});\"",
+    "dev": "node -e \"const cmd = require('os').platform() === 'win32' ? 'mvnw.cmd' : 'mvn'; require('child_process').execSync(`${cmd} spring-boot:run`, {stdio: 'inherit'});\""
   }
 }
