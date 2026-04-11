@@ -1,0 +1,159 @@
+name: ECP CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  # ==========================================
+  # JOB 1: KIỂM TRA CHẤT LƯỢNG CODE & BUILD
+  # ==========================================
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9.0.0 # Bám sát version file package.json của dự án
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint Code
+        run: pnpm turbo lint
+        
+      # Lưu ý: Các lệnh type-check và test đã được ẩn vì chưa có cấu hình trong turbo.json
+      # - name: Type Check
+      #   run: pnpm turbo type-check
+      #
+      # - name: Run Tests
+      #   run: pnpm turbo test
+
+      - name: Build All Apps (Frontend & Backend)
+        run: pnpm turbo build
+
+  # ==========================================
+  # JOB 2: BUILD DOCKER & PUSH LÊN GHCR
+  # ==========================================
+  deploy:
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: admin
+            context: .
+            dockerfile: ./apps/admin/Dockerfile
+            image: ghcr.io/${{ github.repository }}/ecp-admin
+          - name: storefront
+            context: .
+            dockerfile: ./apps/storefront/Dockerfile
+            image: ghcr.io/${{ github.repository }}/ecp-storefront
+          - name: api
+            context: ./services/ecp_api
+            dockerfile: ./services/ecp_api/Dockerfile
+            image: ghcr.io/${{ github.repository }}/ecp-api
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ matrix.image }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  # ==========================================
+  # JOB 3: DEPLOY TRỰC TIẾP VỀ LAPTOP ASUS
+  # ==========================================
+  deploy-to-laptop:
+      needs: deploy
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Install Cloudflared
+          run: |
+            curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+            sudo dpkg -i cloudflared.deb
+
+        - name: Deploy via SSH
+          env:
+            SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
+            SERVER_HOST: ${{ secrets.SERVER_HOST }}
+            SERVER_USER: ${{ secrets.SERVER_USER }}
+          run: |
+            # 1. Thiết lập thư mục SSH và lưu Private Key
+            mkdir -p ~/.ssh
+            echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_rsa
+            
+            # 2. Tạo file config SSH để ép dùng Cloudflared làm Proxy
+            cat <<EOF > ~/.ssh/config
+            Host asus-server
+                HostName $SERVER_HOST
+                User $SERVER_USER
+                IdentityFile ~/.ssh/id_rsa
+                ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h
+                StrictHostKeyChecking no
+            EOF
+
+            # 3. Chạy lệnh deploy từ xa qua SSH
+            ssh asus-server << 'ENDSSH'
+              cd ~/ThanhNguyen/Source/ECP     # Tùy chỉnh đường dẫn theo server của bạn
+              echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+              docker compose pull
+              docker compose up -d --remove-orphans
+              docker image prune -f
+            ENDSSH
