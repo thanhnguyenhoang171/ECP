@@ -4,6 +4,7 @@ import ProtectedRoute from '../components/layout/ProtectedRoute';
 import Dashboard from '../pages/Dashboard';
 import Products from '../pages/Products';
 import Users from '../pages/Users';
+import Profile from '../pages/Profile';
 import Login from '../pages/Auth/Login';
 import Register from '../pages/Auth/Register';
 import NotFound from '../pages/Error/NotFound';
@@ -41,6 +42,10 @@ const router = createBrowserRouter([
           {
             path: 'users',
             element: <Users />,
+          },
+          {
+            path: 'profile',
+            element: <Profile />,
           },
         ],
       },

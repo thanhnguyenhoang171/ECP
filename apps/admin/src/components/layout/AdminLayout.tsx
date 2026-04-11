@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Menu, Button, theme, Drawer } from 'antd';
+import { Layout, Menu, Button, theme, Drawer, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   MenuFoldOutlined,
@@ -79,6 +79,22 @@ const AdminLayout: React.FC = () => {
     },
     {
       key: 'divider-1',
+      type: 'divider',
+    },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined className="text-red-500" />,
+      label: <span className="text-red-500 font-medium">Đăng xuất</span>,
+    },
+  ];
+
+  const userMenuItems: MenuProps['items'] = [
+    {
+      key: '/profile',
+      icon: <UserOutlined />,
+      label: 'Hồ sơ cá nhân',
+    },
+    {
       type: 'divider',
     },
     {
@@ -169,9 +185,11 @@ const AdminLayout: React.FC = () => {
               <span className="text-sm font-bold text-gray-800">Admin User</span>
               <span className="text-[11px] text-blue-600 uppercase tracking-wider font-bold">Quản trị viên</span>
             </div>
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-200 cursor-pointer border-2 border-white">
-              AD
-            </div>
+            <Dropdown menu={{ items: userMenuItems, onClick: handleMenuClick }} placement="bottomRight" arrow>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-200 cursor-pointer border-2 border-white">
+                AD
+              </div>
+            </Dropdown>
           </div>
         </Header>
         
