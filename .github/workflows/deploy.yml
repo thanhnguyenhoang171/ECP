@@ -144,7 +144,7 @@ jobs:
 
           # 3. Chạy lệnh deploy từ xa qua SSH
           ssh asus-server << 'ENDSSH'
-          cd ~/ThanhNguyen/Source/ECP
+          cd ~/ECP
 
           # Đăng nhập để có quyền kéo image private
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
