@@ -1,11 +1,11 @@
 import axiosInstance from '../axiosInstance';
 
 export const authService = {
-  login: (data: any) => {
+  login: (data: Record<string, unknown>) => {
     return axiosInstance.post('/auth/login', data);
   },
   
-  register: (data: any) => {
+  register: (data: Record<string, unknown>) => {
     return axiosInstance.post('/auth/register', data);
   },
   

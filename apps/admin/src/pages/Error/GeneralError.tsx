@@ -3,7 +3,7 @@ import { Button, Result } from 'antd';
 import { useRouteError, useNavigate } from 'react-router-dom';
 
 const GeneralError: React.FC = () => {
-  const error: any = useRouteError();
+  const error = useRouteError() as { statusText?: string; message?: string };
   const navigate = useNavigate();
   console.error(error);
 

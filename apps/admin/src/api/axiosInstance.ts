@@ -33,7 +33,7 @@ axiosInstance.interceptors.response.use(
   (response) => response.data, // Trả về trực tiếp data để code gọn hơn
   (error: AxiosError) => {
     const status = error.response?.status;
-    const data: any = error.response?.data;
+    const data = error.response?.data as { message?: string } | undefined;
 
     // Xử lý lỗi tập trung
     switch (status) {

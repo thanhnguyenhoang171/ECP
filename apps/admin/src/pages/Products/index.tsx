@@ -65,8 +65,8 @@ const Products: React.FC = () => {
       dataIndex: 'status',
       width: 120,
       render: (_, { status }) => {
-        let color = status === 'active' ? 'green' : 'volcano';
-        let text = status === 'active' ? 'Đang bán' : 'Hết hàng';
+        const color = status === 'active' ? 'green' : 'volcano';
+        const text = status === 'active' ? 'Đang bán' : 'Hết hàng';
         return <Tag color={color} className="rounded-full px-3">{text}</Tag>;
       },
     },
