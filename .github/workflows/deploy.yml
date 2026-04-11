@@ -127,24 +127,34 @@ jobs:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
+          # 1. Thiết lập thư mục SSH và lưu Private Key
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa_ecp
           chmod 600 ~/.ssh/id_rsa_ecp
 
+          # 2. Tạo file config SSH để ép dùng Cloudflared làm Proxy
           cat <<EOF > ~/.ssh/config
           Host asus-server
               HostName $SERVER_HOST
               User $SERVER_USER
               IdentityFile ~/.ssh/id_rsa_ecp
-              ProxyCommand /usr/bin/cloudflared access ssh --hostname %h
+              ProxyCommand cloudflared access ssh --hostname %h
               StrictHostKeyChecking no
           EOF
 
+          # 3. Chạy lệnh deploy từ xa qua SSH
           ssh asus-server << 'ENDSSH'
-          cd ~/ThanhNguyen/Source/ECP || { echo "Không tìm thấy thư mục dự án!"; exit 1; }
+          cd ~/ThanhNguyen/Source/ECP
+
+          # Đăng nhập để có quyền kéo image private
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+          # 1. Kéo bản mới nhất về
           docker compose pull
+
+          # 2. Ép Docker tạo lại Container từ Image mới
           docker compose up -d --force-recreate --remove-orphans
+
+          # 3. Dọn dẹp các Image cũ bị "treo"
           docker image prune -f
-          exit
-  ENDSSH
+          ENDSSH
