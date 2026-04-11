@@ -2,9 +2,9 @@ name: ECP CI/CD
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, dev]
   pull_request:
-    branches: [main, develop]
+    branches: [main, dev]
 
 env:
   REGISTRY: ghcr.io
@@ -24,7 +24,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 9.0.0 # Bám sát version file package.json của dự án
+          version: 9.0.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -44,13 +44,6 @@ jobs:
 
       - name: Lint Code
         run: pnpm turbo lint
-
-      # Lưu ý: Các lệnh type-check và test đã được ẩn vì chưa có cấu hình trong turbo.json
-      # - name: Type Check
-      #   run: pnpm turbo type-check
-      #
-      # - name: Run Tests
-      #   run: pnpm turbo test
 
       - name: Build All Apps (Frontend & Backend)
         run: pnpm turbo build
@@ -134,36 +127,24 @@ jobs:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
-          # 1. Thiết lập thư mục SSH và lưu Private Key
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa_ecp
           chmod 600 ~/.ssh/id_rsa_ecp
 
-          # 2. Tạo file config SSH để ép dùng Cloudflared làm Proxy
           cat <<EOF > ~/.ssh/config
           Host asus-server
               HostName $SERVER_HOST
               User $SERVER_USER
               IdentityFile ~/.ssh/id_rsa_ecp
-              ProxyCommand cloudflared access ssh --hostname %h
+              ProxyCommand /usr/bin/cloudflared access ssh --hostname %h
               StrictHostKeyChecking no
           EOF
 
-          # 3. Chạy lệnh deploy từ xa qua SSH
           ssh asus-server << 'ENDSSH'
-          cd ~/ThanhNguyen/Source/ECP
-
-          # Đăng nhập để có quyền kéo image private
+          cd ~/ThanhNguyen/Source/ECP || { echo "Không tìm thấy thư mục dự án!"; exit 1; }
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-          # 1. Kéo bản mới nhất về
           docker compose pull
-
-          # 2. Ép Docker tạo lại Container từ Image mới (Quan trọng nhất)
-          # --force-recreate: Ép tạo lại dù cấu hình không đổi
-          # --build: Build lại nếu có dùng build context cục bộ
           docker compose up -d --force-recreate --remove-orphans
-
-          # 3. Dọn dẹp các Image cũ bị "treo" (dangling images) để đỡ tốn ổ cứng con Ultra 9
           docker image prune -f
-          ENDSSH
+          exit
+  ENDSSH
