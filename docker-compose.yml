@@ -5,37 +5,51 @@ services:
     ports:
       - '3307:3306'
     environment:
-      MYSQL_ROOT_PASSWORD: 123258789
+      MYSQL_ROOT_PASSWORD: 142857
       MYSQL_DATABASE: ecp_db
       MYSQL_USER: admin
-      MYSQL_PASSWORD: 123258789
+      MYSQL_PASSWORD: 142857
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
       - ecp_network
     restart: always
 
+  # --- THÊM MONGODB TẠI ĐÂY ---
+  mongodb:
+    image: mongo:latest
+    container_name: ecp_mongodb
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: 142857
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - ecp_network
+    restart: always
+
   api:
-    build:
-      context: ./services/ecp_api
-      dockerfile: Dockerfile
+    image: ghcr.io/thanhnguyenhoang171/ecp/ecp-api:latest
     container_name: ecp_api
     ports:
       - '9091:9090'
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ecp_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: 123258789
+      SPRING_DATASOURCE_PASSWORD: 142857
+      # Thêm biến môi trường kết nối Mongo cho Spring Boot (nếu cần)
+      SPRING_DATA_MONGODB_URI: mongodb://admin:142857@mongodb:27017/ecp_mongo?authSource=admin
     networks:
       - ecp_network
     depends_on:
       - mysql
+      - mongodb
     restart: always
 
   admin:
-    build:
-      context: .
-      dockerfile: apps/admin/Dockerfile
+    image: ghcr.io/thanhnguyenhoang171/ecp/ecp-admin:latest
     container_name: ecp_admin
     ports:
       - '8081:80'
@@ -44,9 +58,7 @@ services:
     restart: always
 
   storefront:
-    build:
-      context: .
-      dockerfile: apps/storefront/Dockerfile
+    image: ghcr.io/thanhnguyenhoang171/ecp/ecp-storefront:latest
     container_name: ecp_storefront
     ports:
       - '3000:3000'
@@ -60,3 +72,4 @@ networks:
 
 volumes:
   mysql_data:
+  mongo_data: # Đừng quên khai báo volume để không mất data khi restart
