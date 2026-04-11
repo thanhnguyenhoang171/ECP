@@ -145,25 +145,25 @@ jobs:
               HostName $SERVER_HOST
               User $SERVER_USER
               IdentityFile ~/.ssh/id_rsa_ecp
-              ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h
+              ProxyCommand cloudflared access ssh --hostname %h
               StrictHostKeyChecking no
           EOF
 
           # 3. Chạy lệnh deploy từ xa qua SSH
-               ssh asus-server << 'ENDSSH'
-               cd ~/ThanhNguyen/Source/ECP
+          ssh asus-server << 'ENDSSH'
+          cd ~/ThanhNguyen/Source/ECP
 
           # Đăng nhập để có quyền kéo image private
-               echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
           # 1. Kéo bản mới nhất về
-               docker compose pull
+          docker compose pull
 
           # 2. Ép Docker tạo lại Container từ Image mới (Quan trọng nhất)
           # --force-recreate: Ép tạo lại dù cấu hình không đổi
           # --build: Build lại nếu có dùng build context cục bộ
-               docker compose up -d --force-recreate --remove-orphans
+          docker compose up -d --force-recreate --remove-orphans
 
           # 3. Dọn dẹp các Image cũ bị "treo" (dangling images) để đỡ tốn ổ cứng con Ultra 9
-               docker image prune -f
-               ENDSSH
+          docker image prune -f
+          ENDSSH
