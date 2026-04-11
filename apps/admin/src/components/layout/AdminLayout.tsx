@@ -136,8 +136,15 @@ const AdminLayout: React.FC = () => {
 
       <Layout className="h-screen flex flex-col overflow-hidden relative">
         <Header 
-          style={{ padding: 0, background: colorBgContainer }} 
-          className="flex justify-between px-4 items-center shadow-sm h-16 shrink-0 z-20"
+          style={{ 
+            paddingLeft: 16, 
+            paddingRight: 16, 
+            background: colorBgContainer,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }} 
+          className="shadow-sm h-16 shrink-0 z-20"
         >
           <div className="flex items-center">
             {isMobile ? (
@@ -145,24 +152,24 @@ const AdminLayout: React.FC = () => {
                 type="text"
                 icon={<MenuOutlined />}
                 onClick={() => setOpenDrawer(true)}
-                className="text-lg w-12 h-12"
+                className="text-lg w-10 h-10 flex items-center justify-center hover:bg-gray-50"
               />
             ) : (
               <Button
                 type="text"
                 icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
                 onClick={() => setCollapsed(!collapsed)}
-                className="text-lg w-12 h-12"
+                className="text-lg w-10 h-10 flex items-center justify-center hover:bg-gray-50"
               />
             )}
           </div>
           
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden sm:block text-right">
-              <div className="text-sm font-bold text-gray-800">Admin User</div>
-              <div className="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">Quản trị viên</div>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex flex-col items-end leading-tight">
+              <span className="text-sm font-bold text-gray-800">Admin User</span>
+              <span className="text-[11px] text-blue-600 uppercase tracking-wider font-bold">Quản trị viên</span>
             </div>
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-200">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-200 cursor-pointer border-2 border-white">
               AD
             </div>
           </div>
