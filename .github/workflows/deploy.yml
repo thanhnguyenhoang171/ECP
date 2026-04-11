@@ -136,15 +136,15 @@ jobs:
           run: |
             # 1. Thiết lập thư mục SSH và lưu Private Key
             mkdir -p ~/.ssh
-            echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-            chmod 600 ~/.ssh/id_rsa
+            echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa_ecp
+            chmod 600 ~/.ssh/id_rsa_ecp
             
             # 2. Tạo file config SSH để ép dùng Cloudflared làm Proxy
             cat <<EOF > ~/.ssh/config
             Host asus-server
                 HostName $SERVER_HOST
                 User $SERVER_USER
-                IdentityFile ~/.ssh/id_rsa
+                IdentityFile ~/.ssh/id_rsa_ecp
                 ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h
                 StrictHostKeyChecking no
             EOF
