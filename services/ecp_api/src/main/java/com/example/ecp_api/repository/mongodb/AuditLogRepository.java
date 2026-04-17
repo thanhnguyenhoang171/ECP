@@ -1,6 +1,6 @@
 package com.example.ecp_api.repository.mongodb;
 
-import com.example.ecp_api.entity.AuditLog;
+import com.example.ecp_api.entity.mongodb.AuditLog;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 

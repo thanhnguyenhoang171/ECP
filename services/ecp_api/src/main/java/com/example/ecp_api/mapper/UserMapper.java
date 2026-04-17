@@ -2,7 +2,7 @@ package com.example.ecp_api.mapper;
 
 import com.example.ecp_api.dto.request.UserRequest;
 import com.example.ecp_api.dto.response.UserResponse;
-import com.example.ecp_api.entity.User;
+import com.example.ecp_api.entity.jpa.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;

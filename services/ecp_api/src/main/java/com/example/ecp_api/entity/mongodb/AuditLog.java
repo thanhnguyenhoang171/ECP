@@ -1,4 +1,4 @@
-package com.example.ecp_api.entity;
+package com.example.ecp_api.entity.mongodb;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

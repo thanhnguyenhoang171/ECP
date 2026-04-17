@@ -1,6 +1,6 @@
 package com.example.ecp_api.repository.jpa;
 
-import com.example.ecp_api.entity.User;
+import com.example.ecp_api.entity.jpa.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

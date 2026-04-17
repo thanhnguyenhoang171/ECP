@@ -1,4 +1,4 @@
-package com.example.ecp_api.entity;
+package com.example.ecp_api.entity.jpa;
 
 import com.example.ecp_api.enums.users.AuthProvider;
 import com.example.ecp_api.enums.users.UserRole;

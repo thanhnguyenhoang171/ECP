@@ -1,4 +1,4 @@
-package com.example.ecp_api.entity;
+package com.example.ecp_api.entity.jpa;
 
 import jakarta.persistence.*;
 import lombok.*;

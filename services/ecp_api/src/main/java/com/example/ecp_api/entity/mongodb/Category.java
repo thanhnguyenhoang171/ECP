@@ -1,4 +1,4 @@
-package com.example.ecp_api.entity;
+package com.example.ecp_api.entity.mongodb;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,6 +11,7 @@ import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.LocalDateTime;
 
@@ -22,16 +23,15 @@ import java.time.LocalDateTime;
 public class Category {
 
     @Id
-    private String id;
+    private String id; // MongoDB ObjectId
 
-    @Indexed(unique = true)
+    @Field("name")
     private String name;
 
     @Indexed(unique = true)
     private String slug;
 
-    private String description;
-
+    @Field("parent_id")
     private String parentId;
 
     private String path;
@@ -39,25 +39,17 @@ public class Category {
     @Builder.Default
     private int level = 1;
 
+    private String description;
+
+    @Field("is_active")
     @Builder.Default
     private boolean isActive = true;
 
-    @Builder.Default
-    private boolean isDeleted = false;
-
     @CreatedDate
+    @Field("created_at")
     private LocalDateTime createdAt;
 
     @LastModifiedDate
+    @Field("updated_at")
     private LocalDateTime updatedAt;
-
-    private LocalDateTime deletedAt;
-
-    @CreatedBy
-    private String createdBy;
-
-    @LastModifiedBy
-    private String updatedBy;
-
-    private String deletedBy;
 }

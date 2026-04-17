@@ -1,7 +1,7 @@
 package com.example.ecp_api.service.impl;
 
 import com.example.ecp_api.dto.response.AuditLogResponse;
-import com.example.ecp_api.entity.AuditLog;
+import com.example.ecp_api.entity.mongodb.AuditLog;
 import com.example.ecp_api.mapper.AuditLogMapper;
 import com.example.ecp_api.repository.mongodb.AuditLogRepository;
 import com.example.ecp_api.service.AuditLogService;
