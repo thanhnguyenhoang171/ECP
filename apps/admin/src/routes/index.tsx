@@ -3,6 +3,8 @@ import AdminLayout from '../components/layout/AdminLayout';
 import ProtectedRoute from '../components/layout/ProtectedRoute';
 import Dashboard from '../pages/Dashboard';
 import Products from '../pages/Products';
+import Categories from '../pages/Categories';
+import Stock from '../pages/Stock';
 import Users from '../pages/Users';
 import Profile from '../pages/Profile';
 import Login from '../pages/Auth/Login';
@@ -38,6 +40,14 @@ const router = createBrowserRouter([
           {
             path: 'products',
             element: <Products />,
+          },
+          {
+            path: 'categories',
+            element: <Categories />,
+          },
+          {
+            path: 'stock',
+            element: <Stock />,
           },
           {
             path: 'users',

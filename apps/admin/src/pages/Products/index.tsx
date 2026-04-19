@@ -1,82 +1,46 @@
 import React from 'react';
-import { Table, Button, Space, Tag } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import { Table, Tag, Space } from 'antd';
+import { useProducts } from '../../hooks/useProducts';
+import { Button } from '../../components/common';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 
-interface DataType {
-  key: string;
-  name: string;
-  price: number;
-  stock: number;
-  status: string;
-}
+const ProductPage: React.FC = () => {
+  const { data, isLoading } = useProducts();
 
-const data: DataType[] = [
-  {
-    key: '1',
-    name: 'Áo thun nam Basic Premium',
-    price: 150000,
-    stock: 120,
-    status: 'active',
-  },
-  {
-    key: '2',
-    name: 'Quần Jeans xanh Slimfit',
-    price: 350000,
-    stock: 50,
-    status: 'active',
-  },
-  {
-    key: '3',
-    name: 'Giày Sneaker Sport v2',
-    price: 550000,
-    stock: 0,
-    status: 'out_of_stock',
-  },
-];
-
-const Products: React.FC = () => {
-  const columns: ColumnsType<DataType> = [
+  const columns = [
     {
-      title: 'Sản phẩm',
+      title: 'Tên sản phẩm',
       dataIndex: 'name',
       key: 'name',
-      width: 200,
-      fixed: 'left',
-      render: (text) => <span className="font-medium text-blue-600 cursor-pointer">{text}</span>,
+      render: (text: string) => <span className="font-semibold text-blue-600">{text}</span>,
     },
     {
-      title: 'Giá bán',
+      title: 'Danh mục',
+      dataIndex: 'category',
+      key: 'category',
+    },
+    {
+      title: 'Giá',
       dataIndex: 'price',
       key: 'price',
-      width: 120,
-      render: (price) => <span className="font-semibold">{price.toLocaleString()}đ</span>,
+      render: (price: number) => price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }),
     },
     {
-      title: 'Tồn kho',
+      title: 'Kho',
       dataIndex: 'stock',
       key: 'stock',
-      width: 100,
-      sorter: (a, b) => a.stock - b.stock,
+      render: (stock: number) => (
+        <Tag color={stock > 10 ? 'green' : 'volcano'}>
+          {stock} chiếc
+        </Tag>
+      ),
     },
     {
-      title: 'Trạng thái',
-      key: 'status',
-      dataIndex: 'status',
-      width: 120,
-      render: (_, { status }) => {
-        const color = status === 'active' ? 'green' : 'volcano';
-        const text = status === 'active' ? 'Đang bán' : 'Hết hàng';
-        return <Tag color={color} className="rounded-full px-3">{text}</Tag>;
-      },
-    },
-    {
-      title: 'Thao tác',
+      title: 'Hành động',
       key: 'action',
-      width: 120,
       render: () => (
-        <Space size="small">
-          <Button type="text" icon={<EditOutlined />} className="text-blue-500" />
+        <Space size="middle">
+          <Button type="text" icon={<EditOutlined />} />
           <Button type="text" danger icon={<DeleteOutlined />} />
         </Space>
       ),
@@ -84,27 +48,23 @@ const Products: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Quản lý sản phẩm</h1>
-        <Button type="primary" icon={<PlusOutlined />} className="w-full sm:w-auto h-10 font-medium">
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Quản lý sản phẩm</h1>
+        <Button type="primary" icon={<PlusOutlined />}>
           Thêm sản phẩm
         </Button>
       </div>
-      
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-        <Table 
-          columns={columns} 
-          dataSource={data} 
-          scroll={{ x: 800 }} // Cho phép cuộn ngang trên màn hình nhỏ
-          pagination={{
-            pageSize: 5,
-            responsive: true,
-          }}
-        />
-      </div>
+
+      <Table 
+        columns={columns} 
+        dataSource={data?.data} 
+        rowKey="id" 
+        loading={isLoading}
+        pagination={{ total: data?.total }}
+      />
     </div>
   );
 };
 
-export default Products;
+export default ProductPage;

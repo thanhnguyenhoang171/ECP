@@ -6,6 +6,8 @@ import {
   MenuUnfoldOutlined,
   DashboardOutlined,
   ShoppingOutlined,
+  AppstoreOutlined,
+  DatabaseOutlined,
   UserOutlined,
   LogoutOutlined,
   MenuOutlined,
@@ -68,9 +70,25 @@ const AdminLayout: React.FC = () => {
       label: 'Tổng quan',
     },
     {
-      key: '/products',
+      key: 'products-group',
       icon: <ShoppingOutlined />,
-      label: 'Sản phẩm',
+      label: 'Quản lý sản phẩm',
+      children: [
+        {
+          key: '/products',
+          label: 'Danh sách sản phẩm',
+        },
+        {
+          key: '/categories',
+          icon: <AppstoreOutlined />,
+          label: 'Danh mục',
+        },
+        {
+          key: '/stock',
+          icon: <DatabaseOutlined />,
+          label: 'Kho hàng',
+        },
+      ],
     },
     {
       key: '/users',
