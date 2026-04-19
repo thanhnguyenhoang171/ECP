@@ -58,10 +58,10 @@ const ProductPage: React.FC = () => {
 
       <Table 
         columns={columns} 
-        dataSource={data?.data} 
+        dataSource={data?.content} 
         rowKey="id" 
         loading={isLoading}
-        pagination={{ total: data?.total }}
+        pagination={{ total: data?.totalElements }}
       />
     </div>
   );
