@@ -1,4 +1,4 @@
-import { Product, ProductResponse } from '../../interfaces/product';
+import type { Product, ProductResponse } from '../../interfaces/product';
 
 // Mock Data
 const MOCK_PRODUCTS: Product[] = [

@@ -1,6 +1,7 @@
 import React from 'react';
-import { Input as AntdInput, InputProps as AntdInputProps } from 'antd';
-import { PasswordProps } from 'antd/es/input';
+import { Input as AntdInput } from 'antd';
+import type { InputProps as AntdInputProps } from 'antd';
+import type { PasswordProps } from 'antd/es/input';
 
 interface CustomInputProps extends AntdInputProps {}
 
