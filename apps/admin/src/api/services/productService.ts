@@ -1,4 +1,4 @@
-import type { Product, ProductResponse } from '../../interfaces/product';
+import type { Product, PaginatedResponse } from '../../interfaces';
 
 // Mock Data
 const MOCK_PRODUCTS: Product[] = [
@@ -10,6 +10,7 @@ const MOCK_PRODUCTS: Product[] = [
     category: 'Điện thoại',
     image: 'https://placehold.co/100x100',
     stock: 50,
+    status: 'active',
     createdAt: '2024-03-20T10:00:00Z',
   },
   {
@@ -20,19 +21,23 @@ const MOCK_PRODUCTS: Product[] = [
     category: 'Laptop',
     image: 'https://placehold.co/100x100',
     stock: 20,
+    status: 'active',
     createdAt: '2024-03-21T09:00:00Z',
   },
 ];
 
 export const productService = {
   // Hàm lấy danh sách sản phẩm
-  getProducts: async (): Promise<ProductResponse> => {
+  getProducts: async (): Promise<PaginatedResponse<Product>> => {
     // Giả lập gọi API
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve({
-          data: MOCK_PRODUCTS,
-          total: MOCK_PRODUCTS.length,
+          content: MOCK_PRODUCTS,
+          totalElements: MOCK_PRODUCTS.length,
+          totalPages: 1,
+          size: 10,
+          number: 0
         });
       }, 800); // Trễ 800ms
     });
