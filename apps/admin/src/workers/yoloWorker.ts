@@ -8,6 +8,8 @@ ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/';
 let session: ort.InferenceSession | null = null;
 const MODEL_SIZE = 640;
 const float32Data = new Float32Array(3 * MODEL_SIZE * MODEL_SIZE);
+let offCanvas: OffscreenCanvas | null = null;
+let offCtx: OffscreenCanvasRenderingContext2D | null = null;
 
 function getTopBox(data: Float32Array, dims: readonly number[]) {
     const numBoxes = dims[1]; 
@@ -48,8 +50,26 @@ self.onmessage = async (e: MessageEvent) => {
     
     else if (type === 'DETECT') {
         if (!session) return;
-        const buffer = e.data.buffer as ArrayBuffer;
-        const imageData = new Uint8ClampedArray(buffer);
+        
+        let imageData: Uint8ClampedArray;
+
+        if (e.data.bitmap) {
+            const bitmap = e.data.bitmap as ImageBitmap;
+            if (!offCanvas) {
+                offCanvas = new OffscreenCanvas(MODEL_SIZE, MODEL_SIZE);
+                offCtx = offCanvas.getContext('2d', { willReadFrequently: true }) as OffscreenCanvasRenderingContext2D;
+            }
+            if (offCtx) {
+                offCtx.drawImage(bitmap, 0, 0, MODEL_SIZE, MODEL_SIZE);
+                imageData = offCtx.getImageData(0, 0, MODEL_SIZE, MODEL_SIZE).data;
+            } else {
+                imageData = new Uint8ClampedArray(MODEL_SIZE * MODEL_SIZE * 4);
+            }
+            bitmap.close();
+        } else {
+            const buffer = e.data.buffer as ArrayBuffer;
+            imageData = new Uint8ClampedArray(buffer);
+        }
 
         for (let i = 0; i < MODEL_SIZE * MODEL_SIZE; i++) {
             float32Data[i] = imageData[i * 4] / 255.0;

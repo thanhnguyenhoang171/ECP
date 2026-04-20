@@ -169,6 +169,10 @@ const BarcodeScanner: React.FC = () => {
                 
                 isProcessingRef.current = false;
             }
+            if (e.data.type === 'ERROR') {
+                console.error('YOLO Worker Error:', e.data.error);
+                isProcessingRef.current = false;
+            }
         };
 
         workerRef.current.postMessage({ type: 'INIT' });
@@ -203,24 +207,39 @@ const BarcodeScanner: React.FC = () => {
                     const size = Math.min(video.videoWidth, video.videoHeight);
                     const sx = (video.videoWidth - size) / 2;
                     const sy = (video.videoHeight - size) / 2;
-                    offCtx.drawImage(video, sx, sy, size, size, 0, 0, MODEL_SIZE, MODEL_SIZE);
                     
                     const frameId = ++frameIdCounter.current;
                     
-                    if (typeof createImageBitmap === 'function') {
-                        createImageBitmap(offCanvasRef.current!).then(bitmap => {
-                            pendingFrames.current.set(frameId, bitmap);
-                        }).catch(() => {});
+                    if (typeof OffscreenCanvas !== 'undefined' && typeof createImageBitmap === 'function') {
+                        // High performance GPU memory copy avoiding CPU Main Thread freeze
+                        Promise.all([
+                            createImageBitmap(video, sx, sy, size, size, { resizeWidth: MODEL_SIZE, resizeHeight: MODEL_SIZE }),
+                            createImageBitmap(video, sx, sy, size, size, { resizeWidth: MODEL_SIZE, resizeHeight: MODEL_SIZE })
+                        ]).then(([workerBitmap, historyBitmap]) => {
+                            pendingFrames.current.set(frameId, historyBitmap);
+                            workerRef.current?.postMessage({ type: 'DETECT', bitmap: workerBitmap, meta: { frameId } }, [workerBitmap]);
+                        }).catch(() => {
+                            isProcessingRef.current = false;
+                        });
                     } else {
-                        const fallbackCanvas = document.createElement('canvas');
-                        fallbackCanvas.width = MODEL_SIZE; fallbackCanvas.height = MODEL_SIZE;
-                        fallbackCanvas.getContext('2d')?.drawImage(offCanvasRef.current!, 0, 0);
-                        pendingFrames.current.set(frameId, fallbackCanvas);
-                    }
+                        // Legacy fallback for old browsers without OffscreenCanvas support natively tracking GPU state
+                        offCtx.drawImage(video, sx, sy, size, size, 0, 0, MODEL_SIZE, MODEL_SIZE);
+                        
+                        if (typeof createImageBitmap === 'function') {
+                            createImageBitmap(offCanvasRef.current!).then(bitmap => {
+                                pendingFrames.current.set(frameId, bitmap);
+                            }).catch(() => {});
+                        } else {
+                            const fallbackCanvas = document.createElement('canvas');
+                            fallbackCanvas.width = MODEL_SIZE; fallbackCanvas.height = MODEL_SIZE;
+                            fallbackCanvas.getContext('2d')?.drawImage(offCanvasRef.current!, 0, 0);
+                            pendingFrames.current.set(frameId, fallbackCanvas);
+                        }
 
-                    const imageData = offCtx.getImageData(0, 0, MODEL_SIZE, MODEL_SIZE);
-                    const buffer = imageData.data.buffer;
-                    workerRef.current?.postMessage({ type: 'DETECT', buffer, meta: { frameId } }, [buffer]);
+                        const imageData = offCtx.getImageData(0, 0, MODEL_SIZE, MODEL_SIZE);
+                        const buffer = imageData.data.buffer;
+                        workerRef.current?.postMessage({ type: 'DETECT', buffer, meta: { frameId } }, [buffer]);
+                    }
                 }
             }
             animationId = requestAnimationFrame(loop);
