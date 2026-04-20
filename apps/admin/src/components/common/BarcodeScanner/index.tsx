@@ -36,6 +36,7 @@ const BarcodeScanner: React.FC = () => {
     const sampleBuffer = useRef<SampleItem[]>([]);
     const isProcessingRef = useRef(false);
     const isSamplingRef = useRef(false);
+    const lastProcessTime = useRef(0);
 
     // -- MOVE HELPERS UP --
 
@@ -173,7 +174,7 @@ const BarcodeScanner: React.FC = () => {
         workerRef.current.postMessage({ type: 'INIT' });
 
         navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment', width: { ideal: 720 }, height: { ideal: 720 } }
+            video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } }
         }).then(stream => {
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
@@ -195,8 +196,10 @@ const BarcodeScanner: React.FC = () => {
         const loop = () => {
             if (status === 'ready' && videoRef.current && !isProcessingRef.current && offCtx) {
                 const video = videoRef.current;
-                if (video.readyState === video.HAVE_ENOUGH_DATA && !video.paused) {
+                const now = performance.now();
+                if (video.readyState === video.HAVE_ENOUGH_DATA && !video.paused && (now - lastProcessTime.current > 300)) {
                     isProcessingRef.current = true;
+                    lastProcessTime.current = now;
                     const size = Math.min(video.videoWidth, video.videoHeight);
                     const sx = (video.videoWidth - size) / 2;
                     const sy = (video.videoHeight - size) / 2;
