@@ -1,8 +1,16 @@
 import { Statistic as AntdStatistic } from 'antd';
 import type { StatisticProps as AntdStatisticProps } from 'antd';
-import type { FC } from 'react';
+import type { FC, CSSProperties } from 'react';
 
-const Statistic: FC<AntdStatisticProps> = ({ className, styles, valueStyle, ...props }) => {
+interface ExtendedStatisticProps extends AntdStatisticProps {
+  styles?: {
+    content?: CSSProperties;
+    title?: CSSProperties;
+    // Add other semantic slots if needed
+  };
+}
+
+const Statistic: FC<ExtendedStatisticProps> = ({ className, styles, valueStyle, ...props }) => {
   return (
     <AntdStatistic 
       {...props} 
