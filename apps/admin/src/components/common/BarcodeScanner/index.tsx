@@ -165,7 +165,8 @@ const BarcodeScanner: React.FC = () => {
                     offCtx.drawImage(video, sx, sy, size, size, 0, 0, MODEL_SIZE, MODEL_SIZE);
                     const frameUrl = offCanvasRef.current!.toDataURL('image/jpeg', 0.8);
 
-                    fetch('http://localhost:3005/api/v1/detect', {
+                    const baseUrl = import.meta.env.VITE_VISION_API_URL || 'http://localhost:3005';
+                    fetch(`${baseUrl}/api/v1/detect`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ image: frameUrl })
