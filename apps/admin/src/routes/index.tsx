@@ -1,35 +1,52 @@
+/* eslint-disable react-refresh/only-export-components */
+import { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { Spin } from 'antd';
+
+const Fallback = () => (
+    <div className="flex w-full h-[100vh] items-center justify-center bg-slate-50">
+        <Spin size="large" />
+    </div>
+);
+
+const withSuspense = (Component: React.ComponentType) => (
+    <Suspense fallback={<Fallback />}>
+        <Component />
+    </Suspense>
+);
+
 import AdminLayout from '../components/layout/AdminLayout';
 import ProtectedRoute from '../components/layout/ProtectedRoute';
-import Dashboard from '../pages/Dashboard';
-import Products from '../pages/Products';
-import Categories from '../pages/Categories';
-import Skus from '../pages/Skus';
-import Orders from '../pages/Orders';
-import Payments from '../pages/Payments';
-import Warehouses from '../pages/Warehouses';
-import Stock from '../pages/Stock';
-import InventoryLedger from '../pages/InventoryLedger';
-import InventoryReservations from '../pages/InventoryReservations';
-import BarcodeScans from '../pages/BarcodeScans';
-import PurchaseOrders from '../pages/PurchaseOrders';
-import Suppliers from '../pages/Suppliers';
-import Users from '../pages/Users';
-import Customers from '../pages/Customers';
-import Profile from '../pages/Profile';
-import Login from '../pages/Auth/Login';
-import Register from '../pages/Auth/Register';
-import NotFound from '../pages/Error/NotFound';
 import GeneralError from '../pages/Error/GeneralError';
+import NotFound from '../pages/Error/NotFound';
+
+const Dashboard = lazy(() => import('../pages/Dashboard'));
+const Products = lazy(() => import('../pages/Products'));
+const Categories = lazy(() => import('../pages/Categories'));
+const Skus = lazy(() => import('../pages/Skus'));
+const Orders = lazy(() => import('../pages/Orders'));
+const Payments = lazy(() => import('../pages/Payments'));
+const Warehouses = lazy(() => import('../pages/Warehouses'));
+const Stock = lazy(() => import('../pages/Stock'));
+const InventoryLedger = lazy(() => import('../pages/InventoryLedger'));
+const InventoryReservations = lazy(() => import('../pages/InventoryReservations'));
+const BarcodeScans = lazy(() => import('../pages/BarcodeScans'));
+const PurchaseOrders = lazy(() => import('../pages/PurchaseOrders'));
+const Suppliers = lazy(() => import('../pages/Suppliers'));
+const Users = lazy(() => import('../pages/Users'));
+const Customers = lazy(() => import('../pages/Customers'));
+const Profile = lazy(() => import('../pages/Profile'));
+const Login = lazy(() => import('../pages/Auth/Login'));
+const Register = lazy(() => import('../pages/Auth/Register'));
 
 const router = createBrowserRouter([
   {
     path: '/login',
-    element: <Login />,
+    element: withSuspense(Login),
   },
   {
     path: '/register',
-    element: <Register />,
+    element: withSuspense(Register),
   },
   {
     path: '/',
@@ -38,7 +55,7 @@ const router = createBrowserRouter([
     children: [
       {
         path: 'profile',
-        element: <Profile />, // Profile trang riêng, không dùng AdminLayout
+        element: withSuspense(Profile), // Profile trang riêng, không dùng AdminLayout
       },
       {
         element: <AdminLayout />,
@@ -49,68 +66,68 @@ const router = createBrowserRouter([
           },
           {
             path: 'dashboard',
-            element: <Dashboard />,
+            element: withSuspense(Dashboard),
           },
           // Catalog
           {
             path: 'products',
-            element: <Products />,
+            element: withSuspense(Products),
           },
           {
             path: 'categories',
-            element: <Categories />,
+            element: withSuspense(Categories),
           },
           {
             path: 'skus',
-            element: <Skus />,
+            element: withSuspense(Skus),
           },
           // Sales
           {
             path: 'orders',
-            element: <Orders />,
+            element: withSuspense(Orders),
           },
           {
             path: 'payments',
-            element: <Payments />,
+            element: withSuspense(Payments),
           },
           // Inventory
           {
             path: 'warehouses',
-            element: <Warehouses />,
+            element: withSuspense(Warehouses),
           },
           {
             path: 'stock',
-            element: <Stock />,
+            element: withSuspense(Stock),
           },
           {
             path: 'inventory-ledger',
-            element: <InventoryLedger />,
+            element: withSuspense(InventoryLedger),
           },
           {
             path: 'inventory-reservations',
-            element: <InventoryReservations />,
+            element: withSuspense(InventoryReservations),
           },
           {
             path: 'barcode-scans',
-            element: <BarcodeScans />,
+            element: withSuspense(BarcodeScans),
           },
           // Procurement
           {
             path: 'purchase-orders',
-            element: <PurchaseOrders />,
+            element: withSuspense(PurchaseOrders),
           },
           {
             path: 'suppliers',
-            element: <Suppliers />,
+            element: withSuspense(Suppliers),
           },
           // Users
           {
             path: 'users',
-            element: <Users />,
+            element: withSuspense(Users),
           },
           {
             path: 'customers',
-            element: <Customers />,
+            element: withSuspense(Customers),
           },
         ],
       },

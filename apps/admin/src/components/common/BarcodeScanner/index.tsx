@@ -24,7 +24,7 @@ const BarcodeScanner: React.FC = () => {
     const workerRef = useRef<Worker | null>(null);
     const offCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-    const pendingFrames = useRef<Map<number, string>>(new Map());
+    const pendingFrames = useRef<Map<number, ImageBitmap | HTMLCanvasElement>>(new Map());
     const frameIdCounter = useRef(0);
     const samplingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -83,7 +83,7 @@ const BarcodeScanner: React.FC = () => {
 
                 setScans(prev => [{
                     id: Math.random().toString(36).substring(2, 11),
-                    image: cropCanvas.toDataURL('image/png'),
+                    image: cropCanvas.toDataURL('image/jpeg', 0.9),
                     timestamp: new Date().toLocaleTimeString(),
                     prob: best.prob
                 }, ...prev].slice(0, 5));
@@ -139,12 +139,33 @@ const BarcodeScanner: React.FC = () => {
             if (e.data.type === 'READY') setStatus('ready');
             if (e.data.type === 'RESULT') {
                 const { box, meta } = e.data;
-                const frameUrl = pendingFrames.current.get(meta.frameId);
+                const sourceFrame = pendingFrames.current.get(meta.frameId);
+                let frameUrl = '';
+                
+                if (sourceFrame) {
+                    if (box && box.prob > 0.6 && !isSamplingRef.current) {
+                        try {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = MODEL_SIZE; canvas.height = MODEL_SIZE;
+                            canvas.getContext('2d')?.drawImage(sourceFrame, 0, 0);
+                            frameUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        } catch(err) { console.error(err); }
+                    }
+                }
+
                 drawBox(box);
                 if (box && box.prob > 0.6 && !isSamplingRef.current && frameUrl) {
                     collectSample(box, frameUrl);
                 }
-                pendingFrames.current.delete(meta.frameId);
+                
+                // Cleanup older frames
+                for (const [key, val] of pendingFrames.current.entries()) {
+                    if (key <= meta.frameId) {
+                        if (val instanceof ImageBitmap) val.close();
+                        pendingFrames.current.delete(key);
+                    }
+                }
+                
                 isProcessingRef.current = false;
             }
         };
@@ -152,7 +173,7 @@ const BarcodeScanner: React.FC = () => {
         workerRef.current.postMessage({ type: 'INIT' });
 
         navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+            video: { facingMode: 'environment', width: { ideal: 720 }, height: { ideal: 720 } }
         }).then(stream => {
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
@@ -182,12 +203,16 @@ const BarcodeScanner: React.FC = () => {
                     offCtx.drawImage(video, sx, sy, size, size, 0, 0, MODEL_SIZE, MODEL_SIZE);
                     
                     const frameId = ++frameIdCounter.current;
-                    const frameUrl = offCanvasRef.current!.toDataURL('image/png');
-                    pendingFrames.current.set(frameId, frameUrl);
-
-                    if (pendingFrames.current.size > 30) {
-                        const firstKey = pendingFrames.current.keys().next().value;
-                        if (firstKey !== undefined) pendingFrames.current.delete(firstKey);
+                    
+                    if (typeof createImageBitmap === 'function') {
+                        createImageBitmap(offCanvasRef.current!).then(bitmap => {
+                            pendingFrames.current.set(frameId, bitmap);
+                        }).catch(() => {});
+                    } else {
+                        const fallbackCanvas = document.createElement('canvas');
+                        fallbackCanvas.width = MODEL_SIZE; fallbackCanvas.height = MODEL_SIZE;
+                        fallbackCanvas.getContext('2d')?.drawImage(offCanvasRef.current!, 0, 0);
+                        pendingFrames.current.set(frameId, fallbackCanvas);
                     }
 
                     const imageData = offCtx.getImageData(0, 0, MODEL_SIZE, MODEL_SIZE);
