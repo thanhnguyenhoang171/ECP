@@ -33,6 +33,7 @@ const BarcodeScanner: React.FC = () => {
     const sampleBuffer = useRef<SampleItem[]>([]);
     const isProcessingRef = useRef(false);
     const isSamplingRef = useRef(false);
+    const isShakingRef = useRef(false);
     const lastProcessTime = useRef(0);
 
     // -- MOVE HELPERS UP --
@@ -71,7 +72,7 @@ const BarcodeScanner: React.FC = () => {
 
         if (best.prob >= 0.8) {
             const img = new Image();
-            img.onload = () => {
+            img.onload = async () => {
                 const cropCanvas = document.createElement('canvas');
                 const x = Math.max(0, Math.floor(best.x)), y = Math.max(0, Math.floor(best.y));
                 const w = Math.min(MODEL_SIZE - x, Math.floor(best.w)), h = Math.min(MODEL_SIZE - y, Math.floor(best.h));
@@ -79,15 +80,30 @@ const BarcodeScanner: React.FC = () => {
                 const ctx = cropCanvas.getContext('2d')!;
                 ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
 
-                setScans(prev => [{
-                    id: Math.random().toString(36).substring(2, 11),
-                    image: cropCanvas.toDataURL('image/jpeg', 0.9),
-                    timestamp: new Date().toLocaleTimeString(),
-                    prob: best.prob
-                }, ...prev].slice(0, 5));
-                setIsFlash(true);
-                setTimeout(() => setIsFlash(false), 150);
-                resetScanner(1200);
+                const dataUrl = cropCanvas.toDataURL('image/jpeg', 1.0);
+                
+                try {
+                    const { BrowserMultiFormatReader } = await import('@zxing/library');
+                    const codeReader = new BrowserMultiFormatReader();
+                    const result = await codeReader.decodeFromImageUrl(dataUrl);
+                    const decodedText = result.getText();
+                    
+                    setScans(prev => [{
+                        id: decodedText,
+                        image: cropCanvas.toDataURL('image/jpeg', 0.8),
+                        timestamp: new Date().toLocaleTimeString(),
+                        prob: best.prob
+                    }, ...prev].slice(0, 5));
+                    
+                    setIsFlash(true);
+                    setTimeout(() => setIsFlash(false), 150);
+                    message.success(`Giải mã thành công: ${decodedText}`);
+                    resetScanner(1500);
+                } catch (decodeErr) {
+                    console.warn("ZXing decode failed on this frame", decodeErr);
+                    message.error("Đã khóa mục tiêu nhưng mã vạch bị mờ, không thể giải mã!");
+                    resetScanner(1000);
+                }
             };
             img.src = best.frame;
         } else if (best.prob < 0.7) {
@@ -127,6 +143,35 @@ const BarcodeScanner: React.FC = () => {
     // -- EFFECTS AFTER HELPERS --
 
     useEffect(() => {
+        let timeoutId: any;
+        const handleMotion = (event: DeviceMotionEvent) => {
+            const acc = event.acceleration;
+            if (acc && acc.x != null && acc.y != null) {
+                const shake = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z || 0);
+                if (shake > 2.0) { // Ngưỡng rung lắc
+                    isShakingRef.current = true;
+                    if (timeoutId) clearTimeout(timeoutId);
+                    timeoutId = setTimeout(() => { isShakingRef.current = false; }, 500); // Cần 0.5s tĩnh để tiếp tục AI
+                }
+            }
+        };
+
+        // Có thể cần xin quyền DeviceOrientation trên iOS 13+
+        if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+            (DeviceMotionEvent as any).requestPermission()
+                .then((state: string) => { if (state === 'granted') window.addEventListener('devicemotion', handleMotion); })
+                .catch(console.error);
+        } else {
+            window.addEventListener('devicemotion', handleMotion);
+        }
+
+        return () => {
+            window.removeEventListener('devicemotion', handleMotion);
+            if (timeoutId) clearTimeout(timeoutId);
+        };
+    }, []);
+
+    useEffect(() => {
         offCanvasRef.current = document.createElement('canvas');
         offCanvasRef.current.width = MODEL_SIZE;
         offCanvasRef.current.height = MODEL_SIZE;
@@ -156,6 +201,11 @@ const BarcodeScanner: React.FC = () => {
                 const video = videoRef.current;
                 const now = performance.now();
                 if (video.readyState === video.HAVE_ENOUGH_DATA && !video.paused && (now - lastProcessTime.current > 600)) {
+                    if (isShakingRef.current) {
+                        // Tiết kiệm CPU, API và Băng thông tuyệt đối nếu tay người dùng đang rung!
+                        animationId = requestAnimationFrame(loop);
+                        return;
+                    }
                     isProcessingRef.current = true;
                     const size = Math.min(video.videoWidth, video.videoHeight);
                     const sx = (video.videoWidth - size) / 2;
@@ -238,7 +288,7 @@ const BarcodeScanner: React.FC = () => {
                     <div className="flex items-center gap-4 p-3 mb-2 bg-slate-50 rounded-2xl border border-slate-100">
                         <img src={item.image} alt="Crop" className="w-20 h-10 object-contain bg-white rounded-lg border border-slate-200" />
                         <div className="flex-1">
-                            <div className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">Optimized Result</div>
+                            <div className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">Decoded Barcode: {item.id}</div>
                             <div className="text-[9px] text-slate-400 font-medium">Conf: {(item.prob * 100).toFixed(1)}% • {item.timestamp}</div>
                         </div>
                         <CheckCircleOutlined className="text-emerald-500 text-lg" />
