@@ -155,7 +155,7 @@ const BarcodeScanner: React.FC = () => {
             if (status === 'ready' && videoRef.current && !isProcessingRef.current && offCtx) {
                 const video = videoRef.current;
                 const now = performance.now();
-                if (video.readyState === video.HAVE_ENOUGH_DATA && !video.paused && (now - lastProcessTime.current > 300)) {
+                if (video.readyState === video.HAVE_ENOUGH_DATA && !video.paused && (now - lastProcessTime.current > 600)) {
                     isProcessingRef.current = true;
                     lastProcessTime.current = now;
                     const size = Math.min(video.videoWidth, video.videoHeight);
@@ -163,7 +163,7 @@ const BarcodeScanner: React.FC = () => {
                     const sy = (video.videoHeight - size) / 2;
                     
                     offCtx.drawImage(video, sx, sy, size, size, 0, 0, MODEL_SIZE, MODEL_SIZE);
-                    const frameUrl = offCanvasRef.current!.toDataURL('image/jpeg', 0.8);
+                    const frameUrl = offCanvasRef.current!.toDataURL('image/jpeg', 0.5);
 
                     const baseUrl = import.meta.env.VITE_VISION_API_URL || 'http://localhost:3005';
                     fetch(`${baseUrl}/api/v1/detect`, {

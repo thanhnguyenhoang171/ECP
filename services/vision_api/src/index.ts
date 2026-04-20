@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import * as ort from 'onnxruntime-node';
-import { Jimp } from 'jimp';
+import sharp from 'sharp';
 import path from 'path';
 
 const app = express();
@@ -61,17 +61,20 @@ app.post('/api/v1/detect', async (req: express.Request, res: express.Response): 
         const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
 
-        const img = await Jimp.read(buffer);
-        img.resize({ w: MODEL_SIZE, h: MODEL_SIZE });
+        // Extract raw RGB buffer from image using Sharp (C++ binding, much faster than Node Jimp)
+        const { data } = await sharp(buffer)
+            .resize({ width: MODEL_SIZE, height: MODEL_SIZE, fit: 'fill' })
+            .removeAlpha()
+            .raw()
+            .toBuffer({ resolveWithObject: true });
         
-        // Prepare tensor
-        let i = 0;
-        img.scan((x, y, idx) => {
-            float32Data[i] = img.bitmap.data[idx] / 255.0;
-            float32Data[409600 + i] = img.bitmap.data[idx + 1] / 255.0;
-            float32Data[819200 + i] = img.bitmap.data[idx + 2] / 255.0;
-            i++;
-        });
+        // Prepare tensor (Data length should match MODEL_SIZE * MODEL_SIZE * 3)
+        // RGB are interleaved in the raw buffer: [R,G,B, R,G,B, ...]
+        for (let i = 0; i < MODEL_SIZE * MODEL_SIZE; i++) {
+            float32Data[i] = data[i * 3] / 255.0;                   // R channel
+            float32Data[409600 + i] = data[i * 3 + 1] / 255.0;      // G channel
+            float32Data[819200 + i] = data[i * 3 + 2] / 255.0;      // B channel
+        }
 
         const tensor = new ort.Tensor('float32', float32Data, [1, 3, MODEL_SIZE, MODEL_SIZE]);
         const results = await session.run({ [session.inputNames[0]]: tensor });
