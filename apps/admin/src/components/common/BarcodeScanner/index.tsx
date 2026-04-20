@@ -163,26 +163,45 @@ const BarcodeScanner: React.FC = () => {
                     const sy = (video.videoHeight - size) / 2;
                     
                     offCtx.drawImage(video, sx, sy, size, size, 0, 0, MODEL_SIZE, MODEL_SIZE);
-                    const frameUrl = offCanvasRef.current!.toDataURL('image/jpeg', 0.5);
-
-                    const baseUrl = import.meta.env.VITE_VISION_API_URL || 'http://localhost:3005';
-                    fetch(`${baseUrl}/api/v1/detect`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ image: frameUrl })
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        const box = data.box;
-                        drawBox(box);
-                        if (box && box.prob > 0.6 && !isSamplingRef.current) {
-                            collectSample(box, frameUrl);
+                    
+                    offCanvasRef.current!.toBlob((blob) => {
+                        if (!blob) {
+                            isProcessingRef.current = false;
+                            return;
                         }
-                    })
-                    .catch(err => console.error('YOLO Fetch Error:', err))
-                    .finally(() => {
-                        isProcessingRef.current = false;
-                    });
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const frameUrl = reader.result as string;
+
+                            let baseUrl = import.meta.env.VITE_VISION_API_URL;
+                            if (!baseUrl) {
+                                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                                    baseUrl = 'http://localhost:3005';
+                                } else {
+                                    baseUrl = `${window.location.protocol}//vision-api.${window.location.hostname.replace('admin.', '')}`;
+                                }
+                            }
+
+                            fetch(`${baseUrl}/api/v1/detect`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ image: frameUrl })
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                const box = data.box;
+                                drawBox(box);
+                                if (box && box.prob > 0.6 && !isSamplingRef.current) {
+                                    collectSample(box, frameUrl);
+                                }
+                            })
+                            .catch(err => console.error('YOLO Fetch Error:', err))
+                            .finally(() => {
+                                isProcessingRef.current = false;
+                            });
+                        };
+                        reader.readAsDataURL(blob);
+                    }, 'image/jpeg', 0.5);
                 }
             }
             animationId = requestAnimationFrame(loop);
