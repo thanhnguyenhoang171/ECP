@@ -75,6 +75,10 @@ jobs:
             context: ./services/ecp_api
             dockerfile: ./services/ecp_api/Dockerfile
             image: ghcr.io/${{ github.repository }}/ecp-api
+          - name: vision_api
+            context: ./services/vision_api
+            dockerfile: ./services/vision_api/Dockerfile
+            image: ghcr.io/${{ github.repository }}/ecp-vision-api
 
     steps:
       - name: Checkout code
