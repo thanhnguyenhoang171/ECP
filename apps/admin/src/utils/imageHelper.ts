@@ -34,6 +34,28 @@ export const imageHelper = {
     ]);
   },
 
+  cropBarcode: (box: any) => {
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = box.w;
+    cropCanvas.height = box.h;
+    const cropCtx = cropCanvas.getContext('2d')!;
+
+    // Copy from the internal canvas used in videoToTensor
+    cropCtx.drawImage(
+      canvas,
+      box.x,
+      box.y,
+      box.w,
+      box.h,
+      0,
+      0,
+      box.w,
+      box.h
+    );
+
+    return cropCanvas.toDataURL('image/png');
+  },
+
   // ==============================
   // Decode output (300,6)
   // ==============================

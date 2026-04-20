@@ -9,9 +9,11 @@ const BarcodeScanner = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [ready, setReady] = useState(false);
+  const [croppedImage, setCroppedImage] = useState<string | null>(null);
 
   const lastBox = useRef<any>(null);
   const processing = useRef(false);
+
 
   // ==============================
   // Load model
@@ -110,6 +112,11 @@ const BarcodeScanner = () => {
             const box = imageHelper.getTopBox(output);
 
             lastBox.current = box;
+
+            if (box && box.prob > 0.6) {
+              const img = imageHelper.cropBarcode(box);
+              setCroppedImage(img);
+            }
           } catch (e) {
             console.error(e);
           }
@@ -131,13 +138,41 @@ const BarcodeScanner = () => {
   return (
     <div style={{ position: 'relative', width: '100%' }}>
       {!ready && (
-        <div style={{ position: 'absolute', inset: 0 }}>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(255,255,255,0.7)',
+            zIndex: 10,
+          }}
+        >
           <Spin indicator={<LoadingOutlined spin />} />
         </div>
       )}
 
-      <video ref={videoRef} style={{ width: '100%' }} playsInline muted />
-      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0 }} />
+      <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 8 }}>
+        <video ref={videoRef} style={{ width: '100%' }} playsInline muted />
+        <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0 }} />
+      </div>
+
+      {croppedImage && (
+        <div style={{ marginTop: 16, textAlign: 'center' }}>
+          <p>Barcode detected:</p>
+          <img
+            src={croppedImage}
+            alt="Cropped Barcode"
+            style={{
+              maxWidth: '100%',
+              height: 'auto',
+              border: '2px solid lime',
+              borderRadius: 4,
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 };
