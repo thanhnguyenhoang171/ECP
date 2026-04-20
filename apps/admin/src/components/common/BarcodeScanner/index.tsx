@@ -10,32 +10,20 @@ export const BarcodeScanner: FC = () => {
     const [isModelReady, setIsModelReady] = useState(false);
     const [isCameraActive, setIsCameraActive] = useState(false);
 
-    // 1. Tải AI Model (Thực tế)
     useEffect(() => {
         yoloService.loadModel()
             .then(() => setIsModelReady(true))
-            .catch((err) => {
-              console.error(err);
-              message.error("Lỗi khởi động hệ thống AI. Vui lòng kiểm tra file model!");
-            });
+            .catch(() => message.error("Lỗi khởi động AI"));
     }, []);
 
-    // 2. Khởi động Camera
     useEffect(() => {
         let currentStream: MediaStream | null = null;
-
         const startCamera = async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { 
-                        facingMode: 'environment',
-                        width: { ideal: 640 },
-                        height: { ideal: 640 } 
-                    }
+                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
                 });
-
                 currentStream = stream;
-
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
                     videoRef.current.onloadedmetadata = () => {
@@ -45,26 +33,20 @@ export const BarcodeScanner: FC = () => {
                 }
             } catch (err) {
                 console.error(err);
-                message.error("Vui lòng cấp quyền truy cập Camera!");
+                message.error("Vui lòng cấp quyền Camera");
             }
         };
-
         startCamera();
-
-        return () => {
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-            }
-        };
+        return () => currentStream?.getTracks().forEach(track => track.stop());
     }, []);
 
-    // 3. Vòng lặp xử lý AI thời gian thực (Real Inference)
     useEffect(() => {
         let animationId: number;
         let lastRunTime = 0;
 
         const processFrame = async (timestamp: number) => {
-            if (timestamp - lastRunTime < 80) {
+            // Giảm xuống ~6 FPS cho Mobile mượt mà
+            if (timestamp - lastRunTime < 150) {
                 animationId = requestAnimationFrame(processFrame);
                 return;
             }
@@ -83,30 +65,33 @@ export const BarcodeScanner: FC = () => {
                         const ctx = canvas.getContext('2d')!;
                         canvas.width = video.clientWidth;
                         canvas.height = video.clientHeight;
-                        
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                         if (topBox) {
-                            const scaleX = canvas.width / 640;
-                            const scaleY = canvas.height / 640;
+                            // Tính toán lại tọa độ dựa trên cơ chế Crop (ROI)
+                            const displaySize = Math.min(canvas.width, canvas.height);
+                            const offsetX = (canvas.width - displaySize) / 2;
+                            const offsetY = (canvas.height - displaySize) / 2;
+                            
+                            const scale = displaySize / 640;
 
-                            const drawX = topBox.x * scaleX;
-                            const drawY = topBox.y * scaleY;
-                            const drawW = topBox.w * scaleX;
-                            const drawH = topBox.h * scaleY;
+                            const drawX = topBox.x * scale + offsetX;
+                            const drawY = topBox.y * scale + offsetY;
+                            const drawW = topBox.w * scale;
+                            const drawH = topBox.h * scale;
 
                             ctx.strokeStyle = '#10b981'; 
-                            ctx.lineWidth = 3;
+                            ctx.lineWidth = 4;
                             ctx.strokeRect(drawX, drawY, drawW, drawH);
                             
                             ctx.fillStyle = '#10b981';
                             ctx.fillRect(drawX, drawY - 25, 55, 25);
                             ctx.fillStyle = '#FFFFFF';
-                            ctx.font = 'bold 12px Inter, Arial';
+                            ctx.font = 'bold 12px Inter';
                             ctx.fillText(`${(topBox.prob * 100).toFixed(0)}%`, drawX + 5, drawY - 8);
                         }
                     } catch (e) {
-                        if (timestamp % 100 === 0) console.error("Inference Error:", e);
+                        console.error(e);
                     }
                 }
             }
@@ -114,72 +99,52 @@ export const BarcodeScanner: FC = () => {
         };
 
         animationId = requestAnimationFrame(processFrame);
-
-        return () => {
-            cancelAnimationFrame(animationId);
-        };
+        return () => cancelAnimationFrame(animationId);
     }, [isModelReady]);
 
     return (
-        <div className="flex flex-col items-center justify-center p-6 w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-soft border border-slate-100 font-sans">
-            <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600">
+        <div className="flex flex-col items-center justify-center p-4 w-full bg-white rounded-2xl shadow-soft border border-slate-100">
+            <div className="flex items-center gap-2 mb-4 w-full">
+                <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600 shrink-0">
                     <BarcodeOutlined className="text-xl" />
                 </div>
-                <div>
-                    <h2 className="text-lg font-bold text-slate-900 leading-none">
+                <div className="overflow-hidden">
+                    <h2 className="text-base font-bold text-slate-900 truncate">
                         {isModelReady ? "Sẵn sàng quét mã" : "Đang khởi động AI..."}
                     </h2>
-                    <p className="text-xs text-slate-400 mt-1 text-left">Hệ thống nhận diện mã vạch AI YOLOv11</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider">Edge GPU Accelerated</p>
                 </div>
             </div>
             
-            <div className="relative w-full overflow-hidden rounded-2xl border-4 border-white shadow-lg bg-slate-900 aspect-square group">
+            <div className="relative w-full overflow-hidden rounded-2xl border-2 border-slate-100 bg-slate-900 aspect-square">
                 {(!isModelReady || !isCameraActive) && (
                     <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm">
-                        <Spin indicator={<LoadingOutlined className="text-4xl text-white mb-4" spin />} />
-                        <span className="text-white text-sm font-medium tracking-wide">Đang nạp bộ não AI...</span>
+                        <Spin indicator={<LoadingOutlined className="text-3xl text-white mb-3" spin />} />
+                        <span className="text-white text-xs font-medium uppercase tracking-widest">Khởi tạo hệ thống...</span>
                     </div>
                 )}
 
-                <video 
-                    ref={videoRef} 
-                    className="absolute inset-0 w-full h-full object-cover"
-                    playsInline 
-                    muted 
-                />
-                
-                <canvas 
-                    ref={canvasRef} 
-                    className="absolute inset-0 w-full h-full pointer-events-none z-10"
-                />
+                <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" playsInline muted />
+                <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-10" />
 
+                {/* Vùng quét ROI - Focus Area */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                    <div className="w-4/5 h-1/3 border-2 border-primary-500 bg-primary-500/10 rounded-xl shadow-[0_0_0_9999px_rgba(15,23,42,0.65)]">
-                        <div className="w-full h-0.5 bg-primary-400 opacity-70 absolute top-1/2 left-0 transform -translate-y-1/2 shadow-[0_0_15px_3px_rgba(37,99,235,0.6)] animate-pulse"></div>
-                        <div className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-primary-500 rounded-tl-lg"></div>
-                        <div className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-primary-500 rounded-tr-lg"></div>
-                        <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-primary-500 rounded-bl-lg"></div>
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-4 border-r-4 border-primary-500 rounded-br-lg"></div>
+                    <div className="w-4/5 h-1/3 border-2 border-white/30 rounded-xl shadow-[0_0_0_9999px_rgba(15,23,42,0.5)]">
+                        <div className="absolute inset-0 border-2 border-primary-500 rounded-xl animate-pulse"></div>
+                        {/* Laser line */}
+                        <div className="w-full h-0.5 bg-primary-400 absolute top-1/2 left-0 shadow-[0_0_10px_2px_rgba(37,99,235,0.5)]"></div>
                     </div>
                 </div>
 
-                <div className="absolute top-4 left-4 z-20 px-3 py-1 bg-slate-900/60 backdrop-blur-md rounded-full border border-white/20 flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${isCameraActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></div>
-                    <span className="text-[10px] font-bold text-white uppercase tracking-wider">
-                        {isCameraActive ? 'LIVE AI' : 'CONNECTING'}
-                    </span>
+                <div className="absolute top-3 left-3 z-20 px-2 py-0.5 bg-emerald-500/20 backdrop-blur-md rounded-md border border-emerald-500/30 flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></div>
+                    <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">GPU ON</span>
                 </div>
             </div>
             
-            <div className="mt-6 flex items-start gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100 w-full">
-                <div className="w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 shrink-0 mt-0.5">
-                    <span className="text-xs font-bold font-sans">i</span>
-                </div>
-                <p className="text-sm text-slate-500 leading-relaxed m-0 text-left">
-                    Đưa mã vạch vào trung tâm khung quét. Công nghệ <span className="text-primary-600 font-semibold italic">Edge AI</span> sẽ xử lý trực tiếp trên thiết bị của bạn.
-                </p>
-            </div>
+            <p className="mt-4 text-[11px] text-slate-400 text-center leading-relaxed px-4">
+                Đưa mã vạch vào khung sáng. Hệ thống sẽ tự động phóng đại vùng trung tâm để tăng độ chính xác.
+            </p>
         </div>
     );
 };

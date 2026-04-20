@@ -1,24 +1,31 @@
 import * as ort from 'onnxruntime-web';
 
 const MODEL_SIZE = 640;
+// Tạo một canvas dùng chung để tránh tạo mới liên tục gây lag
+const offscreenCanvas = document.createElement('canvas');
+offscreenCanvas.width = MODEL_SIZE;
+offscreenCanvas.height = MODEL_SIZE;
+const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true })!;
 
 export const imageHelper = {
     /**
-     * Bước Tiền xử lý: Chuyển Video Frame thành Tensor [1, 3, 640, 640]
+     * Tối ưu cho Mobile: Cắt vùng trung tâm (Crop) thay vì nén toàn bộ ảnh
      */
     videoToTensor: (video: HTMLVideoElement): ort.Tensor => {
-        const canvas = document.createElement('canvas');
-        canvas.width = MODEL_SIZE;
-        canvas.height = MODEL_SIZE;
-        const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+        const { videoWidth, videoHeight } = video;
         
-        ctx.drawImage(video, 0, 0, MODEL_SIZE, MODEL_SIZE);
-        const imageData = ctx.getImageData(0, 0, MODEL_SIZE, MODEL_SIZE).data;
+        // Tính toán để cắt một khối vuông ở giữa video
+        const size = Math.min(videoWidth, videoHeight);
+        const sx = (videoWidth - size) / 2;
+        const sy = (videoHeight - size) / 2;
+
+        // Vẽ vùng trung tâm vào canvas 640x640
+        offscreenCtx.drawImage(video, sx, sy, size, size, 0, 0, MODEL_SIZE, MODEL_SIZE);
+        const imageData = offscreenCtx.getImageData(0, 0, MODEL_SIZE, MODEL_SIZE).data;
 
         const float32Data = new Float32Array(3 * MODEL_SIZE * MODEL_SIZE);
-        
-        // Optimize loop for performance
         const step = MODEL_SIZE * MODEL_SIZE;
+        
         for (let i = 0; i < step; i++) {
             float32Data[i] = imageData[i * 4] / 255.0;            // R
             float32Data[step + i] = imageData[i * 4 + 1] / 255.0; // G
@@ -29,8 +36,7 @@ export const imageHelper = {
     },
 
     /**
-     * Bước Hậu xử lý cho YOLOv8/v11 (Single Class Barcode)
-     * Output shape: [1, 5, 8400]
+     * Tìm box với logic lọc nhiễu tốt hơn
      */
     getTopBox: (outputTensor: ort.Tensor) => {
         const data = outputTensor.data as Float32Array;
@@ -40,13 +46,12 @@ export const imageHelper = {
         let bestBox = null;
 
         for (let i = 0; i < numBoxes; i++) {
-            // Index 4 là confidence score cho class Barcode
             const confidence = data[4 * numBoxes + i]; 
             
-            if (confidence > 0.6 && confidence > bestConf) { // Tăng ngưỡng lọc nhiễu lên 0.6 cho model thật
+            // Ngưỡng 0.5 là phù hợp cho model int8
+            if (confidence > 0.5 && confidence > bestConf) {
                 bestConf = confidence;
                 
-                // Trích xuất tọa độ [x_center, y_center, w, h]
                 const xc = data[0 * numBoxes + i];
                 const yc = data[1 * numBoxes + i];
                 const w = data[2 * numBoxes + i];
