@@ -1,4 +1,5 @@
 import * as ort from 'onnxruntime-web';
+import type { DetectionBox } from '../interfaces';
 
 const MODEL_SIZE = 640;
 
@@ -34,24 +35,14 @@ export const imageHelper = {
     ]);
   },
 
-  cropBarcode: (box: any) => {
+  cropBarcode: (box: DetectionBox) => {
     const cropCanvas = document.createElement('canvas');
     cropCanvas.width = box.w;
     cropCanvas.height = box.h;
     const cropCtx = cropCanvas.getContext('2d')!;
 
     // Copy from the internal canvas used in videoToTensor
-    cropCtx.drawImage(
-      canvas,
-      box.x,
-      box.y,
-      box.w,
-      box.h,
-      0,
-      0,
-      box.w,
-      box.h
-    );
+    cropCtx.drawImage(canvas, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
 
     return cropCanvas.toDataURL('image/png');
   },
@@ -59,12 +50,12 @@ export const imageHelper = {
   // ==============================
   // Decode output (300,6)
   // ==============================
-  getTopBox: (outputTensor: ort.Tensor) => {
+  getTopBox: (outputTensor: ort.Tensor): DetectionBox | null => {
     const data = outputTensor.data as Float32Array;
 
     const numBoxes = 300;
     let bestConf = 0;
-    let bestBox = null;
+    let bestBox: DetectionBox | null = null;
 
     for (let i = 0; i < numBoxes; i++) {
       const offset = i * 6;

@@ -13,3 +13,11 @@ export interface PaginatedResponse<T> {
 }
 
 export type Status = 'active' | 'inactive' | 'disabled' | 'out_of_stock';
+
+export interface DetectionBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  prob: number;
+}

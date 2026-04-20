@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { message, Spin } from 'antd';
-import { LoadingOutlined } from '@ant-design/icons';
+import { message, Spin, Button } from 'antd';
+import { LoadingOutlined, DeleteOutlined } from '@ant-design/icons';
 import { yoloService } from '../../../api/services/yoloService';
 import { imageHelper } from '../../../utils/imageHelper';
+import type { DetectionBox } from '../../../interfaces';
+
 
 const BarcodeScanner = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -11,8 +13,9 @@ const BarcodeScanner = () => {
   const [ready, setReady] = useState(false);
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
 
-  const lastBox = useRef<any>(null);
+  const lastBox = useRef<DetectionBox | null>(null);
   const processing = useRef(false);
+
 
 
   // ==============================
@@ -96,7 +99,7 @@ const BarcodeScanner = () => {
   // RUN AI LOOP
   // ==============================
   useEffect(() => {
-    let timer: any;
+    let timer: ReturnType<typeof setTimeout>;
 
     const run = async () => {
       if (ready && videoRef.current && !processing.current) {
@@ -160,7 +163,25 @@ const BarcodeScanner = () => {
 
       {croppedImage && (
         <div style={{ marginTop: 16, textAlign: 'center' }}>
-          <p>Barcode detected:</p>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              marginBottom: 8,
+            }}
+          >
+            <p style={{ margin: 0 }}>Barcode detected:</p>
+            <Button
+              danger
+              type="primary"
+              shape="circle"
+              icon={<DeleteOutlined />}
+              onClick={() => setCroppedImage(null)}
+              size="small"
+            />
+          </div>
           <img
             src={croppedImage}
             alt="Cropped Barcode"
