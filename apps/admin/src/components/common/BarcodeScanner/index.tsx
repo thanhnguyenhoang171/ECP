@@ -131,11 +131,10 @@ const BarcodeScanner: React.FC = () => {
         offCanvasRef.current.width = MODEL_SIZE;
         offCanvasRef.current.height = MODEL_SIZE;
 
-        setStatus('ready'); // Assuming backend is always ready
-
         navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } }
         }).then(stream => {
+            setStatus('ready'); // Assuming backend is always ready once camera loads
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
                 videoRef.current.onloadedmetadata = () => {
