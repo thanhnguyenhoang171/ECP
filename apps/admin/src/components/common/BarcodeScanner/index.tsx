@@ -157,7 +157,6 @@ const BarcodeScanner: React.FC = () => {
                 const now = performance.now();
                 if (video.readyState === video.HAVE_ENOUGH_DATA && !video.paused && (now - lastProcessTime.current > 600)) {
                     isProcessingRef.current = true;
-                    lastProcessTime.current = now;
                     const size = Math.min(video.videoWidth, video.videoHeight);
                     const sx = (video.videoWidth - size) / 2;
                     const sy = (video.videoHeight - size) / 2;
@@ -197,6 +196,7 @@ const BarcodeScanner: React.FC = () => {
                             })
                             .catch(err => console.error('YOLO Fetch Error:', err))
                             .finally(() => {
+                                lastProcessTime.current = performance.now(); // Wait exactly 600ms from the MOMENT the response is completed!
                                 isProcessingRef.current = false;
                             });
                         };
