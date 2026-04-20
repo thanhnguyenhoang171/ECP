@@ -1,110 +1,181 @@
 import React from 'react';
-import { Button, Checkbox, Form, Input, message } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
+import { Form, Checkbox, message } from 'antd';
+import { Button, Input, FormControl } from '../../components/common';
+import { 
+  UserOutlined, 
+  LockOutlined, 
+  MailOutlined, 
+  PhoneOutlined,
+  UserAddOutlined,
+  ArrowLeftOutlined 
+} from '@ant-design/icons';
 import { useNavigate, Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+
+interface RegisterFormData {
+  username: string;
+  email: string;
+  phone_number: string;
+  password_hash: string;
+  confirm_password: string;
+  agreement: boolean;
+}
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = React.useState(false);
 
-  const onFinish = async (values: Record<string, unknown>) => {
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFormData>({
+    defaultValues: {
+      username: '',
+      email: '',
+      phone_number: '',
+      password_hash: '',
+      confirm_password: '',
+      agreement: true,
+    },
+  });
+
+  const onSubmit = (values: RegisterFormData) => {
     setLoading(true);
-    try {
-      console.log('Register values:', values);
-      // Giả lập gọi API đăng ký
-      // await authService.register(values);
-      message.success('Đăng ký tài khoản thành công!');
+    console.log('Register values:', values);
+    
+    // Giả lập đăng ký thành công
+    setTimeout(() => {
+      message.success('Tạo tài khoản thành công! Vui lòng đăng nhập.');
       navigate('/login');
-    } catch {
-      // Lỗi đã được xử lý ở axiosInstance
-    } finally {
       setLoading(false);
-    }
+    }, 1500);
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl border border-gray-100">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-blue-600 mb-2 italic">ECP Admin</h1>
-          <p className="text-gray-500">Tạo tài khoản quản trị mới</p>
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="flex justify-center">
+          <div className="w-14 h-14 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-200">
+            <span className="text-2xl font-black text-white italic">E</span>
+          </div>
+        </div>
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 tracking-tight">
+          Đăng ký tài khoản
+        </h2>
+        <p className="mt-2 text-center text-sm text-slate-500">
+          Gia nhập đội ngũ vận hành <span className="text-primary-600 font-semibold italic">ECP Admin</span>
+        </p>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-lg">
+        <div className="bg-white py-10 px-6 shadow-soft border border-slate-100 sm:rounded-2xl sm:px-10">
+          <Form
+            layout="vertical"
+            onFinish={handleSubmit(onSubmit)}
+            size="large"
+            autoComplete="off"
+            requiredMark={false}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+              <FormControl
+                name="username"
+                control={control}
+                label={<span className="text-slate-700 font-semibold text-sm">Tên đăng nhập</span>}
+                error={errors.username?.message}
+                required
+              >
+                <Input 
+                  prefix={<UserOutlined className="text-slate-400 mr-2" />} 
+                  placeholder="admin_new" 
+                  className="rounded-lg border-slate-200 h-11"
+                />
+              </FormControl>
+
+              <FormControl
+                name="email"
+                control={control}
+                label={<span className="text-slate-700 font-semibold text-sm">Email</span>}
+                error={errors.email?.message}
+                required
+              >
+                <Input 
+                  prefix={<MailOutlined className="text-slate-400 mr-2" />} 
+                  placeholder="admin@ecp.vn" 
+                  className="rounded-lg border-slate-200 h-11"
+                />
+              </FormControl>
+            </div>
+
+            <FormControl
+              name="phone_number"
+              control={control}
+              label={<span className="text-slate-700 font-semibold text-sm">Số điện thoại</span>}
+              error={errors.phone_number?.message}
+              required
+            >
+              <Input 
+                prefix={<PhoneOutlined className="text-slate-400 mr-2" />} 
+                placeholder="0987 654 321" 
+                className="rounded-lg border-slate-200 h-11"
+              />
+            </FormControl>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+              <FormControl
+                name="password_hash"
+                control={control}
+                label={<span className="text-slate-700 font-semibold text-sm">Mật khẩu</span>}
+                error={errors.password_hash?.message}
+                required
+              >
+                <Input.Password 
+                  prefix={<LockOutlined className="text-slate-400 mr-2" />} 
+                  placeholder="••••••••" 
+                  className="rounded-lg border-slate-200 h-11"
+                />
+              </FormControl>
+
+              <FormControl
+                name="confirm_password"
+                control={control}
+                label={<span className="text-slate-700 font-semibold text-sm">Xác nhận mật khẩu</span>}
+                error={errors.confirm_password?.message}
+                required
+              >
+                <Input.Password 
+                  prefix={<LockOutlined className="text-slate-400 mr-2" />} 
+                  placeholder="••••••••" 
+                  className="rounded-lg border-slate-200 h-11"
+                />
+              </FormControl>
+            </div>
+
+            <Form.Item className="mb-8">
+              <Checkbox className="text-slate-600 text-sm">
+                Tôi đồng ý với <a href="#" className="text-primary-600 font-semibold hover:underline">Điều khoản bảo mật</a> và <a href="#" className="text-primary-600 font-semibold hover:underline">Chính sách vận hành</a>.
+              </Checkbox>
+            </Form.Item>
+
+            <Form.Item className="mb-0">
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                className="w-full h-12 flex justify-center items-center rounded-lg shadow-soft text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 transition-all"
+                loading={loading}
+              >
+                <UserAddOutlined className="mr-2" /> Tạo tài khoản quản trị
+              </Button>
+            </Form.Item>
+          </Form>
         </div>
 
-        <Form
-          name="register"
-          onFinish={onFinish}
-          layout="vertical"
-          size="large"
-          scrollToFirstError
-        >
-          <Form.Item
-            name="username"
-            rules={[{ required: true, message: 'Vui lòng nhập tên người dùng!' }]}
-          >
-            <Input prefix={<UserOutlined className="text-gray-400" />} placeholder="Tên người dùng" />
-          </Form.Item>
-
-          <Form.Item
-            name="email"
-            rules={[
-              { type: 'email', message: 'Email không hợp lệ!' },
-              { required: true, message: 'Vui lòng nhập Email!' }
-            ]}
-          >
-            <Input prefix={<MailOutlined className="text-gray-400" />} placeholder="Địa chỉ Email" />
-          </Form.Item>
-
-          <Form.Item
-            name="password"
-            rules={[
-              { required: true, message: 'Vui lòng nhập mật khẩu!' },
-              { min: 6, message: 'Mật khẩu phải từ 6 ký tự trở lên!' }
-            ]}
-            hasFeedback
-          >
-            <Input.Password prefix={<LockOutlined className="text-gray-400" />} placeholder="Mật khẩu" />
-          </Form.Item>
-
-          <Form.Item
-            name="confirm"
-            dependencies={['password']}
-            hasFeedback
-            rules={[
-              { required: true, message: 'Vui lòng xác nhận mật khẩu!' },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue('password') === value) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(new Error('Mật khẩu xác nhận không khớp!'));
-                },
-              }),
-            ]}
-          >
-            <Input.Password prefix={<LockOutlined className="text-gray-400" />} placeholder="Xác nhận mật khẩu" />
-          </Form.Item>
-
-          <Form.Item name="agreement" valuePropName="checked" rules={[
-            {
-              validator: (_, value) =>
-                value ? Promise.resolve() : Promise.reject(new Error('Bạn phải đồng ý với các điều khoản')),
-            },
-          ]}>
-            <Checkbox>
-              Tôi đồng ý với <a href="#" className="text-blue-600">điều khoản dịch vụ</a>
-            </Checkbox>
-          </Form.Item>
-
-          <Form.Item>
-            <Button type="primary" htmlType="submit" className="w-full font-bold h-12 text-lg" loading={loading}>
-              Đăng ký ngay
-            </Button>
-          </Form.Item>
-
-          <div className="text-center text-gray-500">
-            Đã có tài khoản? <Link to="/login" className="text-blue-600 hover:underline font-medium">Đăng nhập</Link>
-          </div>
-        </Form>
+        <p className="mt-8 text-center text-sm text-slate-500">
+          Đã có tài khoản?{' '}
+          <Link to="/login" className="font-bold text-primary-600 hover:text-primary-500 transition-colors inline-flex items-center">
+            <ArrowLeftOutlined className="mr-1 text-xs" /> Quay lại đăng nhập
+          </Link>
+        </p>
       </div>
     </div>
   );

@@ -62,11 +62,11 @@ public class Product {
 
     @Field("is_published")
     @Builder.Default
-    private boolean isPublished = false;
+    private boolean published = false;
 
     @Field("is_deleted")
     @Builder.Default
-    private boolean isDeleted = false;
+    private boolean deleted = false;
 
     @CreatedDate
     @Field("created_at")

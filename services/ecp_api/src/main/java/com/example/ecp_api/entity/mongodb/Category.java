@@ -43,7 +43,7 @@ public class Category {
 
     @Field("is_active")
     @Builder.Default
-    private boolean isActive = true;
+    private boolean active = true;
 
     @CreatedDate
     @Field("created_at")

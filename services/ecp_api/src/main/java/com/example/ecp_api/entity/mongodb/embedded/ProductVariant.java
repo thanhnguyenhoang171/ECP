@@ -50,7 +50,7 @@ public class ProductVariant {
 
     @Field("is_active")
     @Builder.Default
-    private boolean isActive = true;
+    private boolean active = true;
 
     @CreatedDate
     @Field("created_at")

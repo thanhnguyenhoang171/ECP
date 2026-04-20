@@ -50,13 +50,13 @@ public class User {
     private UserRole role = UserRole.CUSTOMER;
 
     @Column(name = "is_active")
-    private boolean isActive = true;
+    private boolean active = true;
 
     @Column(name = "is_email_verified")
-    private boolean isEmailVerified = false;
+    private boolean emailVerified = false;
 
     @Column(name = "is_phone_verified")
-    private boolean isPhoneVerified = false;
+    private boolean phoneVerified = false;
 
     @CreationTimestamp
     @Column(name = "last_login_at")
