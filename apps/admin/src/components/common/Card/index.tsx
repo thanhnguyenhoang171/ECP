@@ -1,26 +1,26 @@
-import React from 'react';
 import { Card as AntdCard } from 'antd';
 import type { CardProps as AntdCardProps } from 'antd';
+import type { FC, CSSProperties } from 'react';
 
 interface CustomCardProps extends AntdCardProps {
   noPadding?: boolean;
 }
 
-const Card: React.FC<CustomCardProps> = ({ 
+const Card: FC<CustomCardProps> = ({ 
   children, 
   className, 
   noPadding, 
   styles,
   ...props 
 }) => {
-  // Ép kiểu qua any để tránh lỗi TypeScript phức tạp với CardStylesType của Antd
-  const customStyles: any = styles || {};
+  // Use Record type instead of any to satisfy ESLint while maintaining flexibility
+  const baseStyles = (styles as Record<string, CSSProperties>) || {};
   
-  const mergedStyles = {
-    ...customStyles,
+  const mergedStyles: AntdCardProps['styles'] = {
+    ...styles,
     body: {
       padding: noPadding ? 0 : 24,
-      ...(customStyles.body || {}),
+      ...baseStyles.body,
     }
   };
 

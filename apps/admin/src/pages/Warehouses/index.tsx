@@ -1,6 +1,6 @@
-import React from 'react';
+import { type FC } from 'react';
 
-const Warehouses: React.FC = () => {
+const Warehouses: FC = () => {
   return (
     <div>
       <h1 className='text-2xl font-bold mb-4'>Kho bãi</h1>

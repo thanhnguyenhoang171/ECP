@@ -1,8 +1,8 @@
-import React from 'react';
+import { type FC } from 'react';
 import { Tag as AntdTag } from 'antd';
 import type { TagProps as AntdTagProps } from 'antd';
 
-const Tag: React.FC<AntdTagProps> = ({ className, ...props }) => {
+const Tag: FC<AntdTagProps> = ({ className, ...props }) => {
   return (
     <AntdTag 
       {...props} 

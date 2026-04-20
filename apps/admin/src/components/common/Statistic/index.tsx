@@ -1,8 +1,8 @@
-import React from 'react';
+import { type FC } from 'react';
 import { Statistic as AntdStatistic } from 'antd';
 import type { StatisticProps as AntdStatisticProps } from 'antd';
 
-const Statistic: React.FC<AntdStatisticProps> = ({ className, valueStyle, ...props }) => {
+const Statistic: FC<AntdStatisticProps> = ({ className, valueStyle, ...props }) => {
   return (
     <AntdStatistic 
       {...props} 

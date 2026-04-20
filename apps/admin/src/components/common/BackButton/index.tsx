@@ -1,4 +1,4 @@
-import React from 'react';
+import { type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import Button from '../Button';
@@ -9,7 +9,7 @@ interface BackButtonProps {
   destination?: string;
 }
 
-const BackButton: React.FC<BackButtonProps> = ({ 
+const BackButton: FC<BackButtonProps> = ({ 
   label = 'Quay lại', 
   className,
   destination 

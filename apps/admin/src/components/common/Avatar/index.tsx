@@ -1,8 +1,8 @@
-import React from 'react';
+import { type FC } from 'react';
 import { Avatar as AntdAvatar } from 'antd';
 import type { AvatarProps as AntdAvatarProps } from 'antd';
 
-const Avatar: React.FC<AntdAvatarProps> = ({ className, ...props }) => {
+const Avatar: FC<AntdAvatarProps> = ({ className, ...props }) => {
   return (
     <AntdAvatar 
       {...props} 

@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type FC } from 'react';
 import { message, Spin } from 'antd';
 import { yoloService } from '../../../api/services/yoloService';
 import { imageHelper } from '../../../utils/imageHelper';
 import { BarcodeOutlined, LoadingOutlined } from '@ant-design/icons';
 
-export const BarcodeScanner: React.FC = () => {
+export const BarcodeScanner: FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isModelReady, setIsModelReady] = useState(false);
@@ -64,7 +64,6 @@ export const BarcodeScanner: React.FC = () => {
         let lastRunTime = 0;
 
         const processFrame = async (timestamp: number) => {
-            // Chạy tối đa 10-12 FPS để đảm bảo CPU/GPU không quá tải
             if (timestamp - lastRunTime < 80) {
                 animationId = requestAnimationFrame(processFrame);
                 return;
@@ -77,14 +76,8 @@ export const BarcodeScanner: React.FC = () => {
                 if (video.readyState === video.HAVE_ENOUGH_DATA && !video.paused) {
                     try {
                         lastRunTime = timestamp;
-
-                        // Tiền xử lý
                         const inputTensor = imageHelper.videoToTensor(video);
-                        
-                        // Chạy Inference thật
                         const output = await yoloService.detect(inputTensor);
-                        
-                        // Bóc tách kết quả
                         const topBox = imageHelper.getTopBox(output);
 
                         const ctx = canvas.getContext('2d')!;
@@ -94,7 +87,6 @@ export const BarcodeScanner: React.FC = () => {
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                         if (topBox) {
-                            // Scale từ 640x640 về kích thước hiển thị thực tế
                             const scaleX = canvas.width / 640;
                             const scaleY = canvas.height / 640;
 
@@ -103,12 +95,10 @@ export const BarcodeScanner: React.FC = () => {
                             const drawW = topBox.w * scaleX;
                             const drawH = topBox.h * scaleY;
 
-                            // Vẽ Bounding Box
                             ctx.strokeStyle = '#10b981'; 
                             ctx.lineWidth = 3;
                             ctx.strokeRect(drawX, drawY, drawW, drawH);
                             
-                            // Vẽ Label tin cậy
                             ctx.fillStyle = '#10b981';
                             ctx.fillRect(drawX, drawY - 25, 55, 25);
                             ctx.fillStyle = '#FFFFFF';
@@ -116,7 +106,6 @@ export const BarcodeScanner: React.FC = () => {
                             ctx.fillText(`${(topBox.prob * 100).toFixed(0)}%`, drawX + 5, drawY - 8);
                         }
                     } catch (e) {
-                        // Tránh log liên tục làm chậm máy
                         if (timestamp % 100 === 0) console.error("Inference Error:", e);
                     }
                 }
@@ -165,12 +154,9 @@ export const BarcodeScanner: React.FC = () => {
                     className="absolute inset-0 w-full h-full pointer-events-none z-10"
                 />
 
-                {/* UI Target Overlay */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
                     <div className="w-4/5 h-1/3 border-2 border-primary-500 bg-primary-500/10 rounded-xl shadow-[0_0_0_9999px_rgba(15,23,42,0.65)]">
                         <div className="w-full h-0.5 bg-primary-400 opacity-70 absolute top-1/2 left-0 transform -translate-y-1/2 shadow-[0_0_15px_3px_rgba(37,99,235,0.6)] animate-pulse"></div>
-                        
-                        {/* Corner Accents */}
                         <div className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-primary-500 rounded-tl-lg"></div>
                         <div className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-primary-500 rounded-tr-lg"></div>
                         <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-primary-500 rounded-bl-lg"></div>
@@ -178,7 +164,6 @@ export const BarcodeScanner: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Real-time Status Badge */}
                 <div className="absolute top-4 left-4 z-20 px-3 py-1 bg-slate-900/60 backdrop-blur-md rounded-full border border-white/20 flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${isCameraActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></div>
                     <span className="text-[10px] font-bold text-white uppercase tracking-wider">

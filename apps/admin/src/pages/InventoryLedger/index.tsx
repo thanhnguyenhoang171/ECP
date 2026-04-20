@@ -1,6 +1,6 @@
-import React from 'react';
+import { type FC } from 'react';
 
-const InventoryLedger: React.FC = () => {
+const InventoryLedger: FC = () => {
   return (
     <div>
       <h1 className='text-2xl font-bold mb-4'>Nhật ký kho</h1>

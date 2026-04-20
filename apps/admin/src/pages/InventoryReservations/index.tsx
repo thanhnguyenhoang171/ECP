@@ -1,6 +1,6 @@
-import React from 'react';
+import { type FC } from 'react';
 
-const InventoryReservations: React.FC = () => {
+const InventoryReservations: FC = () => {
   return (
     <div>
       <h1 className='text-2xl font-bold mb-4'>Giữ chỗ tồn kho</h1>

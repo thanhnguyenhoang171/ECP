@@ -1,6 +1,6 @@
-import React from 'react';
+import { type FC } from 'react';
 
-const Orders: React.FC = () => {
+const Orders: FC = () => {
   return (
     <div>
       <h1 className='text-2xl font-bold mb-4'>Đơn hàng</h1>

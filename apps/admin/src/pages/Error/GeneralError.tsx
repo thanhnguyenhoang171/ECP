@@ -1,8 +1,8 @@
-import React from 'react';
+import { type FC } from 'react';
 import { Button, Result } from 'antd';
 import { useRouteError, useNavigate } from 'react-router-dom';
 
-const GeneralError: React.FC = () => {
+const GeneralError: FC = () => {
   const error = useRouteError() as { statusText?: string; message?: string };
   const navigate = useNavigate();
   console.error(error);

@@ -1,4 +1,4 @@
-import React from 'react';
+import { type FC } from 'react';
 import { Layout, Dropdown, theme, Space } from 'antd';
 import {
   MenuFoldOutlined,
@@ -26,7 +26,7 @@ interface AdminHeaderProps {
   userAvatar?: string;
 }
 
-const AdminHeader: React.FC<AdminHeaderProps> = ({
+const AdminHeader: FC<AdminHeaderProps> = ({
   collapsed,
   isMobile,
   onToggleSidebar,

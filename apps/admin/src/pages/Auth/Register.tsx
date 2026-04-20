@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, type FC } from 'react';
 import { Form, Checkbox, message } from 'antd';
 import { Button, Input, FormControl } from '../../components/common';
 import { 
@@ -21,9 +21,9 @@ interface RegisterFormData {
   agreement: boolean;
 }
 
-const Register: React.FC = () => {
+const Register: FC = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = useState(false);
 
   const {
     control,

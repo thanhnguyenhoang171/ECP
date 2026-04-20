@@ -1,4 +1,4 @@
-import React from 'react';
+import { type FC } from 'react';
 import { Menu, Layout } from 'antd';
 import type { MenuProps } from 'antd';
 import { useLocation } from 'react-router-dom';
@@ -14,7 +14,7 @@ interface SidebarProps {
   logoText?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ 
+const Sidebar: FC<SidebarProps> = ({ 
   collapsed, 
   isMobile, 
   items, 

@@ -1,4 +1,4 @@
-import React from 'react';
+import { type FC } from 'react';
 import { Row, Col, Space } from 'antd';
 import { 
   BarcodeScanner, 
@@ -14,7 +14,7 @@ import {
   AlertOutlined 
 } from '@ant-design/icons';
 
-const BarcodeScans: React.FC = () => {
+const BarcodeScans: FC = () => {
   const recentScans = [
     {
       key: '1',

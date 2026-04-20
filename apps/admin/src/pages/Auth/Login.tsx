@@ -1,4 +1,4 @@
-import React from 'react';
+import { type FC, useState } from 'react';
 import { Form, Checkbox, message } from 'antd';
 import { Button, Input, FormControl } from '../../components/common';
 import { 
@@ -17,9 +17,9 @@ interface LoginFormData {
   remember?: boolean;
 }
 
-const Login: React.FC = () => {
+const Login: FC = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = useState(false);
 
   const {
     control,
@@ -33,7 +33,7 @@ const Login: React.FC = () => {
     },
   });
 
-  const onSubmit = (_values: LoginFormData) => {
+  const onSubmit = () => {
     setLoading(true);
     setTimeout(() => {
       localStorage.setItem('access_token', 'fake_token_123');

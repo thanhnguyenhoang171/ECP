@@ -1,8 +1,8 @@
-import React from 'react';
+import { type FC } from 'react';
 import { Badge as AntdBadge } from 'antd';
 import type { BadgeProps as AntdBadgeProps } from 'antd';
 
-const Badge: React.FC<AntdBadgeProps> = (props) => {
+const Badge: FC<AntdBadgeProps> = (props) => {
   return <AntdBadge {...props} />;
 };
 

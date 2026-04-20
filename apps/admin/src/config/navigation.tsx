@@ -149,16 +149,16 @@ export const getBreadcrumbsByPath = (path: string): { title: string; key: string
   }
 
   for (const item of items) {
-    if (item && 'children' in item && item.children) {
-      const child = item.children.find((c: any) => c && c.key === path);
+    if (item && 'children' in item && Array.isArray(item.children)) {
+      const child = item.children.find((c) => c && c.key === path);
       if (child) {
         return [
-          { title: (item as any).label as string, key: item.key as string },
-          { title: (child as any).label as string, key: child.key as string },
+          { title: String((item as { label?: string }).label || ''), key: String(item.key || '') },
+          { title: String((child as { label?: string }).label || ''), key: String(child.key || '') },
         ];
       }
     } else if (item && item.key === path) {
-      return [{ title: (item as any).label as string, key: item.key as string }];
+      return [{ title: String((item as { label?: string }).label || ''), key: String(item.key || '') }];
     }
   }
 

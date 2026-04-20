@@ -1,7 +1,7 @@
-import React from 'react';
+import { type FC } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 
-const ProtectedRoute: React.FC = () => {
+const ProtectedRoute: FC = () => {
   const isAuthenticated = !!localStorage.getItem('access_token');
 
   if (!isAuthenticated) {

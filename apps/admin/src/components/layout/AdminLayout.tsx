@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import { Layout, theme, Drawer } from 'antd';
 import type { MenuProps } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
@@ -9,7 +9,7 @@ import { getAdminMenuItems, getUserMenuItems } from '../../config/navigation';
 
 const { Content } = Layout;
 
-const AdminLayout: React.FC = () => {
+const AdminLayout: FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [openDrawer, setOpenDrawer] = useState(false);
