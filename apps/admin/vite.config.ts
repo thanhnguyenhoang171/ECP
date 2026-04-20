@@ -20,9 +20,6 @@ export default defineConfig({
             if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
               return 'vendor-react';
             }
-            if (id.includes('onnxruntime-web')) {
-              return 'vendor-onnx';
-            }
             return 'vendor';
           }
         }

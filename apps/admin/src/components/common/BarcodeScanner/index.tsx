@@ -21,11 +21,8 @@ interface SampleItem extends DetectionBox {
 const BarcodeScanner: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const workerRef = useRef<Worker | null>(null);
     const offCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-    const pendingFrames = useRef<Map<number, ImageBitmap | HTMLCanvasElement>>(new Map());
-    const frameIdCounter = useRef(0);
     const samplingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -134,48 +131,7 @@ const BarcodeScanner: React.FC = () => {
         offCanvasRef.current.width = MODEL_SIZE;
         offCanvasRef.current.height = MODEL_SIZE;
 
-        workerRef.current = new Worker(new URL('../../../workers/yoloWorker.ts', import.meta.url), { type: 'module' });
-
-        workerRef.current.onmessage = (e) => {
-            if (e.data.type === 'READY') setStatus('ready');
-            if (e.data.type === 'RESULT') {
-                const { box, meta } = e.data;
-                const sourceFrame = pendingFrames.current.get(meta.frameId);
-                let frameUrl = '';
-                
-                if (sourceFrame) {
-                    if (box && box.prob > 0.6 && !isSamplingRef.current) {
-                        try {
-                            const canvas = document.createElement('canvas');
-                            canvas.width = MODEL_SIZE; canvas.height = MODEL_SIZE;
-                            canvas.getContext('2d')?.drawImage(sourceFrame, 0, 0);
-                            frameUrl = canvas.toDataURL('image/jpeg', 0.8);
-                        } catch(err) { console.error(err); }
-                    }
-                }
-
-                drawBox(box);
-                if (box && box.prob > 0.6 && !isSamplingRef.current && frameUrl) {
-                    collectSample(box, frameUrl);
-                }
-                
-                // Cleanup older frames
-                for (const [key, val] of pendingFrames.current.entries()) {
-                    if (key <= meta.frameId) {
-                        if (val instanceof ImageBitmap) val.close();
-                        pendingFrames.current.delete(key);
-                    }
-                }
-                
-                isProcessingRef.current = false;
-            }
-            if (e.data.type === 'ERROR') {
-                console.error('YOLO Worker Error:', e.data.error);
-                isProcessingRef.current = false;
-            }
-        };
-
-        workerRef.current.postMessage({ type: 'INIT' });
+        setStatus('ready'); // Assuming backend is always ready
 
         navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } }
@@ -189,7 +145,6 @@ const BarcodeScanner: React.FC = () => {
         }).catch(() => setStatus('error'));
 
         return () => {
-            workerRef.current?.terminate();
             if (samplingTimer.current) clearTimeout(samplingTimer.current);
         };
     }, [collectSample, drawBox]);
@@ -208,45 +163,33 @@ const BarcodeScanner: React.FC = () => {
                     const sx = (video.videoWidth - size) / 2;
                     const sy = (video.videoHeight - size) / 2;
                     
-                    const frameId = ++frameIdCounter.current;
-                    
-                    if (typeof OffscreenCanvas !== 'undefined' && typeof createImageBitmap === 'function') {
-                        // High performance GPU memory copy avoiding CPU Main Thread freeze
-                        Promise.all([
-                            createImageBitmap(video, sx, sy, size, size, { resizeWidth: MODEL_SIZE, resizeHeight: MODEL_SIZE }),
-                            createImageBitmap(video, sx, sy, size, size, { resizeWidth: MODEL_SIZE, resizeHeight: MODEL_SIZE })
-                        ]).then(([workerBitmap, historyBitmap]) => {
-                            pendingFrames.current.set(frameId, historyBitmap);
-                            workerRef.current?.postMessage({ type: 'DETECT', bitmap: workerBitmap, meta: { frameId } }, [workerBitmap]);
-                        }).catch(() => {
-                            isProcessingRef.current = false;
-                        });
-                    } else {
-                        // Legacy fallback for old browsers without OffscreenCanvas support natively tracking GPU state
-                        offCtx.drawImage(video, sx, sy, size, size, 0, 0, MODEL_SIZE, MODEL_SIZE);
-                        
-                        if (typeof createImageBitmap === 'function') {
-                            createImageBitmap(offCanvasRef.current!).then(bitmap => {
-                                pendingFrames.current.set(frameId, bitmap);
-                            }).catch(() => {});
-                        } else {
-                            const fallbackCanvas = document.createElement('canvas');
-                            fallbackCanvas.width = MODEL_SIZE; fallbackCanvas.height = MODEL_SIZE;
-                            fallbackCanvas.getContext('2d')?.drawImage(offCanvasRef.current!, 0, 0);
-                            pendingFrames.current.set(frameId, fallbackCanvas);
-                        }
+                    offCtx.drawImage(video, sx, sy, size, size, 0, 0, MODEL_SIZE, MODEL_SIZE);
+                    const frameUrl = offCanvasRef.current!.toDataURL('image/jpeg', 0.8);
 
-                        const imageData = offCtx.getImageData(0, 0, MODEL_SIZE, MODEL_SIZE);
-                        const buffer = imageData.data.buffer;
-                        workerRef.current?.postMessage({ type: 'DETECT', buffer, meta: { frameId } }, [buffer]);
-                    }
+                    fetch('http://localhost:3005/api/v1/detect', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: frameUrl })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        const box = data.box;
+                        drawBox(box);
+                        if (box && box.prob > 0.6 && !isSamplingRef.current) {
+                            collectSample(box, frameUrl);
+                        }
+                    })
+                    .catch(err => console.error('YOLO Fetch Error:', err))
+                    .finally(() => {
+                        isProcessingRef.current = false;
+                    });
                 }
             }
             animationId = requestAnimationFrame(loop);
         };
         loop();
         return () => cancelAnimationFrame(animationId);
-    }, [status]);
+    }, [status, drawBox, collectSample]);
 
     return (
         <div className="flex flex-col gap-6">
