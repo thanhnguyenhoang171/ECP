@@ -1,16 +1,20 @@
-import { type FC } from 'react';
 import { Statistic as AntdStatistic } from 'antd';
 import type { StatisticProps as AntdStatisticProps } from 'antd';
+import type { FC } from 'react';
 
-const Statistic: FC<AntdStatisticProps> = ({ className, valueStyle, ...props }) => {
+const Statistic: FC<AntdStatisticProps> = ({ className, styles, valueStyle, ...props }) => {
   return (
     <AntdStatistic 
       {...props} 
-      valueStyle={{ 
-        fontWeight: 700, 
-        fontSize: 24, 
-        color: '#0F172A', // Slate-900
-        ...valueStyle 
+      styles={{
+        ...styles,
+        content: {
+          fontWeight: 700, 
+          fontSize: 24, 
+          color: '#0F172A', // Slate-900
+          ...(valueStyle as React.CSSProperties),
+          ...styles?.content,
+        }
       }}
       className={`${className || ''}`}
     />

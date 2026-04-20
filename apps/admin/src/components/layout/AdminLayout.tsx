@@ -84,8 +84,10 @@ const AdminLayout: FC = () => {
         onClose={() => setOpenDrawer(false)}
         open={openDrawer}
         closable={false}
-        width={240}
-        styles={{ body: { padding: 0 } }}
+        styles={{ 
+          body: { padding: 0 },
+          wrapper: { width: 260 } // Chuẩn Antd v6
+        }}
       >
         <Sidebar 
           collapsed={false} 

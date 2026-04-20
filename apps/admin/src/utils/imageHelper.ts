@@ -1,71 +1,71 @@
 import * as ort from 'onnxruntime-web';
 
 const MODEL_SIZE = 640;
-// Tạo một canvas dùng chung để tránh tạo mới liên tục gây lag
-const offscreenCanvas = document.createElement('canvas');
-offscreenCanvas.width = MODEL_SIZE;
-offscreenCanvas.height = MODEL_SIZE;
-const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true })!;
+
+const canvas = document.createElement('canvas');
+canvas.width = MODEL_SIZE;
+canvas.height = MODEL_SIZE;
+
+const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
 
 export const imageHelper = {
-    /**
-     * Tối ưu cho Mobile: Cắt vùng trung tâm (Crop) thay vì nén toàn bộ ảnh
-     */
-    videoToTensor: (video: HTMLVideoElement): ort.Tensor => {
-        const { videoWidth, videoHeight } = video;
-        
-        // Tính toán để cắt một khối vuông ở giữa video
-        const size = Math.min(videoWidth, videoHeight);
-        const sx = (videoWidth - size) / 2;
-        const sy = (videoHeight - size) / 2;
+  // ==============================
+  // Convert video → tensor
+  // ==============================
+  videoToTensor: (video: HTMLVideoElement): ort.Tensor => {
+    ctx.drawImage(video, 0, 0, MODEL_SIZE, MODEL_SIZE);
 
-        // Vẽ vùng trung tâm vào canvas 640x640
-        offscreenCtx.drawImage(video, sx, sy, size, size, 0, 0, MODEL_SIZE, MODEL_SIZE);
-        const imageData = offscreenCtx.getImageData(0, 0, MODEL_SIZE, MODEL_SIZE).data;
+    const imageData = ctx.getImageData(0, 0, MODEL_SIZE, MODEL_SIZE).data;
 
-        const float32Data = new Float32Array(3 * MODEL_SIZE * MODEL_SIZE);
-        const step = MODEL_SIZE * MODEL_SIZE;
-        
-        for (let i = 0; i < step; i++) {
-            float32Data[i] = imageData[i * 4] / 255.0;            // R
-            float32Data[step + i] = imageData[i * 4 + 1] / 255.0; // G
-            float32Data[step * 2 + i] = imageData[i * 4 + 2] / 255.0; // B
-        }
+    const float32Data = new Float32Array(3 * MODEL_SIZE * MODEL_SIZE);
+    const step = MODEL_SIZE * MODEL_SIZE;
 
-        return new ort.Tensor('float32', float32Data, [1, 3, MODEL_SIZE, MODEL_SIZE]);
-    },
-
-    /**
-     * Tìm box với logic lọc nhiễu tốt hơn
-     */
-    getTopBox: (outputTensor: ort.Tensor) => {
-        const data = outputTensor.data as Float32Array;
-        const numBoxes = 8400; 
-        
-        let bestConf = 0;
-        let bestBox = null;
-
-        for (let i = 0; i < numBoxes; i++) {
-            const confidence = data[4 * numBoxes + i]; 
-            
-            // Ngưỡng 0.5 là phù hợp cho model int8
-            if (confidence > 0.5 && confidence > bestConf) {
-                bestConf = confidence;
-                
-                const xc = data[0 * numBoxes + i];
-                const yc = data[1 * numBoxes + i];
-                const w = data[2 * numBoxes + i];
-                const h = data[3 * numBoxes + i];
-
-                bestBox = {
-                    x: xc - w / 2, 
-                    y: yc - h / 2,
-                    w: w,
-                    h: h,
-                    prob: confidence
-                };
-            }
-        }
-        return bestBox;
+    for (let i = 0; i < step; i++) {
+      float32Data[i] = imageData[i * 4] / 255.0;
+      float32Data[step + i] = imageData[i * 4 + 1] / 255.0;
+      float32Data[step * 2 + i] = imageData[i * 4 + 2] / 255.0;
     }
+
+    return new ort.Tensor('float32', float32Data, [
+      1,
+      3,
+      MODEL_SIZE,
+      MODEL_SIZE,
+    ]);
+  },
+
+  // ==============================
+  // Decode output (300,6)
+  // ==============================
+  getTopBox: (outputTensor: ort.Tensor) => {
+    const data = outputTensor.data as Float32Array;
+
+    const numBoxes = 300;
+    let bestConf = 0;
+    let bestBox = null;
+
+    for (let i = 0; i < numBoxes; i++) {
+      const offset = i * 6;
+
+      const x1 = data[offset + 0];
+      const y1 = data[offset + 1];
+      const x2 = data[offset + 2];
+      const y2 = data[offset + 3];
+      const conf = data[offset + 4];
+
+      if (conf > 0.4 && conf > bestConf) {
+        bestConf = conf;
+
+        bestBox = {
+          x: x1,
+          y: y1,
+          w: x2 - x1,
+          h: y2 - y1,
+          prob: conf,
+        };
+      }
+    }
+
+    return bestBox;
+  },
 };

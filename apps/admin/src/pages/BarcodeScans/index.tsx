@@ -105,7 +105,7 @@ const BarcodeScans: FC = () => {
               <Statistic 
                 title={<span className="text-primary-100 font-medium">Tổng số lượt quét hôm nay</span>}
                 value={1248}
-                valueStyle={{ color: '#fff', fontSize: 32 }}
+                styles={{ content: { color: '#fff', fontSize: 32 } }}
                 prefix={<ScanOutlined className="text-primary-200 mr-2" />}
               />
               <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center text-white/80 text-xs">
@@ -120,7 +120,7 @@ const BarcodeScans: FC = () => {
                   <Statistic 
                     title="Thành công" 
                     value={1205} 
-                    valueStyle={{ color: '#10b981' }} 
+                    styles={{ content: { color: '#10b981' } }} 
                   />
                 </Card>
               </Col>
@@ -129,7 +129,7 @@ const BarcodeScans: FC = () => {
                   <Statistic 
                     title="Lỗi nhận diện" 
                     value={43} 
-                    valueStyle={{ color: '#ef4444' }} 
+                    styles={{ content: { color: '#ef4444' } }} 
                   />
                 </Card>
               </Col>
@@ -139,15 +139,15 @@ const BarcodeScans: FC = () => {
               <ul className="space-y-4 m-0 p-0 list-none">
                 <li className="flex gap-3">
                   <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0">1</div>
-                  <p className="text-xs text-slate-500 leading-relaxed m-0">Đảm bảo mã vạch nằm trong khung xanh nhận diện.</p>
+                  <p className="text-xs text-slate-500 leading-relaxed m-0 text-left">Đảm bảo mã vạch nằm trong khung xanh nhận diện.</p>
                 </li>
                 <li className="flex gap-3">
                   <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0">2</div>
-                  <p className="text-xs text-slate-500 leading-relaxed m-0">Giữ camera ổn định trong khoảng 1-2 giây để AI xử lý.</p>
+                  <p className="text-xs text-slate-500 leading-relaxed m-0 text-left">Giữ camera ổn định trong khoảng 1-2 giây để AI xử lý.</p>
                 </li>
                 <li className="flex gap-3">
                   <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0">3</div>
-                  <p className="text-xs text-slate-500 leading-relaxed m-0">Nếu không nhận diện được, hãy kiểm tra độ sáng môi trường.</p>
+                  <p className="text-xs text-slate-500 leading-relaxed m-0 text-left">Nếu không nhận diện được, hãy kiểm tra độ sáng môi trường.</p>
                 </li>
               </ul>
             </Card>
