@@ -6,12 +6,15 @@ const Statistic: FC<AntdStatisticProps> = ({ className, styles, valueStyle, ...p
   return (
     <AntdStatistic 
       {...props} 
-      styles={styles}
-      valueStyle={{
-        fontWeight: 700, 
-        fontSize: 24, 
-        color: '#0F172A', // Slate-900
-        ...valueStyle,
+      styles={{
+        ...styles,
+        content: {
+          fontWeight: 700, 
+          fontSize: 24, 
+          color: '#0F172A', // Slate-900
+          ...styles?.content,
+          ...valueStyle,
+        },
       }}
       className={`${className || ''}`}
     />

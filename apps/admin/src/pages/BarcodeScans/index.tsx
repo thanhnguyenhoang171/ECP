@@ -11,7 +11,8 @@ import {
   HistoryOutlined, 
   CheckCircleOutlined, 
   ScanOutlined,
-  AlertOutlined 
+  AlertOutlined,
+  ThunderboltOutlined
 } from '@ant-design/icons';
 
 const BarcodeScans: FC = () => {
@@ -71,86 +72,122 @@ const BarcodeScans: FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between mb-2">
+    <div className="space-y-6 max-w-[1600px] mx-auto">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Quét mã vạch</h1>
-          <p className="text-slate-500">Sử dụng AI YOLO để nhận diện sản phẩm qua camera</p>
+          <div className="flex items-center gap-2 mb-1">
+            <ThunderboltOutlined className="text-amber-500 text-xl" />
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Hệ thống Quét AI</h1>
+          </div>
+          <p className="text-slate-500 font-medium">Nhận diện sản phẩm bằng mô hình YOLOv8 qua Web Worker</p>
         </div>
-        <div className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100 flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-          <span className="text-xs font-bold uppercase tracking-wider">Hệ thống đang hoạt động</span>
+        <div className="flex items-center gap-3">
+          <div className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 flex items-center gap-2 shadow-sm">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span className="text-xs font-bold uppercase tracking-wider">AI Engine Active</span>
+          </div>
         </div>
       </div>
 
       <Row gutter={[24, 24]}>
-        {/* Left: Scanner area */}
-        <Col xs={24} lg={14}>
-          <BarcodeScanner />
-          
-          <Card className="mt-6" title={<span className="flex items-center gap-2 text-slate-800"><HistoryOutlined className="text-primary-600" /> Nhật ký quét gần đây</span>}>
-            <Table 
-              dataSource={recentScans} 
-              columns={columns} 
-              pagination={false}
-              className="mt-2"
-            />
-          </Card>
-        </Col>
-
-        {/* Right: Statistics & Info */}
-        <Col xs={24} lg={10}>
-          <Space direction="vertical" size={24} className="w-full">
-            <Card className="bg-primary-600 border-none shadow-primary-100">
-              <Statistic 
-                title={<span className="text-primary-100 font-medium">Tổng số lượt quét hôm nay</span>}
-                value={1248}
-                styles={{ content: { color: '#fff', fontSize: 32 } }}
-                prefix={<ScanOutlined className="text-primary-200 mr-2" />}
-              />
-              <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center text-white/80 text-xs">
-                <span>Tăng 12% so với hôm qua</span>
-                <CheckCircleOutlined />
-              </div>
+        {/* Left Column: AI Scanner */}
+        <Col xs={24} lg={10} xl={9}>
+          <div className="sticky top-6">
+            <Card 
+              className="overflow-hidden border-none shadow-xl shadow-slate-200/50" 
+              bodyStyle={{ padding: 0 }}
+            >
+              <BarcodeScanner />
             </Card>
 
-            <Row gutter={[16, 16]}>
-              <Col span={12}>
-                <Card className="text-center py-6">
+            <Card className="mt-6 bg-slate-900 border-none shadow-lg">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-primary-500/20 flex items-center justify-center shrink-0">
+                  <AlertOutlined className="text-primary-400 text-xl" />
+                </div>
+                <div>
+                  <h4 className="text-white font-bold mb-1 text-sm">Hướng dẫn vận hành</h4>
+                  <p className="text-slate-400 text-xs leading-relaxed">
+                    Đưa mã vạch vào vùng khung nhắm xanh. Giữ yên thiết bị để AI tự động lấy nét và nhận diện mã.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </Col>
+
+        {/* Right Column: Analytics & History */}
+        <Col xs={24} lg={14} xl={15}>
+          <Space orientation="vertical" size={24} className="w-full">
+            {/* Statistics Row */}
+            <Row gutter={[20, 20]}>
+              <Col span={24} sm={12}>
+                <Card className="bg-white border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                   <Statistic 
-                    title="Thành công" 
-                    value={1205} 
-                    styles={{ content: { color: '#10b981' } }} 
+                    title={<span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">Lượt quét hôm nay</span>}
+                    value={1248}
+                    prefix={<ScanOutlined className="text-primary-500 mr-2" />}
+                    styles={{ content: { fontSize: 32, fontWeight: 800 } }}
                   />
+                  <div className="mt-3 flex items-center text-emerald-600 text-xs font-bold">
+                    <CheckCircleOutlined className="mr-1" />
+                    <span>Tăng 12% so với hôm qua</span>
+                  </div>
                 </Card>
               </Col>
-              <Col span={12}>
-                <Card className="text-center py-6">
+              <Col span={24} sm={12}>
+                <Card className="bg-white border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                   <Statistic 
-                    title="Lỗi nhận diện" 
-                    value={43} 
-                    styles={{ content: { color: '#ef4444' } }} 
+                    title={<span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">Độ chính xác AI</span>}
+                    value={98.4}
+                    suffix="%"
+                    prefix={<ThunderboltOutlined className="text-amber-500 mr-2" />}
+                    styles={{ content: { fontSize: 32, fontWeight: 800 } }}
                   />
+                  <div className="mt-3 flex items-center text-slate-400 text-xs">
+                    <span>Dựa trên 5.2k lượt mẫu</span>
+                  </div>
                 </Card>
               </Col>
             </Row>
 
-            <Card title={<span className="text-slate-800 font-bold flex items-center gap-2"><AlertOutlined className="text-warning" /> Hướng dẫn vận hành</span>}>
-              <ul className="space-y-4 m-0 p-0 list-none">
-                <li className="flex gap-3">
-                  <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0">1</div>
-                  <p className="text-xs text-slate-500 leading-relaxed m-0 text-left">Đảm bảo mã vạch nằm trong khung xanh nhận diện.</p>
-                </li>
-                <li className="flex gap-3">
-                  <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0">2</div>
-                  <p className="text-xs text-slate-500 leading-relaxed m-0 text-left">Giữ camera ổn định trong khoảng 1-2 giây để AI xử lý.</p>
-                </li>
-                <li className="flex gap-3">
-                  <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0">3</div>
-                  <p className="text-xs text-slate-500 leading-relaxed m-0 text-left">Nếu không nhận diện được, hãy kiểm tra độ sáng môi trường.</p>
-                </li>
-              </ul>
+            {/* Recent Scans Table */}
+            <Card 
+              title={
+                <div className="flex items-center justify-between w-full">
+                  <span className="flex items-center gap-2 text-slate-800 font-bold">
+                    <HistoryOutlined className="text-primary-600" /> 
+                    Nhật ký quét thời gian thực
+                  </span>
+                  <Tag color="blue" className="rounded-full border-none px-3 py-0.5 text-[10px] font-bold">LIVE</Tag>
+                </div>
+              }
+              className="border-slate-100 shadow-sm"
+            >
+              <Table 
+                dataSource={recentScans} 
+                columns={columns} 
+                pagination={false}
+                className="custom-scanner-table"
+              />
             </Card>
+
+            {/* System Info */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                <span className="text-[11px] font-bold text-slate-600">Model: YOLOv8-N</span>
+              </div>
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                <span className="text-[11px] font-bold text-slate-600">Runtime: Web Worker</span>
+              </div>
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                <span className="text-[11px] font-bold text-slate-600">Backend: WASM SIMD</span>
+              </div>
+            </div>
           </Space>
         </Col>
       </Row>
