@@ -1,6 +1,9 @@
+import axiosInstance from '../axiosInstance';
 import type { Product, PaginatedResponse } from '../../interfaces';
 
-// Mock Data
+const API_PATH = '/products';
+
+// Mock Data (Xóa khi có API thật)
 const MOCK_PRODUCTS: Product[] = [
   {
     id: '1',
@@ -27,9 +30,16 @@ const MOCK_PRODUCTS: Product[] = [
 ];
 
 export const productService = {
-  // Hàm lấy danh sách sản phẩm
-  getProducts: async (): Promise<PaginatedResponse<Product>> => {
-    // Giả lập gọi API
+  /**
+   * Lấy danh sách sản phẩm (có phân trang/lọc)
+   */
+  getProducts: async (params?: any): Promise<PaginatedResponse<Product>> => {
+    console.log("Checking params = ", params);
+    // KHI CÓ API THẬT:
+    // const response = await axiosInstance.get(API_PATH, { params });
+    // return response as unknown as PaginatedResponse<Product>;
+
+    // GIẢ LẬP GỌI API:
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve({
@@ -39,23 +49,45 @@ export const productService = {
           size: 10,
           number: 0
         });
-      }, 800); // Trễ 800ms
-    });
-    
-    /* SAU NÀY CÓ API THẬT CHỈ CẦN:
-    const response = await axiosInstance.get('/products');
-    return response.data;
-    */
-  },
-
-  // Hàm lấy chi tiết sản phẩm
-  getProductById: async (id: string): Promise<Product> => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const product = MOCK_PRODUCTS.find(p => p.id === id);
-        if (product) resolve(product);
-        else reject(new Error('Không tìm thấy sản phẩm'));
       }, 500);
     });
+  },
+
+  /**
+   * Lấy chi tiết sản phẩm
+   */
+  getProductById: async (id: string | number): Promise<Product> => {
+    // KHI CÓ API THẬT:
+    // const response = await axiosInstance.get(`${API_PATH}/${id}`);
+    // return response as unknown as Product;
+
+    return new Promise((resolve, reject) => {
+      const product = MOCK_PRODUCTS.find(p => p.id.toString() === id.toString());
+      if (product) resolve(product);
+      else reject(new Error('Không tìm thấy sản phẩm'));
+    });
+  },
+
+  /**
+   * Tạo sản phẩm mới
+   */
+  createProduct: async (data: Partial<Product>): Promise<Product> => {
+    const response = await axiosInstance.post(API_PATH, data);
+    return response as unknown as Product;
+  },
+
+  /**
+   * Cập nhật sản phẩm
+   */
+  updateProduct: async (id: string | number, data: Partial<Product>): Promise<Product> => {
+    const response = await axiosInstance.put(`${API_PATH}/${id}`, data);
+    return response as unknown as Product;
+  },
+
+  /**
+   * Xóa sản phẩm
+   */
+  deleteProduct: async (id: string | number): Promise<void> => {
+    await axiosInstance.delete(`${API_PATH}/${id}`);
   }
 };
