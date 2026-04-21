@@ -57,15 +57,6 @@ services:
       - ecp_network
     restart: always
 
-  vision_api:
-    image: ghcr.io/thanhnguyenhoang171/ecp/ecp-vision-api:latest
-    container_name: ecp_vision_api
-    ports:
-      - '3005:3005'
-    networks:
-      - ecp_network
-    restart: always
-
   storefront:
     image: ghcr.io/thanhnguyenhoang171/ecp/ecp-storefront:latest
     container_name: ecp_storefront

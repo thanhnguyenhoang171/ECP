@@ -9,4 +9,3 @@ export { default as Breadcrumb } from './Breadcrumb';
 export { default as Statistic } from './Statistic';
 export { default as FormControl } from './Form';
 export { default as BackButton } from './BackButton';
-export { default as BarcodeScanner } from './BarcodeScanner';
