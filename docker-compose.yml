@@ -52,7 +52,7 @@ services:
     image: ghcr.io/thanhnguyenhoang171/ecp/ecp-admin:latest
     container_name: ecp_admin
     ports:
-      - '8081:80'
+      - '8081:3000'
     networks:
       - ecp_network
     restart: always
