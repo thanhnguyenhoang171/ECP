@@ -1,6 +1,6 @@
 import { type FC } from 'react';
-import { Breadcrumb as AntdBreadcrumb } from 'antd';
-import type { BreadcrumbProps as AntdBreadcrumbProps } from 'antd';
+import AntdBreadcrumb from 'antd/es/breadcrumb';
+import type { BreadcrumbProps as AntdBreadcrumbProps } from 'antd/es/breadcrumb';
 
 const Breadcrumb: FC<AntdBreadcrumbProps> = ({ className, ...props }) => {
   return (

@@ -1,10 +1,10 @@
-import { SearchOutlined } from '@ant-design/icons';
+import SearchOutlined from '@ant-design/icons/es/icons/SearchOutlined';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import Table from './index';
 import Card from '../Card';
 import Button from '../Button';
 import {type ReactNode, useState} from "react";
-import {Input} from "antd";
+import AntdInput from "antd/es/input";
 
 interface DataTableProps<T> {
   columns: ColumnsType<T>;
@@ -39,7 +39,7 @@ const DataTable = <T extends object>({
   return (
     <Card noPadding>
       <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <Input
+        <AntdInput
           placeholder="Tìm kiếm..."
           prefix={<SearchOutlined className="text-slate-400" />}
           className="max-w-xs"

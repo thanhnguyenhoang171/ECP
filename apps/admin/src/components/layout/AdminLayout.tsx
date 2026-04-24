@@ -1,6 +1,8 @@
-import { useState, useEffect, type FC } from 'react';
-import { Layout, theme, Drawer } from 'antd';
-import type { MenuProps } from 'antd';
+import { useState, useEffect, useCallback, useMemo, memo, type FC } from 'react';
+import Layout from 'antd/es/layout';
+import theme from 'antd/es/theme';
+import Drawer from 'antd/es/drawer';
+import type { MenuProps } from 'antd/es/menu';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import nprogress from 'nprogress';
 import Sidebar from './Sidebar';
@@ -9,7 +11,7 @@ import { getAdminMenuItems, getUserMenuItems } from '../../config/navigation';
 
 const { Content } = Layout;
 
-const AdminLayout: FC = () => {
+const AdminLayout: FC = memo(() => {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [openDrawer, setOpenDrawer] = useState(false);
@@ -46,25 +48,27 @@ const AdminLayout: FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
-  const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
+  const handleMenuClick: MenuProps['onClick'] = useCallback(({ key }: { key: string }) => {
     if (key === 'logout') {
       localStorage.removeItem('access_token');
       navigate('/login');
     } else {
       navigate(key);
     }
-  };
+  }, [navigate]);
 
-  const toggleSidebar = () => {
+  const toggleSidebar = useCallback(() => {
     if (isMobile) {
-      setOpenDrawer(!openDrawer);
+      setOpenDrawer(prev => !prev);
     } else {
-      setCollapsed(!collapsed);
+      setCollapsed(prev => !prev);
     }
-  };
+  }, [isMobile]);
 
-  const adminMenuItems = getAdminMenuItems();
-  const userMenuItems = getUserMenuItems();
+  const adminMenuItems = useMemo(() => getAdminMenuItems(), []);
+  const userMenuItems = useMemo(() => getUserMenuItems(), []);
+
+  const handleCloseDrawer = useCallback(() => setOpenDrawer(false), []);
 
   return (
     <Layout className="h-screen overflow-hidden">
@@ -81,7 +85,7 @@ const AdminLayout: FC = () => {
       {/* Drawer Mobile */}
       <Drawer
         placement="left"
-        onClose={() => setOpenDrawer(false)}
+        onClose={handleCloseDrawer}
         open={openDrawer}
         closable={false}
         styles={{ 
@@ -124,6 +128,8 @@ const AdminLayout: FC = () => {
       </Layout>
     </Layout>
   );
-};
+});
+
+AdminLayout.displayName = 'AdminLayout';
 
 export default AdminLayout;

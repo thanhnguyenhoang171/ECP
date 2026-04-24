@@ -1,14 +1,14 @@
 import { useState, type FC } from 'react';
-import { Form, Checkbox, message } from 'antd';
+import Form from 'antd/es/form';
+import Checkbox from 'antd/es/checkbox';
+import message from 'antd/es/message';
 import { Button, Input, FormControl } from '../../components/common';
-import { 
-  UserOutlined, 
-  LockOutlined, 
-  MailOutlined, 
-  PhoneOutlined,
-  UserAddOutlined,
-  ArrowLeftOutlined 
-} from '@ant-design/icons';
+import UserOutlined from '@ant-design/icons/es/icons/UserOutlined';
+import LockOutlined from '@ant-design/icons/es/icons/LockOutlined';
+import MailOutlined from '@ant-design/icons/es/icons/MailOutlined';
+import PhoneOutlined from '@ant-design/icons/es/icons/PhoneOutlined';
+import UserAddOutlined from '@ant-design/icons/es/icons/UserAddOutlined';
+import ArrowLeftOutlined from '@ant-design/icons/es/icons/ArrowLeftOutlined';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 

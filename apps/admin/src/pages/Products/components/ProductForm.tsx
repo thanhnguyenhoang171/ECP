@@ -1,6 +1,10 @@
 import { type FC } from 'react';
-import { Form, Input, InputNumber, Select, Upload } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import Form from 'antd/es/form';
+import Input from 'antd/es/input';
+import InputNumber from 'antd/es/input-number';
+import Select from 'antd/es/select';
+import Upload from 'antd/es/upload';
+import PlusOutlined from '@ant-design/icons/es/icons/PlusOutlined';
 import type {Product} from "../../../interfaces";
 
 interface ProductFormProps {

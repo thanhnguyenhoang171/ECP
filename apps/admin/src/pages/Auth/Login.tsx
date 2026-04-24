@@ -1,13 +1,13 @@
 import { type FC, useState } from 'react';
-import { Form, Checkbox, message } from 'antd';
+import Form from 'antd/es/form';
+import Checkbox from 'antd/es/checkbox';
+import message from 'antd/es/message';
 import { Button, Input, FormControl } from '../../components/common';
-import { 
-  UserOutlined, 
-  LockOutlined, 
-  GoogleOutlined, 
-  FacebookFilled,
-  ArrowRightOutlined 
-} from '@ant-design/icons';
+import UserOutlined from '@ant-design/icons/es/icons/UserOutlined';
+import LockOutlined from '@ant-design/icons/es/icons/LockOutlined';
+import GoogleOutlined from '@ant-design/icons/es/icons/GoogleOutlined';
+import FacebookFilled from '@ant-design/icons/es/icons/FacebookFilled';
+import ArrowRightOutlined from '@ant-design/icons/es/icons/ArrowRightOutlined';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 

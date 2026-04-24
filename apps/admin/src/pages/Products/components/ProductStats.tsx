@@ -1,5 +1,7 @@
 import { type FC } from 'react';
-import { ShoppingOutlined, InboxOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import ShoppingOutlined from '@ant-design/icons/es/icons/ShoppingOutlined';
+import InboxOutlined from '@ant-design/icons/es/icons/InboxOutlined';
+import CheckCircleOutlined from '@ant-design/icons/es/icons/CheckCircleOutlined';
 import { Card, Statistic } from '../../../components/common';
 import type {Product} from "../../../interfaces";
 

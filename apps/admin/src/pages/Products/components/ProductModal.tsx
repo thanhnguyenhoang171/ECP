@@ -1,5 +1,6 @@
 import { type FC } from 'react';
-import { Modal, Form } from 'antd';
+import Modal from 'antd/es/modal';
+import Form from 'antd/es/form';
 import ProductForm from './ProductForm';
 import type {Product} from "../../../interfaces";
 

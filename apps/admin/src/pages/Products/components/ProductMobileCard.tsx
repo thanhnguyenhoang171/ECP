@@ -1,6 +1,11 @@
 import { type FC } from 'react';
-import { Space, Dropdown } from 'antd';
-import { EllipsisOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ShoppingOutlined } from '@ant-design/icons';
+import Space from 'antd/es/space';
+import Dropdown from 'antd/es/dropdown';
+import EllipsisOutlined from '@ant-design/icons/es/icons/EllipsisOutlined';
+import EditOutlined from '@ant-design/icons/es/icons/EditOutlined';
+import DeleteOutlined from '@ant-design/icons/es/icons/DeleteOutlined';
+import EyeOutlined from '@ant-design/icons/es/icons/EyeOutlined';
+import ShoppingOutlined from '@ant-design/icons/es/icons/ShoppingOutlined';
 import { Card, Tag, Avatar, Button } from '../../../components/common';
 import type {Product, ProductStatus} from "../../../interfaces";
 

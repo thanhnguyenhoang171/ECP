@@ -1,5 +1,5 @@
 import React from 'react';
-import { Form as AntdForm } from 'antd';
+import AntdForm from 'antd/es/form';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldValues, Path } from 'react-hook-form';
 

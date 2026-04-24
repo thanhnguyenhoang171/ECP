@@ -1,21 +1,19 @@
-import type { MenuProps } from 'antd';
-import {
-  DashboardOutlined,
-  ShoppingOutlined,
-  AppstoreOutlined,
-  DatabaseOutlined,
-  UserOutlined,
-  BarcodeOutlined,
-  HistoryOutlined,
-  SafetyOutlined,
-  FileTextOutlined,
-  SolutionOutlined,
-  TeamOutlined,
-  CreditCardOutlined,
-  ApartmentOutlined,
-  TagsOutlined,
-  LogoutOutlined,
-} from '@ant-design/icons';
+import type { MenuProps } from 'antd/es/menu';
+import DashboardOutlined from '@ant-design/icons/es/icons/DashboardOutlined';
+import ShoppingOutlined from '@ant-design/icons/es/icons/ShoppingOutlined';
+import AppstoreOutlined from '@ant-design/icons/es/icons/AppstoreOutlined';
+import DatabaseOutlined from '@ant-design/icons/es/icons/DatabaseOutlined';
+import UserOutlined from '@ant-design/icons/es/icons/UserOutlined';
+import BarcodeOutlined from '@ant-design/icons/es/icons/BarcodeOutlined';
+import HistoryOutlined from '@ant-design/icons/es/icons/HistoryOutlined';
+import SafetyOutlined from '@ant-design/icons/es/icons/SafetyOutlined';
+import FileTextOutlined from '@ant-design/icons/es/icons/FileTextOutlined';
+import SolutionOutlined from '@ant-design/icons/es/icons/SolutionOutlined';
+import TeamOutlined from '@ant-design/icons/es/icons/TeamOutlined';
+import CreditCardOutlined from '@ant-design/icons/es/icons/CreditCardOutlined';
+import ApartmentOutlined from '@ant-design/icons/es/icons/ApartmentOutlined';
+import TagsOutlined from '@ant-design/icons/es/icons/TagsOutlined';
+import LogoutOutlined from '@ant-design/icons/es/icons/LogoutOutlined';
 
 export type MenuItem = Required<MenuProps>['items'][number];
 

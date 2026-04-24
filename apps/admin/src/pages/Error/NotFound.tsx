@@ -1,5 +1,6 @@
 import { type FC } from 'react';
-import { Button, Result } from 'antd';
+import Button from 'antd/es/button';
+import Result from 'antd/es/result';
 import { useNavigate } from 'react-router-dom';
 
 const NotFound: FC = () => {

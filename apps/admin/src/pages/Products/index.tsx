@@ -1,15 +1,17 @@
 import { type FC, useState, useMemo } from 'react';
-import { Space, Dropdown, message, Modal, Input } from 'antd';
+import Space from 'antd/es/space';
+import Dropdown from 'antd/es/dropdown';
+import message from 'antd/es/message';
+import Modal from 'antd/es/modal';
+import Input from 'antd/es/input';
 import type { ColumnsType } from 'antd/es/table';
-import { 
-  PlusOutlined, 
-  EllipsisOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  ShoppingOutlined,
-  SearchOutlined
-} from '@ant-design/icons';
+import PlusOutlined from '@ant-design/icons/es/icons/PlusOutlined';
+import EllipsisOutlined from '@ant-design/icons/es/icons/EllipsisOutlined';
+import EditOutlined from '@ant-design/icons/es/icons/EditOutlined';
+import DeleteOutlined from '@ant-design/icons/es/icons/DeleteOutlined';
+import EyeOutlined from '@ant-design/icons/es/icons/EyeOutlined';
+import ShoppingOutlined from '@ant-design/icons/es/icons/ShoppingOutlined';
+import SearchOutlined from '@ant-design/icons/es/icons/SearchOutlined';
 import { 
   DataTable, 
   Button, 
@@ -19,6 +21,7 @@ import {
   Card
 } from '../../components/common';
 import { useProducts } from '../../hooks/useProducts';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // Import các component con
 import ProductStats from './components/ProductStats';
@@ -30,8 +33,8 @@ const Products: FC = () => {
   const { data, isLoading, refetch } = useProducts();
   const [searchText, setSearchText] = useState('');
   
-  // Responsive check (Giả lập đơn giản, có thể dùng hook useBreakpoint của antd)
-  const isMobile = window.innerWidth < 768;
+  // Responsive check dùng hook thay cho window.innerWidth trực tiếp
+  const isMobile = useIsMobile();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);

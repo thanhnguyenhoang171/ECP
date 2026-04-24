@@ -1,6 +1,6 @@
 import { type FC } from 'react';
 import { Card } from '../../components/common';
-import { ScanOutlined } from '@ant-design/icons';
+import ScanOutlined from '@ant-design/icons/es/icons/ScanOutlined';
 
 const BarcodeScans: FC = () => {
   return (

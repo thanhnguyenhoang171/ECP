@@ -1,5 +1,5 @@
-import { Card as AntdCard } from 'antd';
-import type { CardProps as AntdCardProps } from 'antd';
+import AntdCard from 'antd/es/card';
+import type { CardProps as AntdCardProps } from 'antd/es/card';
 import type { FC, CSSProperties } from 'react';
 
 interface CustomCardProps extends AntdCardProps {

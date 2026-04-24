@@ -1,17 +1,25 @@
 import React, { useState } from 'react';
-import { Form, Row, Col, Avatar as AntdAvatar, Upload, message, Typography, Divider, Image, Tooltip } from 'antd';
-import type { GetProp, UploadProps } from 'antd';
-import { 
-  UserOutlined, 
-  MailOutlined, 
-  PhoneOutlined, 
-  CameraOutlined,
-  SaveOutlined,
-  KeyOutlined,
-  SafetyCertificateOutlined,
-  EyeOutlined,
-  CheckCircleFilled
-} from '@ant-design/icons';
+import Form from 'antd/es/form';
+import Row from 'antd/es/row';
+import Col from 'antd/es/col';
+import AntdAvatar from 'antd/es/avatar';
+import Upload from 'antd/es/upload';
+import message from 'antd/es/message';
+import Typography from 'antd/es/typography';
+import Divider from 'antd/es/divider';
+import Image from 'antd/es/image';
+import Tooltip from 'antd/es/tooltip';
+import type { GetProp } from 'antd';
+import type { UploadProps } from 'antd/es/upload';
+import UserOutlined from '@ant-design/icons/es/icons/UserOutlined';
+import MailOutlined from '@ant-design/icons/es/icons/MailOutlined';
+import PhoneOutlined from '@ant-design/icons/es/icons/PhoneOutlined';
+import CameraOutlined from '@ant-design/icons/es/icons/CameraOutlined';
+import SaveOutlined from '@ant-design/icons/es/icons/SaveOutlined';
+import KeyOutlined from '@ant-design/icons/es/icons/KeyOutlined';
+import SafetyCertificateOutlined from '@ant-design/icons/es/icons/SafetyCertificateOutlined';
+import EyeOutlined from '@ant-design/icons/es/icons/EyeOutlined';
+import CheckCircleFilled from '@ant-design/icons/es/icons/CheckCircleFilled';
 import { Card, Input, Button, FormControl, BackButton } from '../../components/common';
 import { useForm } from 'react-hook-form';
 

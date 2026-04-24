@@ -1,14 +1,15 @@
-import { type FC } from 'react';
-import { Layout, Dropdown, theme, Space } from 'antd';
-import {
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-  MenuOutlined,
-  SearchOutlined,
-  BellOutlined,
-  UserOutlined,
-} from '@ant-design/icons';
-import type { MenuProps } from 'antd';
+import { memo, type FC } from 'react';
+import Layout from 'antd/es/layout';
+import Dropdown from 'antd/es/dropdown';
+import theme from 'antd/es/theme';
+import Space from 'antd/es/space';
+import MenuFoldOutlined from '@ant-design/icons/es/icons/MenuFoldOutlined';
+import MenuUnfoldOutlined from '@ant-design/icons/es/icons/MenuUnfoldOutlined';
+import MenuOutlined from '@ant-design/icons/es/icons/MenuOutlined';
+import SearchOutlined from '@ant-design/icons/es/icons/SearchOutlined';
+import BellOutlined from '@ant-design/icons/es/icons/BellOutlined';
+import UserOutlined from '@ant-design/icons/es/icons/UserOutlined';
+import type { MenuProps } from 'antd/es/menu';
 import { useLocation } from 'react-router-dom';
 import { getBreadcrumbsByPath } from '../../config/navigation';
 import { Avatar, Breadcrumb, Button } from '../common';
@@ -26,7 +27,7 @@ interface AdminHeaderProps {
   userAvatar?: string;
 }
 
-const AdminHeader: FC<AdminHeaderProps> = ({
+const AdminHeader: FC<AdminHeaderProps> = memo(({
   collapsed,
   isMobile,
   onToggleSidebar,
@@ -98,6 +99,8 @@ const AdminHeader: FC<AdminHeaderProps> = ({
       </div>
     </Header>
   );
-};
+});
+
+AdminHeader.displayName = 'AdminHeader';
 
 export default AdminHeader;

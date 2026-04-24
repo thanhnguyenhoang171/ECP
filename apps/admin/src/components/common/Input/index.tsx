@@ -1,6 +1,6 @@
 import { type FC } from 'react';
-import { Input as AntdInput } from 'antd';
-import type { InputProps as AntdInputProps } from 'antd';
+import AntdInput from 'antd/es/input';
+import type { InputProps as AntdInputProps } from 'antd/es/input';
 import type { PasswordProps } from 'antd/es/input';
 
 const Input: FC<AntdInputProps> & { Password: FC<PasswordProps> } = (props) => {

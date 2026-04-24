@@ -1,6 +1,6 @@
 import { type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import ArrowLeftOutlined from '@ant-design/icons/es/icons/ArrowLeftOutlined';
 import Button from '../Button';
 
 interface BackButtonProps {

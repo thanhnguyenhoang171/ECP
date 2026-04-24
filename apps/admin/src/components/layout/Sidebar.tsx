@@ -1,6 +1,7 @@
-import { type FC } from 'react';
-import { Menu, Layout } from 'antd';
-import type { MenuProps } from 'antd';
+import { memo, type FC } from 'react';
+import Menu from 'antd/es/menu';
+import Layout from 'antd/es/layout';
+import type { MenuProps } from 'antd/es/menu';
 import { useLocation } from 'react-router-dom';
 import type { MenuItem } from '../../config/navigation';
 
@@ -14,7 +15,7 @@ interface SidebarProps {
   logoText?: string;
 }
 
-const Sidebar: FC<SidebarProps> = ({ 
+const Sidebar: FC<SidebarProps> = memo(({ 
   collapsed, 
   isMobile, 
   items, 
@@ -57,6 +58,8 @@ const Sidebar: FC<SidebarProps> = ({
       {SidebarContent}
     </Sider>
   );
-};
+});
+
+Sidebar.displayName = 'Sidebar';
 
 export default Sidebar;

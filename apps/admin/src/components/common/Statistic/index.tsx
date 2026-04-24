@@ -1,5 +1,5 @@
-import { Statistic as AntdStatistic } from 'antd';
-import type { StatisticProps as AntdStatisticProps } from 'antd';
+import AntdStatistic from 'antd/es/statistic';
+import type { StatisticProps as AntdStatisticProps } from 'antd/es/statistic';
 import type { FC, CSSProperties } from 'react';
 
 interface ExtendedStatisticProps extends AntdStatisticProps {

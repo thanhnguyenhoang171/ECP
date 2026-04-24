@@ -1,11 +1,25 @@
 /* eslint-disable react-refresh/only-export-components */
 import { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { Spin } from 'antd';
 
+// Pure CSS fallback — không cần import antd Spin, giảm initial bundle
 const Fallback = () => (
-    <div className="flex w-full h-[100vh] items-center justify-center bg-slate-50">
-        <Spin size="large" />
+    <div style={{
+        display: 'flex',
+        width: '100%',
+        height: '100vh',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#F8FAFC'
+    }}>
+        <div style={{
+            width: 40,
+            height: 40,
+            border: '3px solid #E2E8F0',
+            borderTopColor: '#2563EB',
+            borderRadius: '50%',
+            animation: 'spin 0.6s linear infinite'
+        }} />
     </div>
 );
 
@@ -15,10 +29,11 @@ const withSuspense = (Component: React.ComponentType) => (
     </Suspense>
 );
 
-import AdminLayout from '../components/layout/AdminLayout';
+// Lazy load AdminLayout → defer antd Layout/Menu/Drawer khỏi initial bundle
+const AdminLayout = lazy(() => import('../components/layout/AdminLayout'));
 import ProtectedRoute from '../components/layout/ProtectedRoute';
-import GeneralError from '../pages/Error/GeneralError';
-import NotFound from '../pages/Error/NotFound';
+const GeneralError = lazy(() => import('../pages/Error/GeneralError'));
+const NotFound = lazy(() => import('../pages/Error/NotFound'));
 
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const Products = lazy(() => import('../pages/Products'));
@@ -51,14 +66,14 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <ProtectedRoute />, // Bảo vệ tất cả các route bên trong
-    errorElement: <GeneralError />,
+    errorElement: <Suspense fallback={<Fallback />}><GeneralError /></Suspense>,
     children: [
       {
         path: 'profile',
         element: withSuspense(Profile), // Profile trang riêng, không dùng AdminLayout
       },
       {
-        element: <AdminLayout />,
+        element: withSuspense(AdminLayout),
         children: [
           {
             index: true,
@@ -135,7 +150,7 @@ const router = createBrowserRouter([
   },
   {
     path: '*',
-    element: <NotFound />,
+    element: withSuspense(NotFound),
   },
 ]);
 

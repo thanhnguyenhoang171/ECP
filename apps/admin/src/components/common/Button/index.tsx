@@ -1,6 +1,6 @@
 import React from 'react';
-import { Button as AntdButton } from 'antd';
-import type { ButtonProps as AntdButtonProps } from 'antd';
+import AntdButton from 'antd/es/button';
+import type { ButtonProps as AntdButtonProps } from 'antd/es/button';
 
 interface CustomButtonProps extends AntdButtonProps {
   fullWidth?: boolean;
