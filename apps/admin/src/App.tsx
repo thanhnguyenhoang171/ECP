@@ -13,6 +13,7 @@ const theme = {
     colorTextHeading: '#0F172A', // Slate-900
     colorBgBase: '#FFFFFF',
     colorBgLayout: '#F8FAFC', // Slate-50
+    colorBorderSecondary: '#F1F5F9', // Slate-100
     borderRadius: 8,
     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     fontSize: 14,

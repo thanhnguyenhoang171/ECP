@@ -65,7 +65,7 @@ const AdminHeader: FC<AdminHeaderProps> = memo(({
           type="text"
           icon={isMobile ? <MenuOutlined /> : (collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />)}
           onClick={onToggleSidebar}
-          className="text-lg w-10 h-10 flex items-center justify-center hover:bg-slate-50 text-slate-600 border-none"
+          size="large"
         />
         <div className="hidden md:block">
           <Breadcrumb items={breadcrumbItems} />
@@ -74,8 +74,8 @@ const AdminHeader: FC<AdminHeaderProps> = memo(({
       
       <div className="flex items-center gap-4">
         <Space size={12}>
-          <Button type="text" icon={<SearchOutlined />} className="text-slate-500 hover:text-primary-600 flex items-center justify-center border-none" />
-          <Button type="text" icon={<BellOutlined />} className="text-slate-500 hover:text-primary-600 flex items-center justify-center border-none" />
+          <Button type="text" icon={<SearchOutlined />} />
+          <Button type="text" icon={<BellOutlined />} />
         </Space>
         
         <div className="w-[1px] h-6 bg-slate-200 mx-1"></div>

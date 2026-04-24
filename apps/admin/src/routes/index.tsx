@@ -29,12 +29,15 @@ const withSuspense = (Component: React.ComponentType) => (
     </Suspense>
 );
 
-// Lazy load AdminLayout → defer antd Layout/Menu/Drawer khỏi initial bundle
+// Layouts
 const AdminLayout = lazy(() => import('../components/layout/AdminLayout'));
+const AuthLayout = lazy(() => import('../components/layout/AuthLayout'));
+const ProfileLayout = lazy(() => import('../components/layout/ProfileLayout'));
 import ProtectedRoute from '../components/layout/ProtectedRoute';
+
+// Pages
 const GeneralError = lazy(() => import('../pages/Error/GeneralError'));
 const NotFound = lazy(() => import('../pages/Error/NotFound'));
-
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const Products = lazy(() => import('../pages/Products'));
 const Categories = lazy(() => import('../pages/Categories'));
@@ -55,24 +58,39 @@ const Login = lazy(() => import('../pages/Auth/Login'));
 const Register = lazy(() => import('../pages/Auth/Register'));
 
 const router = createBrowserRouter([
+  // Auth Routes
   {
-    path: '/login',
-    element: withSuspense(Login),
+    element: withSuspense(AuthLayout),
+    children: [
+      {
+        path: '/login',
+        element: withSuspense(Login),
+      },
+      {
+        path: '/register',
+        element: withSuspense(Register),
+      },
+    ]
   },
-  {
-    path: '/register',
-    element: withSuspense(Register),
-  },
+  // Protected Routes
   {
     path: '/',
-    element: <ProtectedRoute />, // Bảo vệ tất cả các route bên trong
+    element: <ProtectedRoute />, 
     errorElement: <Suspense fallback={<Fallback />}><GeneralError /></Suspense>,
     children: [
       {
+        // Profile has its own simple layout
         path: 'profile',
-        element: withSuspense(Profile), // Profile trang riêng, không dùng AdminLayout
+        element: withSuspense(ProfileLayout),
+        children: [
+          {
+            index: true,
+            element: withSuspense(Profile),
+          }
+        ]
       },
       {
+        // AdminLayout contains Sidebar and Header
         element: withSuspense(AdminLayout),
         children: [
           {

@@ -28,7 +28,7 @@ const Card: FC<CustomCardProps> = ({
     <AntdCard
       {...props}
       styles={mergedStyles}
-      className={`shadow-soft border-slate-100 ${className || ''}`}
+      className={className}
     >
       {children}
     </AntdCard>

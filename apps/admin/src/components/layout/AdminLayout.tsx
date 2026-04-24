@@ -9,7 +9,7 @@ import Sidebar from './Sidebar';
 import AdminHeader from './AdminHeader';
 import { getAdminMenuItems, getUserMenuItems } from '../../config/navigation';
 
-const { Content } = Layout;
+const { Content, Sider } = Layout;
 
 const AdminLayout: FC = memo(() => {
   const [collapsed, setCollapsed] = useState(false);
@@ -74,12 +74,21 @@ const AdminLayout: FC = memo(() => {
     <Layout className="h-screen overflow-hidden">
       {/* Sidebar Desktop */}
       {!isMobile && (
-        <Sidebar 
-          collapsed={collapsed} 
-          isMobile={false} 
-          items={adminMenuItems} 
-          onMenuClick={handleMenuClick} 
-        />
+        <Sider
+          trigger={null}
+          collapsible
+          collapsed={collapsed}
+          theme="light"
+          className="shadow-sm border-r border-slate-200 h-screen sticky left-0 top-0 z-30"
+          width={260}
+        >
+          <Sidebar 
+            collapsed={collapsed} 
+            isMobile={false} 
+            items={adminMenuItems} 
+            onMenuClick={handleMenuClick} 
+          />
+        </Sider>
       )}
 
       {/* Drawer Mobile */}
@@ -90,7 +99,7 @@ const AdminLayout: FC = memo(() => {
         closable={false}
         styles={{ 
           body: { padding: 0 },
-          wrapper: { width: 260 } // Chuẩn Antd v6
+          wrapper: { width: 260 }
         }}
       >
         <Sidebar 
@@ -111,7 +120,7 @@ const AdminLayout: FC = memo(() => {
         />
         
         <Content
-          className="overflow-y-auto bg-gray-50/50 p-4 sm:p-6"
+          className="overflow-y-auto bg-slate-50 p-4 sm:p-6"
         >
           <div 
             style={{
@@ -120,7 +129,6 @@ const AdminLayout: FC = memo(() => {
               background: colorBgContainer,
               borderRadius: borderRadiusLG,
             }}
-            className="shadow-sm border border-gray-100"
           >
             <Outlet />
           </div>

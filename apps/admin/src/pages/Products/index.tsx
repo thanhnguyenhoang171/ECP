@@ -89,10 +89,9 @@ const Products: FC = () => {
             shape="square" 
             size={48} 
             icon={<ShoppingOutlined />} 
-            className="bg-slate-50 border border-slate-100"
           />
           <div className="flex flex-col">
-            <span className="font-semibold text-slate-900 leading-tight">{record.name}</span>
+            <span className="font-semibold leading-tight">{record.name}</span>
             <span className="text-xs text-slate-500 uppercase tracking-wider">{record.sku || 'N/A'}</span>
           </div>
         </Space>
@@ -104,7 +103,7 @@ const Products: FC = () => {
       dataIndex: 'price',
       key: 'price',
       render: (price: number) => (
-        <span className="font-medium text-slate-900">
+        <span className="font-medium">
           {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)}
         </span>
       ),
@@ -114,7 +113,7 @@ const Products: FC = () => {
       dataIndex: 'stock',
       key: 'stock',
       render: (stock: number) => (
-        <span className={stock < 10 ? 'text-rose-600 font-semibold' : 'text-slate-600'}>{stock}</span>
+        <span className={stock < 10 ? 'text-rose-600 font-semibold' : ''}>{stock}</span>
       ),
     },
     {
