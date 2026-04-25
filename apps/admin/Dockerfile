@@ -1,30 +1,24 @@
 # Build stage
 FROM node:22-alpine AS base
 
-# Install dependencies only when needed
-FROM base AS deps
+# 1. Install dependencies
+FROM base AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
+# Enable pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
-COPY apps/admin/package.json ./apps/admin/
-COPY apps/storefront/package.json ./apps/storefront/
-COPY services/ecp_api/package.json ./services/ecp_api/
-
-RUN pnpm install --frozen-lockfile
-
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
-COPY --from=deps /app/node_modules ./node_modules
+# Copy all files to build
 COPY . .
 
+# Install dependencies (pnpm sẽ tự tối ưu hóa trong monorepo)
+RUN pnpm install --frozen-lockfile
+
+# Build dự án admin
 RUN pnpm --filter admin build
 
-# Production image, copy all the files and run next
+# 2. Production image
 FROM base AS runner
 WORKDIR /app
 
@@ -34,10 +28,10 @@ ENV PORT=80
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Copy tệp thực thi từ stage builder
 COPY --from=builder /app/apps/admin/public ./apps/admin/public
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
+# Chế độ standalone tối ưu
 COPY --from=builder --chown=nextjs:nodejs /app/apps/admin/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/admin/.next/static ./apps/admin/.next/static
 
