@@ -1,15 +1,16 @@
-import React from 'react';
-import { Button as AntdButton, Input as AntdInput } from 'antd';
-
-export const Button = (props: any) => <AntdButton {...props} />;
-(Button as any).displayName = 'Button';
-
-const InputComponent = (props: any) => <AntdInput {...props} />;
-const PasswordComponent = (props: any) => <AntdInput.Password {...props} />;
-
-(PasswordComponent as any).displayName = 'Input.Password';
-
-export const Input = Object.assign(InputComponent, {
-  Password: PasswordComponent,
-});
-(Input as any).displayName = 'Input';
+export { Button } from "@/components/ui/button";
+export { Input } from "@/components/ui/input";
+export { Card } from "@/components/ui/card";
+export { Badge } from "@/components/ui/badge";
+export { Checkbox } from "@/components/ui/checkbox";
+export { Label } from "@/components/ui/label";
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+} from "@/components/ui/table";

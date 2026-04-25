@@ -1,53 +1,182 @@
 'use client';
 
-import React from 'react';
-import { Button, Checkbox, Form, Input, message } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { User, Lock, Mail, Loader2 } from 'lucide-react';
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+const formSchema = z.object({
+  username: z.string().min(2, {
+    message: "Tên người dùng phải có ít nhất 2 ký tự.",
+  }),
+  email: z.string().email({
+    message: "Email không hợp lệ.",
+  }),
+  password: z.string().min(6, {
+    message: "Mật khẩu phải từ 6 ký tự trở lên.",
+  }),
+  confirm: z.string(),
+  agreement: z.boolean().refine(v => v === true, {
+    message: "Bạn phải đồng ý với điều khoản dịch vụ.",
+  }),
+}).refine((data) => data.password === data.confirm, {
+  message: "Mật khẩu xác nhận không khớp.",
+  path: ["confirm"],
+});
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [loading, setLoading] = React.useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const onFinish = async (values: Record<string, unknown>) => {
-    setLoading(true);
-    try {
-      message.success('Đăng ký tài khoản thành công!');
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      username: "",
+      email: "",
+      password: "",
+      confirm: "",
+      agreement: false,
+    },
+  });
+
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
+    console.log(values);
+    
+    setTimeout(() => {
+      toast.success('Đăng ký tài khoản thành công!');
       router.push('/login');
-    } finally {
-      setLoading(false);
-    }
-  };
+      setIsLoading(false);
+    }, 1000);
+  }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl border border-gray-100">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-blue-600 mb-2 italic">ECP Admin</h1>
-          <p className="text-gray-500">Tạo tài khoản quản trị mới</p>
-        </div>
-        <Form name="register" onFinish={onFinish} layout="vertical" size="large">
-          <Form.Item name="username" rules={[{ required: true, message: 'Vui lòng nhập tên người dùng!' }]}>
-            <Input prefix={<UserOutlined className="text-gray-400" />} placeholder="Tên người dùng" />
-          </Form.Item>
-          <Form.Item name="email" rules={[{ type: 'email', message: 'Email không hợp lệ!' }, { required: true, message: 'Vui lòng nhập Email!' }]}>
-            <Input prefix={<MailOutlined className="text-gray-400" />} placeholder="Địa chỉ Email" />
-          </Form.Item>
-          <Form.Item name="password" rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }, { min: 6, message: 'Mật khẩu phải từ 6 ký tự trở lên!' }]} hasFeedback>
-            <Input.Password prefix={<LockOutlined className="text-gray-400" />} placeholder="Mật khẩu" />
-          </Form.Item>
-          <Form.Item name="confirm" dependencies={['password']} hasFeedback rules={[{ required: true, message: 'Vui lòng xác nhận mật khẩu!' }, ({ getFieldValue }) => ({ validator(_, value) { if (!value || getFieldValue('password') === value) return Promise.resolve(); return Promise.reject(new Error('Mật khẩu xác nhận không khớp!')); }, }), ]}>
-            <Input.Password prefix={<LockOutlined className="text-gray-400" />} placeholder="Xác nhận mật khẩu" />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" className="w-full font-bold h-12 text-lg" loading={loading}>Đăng ký ngay</Button>
-          </Form.Item>
-          <div className="text-center text-gray-500">
-            Đã có tài khoản? <Link href="/login" className="text-blue-600 hover:underline font-medium">Đăng nhập</Link>
-          </div>
-        </Form>
-      </div>
+    <div className="flex items-center justify-center min-h-screen bg-muted/30 py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md shadow-xl border-t-4 border-t-primary">
+        <CardHeader className="text-center space-y-1">
+          <CardTitle className="text-3xl font-extrabold text-primary italic">ECP Admin</CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Tạo tài khoản quản trị mới
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <div className="relative">
+                        <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Tên người dùng" className="pl-10" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Địa chỉ Email" className="pl-10" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input type="password" placeholder="Mật khẩu" className="pl-10" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="confirm"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input type="password" placeholder="Xác nhận mật khẩu" className="pl-10" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="agreement"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="agreement" 
+                        checked={field.value} 
+                        onCheckedChange={field.onChange} 
+                      />
+                      <label 
+                        htmlFor="agreement" 
+                        className="text-xs font-medium text-muted-foreground"
+                      >
+                        Tôi đồng ý với <Link href="#" className="text-primary hover:underline">điều khoản dịch vụ</Link>
+                      </label>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" className="w-full h-11 text-base font-bold mt-2" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Đăng ký ngay
+              </Button>
+
+              <div className="text-center text-sm text-muted-foreground pt-2">
+                Đã có tài khoản?{" "}
+                <Link href="/login" className="text-primary font-medium hover:underline">
+                  Đăng nhập
+                </Link>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

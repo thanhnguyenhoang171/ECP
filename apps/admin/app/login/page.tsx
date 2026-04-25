@@ -1,52 +1,144 @@
 'use client';
 
-import React from 'react';
-import { Form, Checkbox, message } from 'antd';
-import { Button, Input } from '@/components/common';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { User, Lock, Loader2 } from 'lucide-react';
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+const formSchema = z.object({
+  username: z.string().min(2, {
+    message: "Tên đăng nhập phải có ít nhất 2 ký tự.",
+  }),
+  password: z.string().min(6, {
+    message: "Mật khẩu phải có ít nhất 6 ký tự.",
+  }),
+  remember: z.boolean().default(false),
+});
 
 export default function LoginPage() {
   const router = useRouter();
-  const [loading, setLoading] = React.useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const onFinish = (values: Record<string, unknown>) => {
-    setLoading(true);
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+      remember: false,
+    },
+  });
+
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
+    console.log(values);
+    
     setTimeout(() => {
       localStorage.setItem('access_token', 'fake_token_123');
-      message.success('Chào mừng bạn quay trở lại!');
+      toast.success('Chào mừng bạn quay trở lại!');
       router.push('/dashboard');
-      setLoading(false);
+      setIsLoading(false);
     }, 1000);
-  };
+  }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl border border-gray-100">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-blue-600 mb-2 italic">ECP Admin</h1>
-          <p className="text-gray-500">Hệ thống quản trị bán hàng hiện đại</p>
-        </div>
-        <Form name="login" initialValues={{ remember: true }} onFinish={onFinish} layout="vertical" size="large">
-          <Form.Item name="username" rules={[{ required: true, message: 'Vui lòng nhập tên đăng nhập!' }]}>
-            <Input prefix={<UserOutlined className="text-gray-400" />} placeholder="Tên đăng nhập (admin)" />
-          </Form.Item>
-          <Form.Item name="password" rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}>
-            <Input.Password prefix={<LockOutlined className="text-gray-400" />} placeholder="Mật khẩu" />
-          </Form.Item>
-          <div className="flex justify-between items-center mb-6">
-            <Form.Item name="remember" valuePropName="checked" noStyle><Checkbox>Ghi nhớ tôi</Checkbox></Form.Item>
-            <a className="text-blue-600 hover:text-blue-500 text-sm" href="#">Quên mật khẩu?</a>
-          </div>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" className="w-full font-bold h-12 text-lg" loading={loading}>Đăng nhập</Button>
-          </Form.Item>
-          <div className="text-center text-gray-500">
-            Chưa có tài khoản? <Link href="/register" className="text-blue-600 hover:underline font-medium">Đăng ký ngay</Link>
-          </div>
-        </Form>
-      </div>
+    <div className="flex items-center justify-center min-h-screen bg-muted/30 py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md shadow-xl border-t-4 border-t-primary">
+        <CardHeader className="text-center space-y-1">
+          <CardTitle className="text-3xl font-extrabold text-primary italic">ECP Admin</CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Hệ thống quản trị bán hàng hiện đại
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <div className="relative">
+                        <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Tên đăng nhập (admin)" className="pl-10" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input type="password" placeholder="Mật khẩu" className="pl-10" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex items-center justify-between">
+                <FormField
+                  control={form.control}
+                  name="remember"
+                  render={({ field }) => (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="remember" 
+                        checked={field.value} 
+                        onCheckedChange={field.onChange} 
+                      />
+                      <label 
+                        htmlFor="remember" 
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Ghi nhớ tôi
+                      </label>
+                    </div>
+                  )}
+                />
+                <Link href="#" className="text-sm text-primary hover:underline">
+                  Quên mật khẩu?
+                </Link>
+              </div>
+
+              <Button type="submit" className="w-full h-11 text-base font-bold" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Đăng nhập
+              </Button>
+
+              <div className="text-center text-sm text-muted-foreground pt-2">
+                Chưa có tài khoản?{" "}
+                <Link href="/register" className="text-primary font-medium hover:underline">
+                  Đăng ký ngay
+                </Link>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

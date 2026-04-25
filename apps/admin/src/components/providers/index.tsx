@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AntdRegistry } from '@ant-design/nextjs-registry';
-import { ConfigProvider } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -15,18 +15,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   }));
 
   return (
-    <AntdRegistry>
-      <ConfigProvider
-        theme={{
-          token: {
-            colorPrimary: '#1677ff',
-          },
-        }}
-      >
-        <QueryClientProvider client={queryClient}>
-          {children}
-        </QueryClientProvider>
-      </ConfigProvider>
-    </AntdRegistry>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider delayDuration={0}>
+        {children}
+        <Toaster position="top-right" richColors />
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
