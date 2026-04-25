@@ -9,6 +9,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
 
   return (
+    // @ts-ignore - Sửa lỗi Type mismatch giữa React 19 và Sonner
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
