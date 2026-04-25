@@ -126,6 +126,13 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
+          # Secrets cho Backend
+          SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          SPRING_DATA_MONGODB_URI: ${{ secrets.SPRING_DATA_MONGODB_URI }}
+          # Secrets cho Frontend
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
           # 1. Thiết lập thư mục SSH và lưu Private Key
           mkdir -p ~/.ssh
@@ -142,9 +149,16 @@ jobs:
               StrictHostKeyChecking no
           EOF
 
-          # 3. Chạy lệnh deploy từ xa qua SSH
-          ssh asus-server << 'ENDSSH'
+          # 3. Chạy lệnh deploy từ xa qua SSH và tạo file .env động
+          ssh asus-server << ENDSSH
           cd ~/ECP
+
+          # Tạo hoặc ghi đè file .env để docker-compose bốc biến
+          echo "SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL" > .env
+          echo "SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME" >> .env
+          echo "SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD" >> .env
+          echo "SPRING_DATA_MONGODB_URI=$SPRING_DATA_MONGODB_URI" >> .env
+          echo "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" >> .env
 
           # Đăng nhập để có quyền kéo image private
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin

@@ -5,25 +5,24 @@ services:
     ports:
       - '3307:3306'
     environment:
-      MYSQL_ROOT_PASSWORD: 142857
-      MYSQL_DATABASE: ecp_db
-      MYSQL_USER: admin
-      MYSQL_PASSWORD: 142857
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-142857}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ecp_db}
+      MYSQL_USER: ${MYSQL_USER:-admin}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-142857}
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
       - ecp_network
     restart: always
 
-  # --- THÊM MONGODB TẠI ĐÂY ---
   mongodb:
     image: mongo:latest
     container_name: ecp_mongodb
     ports:
       - '27017:27017'
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: 142857
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-142857}
     volumes:
       - mongo_data:/data/db
     networks:
@@ -36,11 +35,11 @@ services:
     ports:
       - '9091:9090'
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ecp_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: 142857
-      # Thêm biến môi trường kết nối Mongo cho Spring Boot (nếu cần)
-      SPRING_DATA_MONGODB_URI: mongodb://admin:142857@mongodb:27017/ecp_mongo?authSource=admin
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mysql://mysql:3306/ecp_db?createDatabaseIfNotExist=true}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-root}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-142857}
+      SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI:-mongodb://admin:142857@mongodb:27017/ecp_mongo?authSource=admin}
+      SPRING_PROFILES_ACTIVE: prod
     networks:
       - ecp_network
     depends_on:
@@ -52,7 +51,9 @@ services:
     image: ghcr.io/thanhnguyenhoang171/ecp/ecp-admin:latest
     container_name: ecp_admin
     ports:
-      - '8081:3000'
+      - '8081:80'
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:9091/api}
     networks:
       - ecp_network
     restart: always
@@ -62,6 +63,8 @@ services:
     container_name: ecp_storefront
     ports:
       - '3000:3000'
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:9091/api}
     networks:
       - ecp_network
     restart: always
@@ -72,4 +75,4 @@ networks:
 
 volumes:
   mysql_data:
-  mongo_data: # Đừng quên khai báo volume để không mất data khi restart
+  mongo_data:

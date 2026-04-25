@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Layout, Menu, Button, theme, Drawer, Dropdown, Space, Typography, Badge, Tooltip } from 'antd';
+import { Layout, Menu, Button, theme, Drawer, Dropdown, Space, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   MenuFoldOutlined,
@@ -13,6 +13,13 @@ import {
   UserOutlined,
   LogoutOutlined,
   MenuOutlined,
+  BarcodeOutlined,
+  TeamOutlined,
+  HistoryOutlined,
+  HomeOutlined,
+  CreditCardOutlined,
+  ContainerOutlined,
+  TagsOutlined,
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 import nprogress from 'nprogress';
@@ -45,11 +52,7 @@ const NextAdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     const timer = setTimeout(() => {
       nprogress.done();
     }, 200);
-    
-    if (openDrawer) {
-      setOpenDrawer(false);
-    }
-
+    if (openDrawer) setOpenDrawer(false);
     return () => {
       clearTimeout(timer);
       nprogress.done();
@@ -70,14 +73,35 @@ const NextAdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     {
       key: 'products-group',
       icon: <ShoppingOutlined />,
-      label: 'Quản lý sản phẩm',
+      label: 'Sản phẩm & SKU',
       children: [
-        { key: '/products', label: 'Danh sách sản phẩm' },
-        { key: '/categories', icon: <AppstoreOutlined />, label: 'Danh mục' },
-        { key: '/stock', icon: <DatabaseOutlined />, label: 'Kho hàng' },
+        { key: '/products', label: 'Sản phẩm' },
+        { key: '/skus', label: 'SKUs', icon: <TagsOutlined /> },
+        { key: '/categories', label: 'Danh mục', icon: <AppstoreOutlined /> },
       ],
     },
-    { key: '/users', icon: <UserOutlined />, label: 'Người dùng' },
+    {
+      key: 'inventory-group',
+      icon: <DatabaseOutlined />,
+      label: 'Quản lý kho',
+      children: [
+        { key: '/stock', label: 'Tồn kho' },
+        { key: '/warehouses', label: 'Kho hàng', icon: <HomeOutlined /> },
+        { key: '/inventory-ledger', label: 'Sổ nhật ký', icon: <HistoryOutlined /> },
+        { key: '/barcode-scans', label: 'Quét mã vạch', icon: <BarcodeOutlined /> },
+      ],
+    },
+    {
+      key: 'sales-group',
+      icon: <ContainerOutlined />,
+      label: 'Kinh doanh',
+      children: [
+        { key: '/orders', label: 'Đơn hàng' },
+        { key: '/payments', label: 'Thanh toán', icon: <CreditCardOutlined /> },
+        { key: '/customers', label: 'Khách hàng', icon: <TeamOutlined /> },
+      ],
+    },
+    { key: '/users', icon: <UserOutlined />, label: 'Nhân viên' },
     { key: 'divider-1', type: 'divider' },
     {
       key: 'logout',
@@ -89,11 +113,7 @@ const NextAdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const userMenuItems: MenuProps['items'] = [
     { key: '/profile', icon: <UserOutlined />, label: 'Hồ sơ cá nhân' },
     { type: 'divider' },
-    {
-      key: 'logout',
-      icon: <LogoutOutlined className="text-red-500" />,
-      label: <span className="text-red-500 font-medium">Đăng xuất</span>,
-    },
+    { key: 'logout', icon: <LogoutOutlined className="text-red-500" />, label: <span className="text-red-500 font-medium">Đăng xuất</span> },
   ];
 
   const SidebarContent = (
@@ -102,14 +122,7 @@ const NextAdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         {(collapsed && !isMobile) ? 'ECP' : 'Admin ECP'}
       </div>
       <div className="flex-1 overflow-y-auto">
-        <Menu
-          theme="light"
-          mode="inline"
-          selectedKeys={[pathname]}
-          onClick={handleMenuClick}
-          items={menuItems}
-          className="border-none"
-        />
+        <Menu theme="light" mode="inline" selectedKeys={[pathname]} onClick={handleMenuClick} items={menuItems} className="border-none" />
       </div>
     </div>
   );
@@ -121,11 +134,9 @@ const NextAdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           {SidebarContent}
         </Sider>
       )}
-
       <Drawer placement="left" onClose={() => setOpenDrawer(false)} open={openDrawer} closable={false} width={240} styles={{ body: { padding: 0 } }}>
         {SidebarContent}
       </Drawer>
-
       <Layout className="h-screen flex flex-col overflow-hidden relative">
         <Header style={{ paddingLeft: 16, paddingRight: 16, background: colorBgContainer, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} className="shadow-sm h-16 shrink-0 z-20">
           <div className="flex items-center">
@@ -135,20 +146,16 @@ const NextAdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
               <Button type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed(!collapsed)} className="text-lg w-10 h-10 flex items-center justify-center hover:bg-gray-50" />
             )}
           </div>
-          
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex flex-col items-end leading-tight">
               <span className="text-sm font-bold text-gray-800">Admin User</span>
               <span className="text-[11px] text-blue-600 uppercase tracking-wider font-bold">Quản trị viên</span>
             </div>
             <Dropdown menu={{ items: userMenuItems, onClick: handleMenuClick }} placement="bottomRight" arrow>
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-200 cursor-pointer border-2 border-white">
-                AD
-              </div>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-200 cursor-pointer border-2 border-white">AD</div>
             </Dropdown>
           </div>
         </Header>
-        
         <Content className="overflow-y-auto bg-gray-50/50 p-4 sm:p-6">
           <div style={{ padding: isMobile ? 16 : 24, minHeight: '100%', background: colorBgContainer, borderRadius: borderRadiusLG }} className="shadow-sm border border-gray-100">
             {children}
