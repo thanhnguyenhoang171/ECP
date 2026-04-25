@@ -163,6 +163,9 @@ jobs:
               StrictHostKeyChecking no
           EOF
 
+          # 2.5 Copy file docker-compose.yml mới nhất lên server
+          scp docker-compose.yml asus-server:~/ECP/docker-compose.yml
+
           # 3. Chạy lệnh deploy từ xa qua SSH và tạo file .env động
           ssh asus-server << ENDSSH
           cd ~/ECP
