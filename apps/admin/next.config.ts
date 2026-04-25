@@ -10,7 +10,6 @@ const nextConfig: NextConfig = {
   compress: true,
   // Tắt x-powered-by để bảo mật và giảm header size
   poweredByHeader: false,
-  // Hỗ trợ standalone tốt hơn
   reactStrictMode: true,
   // Cấu hình cache cho static assets
   images: {
