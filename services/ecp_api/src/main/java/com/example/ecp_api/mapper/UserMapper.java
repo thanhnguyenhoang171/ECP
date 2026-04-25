@@ -1,11 +1,16 @@
 package com.example.ecp_api.mapper;
 
 import com.example.ecp_api.dto.request.UserRequest;
+import com.example.ecp_api.dto.response.PageResponse;
+import com.example.ecp_api.dto.response.PaginationResponse;
 import com.example.ecp_api.dto.response.UserResponse;
 import com.example.ecp_api.entity.jpa.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.springframework.data.domain.Page;
+
+import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface UserMapper {
@@ -43,6 +48,28 @@ public interface UserMapper {
     @Mapping(target = "loyaltyPoints", source = "profile.loyaltyPoints")
     @Mapping(target = "membershipTier", source = "profile.membershipTier")
     UserResponse toResponse(User user);
+
+    default PageResponse<UserResponse> toPageResponse(Page<User> page) {
+        List<UserResponse> list = page.getContent().stream()
+                .map(this::toResponse)
+                .toList();
+
+        PaginationResponse pagination = PaginationResponse.builder()
+                .currentPage(page.getNumber())
+                .totalPages(page.getTotalPages())
+                .totalElements(page.getTotalElements())
+                .pageSize(page.getSize())
+                .isLast(page.isLast())
+                .isFirst(page.isFirst())
+                .build();
+
+        return PageResponse.<UserResponse>builder()
+                .success(true)
+                .message("Fetch users successfully")
+                .data(list)
+                .pagination(pagination)
+                .build();
+    }
 
 
     // Update Entity from Request (UPDATE)

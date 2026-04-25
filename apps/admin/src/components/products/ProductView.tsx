@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Plus,
   Search,
@@ -9,33 +9,24 @@ import {
   Trash2,
   ArrowUpDown,
   Download,
+  Table,
 } from 'lucide-react';
-
-import { 
-  Button, 
-  Input, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow,
+import { Product } from '@/features/products/types/product.interface';
+import {
   Badge,
+  Button,
   Card,
   CardContent,
   CardHeader,
+  Input,
   NextPagination,
-  PageHeader
-} from '@/components/common';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle,
-  DialogDescription
-} from '@/components/ui/dialog';
-import { Product } from '../types/product.interface';
-import ProductForm from './ProductForm';
+  PageHeader,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../common';
 
 interface ProductViewProps {
   initialProducts: Product[];
@@ -45,33 +36,25 @@ export default function ProductView({ initialProducts }: ProductViewProps) {
   const [currentPage, setCurrentPage] = React.useState(1);
   const [itemsPerPage, setItemsPerPage] = React.useState(10);
   const [products] = React.useState(initialProducts);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const handleAddNew = () => {
-    setIsDialogOpen(true);
-  };
-
-  const commonActions = (
-    <>
-      <Button variant='outline' size='sm' className='h-9'>
-        <Download className='mr-2 h-4 w-4 text-slate-500' /> Xuất file
-      </Button>
-      <Button
-        size='sm'
-        variant='default'
-        onClick={handleAddNew}
-        className='h-9 shadow-md shadow-blue-100'>
-        <Plus className='mr-2 h-4 w-4' /> Thêm mới
-      </Button>
-    </>
-  );
 
   return (
     <div className='space-y-6'>
-      <PageHeader 
-        title="Quản lý sản phẩm"
-        description="Xem và quản lý danh mục sản phẩm của bạn."
-        actions={commonActions}
+      <PageHeader
+        title='Quản lý sản phẩm'
+        description='Xem và quản lý danh mục sản phẩm của bạn.'
+        actions={
+          <>
+            <Button variant='outline' size='sm' className='h-9'>
+              <Download className='mr-2 h-4 w-4 text-slate-500' /> Xuất file
+            </Button>
+            <Button
+              size='sm'
+              variant='default'
+              className='h-9 shadow-md shadow-blue-100'>
+              <Plus className='mr-2 h-4 w-4' /> Thêm mới
+            </Button>
+          </>
+        }
       />
 
       <Card className='shadow-sm border-slate-100 overflow-hidden'>
@@ -175,27 +158,17 @@ export default function ProductView({ initialProducts }: ProductViewProps) {
               </TableBody>
             </Table>
           </div>
-          <NextPagination 
+          <NextPagination
             currentPage={currentPage}
             totalPages={12}
             totalItems={120}
             itemsPerPage={itemsPerPage}
             onItemsPerPageChange={setItemsPerPage}
             onPageChange={setCurrentPage}
-            className="bg-slate-50/20"
+            className='bg-slate-50/20'
           />
         </CardContent>
       </Card>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[700px]">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-slate-900">Thêm sản phẩm mới</DialogTitle>
-            <DialogDescription>Nhập thông tin sản phẩm và các biến thể kho hàng.</DialogDescription>
-          </DialogHeader>
-          <ProductForm onSuccess={() => setIsDialogOpen(false)} />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

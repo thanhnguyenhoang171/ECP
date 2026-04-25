@@ -1,11 +1,13 @@
 package com.example.ecp_api.service.impl;
 
 import com.example.ecp_api.dto.response.AuditLogResponse;
+import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.entity.mongodb.AuditLog;
 import com.example.ecp_api.mapper.AuditLogMapper;
 import com.example.ecp_api.repository.mongodb.AuditLogRepository;
 import com.example.ecp_api.service.AuditLogService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -31,10 +33,8 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     @Override
-    public List<AuditLogResponse> getAllLogs() {
-        return auditLogRepository.findAll().stream()
-                .map(auditLogMapper::toResponse)
-                .collect(Collectors.toList());
+    public PageResponse<AuditLogResponse> getAllLogs(Pageable pageable) {
+        return auditLogMapper.toPageResponse(auditLogRepository.findAll(pageable));
     }
 
     @Override

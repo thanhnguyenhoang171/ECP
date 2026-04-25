@@ -1,8 +1,11 @@
 package com.example.ecp_api.service.impl;
 
 import com.example.ecp_api.dto.request.UserRequest;
+import com.example.ecp_api.dto.request.UserRequest;
+import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.UserResponse;
 import com.example.ecp_api.entity.jpa.User;
+
 import com.example.ecp_api.enums.users.AuthProvider;
 import com.example.ecp_api.enums.users.UserRole;
 import com.example.ecp_api.exception.AppException;
@@ -71,9 +74,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserResponse> getAllUsers() {
-        return userRepository.findAll().stream()
-                .map(userMapper::toResponse)
-                .collect(Collectors.toList());
+    public PageResponse<UserResponse> getAllUsers(org.springframework.data.domain.Pageable pageable) {
+        return userMapper.toPageResponse(userRepository.findAll(pageable));
     }
 }

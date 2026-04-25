@@ -44,6 +44,6 @@ public class EcpApiApplication {
 				protocol, hostAddress, serverPort, contextPath,
 				protocol, serverPort, contextPath,
 				env.getProperty("spring.datasource.url"),
-				env.getProperty("spring.mongodb.uri"));
+				env.getProperty("spring.data.mongodb.uri"));
 	}
 }

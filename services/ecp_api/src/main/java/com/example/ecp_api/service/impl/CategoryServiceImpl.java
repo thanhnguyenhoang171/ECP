@@ -1,7 +1,9 @@
 package com.example.ecp_api.service.impl;
 
 import com.example.ecp_api.dto.request.CategoryRequest;
+import com.example.ecp_api.dto.request.CategoryRequest;
 import com.example.ecp_api.dto.response.CategoryResponse;
+import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.entity.mongodb.Category;
 import com.example.ecp_api.exception.AppException;
 import com.example.ecp_api.exception.ResourceNotFoundException;
@@ -15,9 +17,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
+
 
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
@@ -25,7 +30,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional
     public CategoryResponse createCategory(CategoryRequest request) {
-        if (categoryRepository.existsBySlug(request.getSlug())) {
+        if (categoryRepository.existsBySlugAndDeletedFalse(request.getSlug())) {
             throw new AppException("Category with Slug already exists", HttpStatus.BAD_REQUEST);
         }
 
@@ -34,7 +39,8 @@ public class CategoryServiceImpl implements CategoryService {
 
         if (request.getParentId() != null && !request.getParentId().isEmpty()) {
             Category parent = categoryRepository.findById(request.getParentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Parent Category not found with id: " + request.getParentId()));
+                    .filter(c -> !c.isDeleted())
+                    .orElseThrow(() -> new ResourceNotFoundException("Parent Category not found or deleted with id: " + request.getParentId()));
             
             category.setLevel(parent.getLevel() + 1);
             category.setPath(parent.getPath() == null ? parent.getId() : parent.getPath() + "/" + parent.getId());
@@ -48,8 +54,33 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public Page<CategoryResponse> getAllCategories(Pageable pageable) {
-        return categoryRepository.findAll(pageable)
-                .map(categoryMapper::toResponse);
+    public PageResponse<CategoryResponse> getAllCategories(Pageable pageable) {
+        Page<Category> categoryPage = categoryRepository.findByDeletedFalse(pageable);
+        return categoryMapper.toPageResponse(categoryPage);
+    }
+
+    @Override
+    public List<CategoryResponse> getParentCategories() {
+        return categoryRepository.findByParentIdIsNullAndDeletedFalse().stream()
+                .map(categoryMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void deleteCategory(String id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
+
+        // Kiểm tra xem có danh mục con không
+        boolean hasChildren = categoryRepository.findAll().stream()
+                .anyMatch(c -> id.equals(c.getParentId()) && !c.isDeleted());
+        
+        if (hasChildren) {
+            throw new AppException("Cannot delete category that has sub-categories", HttpStatus.BAD_REQUEST);
+        }
+
+        category.setDeleted(true);
+        categoryRepository.save(category);
     }
 }

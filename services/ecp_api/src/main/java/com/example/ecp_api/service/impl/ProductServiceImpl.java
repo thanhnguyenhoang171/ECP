@@ -1,8 +1,11 @@
 package com.example.ecp_api.service.impl;
 
 import com.example.ecp_api.dto.request.ProductRequest;
+import com.example.ecp_api.dto.request.ProductRequest;
+import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.ProductResponse;
 import com.example.ecp_api.entity.mongodb.Product;
+
 import com.example.ecp_api.entity.mongodb.embedded.ProductVariant;
 import com.example.ecp_api.exception.AppException;
 import com.example.ecp_api.mapper.ProductMapper;
@@ -57,8 +60,8 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Page<ProductResponse> getAllProducts(Pageable pageable) {
-        return productRepository.findAll(pageable)
-                .map(productMapper::toResponse);
+    public PageResponse<ProductResponse> getAllProducts(Pageable pageable) {
+        Page<Product> productPage = productRepository.findAll(pageable);
+        return productMapper.toPageResponse(productPage);
     }
 }
