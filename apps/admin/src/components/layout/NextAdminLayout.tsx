@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, memo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+
 import { 
   LayoutDashboard, 
   ShoppingBag, 
@@ -25,6 +26,7 @@ import {
   Settings,
   ChevronDown
 } from 'lucide-react';
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,7 +42,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import nprogress from 'nprogress';
 
-// Lazy load các thành phần nặng cho mobile
+// Lazy load
 const Sheet = dynamic(() => import("@/components/ui/sheet").then(m => m.Sheet));
 const SheetContent = dynamic(() => import("@/components/ui/sheet").then(m => m.SheetContent));
 const SheetTrigger = dynamic(() => import("@/components/ui/sheet").then(m => m.SheetTrigger));
@@ -58,10 +60,10 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { key: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Tổng quan' },
+  { key: '/dashboard', icon: <LayoutDashboard size={18} />, label: 'Tổng quan' },
   {
     key: 'products-group',
-    icon: <ShoppingBag size={20} />,
+    icon: <ShoppingBag size={18} />,
     label: 'Sản phẩm & SKU',
     children: [
       { key: '/products', label: 'Sản phẩm' },
@@ -71,7 +73,7 @@ const menuItems: MenuItem[] = [
   },
   {
     key: 'inventory-group',
-    icon: <Database size={20} />,
+    icon: <Database size={18} />,
     label: 'Quản lý kho',
     children: [
       { key: '/stock', label: 'Tồn kho' },
@@ -82,7 +84,7 @@ const menuItems: MenuItem[] = [
   },
   {
     key: 'sales-group',
-    icon: <ShoppingCart size={20} />,
+    icon: <ShoppingCart size={18} />,
     label: 'Kinh doanh',
     children: [
       { key: '/orders', label: 'Đơn hàng' },
@@ -90,7 +92,7 @@ const menuItems: MenuItem[] = [
       { key: '/customers', label: 'Khách hàng' },
     ],
   },
-  { key: '/users', icon: <UserCircle size={20} />, label: 'Nhân viên' },
+  { key: '/users', icon: <UserCircle size={18} />, label: 'Nhân viên' },
 ];
 
 const SidebarItem = memo(({ 
@@ -109,7 +111,10 @@ const SidebarItem = memo(({
   const isActive = pathname === item.key || item.children?.some(c => pathname === c.key);
   
   useEffect(() => {
-    if (isActive && !isCollapsed) setIsOpen(true);
+    if (isActive && !isCollapsed) {
+      const timer = setTimeout(() => setIsOpen(true), 0);
+      return () => clearTimeout(timer);
+    }
   }, [isActive, isCollapsed]);
 
   if (isCollapsed && !isMobile && hasChildren) {
@@ -121,24 +126,24 @@ const SidebarItem = memo(({
               <Button
                 variant="ghost"
                 className={cn(
-                  "w-full justify-center h-10 px-0 mb-1 transition-all duration-200",
-                  isActive ? "bg-primary/10 text-primary shadow-sm" : "text-muted-foreground hover:bg-muted"
+                  "w-full justify-center h-10 px-0 mb-1.5 transition-all duration-200",
+                  isActive ? "bg-blue-50 text-blue-600 shadow-sm border border-blue-100" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                 )}
               >
                 {item.icon}
               </Button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
-          <TooltipContent side="right" className="font-medium shadow-lg">
+          <TooltipContent side="right" className="font-medium bg-slate-900 text-white border-none shadow-xl">
             {item.label}
           </TooltipContent>
         </Tooltip>
-        <DropdownMenuContent side="right" align="start" className="w-48 bg-white shadow-xl ml-2 animate-in fade-in slide-in-from-left-1">
-          <DropdownMenuLabel>{item.label}</DropdownMenuLabel>
-          <DropdownMenuSeparator />
+        <DropdownMenuContent side="right" align="start" className="w-52 bg-white shadow-2xl border-slate-100 ml-2 animate-in fade-in slide-in-from-left-2 duration-200 p-1.5">
+          <DropdownMenuLabel className="text-xs font-bold text-slate-400 uppercase tracking-widest px-3 py-2">{item.label}</DropdownMenuLabel>
+          <DropdownMenuSeparator className="bg-slate-50" />
           {item.children?.map((child) => (
-            <DropdownMenuItem key={child.key} asChild className="cursor-pointer">
-              <Link href={child.key} className="w-full">{child.label}</Link>
+            <DropdownMenuItem key={child.key} asChild className="cursor-pointer rounded-md focus:bg-blue-50 focus:text-blue-600">
+              <Link href={child.key} className="w-full px-3 py-2 text-sm font-medium">{child.label}</Link>
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
@@ -153,14 +158,14 @@ const SidebarItem = memo(({
           <Link
             href={item.key}
             className={cn(
-              "flex items-center justify-center h-10 w-10 mx-auto rounded-md mb-1 transition-all duration-200",
-              pathname === item.key ? "bg-primary/10 text-primary shadow-sm" : "text-muted-foreground hover:bg-muted"
+              "flex items-center justify-center h-10 w-10 mx-auto rounded-lg mb-1.5 transition-all duration-200 border border-transparent",
+              pathname === item.key ? "bg-blue-50 text-blue-600 shadow-sm border-blue-100" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
             )}
           >
             {item.icon}
           </Link>
         </TooltipTrigger>
-        <TooltipContent side="right" className="font-medium shadow-lg">
+        <TooltipContent side="right" className="font-medium bg-slate-900 text-white border-none shadow-xl">
           {item.label}
         </TooltipContent>
       </Tooltip>
@@ -168,24 +173,24 @@ const SidebarItem = memo(({
   }
 
   return (
-    <div className="mb-1">
+    <div className="mb-1.5 px-2">
       {hasChildren ? (
         <>
           <button
             onClick={() => setIsOpen(!isOpen)}
             className={cn(
-              "flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-all",
-              isActive ? "text-primary bg-primary/5" : "text-muted-foreground hover:bg-muted"
+              "flex items-center justify-between w-full px-3 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200",
+              isActive ? "text-blue-600 bg-blue-50/50" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             )}
           >
             <div className="flex items-center gap-3">
-              {item.icon}
+              <span className={cn(isActive ? "text-blue-600" : "text-slate-400")}>{item.icon}</span>
               <span>{item.label}</span>
             </div>
-            <ChevronDown size={14} className={cn("transition-transform duration-300", isOpen && "rotate-180")} />
+            <ChevronDown size={14} className={cn("transition-transform duration-300 text-slate-400", isOpen && "rotate-180 text-blue-600")} />
           </button>
           <div className={cn(
-            "mt-1 ml-4 border-l pl-4 overflow-hidden transition-all duration-300 ease-in-out",
+            "mt-1 ml-4 border-l-2 border-slate-100 pl-2 overflow-hidden transition-all duration-300 ease-in-out",
             isOpen ? "max-h-96 opacity-100 mb-2" : "max-h-0 opacity-0"
           )}>
             {item.children?.map((child) => (
@@ -193,10 +198,10 @@ const SidebarItem = memo(({
                 key={child.key}
                 href={child.key}
                 className={cn(
-                  "block px-3 py-1.5 text-xs font-medium rounded-md transition-colors mb-1",
+                  "block px-4 py-2 text-xs font-medium rounded-md transition-all mb-1",
                   pathname === child.key 
-                    ? "bg-primary text-primary-foreground shadow-sm" 
-                    : "text-muted-foreground hover:bg-muted"
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-200" 
+                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                 )}
               >
                 {child.label}
@@ -208,13 +213,13 @@ const SidebarItem = memo(({
         <Link
           href={item.key}
           className={cn(
-            "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200",
+            "flex items-center gap-3 px-3 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200",
             pathname === item.key 
-              ? "bg-primary/10 text-primary font-bold shadow-sm" 
-              : "text-muted-foreground hover:bg-muted"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-200" 
+              : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
           )}
         >
-          {item.icon}
+          <span className={cn(pathname === item.key ? "text-white" : "text-slate-400")}>{item.icon}</span>
           <span>{item.label}</span>
         </Link>
       )}
@@ -242,17 +247,20 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
     router.push('/login');
   }, [router]);
 
-  const SidebarContent = useCallback(({ mobile = false }: { mobile?: boolean }) => (
-    <div className="flex flex-col h-full bg-background will-change-transform">
+  const renderSidebarContent = (mobile = false) => (
+    <div className="flex flex-col h-full bg-white will-change-transform">
       <div className={cn(
-        "h-16 flex items-center px-4 border-b shrink-0",
+        "h-16 flex items-center px-4 border-b border-slate-100 shrink-0",
         !isCollapsed || mobile ? "justify-start" : "justify-center"
       )}>
-        <span className="font-bold text-lg md:text-xl text-primary italic whitespace-nowrap tracking-tight">
-          {(!isCollapsed || mobile) ? 'Admin ECP' : 'ECP'}
+        <div className="bg-blue-600 p-1.5 rounded-lg mr-2 shrink-0">
+          <Package className="text-white h-5 w-5" />
+        </div>
+        <span className="font-black text-lg text-slate-900 italic tracking-tighter transition-opacity duration-300">
+          {(!isCollapsed || mobile) ? 'ADMIN ECP' : ''}
         </span>
       </div>
-      <nav className="flex-1 overflow-y-auto py-6 px-3 custom-scrollbar">
+      <nav className="flex-1 overflow-y-auto py-6 px-3 custom-scrollbar bg-white">
         {menuItems.map((item) => (
           <SidebarItem 
             key={item.key} 
@@ -263,85 +271,90 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
           />
         ))}
       </nav>
-      <div className="p-4 border-t shrink-0">
+      <div className="p-4 border-t border-slate-50 shrink-0">
         <Button 
           variant="ghost" 
           className={cn(
-            "w-full text-red-500 hover:bg-red-50 font-bold",
+            "w-full text-red-500 hover:bg-red-50 hover:text-red-600 font-bold rounded-lg transition-all",
             isCollapsed && !mobile ? "justify-center px-0" : "justify-start gap-3"
           )} 
           onClick={handleLogout}
         >
-          <LogOut size={20} />
+          <LogOut size={18} />
           {(!isCollapsed || mobile) && <span>Đăng xuất</span>}
         </Button>
       </div>
     </div>
-  ), [isCollapsed, pathname, handleLogout]);
+  );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f1f5f9]">
+    <div className="flex h-screen overflow-hidden bg-[#f8fafc]">
       <aside className={cn(
-        "hidden lg:block transition-all duration-300 ease-in-out border-r bg-background will-change-transform",
+        "hidden lg:block transition-all duration-300 ease-in-out border-r border-slate-200 bg-white will-change-transform z-30",
         isCollapsed ? "w-20" : "w-64"
       )}>
-        <SidebarContent />
+        {renderSidebarContent()}
       </aside>
 
       <div className="flex flex-col flex-1 overflow-hidden relative">
-        <header className="h-16 flex items-center justify-between px-4 sm:px-6 bg-background/80 backdrop-blur-md border-b z-20 shadow-sm shrink-0">
+        <header className="h-16 flex items-center justify-between px-4 sm:px-6 bg-white/80 backdrop-blur-xl border-b border-slate-200 z-20 shadow-sm shrink-0">
           <div className="flex items-center gap-4">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden hover:bg-muted">
+                <Button variant="ghost" size="icon" className="lg:hidden hover:bg-slate-100 text-slate-600">
                   <MenuIcon size={20} />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-64 border-none">
-                <SidebarContent mobile />
+              <SheetContent side="left" className="p-0 w-72 border-none shadow-2xl">
+                {renderSidebarContent(true)}
               </SheetContent>
             </Sheet>
             
-            <Button variant="ghost" size="icon" className="hidden lg:flex hover:bg-muted" onClick={() => setIsCollapsed(!isCollapsed)}>
+            <Button variant="ghost" size="icon" className="hidden lg:flex hover:bg-slate-100 text-slate-400" onClick={() => setIsCollapsed(!isCollapsed)}>
               <MenuIcon size={20} />
             </Button>
 
-            <div className="hidden md:flex items-center bg-muted/50 px-3 py-1.5 rounded-full text-muted-foreground w-64 border focus-within:ring-1 focus-within:ring-primary transition-all">
-              <Search size={16} className="mr-2" />
-              <input placeholder="Tìm kiếm nhanh..." className="bg-transparent border-none outline-none text-xs w-full" />
+            <div className="hidden md:flex items-center bg-slate-100/50 px-4 py-2 rounded-xl text-slate-400 w-72 border border-transparent focus-within:border-blue-200 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-50 transition-all duration-200 group">
+              <Search size={16} className="mr-2 group-focus-within:text-blue-500 transition-colors" />
+              <input placeholder="Tìm kiếm nhanh..." className="bg-transparent border-none outline-none text-xs w-full text-slate-900 placeholder:text-slate-400" />
             </div>
           </div>
           
           <div className="flex items-center gap-2 sm:gap-4">
-            <Button variant="ghost" size="icon" className="relative hover:bg-muted">
-              <Bell size={20} />
-              <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center bg-red-500 text-[10px] border-2 border-white text-white">3</Badge>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative hover:bg-slate-100 text-slate-400">
+                  <Bell size={20} />
+                  <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border-2 border-white"></span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="bg-slate-900 text-white border-none">Thông báo mới</TooltipContent>
+            </Tooltip>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <div className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-1.5 rounded-full transition-all border border-transparent hover:border-border">
-                  <div className="hidden sm:flex flex-col items-end leading-tight pr-1">
-                    <span className="text-xs font-bold text-foreground">Admin User</span>
-                    <span className="text-[10px] text-primary uppercase font-bold tracking-tighter">Quản trị viên</span>
+                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-1 rounded-full transition-all border border-transparent hover:border-slate-100 group">
+                  <div className="hidden sm:flex flex-col items-end leading-tight pr-1 text-right">
+                    <span className="text-xs font-bold text-slate-900">Admin User</span>
+                    <span className="text-[10px] text-blue-600 uppercase font-black tracking-tighter">Quản trị viên</span>
                   </div>
-                  <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-primary/10 shadow-sm">
-                    <AvatarFallback className="bg-primary text-primary-foreground font-bold text-xs italic">AD</AvatarFallback>
+                  <Avatar className="h-9 w-9 border-2 border-blue-100 shadow-sm group-hover:border-blue-300 transition-all">
+                    <AvatarFallback className="bg-blue-600 text-white font-bold text-xs italic">AD</AvatarFallback>
                   </Avatar>
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-white shadow-xl mt-1 animate-in slide-in-from-top-1">
-                <DropdownMenuLabel>Tài khoản của tôi</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/profile')} className="cursor-pointer">
-                  <UserCircle className="mr-2 h-4 w-4" /> <span>Hồ sơ cá nhân</span>
+              <DropdownMenuContent align="end" className="w-60 bg-white shadow-2xl border-slate-100 mt-2 animate-in slide-in-from-top-2 duration-200 p-1.5">
+                <DropdownMenuLabel className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Quản lý tài khoản</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-slate-50" />
+                <DropdownMenuItem onClick={() => router.push('/profile')} className="cursor-pointer rounded-md py-2.5 px-3 focus:bg-blue-50 focus:text-blue-600">
+                  <UserCircle className="mr-2 h-4 w-4 opacity-70" /> <span className="text-sm font-medium">Hồ sơ cá nhân</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" /> <span>Cài đặt hệ thống</span>
+                <DropdownMenuItem className="cursor-pointer rounded-md py-2.5 px-3 focus:bg-blue-50 focus:text-blue-600">
+                  <Settings className="mr-2 h-4 w-4 opacity-70" /> <span className="text-sm font-medium">Cài đặt hệ thống</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500 cursor-pointer">
-                  <LogOut className="mr-2 h-4 w-4" /> <span>Đăng xuất</span>
+                <DropdownMenuSeparator className="bg-slate-50" />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500 focus:bg-red-50 cursor-pointer rounded-md py-2.5 px-3">
+                  <LogOut className="mr-2 h-4 w-4" /> <span className="text-sm font-bold">Đăng xuất</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
