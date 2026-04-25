@@ -28,4 +28,6 @@ const Button: React.FC<CustomButtonProps> = ({
   );
 };
 
+Button.displayName = 'Button';
+
 export default Button;

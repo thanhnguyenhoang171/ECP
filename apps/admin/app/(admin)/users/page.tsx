@@ -1,8 +1,10 @@
+'use client';
+
 import React from 'react';
 import { Table, Button, Space, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { UserAddOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import type { User } from '../../interfaces';
+import type { User } from '@/interfaces';
 
 const data: User[] = [
   {
@@ -19,7 +21,7 @@ const data: User[] = [
   },
 ];
 
-const Users: React.FC = () => {
+export default function UsersPage() {
   const columns: ColumnsType<User> = [
     {
       title: 'ID',
@@ -72,6 +74,4 @@ const Users: React.FC = () => {
       <Table columns={columns} dataSource={data} rowKey="id" />
     </div>
   );
-};
-
-export default Users;
+}

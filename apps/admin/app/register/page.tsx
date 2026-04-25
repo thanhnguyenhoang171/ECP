@@ -1,10 +1,13 @@
+'use client';
+
 import React from 'react';
 import { Button, Checkbox, Form, Input, message } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
-import { useNavigate, Link } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
-const Register: React.FC = () => {
-  const navigate = useNavigate();
+export default function RegisterPage() {
+  const router = useRouter();
   const [loading, setLoading] = React.useState(false);
 
   const onFinish = async (values: Record<string, unknown>) => {
@@ -12,9 +15,8 @@ const Register: React.FC = () => {
     try {
       console.log('Register values:', values);
       // Giả lập gọi API đăng ký
-      // await authService.register(values);
       message.success('Đăng ký tài khoản thành công!');
-      navigate('/login');
+      router.push('/login');
     } catch {
       // Lỗi đã được xử lý ở axiosInstance
     } finally {
@@ -102,12 +104,10 @@ const Register: React.FC = () => {
           </Form.Item>
 
           <div className="text-center text-gray-500">
-            Đã có tài khoản? <Link to="/login" className="text-blue-600 hover:underline font-medium">Đăng nhập</Link>
+            Đã có tài khoản? <Link href="/login" className="text-blue-600 hover:underline font-medium">Đăng nhập</Link>
           </div>
         </Form>
       </div>
     </div>
   );
-};
-
-export default Register;
+}

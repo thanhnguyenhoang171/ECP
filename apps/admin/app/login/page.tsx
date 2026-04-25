@@ -1,11 +1,14 @@
+'use client';
+
 import React from 'react';
 import { Form, Checkbox, message } from 'antd';
-import { Button, Input } from '../../components/common';
+import { Button, Input } from '@/components/common';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { useNavigate, Link } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
-const Login: React.FC = () => {
-  const navigate = useNavigate();
+export default function LoginPage() {
+  const router = useRouter();
   const [loading, setLoading] = React.useState(false);
 
   const onFinish = (values: Record<string, unknown>) => {
@@ -16,7 +19,7 @@ const Login: React.FC = () => {
     setTimeout(() => {
       localStorage.setItem('access_token', 'fake_token_123');
       message.success('Chào mừng bạn quay trở lại!');
-      navigate('/dashboard');
+      router.push('/dashboard');
       setLoading(false);
     }, 1000);
   };
@@ -66,12 +69,10 @@ const Login: React.FC = () => {
           </Form.Item>
 
           <div className="text-center text-gray-500">
-            Chưa có tài khoản? <Link to="/register" className="text-blue-600 hover:underline font-medium">Đăng ký ngay</Link>
+            Chưa có tài khoản? <Link href="/register" className="text-blue-600 hover:underline font-medium">Đăng ký ngay</Link>
           </div>
         </Form>
       </div>
     </div>
   );
-};
-
-export default Login;
+}

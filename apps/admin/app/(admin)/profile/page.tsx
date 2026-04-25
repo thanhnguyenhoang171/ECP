@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Card, Form, Input, Button, Row, Col, Avatar, Upload, message, Typography } from 'antd';
 import { UserOutlined, UploadOutlined, SaveOutlined } from '@ant-design/icons';
@@ -11,7 +13,7 @@ interface ProfileValues {
   role: string;
 }
 
-const Profile: React.FC = () => {
+export default function ProfilePage() {
   const [form] = Form.useForm();
 
   const onFinish = (values: ProfileValues) => {
@@ -158,6 +160,4 @@ const Profile: React.FC = () => {
       </Row>
     </div>
   );
-};
-
-export default Profile;
+}

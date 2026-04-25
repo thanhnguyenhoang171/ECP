@@ -1,10 +1,12 @@
+'use client';
+
 import React from 'react';
 import { Table, Tag, Space } from 'antd';
-import { useProducts } from '../../hooks/useProducts';
-import { Button } from '../../components/common';
+import { useProducts } from '@/hooks/useProducts';
+import { Button } from '@/components/common';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 
-const ProductPage: React.FC = () => {
+export default function ProductPage() {
   const { data, isLoading } = useProducts();
 
   const columns = [
@@ -48,7 +50,7 @@ const ProductPage: React.FC = () => {
   ];
 
   return (
-    <div className="p-6">
+    <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Quản lý sản phẩm</h1>
         <Button type="primary" icon={<PlusOutlined />}>
@@ -65,6 +67,4 @@ const ProductPage: React.FC = () => {
       />
     </div>
   );
-};
-
-export default ProductPage;
+}

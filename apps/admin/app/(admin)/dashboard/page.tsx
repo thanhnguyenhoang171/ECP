@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Card, Statistic, Row, Col, Table, List, Avatar, Tag, Progress, Badge, Typography, Tooltip, Space } from 'antd';
 import { 
@@ -15,7 +17,7 @@ import {
 
 const { Title, Text } = Typography;
 
-const Dashboard: React.FC = () => {
+export default function DashboardPage() {
   // Mock data for recent orders
   const recentOrders = [
     {
@@ -335,6 +337,4 @@ const Dashboard: React.FC = () => {
       </Card>
     </div>
   );
-};
-
-export default Dashboard;
+}

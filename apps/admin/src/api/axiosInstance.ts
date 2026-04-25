@@ -3,7 +3,7 @@ import type { InternalAxiosRequestConfig } from 'axios';
 import { message } from 'antd';
 
 // Bạn sẽ cấu hình URL của Backend trong file .env
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 const axiosInstance = axios.create({
   baseURL,
