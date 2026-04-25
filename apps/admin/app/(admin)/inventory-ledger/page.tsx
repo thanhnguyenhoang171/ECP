@@ -1,1 +1,6 @@
-'use client'; export default function Page() { return <div>Inventory Ledger</div>; }
+import React from 'react';
+import InventoryLedgerView from '@/features/inventory/components/InventoryLedgerView';
+
+export default async function InventoryLedgerPage() {
+  return <InventoryLedgerView />;
+}

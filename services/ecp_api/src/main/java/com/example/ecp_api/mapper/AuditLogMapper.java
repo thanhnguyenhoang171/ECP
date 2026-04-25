@@ -6,5 +6,6 @@ import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface AuditLogMapper {
+    // Mapping for AuditLog
     AuditLogResponse toResponse(AuditLog auditLog);
 }

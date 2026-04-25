@@ -1,22 +1,6 @@
-'use client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ShoppingCart } from "lucide-react";
+import React from 'react';
+import OrdersView from '@/features/sales/components/OrdersView';
 
-export default function OrdersPage() {
-  return (
-    <div className="flex items-center justify-center min-h-[400px] animate-in fade-in zoom-in duration-500">
-      <Card className="w-full max-w-md border-dashed">
-        <CardHeader className="text-center">
-          <div className="mx-auto bg-green-50 p-3 rounded-full w-fit mb-4">
-            <ShoppingCart className="h-10 w-10 text-green-500 opacity-80" />
-          </div>
-          <CardTitle>Quản lý đơn hàng</CardTitle>
-          <CardDescription>Danh sách đơn hàng và trạng thái xử lý.</CardDescription>
-        </CardHeader>
-        <CardContent className="text-center text-sm text-muted-foreground italic">
-          Dữ liệu đơn hàng đang được tải...
-        </CardContent>
-      </Card>
-    </div>
-  );
+export default async function OrdersPage() {
+  return <OrdersView />;
 }
