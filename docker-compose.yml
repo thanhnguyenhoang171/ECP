@@ -38,7 +38,7 @@ services:
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mysql://mysql:3306/ecp_db?createDatabaseIfNotExist=true}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-root}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-142857}
-      SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI:-mongodb://admin:142857@mongodb:27017/ecp_mongo?authSource=admin}
+      SPRING_MONGODB_URI: ${SPRING_MONGODB_URI:-mongodb://admin:142857@mongodb:27017/ecp_mongo?authSource=admin}
       SPRING_PROFILES_ACTIVE: prod
     networks:
       - ecp_network
