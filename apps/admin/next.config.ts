@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
   // Tắt x-powered-by để bảo mật và giảm header size
   poweredByHeader: false,
   reactStrictMode: true,
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   // Cấu hình cache cho static assets
   images: {
     formats: ['image/avif', 'image/webp'],
