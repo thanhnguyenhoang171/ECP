@@ -1,11 +1,10 @@
 import axiosInstance from '../axiosInstance';
 import type {
   LoginRequest,
+  RegisterRequest,
   AuthResponse,
   ApiResponse,
   User,
-  RegisterReqsuest,
-  RegisterResponse,
 } from '../../interfaces';
 
 export const authService = {
@@ -13,9 +12,7 @@ export const authService = {
     return axiosInstance.post('/auth/login', data);
   },
 
-  register: (
-    data: RegisterReqsuest,
-  ): Promise<ApiResponse<RegisterResponse>> => {
+  register: (data: RegisterRequest): Promise<ApiResponse<AuthResponse>> => {
     return axiosInstance.post('/auth/register', data);
   },
 
