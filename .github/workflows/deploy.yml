@@ -111,6 +111,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false # Quan trọng: Tắt cái này để sửa lỗi 'unknown blob'
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
 
   # ==========================================
   # JOB 3: DEPLOY TRỰC TIẾP VỀ LAPTOP ASUS

@@ -6,6 +6,11 @@ FROM base AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
+# Khai báo ARG để nhận biến từ GitHub Actions truyền vào
+ARG NEXT_PUBLIC_API_URL
+# Đặt ENV để Next.js nhìn thấy và nhúng vào mã nguồn lúc chạy lệnh build
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 # Enable pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
