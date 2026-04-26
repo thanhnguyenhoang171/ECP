@@ -39,6 +39,14 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu';
 import { Category } from '../types/category.interface';
 import { PageResponse } from '@/types/pagination';
 import CategoryForm from './CategoryForm';
@@ -64,6 +72,7 @@ export default function CategoriesView({
 
   const currentPage = initialData.pagination.currentPage + 1;
   const itemsPerPage = initialData.pagination.pageSize;
+  const currentSort = searchParams.get('sort') || 'name,asc';
 
   const createQueryString = (params: Record<string, string | number>) => {
     const newSearchParams = new URLSearchParams(searchParams.toString());
@@ -79,6 +88,25 @@ export default function CategoriesView({
 
   const handleItemsPerPageChange = (size: number) => {
     router.push(`${pathname}?${createQueryString({ page: 0, size })}`);
+  };
+
+  const handleSortChange = (sort: string) => {
+    router.push(`${pathname}?${createQueryString({ sort, page: 0 })}`);
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '---';
+    try {
+      return new Intl.DateTimeFormat('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date(dateString));
+    } catch (e) {
+      return dateString;
+    }
   };
 
   const handleDelete = async () => {
@@ -151,12 +179,42 @@ export default function CategoriesView({
                   className='h-10 text-xs border-slate-200'>
                   <Filter className='mr-2 h-4 w-4 text-slate-400' /> Lọc
                 </Button>
-                <Button
-                  variant='outline'
-                  className='h-10 text-xs border-slate-200'>
-                  <ArrowUpDown className='mr-2 h-4 w-4 text-slate-400' /> Sắp
-                  xếp
-                </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant='outline'
+                      className='h-10 text-xs border-slate-200'>
+                      <ArrowUpDown className='mr-2 h-4 w-4 text-slate-400' /> Sắp
+                      xếp
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align='end' className='w-48'>
+                    <DropdownMenuLabel>Sắp xếp theo</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => handleSortChange('name,asc')}
+                      className={currentSort === 'name,asc' ? 'bg-slate-100 font-medium' : ''}>
+                      Tên (A-Z)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleSortChange('name,desc')}
+                      className={currentSort === 'name,desc' ? 'bg-slate-100 font-medium' : ''}>
+                      Tên (Z-A)
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => handleSortChange('createdAt,desc')}
+                      className={currentSort === 'createdAt,desc' ? 'bg-slate-100 font-medium' : ''}>
+                      Mới nhất (Ngày tạo)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleSortChange('createdAt,asc')}
+                      className={currentSort === 'createdAt,asc' ? 'bg-slate-100 font-medium' : ''}>
+                      Cũ nhất (Ngày tạo)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </CardHeader>
@@ -176,6 +234,9 @@ export default function CategoriesView({
                     </TableHead>
                     <TableHead className='text-[11px] font-bold uppercase py-4 text-center text-slate-500'>
                       Trạng thái
+                    </TableHead>
+                    <TableHead className='text-[11px] font-bold uppercase py-4 text-center text-slate-500'>
+                      Ngày tạo
                     </TableHead>
                     <TableHead className='text-[11px] font-bold uppercase py-4 text-right pr-6 text-slate-500'>
                       Thao tác
@@ -215,6 +276,9 @@ export default function CategoriesView({
                           className='text-[10px] h-5 px-2'>
                           {category.active ? 'Hoạt động' : 'Ẩn'}
                         </Badge>
+                      </TableCell>
+                      <TableCell className='text-center py-4 text-[11px] text-slate-500'>
+                        {formatDate(category.createdAt)}
                       </TableCell>
                       <TableCell className='text-right py-4 pr-6'>
                         <div className='flex justify-end gap-1'>

@@ -1,3 +1,5 @@
+package com.example.ecp_api.config;
+
 import com.example.ecp_api.repository.mongodb.base.SoftDeleteMongoRepositoryImpl;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.EnableMongoAuditing;
