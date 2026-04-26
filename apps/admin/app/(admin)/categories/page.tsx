@@ -1,4 +1,3 @@
-import React from 'react';
 import CategoriesView from '@/features/categories/components/CategoriesView';
 import { PageResponse } from '@/types/pagination';
 import { Category } from '@/features/categories/types/category.interface';

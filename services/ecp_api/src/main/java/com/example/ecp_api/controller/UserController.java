@@ -1,5 +1,6 @@
 package com.example.ecp_api.controller;
 
+import com.example.ecp_api.dto.request.UserFilterRequest;
 import com.example.ecp_api.dto.request.UserRequest;
 import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.dto.response.PageResponse;
@@ -44,7 +45,9 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<PageResponse<UserResponse>> getAllUsers(Pageable pageable) {
-        return ResponseEntity.ok(userService.getAllUsers(pageable));
+    public ResponseEntity<PageResponse<UserResponse>> getAllUsers(
+            UserFilterRequest filter,
+            Pageable pageable) {
+        return ResponseEntity.ok(userService.searchUsers(filter, pageable));
     }
 }

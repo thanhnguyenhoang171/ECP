@@ -5,17 +5,74 @@ import { PageResponse } from '@/types/pagination';
 const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/categories`;
 
 export const categoryApi = {
-  // Lấy danh sách danh mục có phân trang (Dùng ở Client nếu cần)
-  getPaged: async (params: { page: number; size: number; sort?: string }): Promise<PageResponse<Category>> => {
-    const query = new URLSearchParams({
-      page: params.page.toString(),
-      size: params.size.toString(),
-      sort: params.sort || 'name,asc'
-    });
-    
+  // Lấy danh sách danh mục có phân trang và lọc
+  getPaged: async (params: {
+    page: number;
+    size: number;
+    sort?: string;
+    name?: string;
+    parentId?: string;
+    level?: number;
+    active?: boolean;
+  }): Promise<PageResponse<Category>> => {
+    const query = new URLSearchParams();
+
+    // Pageable params
+    query.append('page', params.page.toString());
+    query.append('size', params.size.toString());
+    if (params.sort) query.append('sort', params.sort);
+
+    // Filter params
+    if (params.name) query.append('name', params.name);
+    if (params.parentId) query.append('parentId', params.parentId);
+    if (params.level !== undefined)
+      query.append('level', params.level.toString());
+    if (params.active !== undefined)
+      query.append('active', params.active.toString());
+
     const res = await fetch(`${BASE_URL}?${query.toString()}`);
     if (!res.ok) throw new Error('Failed to fetch categories');
     return res.json();
+  },
+
+  // Cập nhật danh mục
+  update: async (id: string, values: any): Promise<any> => {
+    const res = await fetch(`${BASE_URL}/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(values),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.message || 'Failed to update category');
+    return result;
+  },
+
+  // Tạo mới danh mục
+  create: async (values: any): Promise<any> => {
+    const res = await fetch(BASE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(values),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.message || 'Failed to create category');
+    return result;
+  },
+
+  // Xóa danh mục
+  delete: async (id: string): Promise<any> => {
+    const res = await fetch(`${BASE_URL}/${id}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const result = await res.json();
+      throw new Error(result.message || 'Failed to delete category');
+    }
+    return { success: true };
   },
 
   // Lấy danh sách danh mục cha
@@ -24,38 +81,5 @@ export const categoryApi = {
     if (!res.ok) throw new Error('Failed to fetch parent categories');
     const result = await res.json();
     return result.success ? result.data : [];
-  },
-
-  // Tạo mới danh mục
-  create: async (data: CategoryFormValues): Promise<Category> => {
-    const payload = { ...data };
-    if (!payload.parentId || payload.parentId === '' || payload.parentId === 'none') {
-      delete payload.parentId;
-    }
-
-    const res = await fetch(BASE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.message || 'Failed to create category');
-    }
-    
-    return res.json();
-  },
-
-  // Kiểm tra trùng lặp slug
-  checkSlug: async (slug: string): Promise<boolean> => {
-    try {
-      const res = await fetch(`${BASE_URL}/check-slug?slug=${slug}`);
-      if (!res.ok) return true;
-      const result = await res.json();
-      return result.isAvailable;
-    } catch {
-      return true;
-    }
   },
 };

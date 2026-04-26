@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import {
   Form,
@@ -24,16 +24,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { categorySchema, CategoryFormValues } from '../schemas/category.schema';
-import { createCategoryAction } from '../actions/category.action';
+import { useCreateCategory, useUpdateCategory } from '../hooks/use-category-mutation';
 
 interface CategoryFormProps {
   onSuccess: () => void;
   initialData?: CategoryFormValues;
   parentCategories?: any[];
+  id?: string;
 }
 
-export default function CategoryForm({ onSuccess, initialData, parentCategories = [] }: CategoryFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export default function CategoryForm({ onSuccess, initialData, parentCategories = [], id }: CategoryFormProps) {
+  const createMutation = useCreateCategory();
+  const updateMutation = useUpdateCategory();
 
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categorySchema),
@@ -47,32 +49,30 @@ export default function CategoryForm({ onSuccess, initialData, parentCategories 
   });
 
   async function onSubmit(values: CategoryFormValues) {
-    setIsSubmitting(true);
-    try {
-      if (initialData) {
-        toast.info('Tính năng cập nhật đang được đồng bộ...');
-      } else {
-        // Gọi Server Action thay vì Axios trực tiếp ở client
-        const result = await createCategoryAction(values);
-        
-        if (result.success) {
-          toast.success('Tạo danh mục mới thành công!');
-          onSuccess();
-        } else {
-          // Xử lý lỗi trả về từ Server Action
-          if (result.message?.includes('slug')) {
+    if (id) {
+      updateMutation.mutate({ id, values }, {
+        onSuccess: (result) => {
+          if (result.success) {
+            onSuccess();
+          } else if (result.message?.includes('slug')) {
             form.setError('slug', { message: 'Đường dẫn (Slug) đã tồn tại' });
-          } else {
-            toast.error(result.message || 'Có lỗi xảy ra');
           }
         }
-      }
-    } catch (error: any) {
-      toast.error('Lỗi kết nối hệ thống');
-    } finally {
-      setIsSubmitting(false);
+      });
+    } else {
+      createMutation.mutate(values, {
+        onSuccess: (result) => {
+          if (result.success) {
+            onSuccess();
+          } else if (result.message?.includes('slug')) {
+            form.setError('slug', { message: 'Đường dẫn (Slug) đã tồn tại' });
+          }
+        }
+      });
     }
   }
+
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   return (
     <Form {...form}>

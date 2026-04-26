@@ -1,5 +1,6 @@
 package com.example.ecp_api.controller;
 
+import com.example.ecp_api.dto.request.CategoryFilterRequest;
 import com.example.ecp_api.dto.request.CategoryRequest;
 import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.dto.response.CategoryResponse;
@@ -32,9 +33,24 @@ public class CategoryController {
         return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
     }
 
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApiResponse<CategoryResponse>> updateCategory(
+            @PathVariable("id") String id,
+            @RequestBody CategoryRequest request) {
+        CategoryResponse response = categoryService.updateCategory(id, request);
+        ApiResponse<CategoryResponse> apiResponse = ApiResponse.<CategoryResponse>builder()
+                .success(true)
+                .message("Category updated successfully")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
+
     @GetMapping
-    public ResponseEntity<PageResponse<CategoryResponse>> getAllCategories(Pageable pageable) {
-        return ResponseEntity.ok(categoryService.getAllCategories(pageable));
+    public ResponseEntity<PageResponse<CategoryResponse>> getAllCategories(
+            CategoryFilterRequest filter,
+            Pageable pageable) {
+        return ResponseEntity.ok(categoryService.getAllCategories(filter, pageable));
     }
 
     @GetMapping("/parents")

@@ -2,38 +2,41 @@
 
 import { revalidatePath } from 'next/cache';
 import { CategoryFormValues } from '../schemas/category.schema';
+import { categoryApi } from '../api/category.api';
 
 export async function createCategoryAction(values: CategoryFormValues) {
   try {
-    const payload = { ...values };
-    if (
-      !payload.parentId ||
-      payload.parentId === '' ||
-      payload.parentId === 'none'
-    ) {
+    const payload: any = { ...values };
+    
+    if (!payload.parentId || payload.parentId === '' || payload.parentId === 'none') {
       delete payload.parentId;
     }
 
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/categories`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      },
-    );
+    const result = await categoryApi.create(payload);
+    
+    revalidatePath('/categories');
+    return { success: true, data: result.data };
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
 
-    const result = await res.json();
-
-    if (!res.ok) {
-      throw new Error(result.message || 'Failed to create category');
+export async function updateCategoryAction(id: string, values: CategoryFormValues) {
+  try {
+    const payload: any = { ...values };
+    
+    if (!payload.parentId || payload.parentId === '' || payload.parentId === 'none') {
+      payload.parentId = "";
     }
 
-    // 🔥 ĐÂY LÀ CHỖ QUAN TRỌNG: Làm mới cache
-    revalidatePath('/categories');
+    // Map active to isActive if API requires it
+    if (payload.active !== undefined) {
+      payload.isActive = payload.active;
+    }
 
+    const result = await categoryApi.update(id, payload);
+
+    revalidatePath('/categories');
     return { success: true, data: result.data };
   } catch (error: any) {
     return { success: false, message: error.message };
@@ -42,20 +45,8 @@ export async function createCategoryAction(values: CategoryFormValues) {
 
 export async function deleteCategoryAction(id: string) {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/categories/${id}`,
-      {
-        method: 'DELETE',
-      },
-    );
-
-    console.log(res);
-
-    if (!res.ok) {
-      const result = await res.json();
-      throw new Error(result.message || 'Không thể xóa danh mục này');
-    }
-
+    await categoryApi.delete(id);
+    
     revalidatePath('/categories');
     return { success: true };
   } catch (error: any) {

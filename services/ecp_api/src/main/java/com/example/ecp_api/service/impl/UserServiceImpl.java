@@ -1,6 +1,6 @@
 package com.example.ecp_api.service.impl;
 
-import com.example.ecp_api.dto.request.UserRequest;
+import com.example.ecp_api.dto.request.UserFilterRequest;
 import com.example.ecp_api.dto.request.UserRequest;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.UserResponse;
@@ -13,12 +13,18 @@ import com.example.ecp_api.mapper.UserMapper;
 import com.example.ecp_api.repository.jpa.UserRepository;
 import com.example.ecp_api.service.AuditLogService;
 import com.example.ecp_api.service.UserService;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -74,7 +80,34 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public PageResponse<UserResponse> getAllUsers(org.springframework.data.domain.Pageable pageable) {
+    public PageResponse<UserResponse> getAllUsers(Pageable pageable) {
         return userMapper.toPageResponse(userRepository.findAll(pageable));
+    }
+
+    @Override
+    public PageResponse<UserResponse> searchUsers(UserFilterRequest filter, Pageable pageable) {
+        Specification<User> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (StringUtils.hasText(filter.getUsername())) {
+                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("username")),
+                        "%" + filter.getUsername().toLowerCase() + "%"));
+            }
+            if (StringUtils.hasText(filter.getEmail())) {
+                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("email")),
+                        "%" + filter.getEmail().toLowerCase() + "%"));
+            }
+            if (filter.getRole() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("role"), filter.getRole()));
+            }
+            if (filter.getActive() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("active"), filter.getActive()));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<User> userPage = userRepository.findAll(spec, pageable);
+        return userMapper.toPageResponse(userPage);
     }
 }

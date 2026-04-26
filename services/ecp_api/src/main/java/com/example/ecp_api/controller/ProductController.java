@@ -1,5 +1,6 @@
 package com.example.ecp_api.controller;
 
+import com.example.ecp_api.dto.request.ProductFilterRequest;
 import com.example.ecp_api.dto.request.ProductRequest;
 import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.dto.response.PageResponse;
@@ -31,7 +32,9 @@ public class ProductController {
     }
 
     @GetMapping
-    public ResponseEntity<PageResponse<ProductResponse>> getAllProducts(Pageable pageable) {
-        return ResponseEntity.ok(productService.getAllProducts(pageable));
+    public ResponseEntity<PageResponse<ProductResponse>> getAllProducts(
+            ProductFilterRequest filter,
+            Pageable pageable) {
+        return ResponseEntity.ok(productService.getAllProducts(filter, pageable));
     }
 }

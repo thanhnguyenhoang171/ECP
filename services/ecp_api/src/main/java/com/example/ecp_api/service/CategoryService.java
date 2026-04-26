@@ -1,5 +1,6 @@
 package com.example.ecp_api.service;
 
+import com.example.ecp_api.dto.request.CategoryFilterRequest;
 import com.example.ecp_api.dto.request.CategoryRequest;
 import com.example.ecp_api.dto.response.CategoryResponse;
 import com.example.ecp_api.dto.response.PageResponse;
@@ -9,7 +10,8 @@ import java.util.List;
 
 public interface CategoryService {
     CategoryResponse createCategory(CategoryRequest request);
-    PageResponse<CategoryResponse> getAllCategories(Pageable pageable);
+    CategoryResponse updateCategory(String id, CategoryRequest request);
+    PageResponse<CategoryResponse> getAllCategories(CategoryFilterRequest filter, Pageable pageable);
     List<CategoryResponse> getParentCategories();
     void deleteCategory(String id);
 }
