@@ -14,9 +14,6 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   // Cấu hình cache cho static assets
   images: {
     formats: ['image/avif', 'image/webp'],
