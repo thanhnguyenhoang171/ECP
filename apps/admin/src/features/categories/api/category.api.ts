@@ -36,7 +36,7 @@ export const categoryApi = {
   },
 
   // Cập nhật danh mục
-  update: async (id: string, values: any): Promise<any> => {
+  update: async (id: string, values: Partial<CategoryFormValues>): Promise<{ success: boolean; data: Category }> => {
     const res = await fetch(`${BASE_URL}/${id}`, {
       method: 'PATCH',
       headers: {
@@ -50,7 +50,7 @@ export const categoryApi = {
   },
 
   // Tạo mới danh mục
-  create: async (values: any): Promise<any> => {
+  create: async (values: CategoryFormValues): Promise<{ success: boolean; data: Category }> => {
     const res = await fetch(BASE_URL, {
       method: 'POST',
       headers: {
@@ -64,7 +64,7 @@ export const categoryApi = {
   },
 
   // Xóa danh mục
-  delete: async (id: string): Promise<any> => {
+  delete: async (id: string): Promise<{ success: boolean }> => {
     const res = await fetch(`${BASE_URL}/${id}`, {
       method: 'DELETE',
     });
@@ -76,7 +76,7 @@ export const categoryApi = {
   },
 
   // Lấy danh sách danh mục cha
-  getParents: async (): Promise<any> => {
+  getParents: async (): Promise<Category[]> => {
     const res = await fetch(`${BASE_URL}/parents`);
     if (!res.ok) throw new Error('Failed to fetch parent categories');
     const result = await res.json();

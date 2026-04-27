@@ -4,7 +4,6 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
 
 import {
   Form,
@@ -23,13 +22,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Category } from '../types/category.interface';
 import { categorySchema, CategoryFormValues } from '../schemas/category.schema';
 import { useCreateCategory, useUpdateCategory } from '../hooks/use-category-mutation';
 
 interface CategoryFormProps {
   onSuccess: () => void;
   initialData?: CategoryFormValues;
-  parentCategories?: any[];
+  parentCategories?: Category[];
   id?: string;
 }
 

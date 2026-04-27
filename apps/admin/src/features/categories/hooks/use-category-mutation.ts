@@ -19,8 +19,9 @@ export function useCreateCategory() {
         toast.error(result.message || 'Có lỗi xảy ra');
       }
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Lỗi kết nối server');
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : 'Lỗi kết nối server';
+      toast.error(message);
     },
   });
 }
@@ -39,8 +40,9 @@ export function useUpdateCategory() {
         toast.error(result.message || 'Có lỗi xảy ra');
       }
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Lỗi kết nối server');
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : 'Lỗi kết nối server';
+      toast.error(message);
     },
   });
 }
@@ -59,8 +61,9 @@ export function useDeleteCategory() {
         toast.error(result.message || 'Không thể xóa danh mục');
       }
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Lỗi kết nối server');
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : 'Lỗi kết nối server';
+      toast.error(message);
     },
   });
 }

@@ -9,6 +9,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
 
   // Ép kiểu sang any để tránh lỗi Type mismatch giữa React 19 và Sonner khi build
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const SonnerComponent = Sonner as any;
 
   return (

@@ -8,18 +8,11 @@ import dynamic from 'next/dynamic';
 import {
   LayoutDashboard,
   ShoppingBag,
-  Layers,
   Database,
-  Users,
   LogOut,
   Menu as MenuIcon,
-  ChevronRight,
   Package,
-  Warehouse,
-  History,
-  ScanBarcode,
   ShoppingCart,
-  CreditCard,
   UserCircle,
   Bell,
   Search,
@@ -38,7 +31,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import nprogress from 'nprogress';
 

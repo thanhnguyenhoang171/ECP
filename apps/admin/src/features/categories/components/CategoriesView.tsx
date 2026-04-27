@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   Plus,
@@ -51,7 +51,7 @@ import { useDeleteCategory } from '../hooks/use-category-mutation';
 
 interface CategoriesViewProps {
   initialData: PageResponse<Category>;
-  parentCategories: any[];
+  parentCategories: Category[];
 }
 
 export default function CategoriesView({
@@ -95,6 +95,26 @@ export default function CategoriesView({
 
   console.log('Checking category data: ', data);
 
+  const createQueryString = useCallback(
+    (params: Record<string, string | number>) => {
+      const newSearchParams = new URLSearchParams(searchParams.toString());
+      Object.entries(params).forEach(([key, value]) => {
+        newSearchParams.set(key, String(value));
+      });
+      return newSearchParams.toString();
+    },
+    [searchParams]
+  );
+
+  const updateUrl = useCallback(
+    (newParams: Record<string, string | number>) => {
+      router.push(`${pathname}?${createQueryString(newParams)}`, {
+        scroll: false,
+      });
+    },
+    [pathname, router, createQueryString]
+  );
+
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -103,7 +123,7 @@ export default function CategoriesView({
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, nameParam, updateUrl]);
 
   const deleteMutation = useDeleteCategory();
 
@@ -127,20 +147,6 @@ export default function CategoriesView({
   const categories = categoriesData.data || [];
   const pagination = categoriesData.pagination;
 
-  const createQueryString = (params: Record<string, string | number>) => {
-    const newSearchParams = new URLSearchParams(searchParams.toString());
-    Object.entries(params).forEach(([key, value]) => {
-      newSearchParams.set(key, String(value));
-    });
-    return newSearchParams.toString();
-  };
-
-  const updateUrl = (newParams: Record<string, string | number>) => {
-    router.push(`${pathname}?${createQueryString(newParams)}`, {
-      scroll: false,
-    });
-  };
-
   const handlePageChange = (page: number) => {
     updateUrl({ page: page - 1 });
   };
@@ -163,7 +169,7 @@ export default function CategoriesView({
         hour: '2-digit',
         minute: '2-digit',
       }).format(new Date(dateString));
-    } catch (e) {
+    } catch {
       return dateString;
     }
   };
@@ -188,7 +194,7 @@ export default function CategoriesView({
       <Button
         size='sm'
         variant='default'
-        onClick={() => setIsFormOpen(true)}
+        onClick={handleCreate}
         className='h-9 shadow-md shadow-blue-100'>
         <Plus className='mr-2 h-4 w-4' /> Thêm mới
       </Button>
