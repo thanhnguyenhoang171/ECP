@@ -7,16 +7,19 @@ import { categoryApi } from '../api/category.api';
 export async function createCategoryAction(values: CategoryFormValues) {
   try {
     const payload: Partial<CategoryFormValues> = { ...values };
-    
-    if (!payload.parentId || payload.parentId === '' || payload.parentId === 'none') {
+
+    if (
+      !payload.parentId ||
+      payload.parentId === '' ||
+      payload.parentId === 'none'
+    ) {
       delete payload.parentId;
     }
 
     const result = await categoryApi.create(payload as CategoryFormValues);
-    
-    // @ts-ignore - Thỏa mãn Next.js 16 signature nếu cần
+
     revalidateTag('categories-list', 'default');
-    // @ts-ignore
+
     revalidateTag('categories-parents', 'default');
     revalidatePath('/categories');
     return { success: true, data: result.data };
@@ -26,11 +29,18 @@ export async function createCategoryAction(values: CategoryFormValues) {
   }
 }
 
-export async function updateCategoryAction(id: string, values: CategoryFormValues) {
+export async function updateCategoryAction(
+  id: string,
+  values: CategoryFormValues,
+) {
   try {
     const payload: Record<string, unknown> = { ...values };
-    
-    if (!payload.parentId || payload.parentId === '' || payload.parentId === 'none') {
+
+    if (
+      !payload.parentId ||
+      payload.parentId === '' ||
+      payload.parentId === 'none'
+    ) {
       payload.parentId = null; // Dùng null thay vì ""
     }
 
@@ -41,9 +51,8 @@ export async function updateCategoryAction(id: string, values: CategoryFormValue
 
     const result = await categoryApi.update(id, payload);
 
-    // @ts-ignore
     revalidateTag('categories-list', 'default');
-    // @ts-ignore
+
     revalidateTag('categories-parents', 'default');
     revalidatePath('/categories');
     return { success: true, data: result.data };
@@ -56,10 +65,9 @@ export async function updateCategoryAction(id: string, values: CategoryFormValue
 export async function deleteCategoryAction(id: string) {
   try {
     await categoryApi.delete(id);
-    
-    // @ts-ignore
+
     revalidateTag('categories-list', 'default');
-    // @ts-ignore
+
     revalidateTag('categories-parents', 'default');
     revalidatePath('/categories');
     return { success: true };
