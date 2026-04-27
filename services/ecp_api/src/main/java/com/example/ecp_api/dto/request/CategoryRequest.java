@@ -14,7 +14,6 @@ public class CategoryRequest {
     @NotBlank(message = "Category name is required")
     private String name;
 
-    @NotBlank(message = "Slug is required")
     private String slug;
 
     private String parentId;

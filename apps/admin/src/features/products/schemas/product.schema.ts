@@ -10,7 +10,7 @@ export const productVariantSchema = z.object({
 export const productSchema = z.object({
   sku: z.string().min(2, "Mã sản phẩm (SKU) không được để trống"),
   name: z.string().min(2, "Tên sản phẩm phải có ít nhất 2 ký tự"),
-  slug: z.string().min(2, "Slug không hợp lệ"),
+  slug: z.string().optional().or(z.literal("")),
   brand: z.string().min(1, "Vui lòng nhập thương hiệu"),
   categoryId: z.string().min(1, "Vui lòng chọn danh mục"),
   description: z.string().optional(),

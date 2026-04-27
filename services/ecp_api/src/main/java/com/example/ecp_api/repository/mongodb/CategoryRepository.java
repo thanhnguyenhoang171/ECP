@@ -13,6 +13,7 @@ import java.util.Optional;
 public interface CategoryRepository extends MongoRepository<Category, String> {
     Optional<Category> findBySlug(String slug);
     boolean existsBySlugAndDeletedFalse(String slug);
+    boolean existsByParentIdAndDeletedFalse(String parentId);
     Page<Category> findByDeletedFalse(Pageable pageable);
     List<Category> findByParentIdIsNullAndDeletedFalse();
 }

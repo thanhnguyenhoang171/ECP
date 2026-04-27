@@ -1,7 +1,9 @@
 'use client';
 
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { categoryApi } from '../api/category.api';
+import { PageResponse } from '@/types/pagination';
+import { Category } from '../types/category.interface';
 
 export function useCategories(
   params: {
@@ -18,9 +20,8 @@ export function useCategories(
   return useQuery({
     queryKey: ['categories', params],
     queryFn: () => categoryApi.getPaged(params),
-    placeholderData: keepPreviousData,
+    placeholderData: initialData, // Sử dụng dữ liệu ban đầu làm placeholder
     staleTime: 5 * 60 * 1000,
-    initialData: initialData, // Sử dụng dữ liệu từ server truyền xuống
   });
 }
 

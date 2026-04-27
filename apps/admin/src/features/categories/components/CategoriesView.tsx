@@ -83,7 +83,7 @@ export default function CategoriesView({
           ? false
           : undefined,
     level: levelParam ? Number(levelParam) : undefined,
-  }, initialData);
+  });
 
   // TanStack Query - Danh sách cha (Dùng dữ liệu từ server làm initialData để nhanh lần đầu)
   const { data: dynamicParentCategories } = useParentCategories();
@@ -395,6 +395,9 @@ export default function CategoriesView({
                       <TableHead className='text-[11px] font-bold uppercase py-4 text-slate-500'>
                         Đường dẫn (Slug)
                       </TableHead>
+                      <TableHead className='text-[11px] font-bold uppercase py-4 text-slate-500'>
+                        Path
+                      </TableHead>
                       <TableHead className='text-[11px] font-bold uppercase py-4 text-center text-slate-500'>
                         Cấp độ
                       </TableHead>
@@ -413,7 +416,7 @@ export default function CategoriesView({
                     {isLoading
                       ? Array.from({ length: 5 }).map((_, i) => (
                           <TableRow key={i}>
-                            <TableCell colSpan={6} className='h-16'>
+                            <TableCell colSpan={7} className='h-16'>
                               <div className='flex items-center space-x-4 px-6'>
                                 <div className='h-4 w-32 bg-slate-100 animate-pulse rounded' />
                               </div>
@@ -438,6 +441,11 @@ export default function CategoriesView({
                               <code className='text-[11px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600'>
                                 /{category.slug}
                               </code>
+                            </TableCell>
+                            <TableCell className='py-4'>
+                              <span className='text-[11px] text-slate-500 font-mono'>
+                                {category.path || '---'}
+                              </span>
                             </TableCell>
                             <TableCell className='text-center py-4'>
                               <Badge
