@@ -77,7 +77,9 @@ export const categoryApi = {
 
   // Lấy danh sách danh mục cha
   getParents: async (): Promise<Category[]> => {
-    const res = await fetch(`${BASE_URL}/parents`);
+    const res = await fetch(`${BASE_URL}/parents`, {
+      cache: 'no-store', // Đảm bảo không lấy cache trình duyệt
+    });
     if (!res.ok) throw new Error('Failed to fetch parent categories');
     const result = await res.json();
     return result.success ? result.data : [];

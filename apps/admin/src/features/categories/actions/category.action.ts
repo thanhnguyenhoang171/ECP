@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { CategoryFormValues } from '../schemas/category.schema';
 import { categoryApi } from '../api/category.api';
 
@@ -14,6 +14,10 @@ export async function createCategoryAction(values: CategoryFormValues) {
 
     const result = await categoryApi.create(payload as CategoryFormValues);
     
+    // @ts-ignore - Thỏa mãn Next.js 16 signature nếu cần
+    revalidateTag('categories-list', 'default');
+    // @ts-ignore
+    revalidateTag('categories-parents', 'default');
     revalidatePath('/categories');
     return { success: true, data: result.data };
   } catch (error) {
@@ -27,7 +31,7 @@ export async function updateCategoryAction(id: string, values: CategoryFormValue
     const payload: Record<string, unknown> = { ...values };
     
     if (!payload.parentId || payload.parentId === '' || payload.parentId === 'none') {
-      payload.parentId = "";
+      payload.parentId = null; // Dùng null thay vì ""
     }
 
     // Map active to isActive if API requires it
@@ -37,6 +41,10 @@ export async function updateCategoryAction(id: string, values: CategoryFormValue
 
     const result = await categoryApi.update(id, payload);
 
+    // @ts-ignore
+    revalidateTag('categories-list', 'default');
+    // @ts-ignore
+    revalidateTag('categories-parents', 'default');
     revalidatePath('/categories');
     return { success: true, data: result.data };
   } catch (error) {
@@ -49,6 +57,10 @@ export async function deleteCategoryAction(id: string) {
   try {
     await categoryApi.delete(id);
     
+    // @ts-ignore
+    revalidateTag('categories-list', 'default');
+    // @ts-ignore
+    revalidateTag('categories-parents', 'default');
     revalidatePath('/categories');
     return { success: true };
   } catch (error) {

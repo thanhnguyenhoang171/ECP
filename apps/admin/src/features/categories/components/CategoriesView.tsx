@@ -83,13 +83,15 @@ export default function CategoriesView({
           ? false
           : undefined,
     level: levelParam ? Number(levelParam) : undefined,
-  });
+  }, initialData);
 
   // TanStack Query - Danh sách cha (Dùng dữ liệu từ server làm initialData để nhanh lần đầu)
   const { data: dynamicParentCategories } = useParentCategories();
   
-  // Ưu tiên lấy từ Query (dữ liệu mới nhất), nếu chưa có thì dùng từ Server gửi xuống
-  const parentCategories = dynamicParentCategories || serverParentCategories;
+  // Ưu tiên lấy từ Query (dữ liệu mới nhất), nếu mảng rỗng hoặc chưa có thì dùng từ Server gửi xuống
+  const parentCategories = (dynamicParentCategories && dynamicParentCategories.length > 0) 
+    ? dynamicParentCategories 
+    : serverParentCategories;
 
   const [searchTerm, setSearchTerm] = useState(nameParam);
 

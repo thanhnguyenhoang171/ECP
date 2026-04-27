@@ -35,6 +35,7 @@ export function useUpdateCategory() {
     onSuccess: (result) => {
       if (result.success) {
         toast.success('Cập nhật danh mục thành công');
+        // Làm mới toàn bộ cache liên quan đến categories
         queryClient.invalidateQueries({ queryKey: ['categories'] });
       } else {
         toast.error(result.message || 'Có lỗi xảy ra');
