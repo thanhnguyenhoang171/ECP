@@ -120,6 +120,14 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    public CategoryResponse getCategoryById(String id) {
+        Category category = categoryRepository.findById(id)
+                .filter(c -> !c.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found or deleted with id: " + id));
+        return categoryMapper.toResponse(category);
+    }
+
+    @Override
     public PageResponse<CategoryResponse> getAllCategories(CategoryFilterRequest filter, Pageable pageable) {
         Query query = new Query().with(pageable);
 

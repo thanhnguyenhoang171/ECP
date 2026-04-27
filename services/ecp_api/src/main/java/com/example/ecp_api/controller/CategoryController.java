@@ -46,6 +46,17 @@ public class CategoryController {
         return ResponseEntity.ok(apiResponse);
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<CategoryResponse>> getCategoryById(@PathVariable("id") String id) {
+        CategoryResponse response = categoryService.getCategoryById(id);
+        ApiResponse<CategoryResponse> apiResponse = ApiResponse.<CategoryResponse>builder()
+                .success(true)
+                .message("Category fetched successfully")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
+
     @GetMapping
     public ResponseEntity<PageResponse<CategoryResponse>> getAllCategories(
             CategoryFilterRequest filter,

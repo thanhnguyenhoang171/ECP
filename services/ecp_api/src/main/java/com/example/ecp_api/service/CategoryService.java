@@ -11,6 +11,7 @@ import java.util.List;
 public interface CategoryService {
     CategoryResponse createCategory(CategoryRequest request);
     CategoryResponse updateCategory(String id, CategoryRequest request);
+    CategoryResponse getCategoryById(String id);
     PageResponse<CategoryResponse> getAllCategories(CategoryFilterRequest filter, Pageable pageable);
     List<CategoryResponse> getParentCategories();
     void deleteCategory(String id);
