@@ -17,7 +17,7 @@ async function getCategories(page: number, size: number, sort: string): Promise<
     
     if (!res.ok) throw new Error('Failed to fetch categories');
     return await res.json();
-  } catch {
+  } catch (error) {
     console.error("Server fetch categories error:", error);
     return {
       success: false,
@@ -39,7 +39,8 @@ async function getParentCategories() {
     if (!res.ok) return [];
     const result = await res.json();
     return result.success ? result.data : [];
-  } catch {
+  } catch (error) {
+    console.error("Server fetch parent categories error:", error);
     return [];
   }
 }
