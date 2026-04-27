@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
@@ -42,11 +42,26 @@ export default function CategoryForm({ onSuccess, initialData, parentCategories 
     defaultValues: initialData || {
       name: '',
       slug: '',
-      parentId: '',
+      parentId: 'none',
       description: '',
       active: true,
     },
   });
+
+  // Reset form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      form.reset(initialData);
+    } else {
+      form.reset({
+        name: '',
+        slug: '',
+        parentId: 'none',
+        description: '',
+        active: true,
+      });
+    }
+  }, [initialData, form]);
 
   async function onSubmit(values: CategoryFormValues) {
     if (id) {
@@ -73,6 +88,9 @@ export default function CategoryForm({ onSuccess, initialData, parentCategories 
   }
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
+
+  // Filter out current category from parent categories to avoid circular references
+  const filteredParentCategories = parentCategories.filter(cat => cat.id !== id);
 
   return (
     <Form {...form}>
@@ -108,27 +126,36 @@ export default function CategoryForm({ onSuccess, initialData, parentCategories 
         <FormField
           control={form.control}
           name="parentId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-xs font-bold uppercase text-slate-500">Danh mục cha</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Chọn danh mục cha (Bỏ trống nếu là gốc)" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="none" className="text-slate-400 italic">-- Không có (Danh mục gốc) --</SelectItem>
-                  {parentCategories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+          render={({ field }) => {
+            // Đảm bảo giá trị luôn hợp lệ cho component Select
+            // Nếu là null, undefined hoặc "" thì coi như là "none"
+            const currentValue = field.value || 'none';
+            
+            return (
+              <FormItem>
+                <FormLabel className="text-xs font-bold uppercase text-slate-500">Danh mục cha</FormLabel>
+                <Select 
+                  onValueChange={field.onChange} 
+                  value={currentValue}
+                >
+                  <FormControl>
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Chọn danh mục cha" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="none" className="text-slate-400 italic">-- Không có (Danh mục gốc) --</SelectItem>
+                    {filteredParentCategories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
         />
 
         <FormField
