@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/dialog';
 import { Product } from '../types/product.interface';
 import ProductForm from './ProductForm';
+import { formatCurrency } from '@/lib/formatters';
 
 interface ProductViewProps {
   initialProducts: Product[];
@@ -145,7 +146,7 @@ export default function ProductView({ initialProducts }: ProductViewProps) {
                       {product.category}
                     </TableCell>
                     <TableCell className='text-right text-sm font-bold text-blue-600 py-4'>
-                      {product.price}
+                      {formatCurrency(product.price)}
                     </TableCell>
                     <TableCell className='text-center py-4'>
                       <Badge
