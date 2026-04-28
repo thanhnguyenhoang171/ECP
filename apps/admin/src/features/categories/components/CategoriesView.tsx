@@ -11,6 +11,7 @@ import {
   Edit,
   Trash2,
   Loader2,
+  Upload,
 } from 'lucide-react';
 
 import {
@@ -46,10 +47,13 @@ import {
 import { Category } from '../types/category.interface';
 import { PageResponse } from '@/types/pagination';
 import CategoryForm from './CategoryForm';
+import CategoryImportDialog from './CategoryImportDialog';
 import { useCategories, useParentCategories } from '../hooks/use-categories';
 import { useDeleteCategory } from '../hooks/use-category-mutation';
 import { categoryApi } from '../api/category.api';
 import { toast } from 'sonner';
+
+import { formatDate, formatDateTimeForFilename } from '@/lib/formatters';
 
 interface CategoriesViewProps {
   initialData: PageResponse<Category>;
@@ -133,6 +137,7 @@ export default function CategoriesView({
 
   // States
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -147,6 +152,10 @@ export default function CategoriesView({
     setIsFormOpen(true);
   };
 
+  const handleImport = () => {
+    setIsImportDialogOpen(true);
+  };
+
   // Export Logic
   const handleExport = async () => {
     try {
@@ -156,7 +165,8 @@ export default function CategoriesView({
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `categories_export_${new Date().getTime()}.xlsx`);
+      const timestamp = formatDateTimeForFilename(new Date());
+      link.setAttribute('download', `categories_export_${timestamp}.xlsx`);
       document.body.appendChild(link);
       link.click();
       
@@ -189,21 +199,6 @@ export default function CategoriesView({
     updateUrl({ sort, page: 0 });
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '---';
-    try {
-      return new Intl.DateTimeFormat('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }).format(new Date(dateString));
-    } catch {
-      return dateString;
-    }
-  };
-
   const handleDelete = async () => {
     if (!deleteConfirmId) return;
 
@@ -218,6 +213,15 @@ export default function CategoriesView({
 
   const commonActions = (
     <>
+      <Button 
+        variant='outline' 
+        size='sm' 
+        className='h-9' 
+        onClick={handleImport}
+      >
+        <Upload className='mr-2 h-4 w-4 text-slate-500' />
+        Nhập file
+      </Button>
       <Button 
         variant='outline' 
         size='sm' 
@@ -610,6 +614,15 @@ export default function CategoriesView({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Import Dialog */}
+      <CategoryImportDialog 
+        isOpen={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
+        onSuccess={() => {
+          // Refresh data if needed, TanStack Query will likely handle this automatically
+        }}
+      />
     </div>
   );
 }

@@ -19,4 +19,5 @@ public interface CategoryService {
     void deleteCategory(String id);
     void exportCategoriesToExcel(OutputStream outputStream, List<CategoryResponse> categories) throws IOException;
     void exportAllToExcel(OutputStream outputStream) throws IOException;
+    void downloadCategoryTemplate(OutputStream outputStream) throws IOException;
 }

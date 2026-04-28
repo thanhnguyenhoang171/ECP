@@ -13,8 +13,11 @@ import com.example.ecp_api.service.CategoryService;
 import com.example.ecp_api.util.DateTimeUtils;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -269,6 +272,97 @@ public class CategoryServiceImpl implements CategoryService {
             workbook.write(outputStream);
             outputStream.flush();
             workbook.dispose();
+        }
+    }
+
+//    TODO: Update later
+    @Override
+    public void downloadCategoryTemplate(OutputStream outputStream) throws IOException {
+        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+            XSSFSheet sheet = workbook.createSheet("Template Import Category");
+
+            String[] headers = {"STT (*)", "ID (Để trống nếu tạo mới)", "Tên loại sản phẩm (*)", "Slug (Tự động nếu trống)", "Danh mục cha (Chọn list)", "Mô tả", "Trạng thái"};
+
+            // Header Style
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerFont.setColor(IndexedColors.WHITE.getIndex());
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(IndexedColors.CORNFLOWER_BLUE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+            headerStyle.setBorderBottom(BorderStyle.THIN);
+
+            // Tạo Header Row
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // Tạo Hidden Sheet chứa dữ liệu Category Cha
+            Sheet hiddenSheet = workbook.createSheet("CategoriesData");
+            workbook.setSheetHidden(workbook.getSheetIndex(hiddenSheet), true);
+
+            List<Category> existingCategories;
+            try (Stream<Category> categoryStream = categoryRepository.findAllByDeletedFalse()) {
+                existingCategories = categoryStream.toList();
+            }
+
+            for (int i = 0; i < existingCategories.size(); i++) {
+                Category cat = existingCategories.get(i);
+                Row row = hiddenSheet.createRow(i);
+                // Format: "Ten Danh Muc | ID" để người dùng dễ nhận biết nhưng vẫn lấy được ID
+                row.createCell(0).setCellValue(cat.getName() + " | " + cat.getId());
+            }
+
+            // Thêm Validation Dropdown cho cột "Danh mục cha" (Cột E - Index 4)
+            DataValidationHelper validationHelper = sheet.getDataValidationHelper();
+            if (!existingCategories.isEmpty()) {
+                // Tạo Name Range cho danh sách (Cách này ổn định hơn công thức trực tiếp)
+                Name namedRange = workbook.createName();
+                namedRange.setNameName("ParentList");
+                namedRange.setRefersToFormula("CategoriesData!$A$1:$A$" + existingCategories.size());
+
+                DataValidationConstraint constraint = validationHelper.createFormulaListConstraint("ParentList");
+                // Áp dụng từ dòng 2 đến 2000, cột E (index 4)
+                CellRangeAddressList addressList = new CellRangeAddressList(1, 2000, 4, 4);
+                DataValidation validation = validationHelper.createValidation(constraint, addressList);
+
+                validation.setErrorStyle(DataValidation.ErrorStyle.STOP);
+                validation.createErrorBox("Dữ liệu không hợp lệ", "Vui lòng chọn danh mục từ danh sách thả xuống!");
+                validation.setShowErrorBox(true);
+                validation.setSuppressDropDownArrow(true); // Quan trọng: Hiển thị mũi tên dropdown
+
+                sheet.addValidationData(validation);
+            }
+
+            // Thêm Dropdown cố định cho cột "Trạng thái" (Cột G - Index 6)
+            DataValidationConstraint statusConstraint = validationHelper.createExplicitListConstraint(new String[]{"Hoạt động", "Ngừng hoạt động"});
+            CellRangeAddressList statusAddress = new CellRangeAddressList(1, 2000, 6, 6);
+            DataValidation statusValidation = validationHelper.createValidation(statusConstraint, statusAddress);
+            sheet.addValidationData(statusValidation);
+
+            // Thêm dòng mẫu (Sample data)
+            Row sampleRow = sheet.createRow(1);
+            sampleRow.createCell(0).setCellValue(1);
+            sampleRow.createCell(1).setCellValue(""); // ID trống để hiểu là tạo mới
+            sampleRow.createCell(2).setCellValue("Snack mặn");
+            sampleRow.createCell(3).setCellValue("snack-man");
+            sampleRow.createCell(4).setCellValue(""); // Root category
+            sampleRow.createCell(5).setCellValue("Các loại đồ ăn vặt vị mặn");
+            sampleRow.createCell(6).setCellValue("Hoạt động");
+
+            // Auto size columns cho đẹp
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            // Ghi dữ liệu
+            workbook.write(outputStream);
+            outputStream.flush();
         }
     }
 }

@@ -25,3 +25,4 @@ export { NextPagination } from "./NextPagination";
 export { PageHeader } from "./PageHeader";
 export { StatsCard } from "./StatsCard";
 export { EmptyState } from "./EmptyState";
+export { FileUpload } from "./FileUpload";
