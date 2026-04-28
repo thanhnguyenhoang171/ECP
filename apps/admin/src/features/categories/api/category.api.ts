@@ -91,10 +91,11 @@ export const categoryApi = {
   },
 
   // Export file excel
-  export: async (): Promise<void> => {
+  export: async (): Promise<Blob> => {
     const res = await fetch(`${BASE_URL}/export`, {
       method: 'GET',
     });
     if (!res.ok) throw new Error('Failed to export categories');
+    return res.blob();
   },
 };

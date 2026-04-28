@@ -48,6 +48,8 @@ import { PageResponse } from '@/types/pagination';
 import CategoryForm from './CategoryForm';
 import { useCategories, useParentCategories } from '../hooks/use-categories';
 import { useDeleteCategory } from '../hooks/use-category-mutation';
+import { categoryApi } from '../api/category.api';
+import { toast } from 'sonner';
 
 interface CategoriesViewProps {
   initialData: PageResponse<Category>;
@@ -133,6 +135,7 @@ export default function CategoriesView({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleEdit = (category: Category) => {
     setEditingCategory(category);
@@ -142,6 +145,31 @@ export default function CategoriesView({
   const handleCreate = () => {
     setEditingCategory(null);
     setIsFormOpen(true);
+  };
+
+  // Export Logic
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const blob = await categoryApi.export();
+      
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `categories_export_${new Date().getTime()}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Xuất file thành công');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Có lỗi xảy ra khi xuất file');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Sync data from TanStack Query or initialData
@@ -190,8 +218,19 @@ export default function CategoriesView({
 
   const commonActions = (
     <>
-      <Button variant='outline' size='sm' className='h-9'>
-        <Download className='mr-2 h-4 w-4 text-slate-500' /> Xuất file
+      <Button 
+        variant='outline' 
+        size='sm' 
+        className='h-9' 
+        onClick={handleExport}
+        disabled={isExporting}
+      >
+        {isExporting ? (
+          <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+        ) : (
+          <Download className='mr-2 h-4 w-4 text-slate-500' />
+        )}
+        {isExporting ? 'Đang xuất...' : 'Xuất file'}
       </Button>
       <Button
         size='sm'
