@@ -9,9 +9,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import java.util.Arrays;
-import java.util.stream.Collectors;
-
 @Component
 @RequiredArgsConstructor
 public class CategoryHelper {
@@ -22,31 +19,6 @@ public class CategoryHelper {
         return categoryRepository.findById(id)
                 .filter(c -> !c.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found or deleted with id: " + id));
-    }
-
-    /**
-     * Tự động sinh SKU cho category:
-     * - Nếu là parent thì lấy chữ cái đầu mỗi từ rồi in hoa
-     * - Nếu là children thì ghép SKU parent + '-' + SKU child (lấy chữ cái đầu in hoa)
-     */
-    public String generateSku(String name, String parentId) {
-        String initials = getInitials(name);
-
-        if (StringUtils.hasText(parentId)) {
-            Category parent = getCategoryOrThrow(parentId);
-            return parent.getSku() + "-" + initials;
-        }
-
-        return initials;
-    }
-
-    private String getInitials(String name) {
-        if (!StringUtils.hasText(name)) return "";
-        
-        return Arrays.stream(name.trim().split("\\s+"))
-                .filter(word -> !word.isEmpty())
-                .map(word -> String.valueOf(word.charAt(0)).toUpperCase())
-                .collect(Collectors.joining());
     }
 
     /**

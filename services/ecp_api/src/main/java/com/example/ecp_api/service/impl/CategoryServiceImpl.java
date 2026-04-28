@@ -10,7 +10,11 @@ import com.example.ecp_api.exception.ResourceNotFoundException;
 import com.example.ecp_api.mapper.CategoryMapper;
 import com.example.ecp_api.repository.mongodb.CategoryRepository;
 import com.example.ecp_api.service.CategoryService;
+import com.example.ecp_api.util.DateTimeUtils;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.streaming.SXSSFSheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -22,7 +26,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -66,9 +73,6 @@ public class CategoryServiceImpl implements CategoryService {
             category.setLevel(1);
             category.setPath(null); 
         }
-
-        // 3. Auto generate SKU
-        category.setSku(categoryHelper.generateSku(category.getName(), category.getParentId()));
 
         Category savedCategory = categoryRepository.save(category);
         return categoryMapper.toResponse(savedCategory);
@@ -125,11 +129,6 @@ public class CategoryServiceImpl implements CategoryService {
             parentChanged = true;
         }
 
-        // 3. Regenerate SKU if name or parent changed
-        if (parentChanged || !category.getName().equals(oldName)) {
-            category.setSku(categoryHelper.generateSku(category.getName(), category.getParentId()));
-        }
-
         Category updatedCategory = categoryRepository.save(category);
         
         // Update descendants' paths and levels if parent changed
@@ -148,8 +147,6 @@ public class CategoryServiceImpl implements CategoryService {
         for (Category child : children) {
             child.setLevel(parent.getLevel() + 1);
             child.setPath(parent.getPath() == null ? parent.getId() : parent.getPath() + "/" + parent.getId());
-            // Cập nhật luôn SKU của con nếu SKU cha thay đổi (theo quy tắc SKU cha + con)
-            child.setSku(categoryHelper.generateSku(child.getName(), parent.getId()));
             categoryRepository.save(child);
         }
     }
@@ -209,5 +206,69 @@ public class CategoryServiceImpl implements CategoryService {
 
         category.setDeleted(true);
         categoryRepository.save(category);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void exportAllToExcel(OutputStream outputStream) throws IOException {
+        try (Stream<Category> categoryStream = categoryRepository.findAllByDeletedFalse()) {
+            List<CategoryResponse> categories = categoryStream
+                    .map(categoryMapper::toResponse)
+                    .toList();
+            exportCategoriesToExcel(outputStream, categories);
+        }
+    }
+
+    @Override
+    public void exportCategoriesToExcel(OutputStream outputStream, List<CategoryResponse> categories) throws IOException {
+        try (SXSSFWorkbook workbook = new SXSSFWorkbook(100)) {
+            Sheet sheet = workbook.createSheet("Danh sách loại hàng hoá");
+            
+            // Bật tính năng theo dõi độ rộng cột để auto-size (dành riêng cho SXSSF)
+            if (sheet instanceof SXSSFSheet) {
+                ((SXSSFSheet) sheet).trackAllColumnsForAutoSizing();
+            }
+
+            // Create Header Style
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(IndexedColors.ORANGE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+            // Create Header Row
+            String[] headers = {"STT", "_id", "Tên loại sản phẩm", "Slug", "Cấp độ", "Mô tả", "Trạng thái HĐ", "Ngày tạo", "Ngày sửa"};
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // Fill data into rows
+            int rowIdx = 1;
+            for (CategoryResponse category : categories) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(rowIdx - 1);
+                row.createCell(1).setCellValue(category.getId() != null ? category.getId() : "");
+                row.createCell(2).setCellValue(category.getName() != null ? category.getName() : "");
+                row.createCell(3).setCellValue(category.getSlug() != null ? category.getSlug() : "");
+                row.createCell(4).setCellValue(category.getLevel());
+                row.createCell(5).setCellValue(category.getDescription() != null ? category.getDescription() : "");
+                row.createCell(6).setCellValue(category.isActive() ? "Hoạt động" : "Ngừng hoạt động");
+                row.createCell(7).setCellValue(DateTimeUtils.format(category.getCreatedAt()));
+                row.createCell(8).setCellValue(DateTimeUtils.format(category.getUpdatedAt()));
+            }
+
+            // Tự động căn chỉnh độ rộng cho tất cả các cột
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(outputStream);
+            outputStream.flush();
+            workbook.dispose();
+        }
     }
 }

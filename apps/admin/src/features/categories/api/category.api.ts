@@ -36,7 +36,10 @@ export const categoryApi = {
   },
 
   // Cập nhật danh mục
-  update: async (id: string, values: Partial<CategoryFormValues>): Promise<{ success: boolean; data: Category }> => {
+  update: async (
+    id: string,
+    values: Partial<CategoryFormValues>,
+  ): Promise<{ success: boolean; data: Category }> => {
     const res = await fetch(`${BASE_URL}/${id}`, {
       method: 'PATCH',
       headers: {
@@ -50,7 +53,9 @@ export const categoryApi = {
   },
 
   // Tạo mới danh mục
-  create: async (values: CategoryFormValues): Promise<{ success: boolean; data: Category }> => {
+  create: async (
+    values: CategoryFormValues,
+  ): Promise<{ success: boolean; data: Category }> => {
     const res = await fetch(BASE_URL, {
       method: 'POST',
       headers: {
@@ -83,5 +88,13 @@ export const categoryApi = {
     if (!res.ok) throw new Error('Failed to fetch parent categories');
     const result = await res.json();
     return result.success ? result.data : [];
+  },
+
+  // Export file excel
+  export: async (): Promise<void> => {
+    const res = await fetch(`${BASE_URL}/export`, {
+      method: 'GET',
+    });
+    if (!res.ok) throw new Error('Failed to export categories');
   },
 };

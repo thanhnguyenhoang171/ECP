@@ -9,10 +9,15 @@ import com.example.ecp_api.service.CategoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -21,6 +26,25 @@ import java.util.List;
 public class CategoryController {
 
     private final CategoryService categoryService;
+
+    @GetMapping("/export")
+    public ResponseEntity<StreamingResponseBody> exportToExcel() {
+        String fileName = "Danh_sach_loai_hang_hoa.xlsx";
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+
+        StreamingResponseBody responseBody = outputStream -> {
+            try {
+                categoryService.exportAllToExcel(outputStream);
+            } catch (Exception e) {
+                throw new IOException("Error during excel export", e);
+            }
+        };
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFileName)
+                .body(responseBody);
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<CategoryResponse>> createCategory(@Valid @RequestBody CategoryRequest request) {

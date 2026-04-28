@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Repository
 public interface CategoryRepository extends MongoRepository<Category, String> {
@@ -16,4 +17,7 @@ public interface CategoryRepository extends MongoRepository<Category, String> {
     boolean existsByParentIdAndDeletedFalse(String parentId);
     Page<Category> findByDeletedFalse(Pageable pageable);
     List<Category> findByParentIdIsNullAndDeletedFalse();
+    
+    @org.springframework.data.mongodb.repository.Query("{ 'is_deleted' : false }")
+    Stream<Category> findAllByDeletedFalse();
 }
