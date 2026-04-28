@@ -6,6 +6,8 @@ import com.example.ecp_api.dto.response.CategoryResponse;
 import com.example.ecp_api.dto.response.PageResponse;
 import org.springframework.data.domain.Pageable;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 
 public interface CategoryService {
@@ -15,4 +17,6 @@ public interface CategoryService {
     PageResponse<CategoryResponse> getAllCategories(CategoryFilterRequest filter, Pageable pageable);
     List<CategoryResponse> getParentCategories();
     void deleteCategory(String id);
+    void exportCategoriesToExcel(OutputStream outputStream, List<CategoryResponse> categories) throws IOException;
+    void exportAllToExcel(OutputStream outputStream) throws IOException;
 }

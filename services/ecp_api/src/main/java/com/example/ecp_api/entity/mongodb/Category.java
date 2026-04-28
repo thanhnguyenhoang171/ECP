@@ -31,9 +31,6 @@ public class Category {
     @Indexed(unique = true)
     private String slug;
 
-    @Indexed(unique = true)
-    private String sku;
-
     @Field("parent_id")
     private String parentId;
 
