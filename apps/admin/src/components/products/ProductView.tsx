@@ -120,12 +120,12 @@ export default function ProductView({ initialProducts }: ProductViewProps) {
                           {product.name}
                         </span>
                         <span className='text-[11px] text-slate-400 md:hidden'>
-                          {product.category}
+                          {product.categoryId}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell className='text-sm text-slate-500 py-4 hidden md:table-cell'>
-                      {product.category}
+                      {product.categoryId}
                     </TableCell>
                     <TableCell className='text-right text-sm font-bold text-blue-600 py-4'>
                       {product.price}

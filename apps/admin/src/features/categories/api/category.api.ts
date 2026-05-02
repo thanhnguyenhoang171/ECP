@@ -2,7 +2,7 @@ import { Category } from '../types/category.interface';
 import { CategoryFormValues } from '../schemas/category.schema';
 import { PageResponse } from '@/types/pagination';
 
-const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/categories`;
+const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/v1/categories`;
 
 export const categoryApi = {
   // Lấy danh sách danh mục có phân trang và lọc
