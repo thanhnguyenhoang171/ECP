@@ -13,10 +13,7 @@ import lombok.NoArgsConstructor;
 public class CategoryRequest {
     @NotBlank(message = "Category name is required")
     private String name;
-
     private String slug;
-
     private String parentId;
-    private String description;
     private Boolean isActive;
 }

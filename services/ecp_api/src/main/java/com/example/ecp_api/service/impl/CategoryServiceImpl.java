@@ -1,5 +1,11 @@
 package com.example.ecp_api.service.impl;
 
+import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.write.handler.SheetWriteHandler;
+import com.alibaba.excel.write.metadata.holder.WriteSheetHolder;
+import com.alibaba.excel.write.metadata.holder.WriteWorkbookHolder;
+import com.example.ecp_api.dto.excel.CategoryExcelDto;
+import com.example.ecp_api.dto.excel.CategoryTemplateDto;
 import com.example.ecp_api.dto.request.CategoryFilterRequest;
 import com.example.ecp_api.dto.request.CategoryRequest;
 import com.example.ecp_api.dto.response.CategoryResponse;
@@ -10,14 +16,12 @@ import com.example.ecp_api.exception.ResourceNotFoundException;
 import com.example.ecp_api.mapper.CategoryMapper;
 import com.example.ecp_api.repository.mongodb.CategoryRepository;
 import com.example.ecp_api.service.CategoryService;
+import com.example.ecp_api.service.helper.CategoryHelper;
 import com.example.ecp_api.util.DateTimeUtils;
+import com.example.ecp_api.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddressList;
-import org.apache.poi.xssf.streaming.SXSSFSheet;
-import org.apache.poi.xssf.streaming.SXSSFWorkbook;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -29,9 +33,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 @Service
@@ -42,126 +47,48 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
     private final MongoTemplate mongoTemplate;
-    private final com.example.ecp_api.service.helper.CategoryHelper categoryHelper;
+    private final CategoryHelper categoryHelper;
 
+    // CREATE A NEW CATEGORY
     @Override
     @Transactional
     public CategoryResponse createCategory(CategoryRequest request) {
-        // 1. Auto generate Slug
-        String slug = StringUtils.hasText(request.getSlug()) 
-                ? request.getSlug() 
-                : com.example.ecp_api.util.SlugUtils.toSlug(request.getName());
-        
-        if (categoryRepository.existsBySlugAndDeletedFalse(slug)) {
+        // Auto generate Slug
+        String slugGenerated = StringUtils.hasText(request.getSlug())
+                ? request.getSlug()
+                : SlugUtils.toSlug(request.getName());
+
+        if (categoryRepository.existsBySlugAndDeletedFalse(slugGenerated)) {
             throw new AppException("Category with Slug already exists", HttpStatus.BAD_REQUEST);
         }
 
         Category category = categoryMapper.toEntity(request);
-        category.setSlug(slug);
-        
+        category.setSlug(slugGenerated);
+
         // MapStruct might set false if request.isActive is null, so we override it
         if (request.getIsActive() == null) {
             category.setActive(true);
         }
 
-        // 2. Hierarchy validation and path/level setup
+        // Hierarchy validation and path/level setup
         if (StringUtils.hasText(request.getParentId())) {
             categoryHelper.validateHierarchy(null, request.getParentId());
-            
-            Category parent = categoryRepository.findById(request.getParentId()).get();
-            
+
+            Category parent = categoryRepository.findById(request.getParentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Parent Category not found with id: " + request.getParentId()));
+
             category.setLevel(parent.getLevel() + 1);
             category.setPath(parent.getPath() == null ? parent.getId() : parent.getPath() + "/" + parent.getId());
         } else {
             category.setLevel(1);
-            category.setPath(null); 
+            category.setPath(null);
         }
 
         Category savedCategory = categoryRepository.save(category);
         return categoryMapper.toResponse(savedCategory);
     }
 
-    @Override
-    @Transactional
-    public CategoryResponse updateCategory(String id, CategoryRequest request) {
-        Category category = categoryRepository.findById(id)
-                .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
-
-        String oldParentId = category.getParentId();
-        String oldName = category.getName();
-        String oldSlug = category.getSlug();
-
-        categoryMapper.updateCategoryFromRequest(request, category);
-
-        // 1. Handle Slug Update (if not provided, check if name changed to regenerate)
-        if (!StringUtils.hasText(request.getSlug())) {
-            if (!category.getName().equals(oldName)) {
-                category.setSlug(com.example.ecp_api.util.SlugUtils.toSlug(category.getName()));
-            } else {
-                category.setSlug(oldSlug); // Restore old slug if name didn't change and slug was null in request
-            }
-        }
-
-        // Check slug uniqueness if it's changed
-        if (!category.getSlug().equals(oldSlug) 
-                && categoryRepository.existsBySlugAndDeletedFalse(category.getSlug())) {
-            throw new AppException("Category with Slug already exists", HttpStatus.BAD_REQUEST);
-        }
-
-        if (request.getIsActive() != null) {
-            category.setActive(request.getIsActive());
-        }
-
-        // 2. Handle parent change & Hierarchy validation
-        boolean parentChanged = false;
-        if (StringUtils.hasText(request.getParentId())) {
-            if (!request.getParentId().equals(oldParentId)) {
-                categoryHelper.validateHierarchy(id, request.getParentId());
-
-                Category parent = categoryRepository.findById(request.getParentId()).get();
-
-                category.setLevel(parent.getLevel() + 1);
-                category.setPath(parent.getPath() == null ? parent.getId() : parent.getPath() + "/" + parent.getId());
-                parentChanged = true;
-            }
-        } else if (oldParentId != null) {
-            category.setLevel(1);
-            category.setPath(null);
-            category.setParentId(null);
-            parentChanged = true;
-        }
-
-        Category updatedCategory = categoryRepository.save(category);
-        
-        // Update descendants' paths and levels if parent changed
-        if (parentChanged) {
-            updateDescendants(updatedCategory);
-        }
-
-        return categoryMapper.toResponse(updatedCategory);
-    }
-
-    private void updateDescendants(Category parent) {
-        List<Category> children = categoryRepository.findAll().stream()
-                .filter(c -> parent.getId().equals(c.getParentId()) && !c.isDeleted())
-                .toList();
-
-        for (Category child : children) {
-            child.setLevel(parent.getLevel() + 1);
-            child.setPath(parent.getPath() == null ? parent.getId() : parent.getPath() + "/" + parent.getId());
-            categoryRepository.save(child);
-        }
-    }
-
-    @Override
-    public CategoryResponse getCategoryById(String id) {
-        Category category = categoryRepository.findById(id)
-                .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found or deleted with id: " + id));
-        return categoryMapper.toResponse(category);
-    }
-
+    // GET LIST CATEGORIES WITH PAGINATION
     @Override
     public PageResponse<CategoryResponse> getAllCategories(CategoryFilterRequest filter, Pageable pageable) {
         Query query = new Query().with(pageable);
@@ -189,20 +116,77 @@ public class CategoryServiceImpl implements CategoryService {
         return categoryMapper.toPageResponse(categoryPage);
     }
 
+    // UPDATE A CATEGORY
     @Override
-    public List<CategoryResponse> getParentCategories() {
-        return categoryRepository.findByParentIdIsNullAndDeletedFalse().stream()
-                .map(categoryMapper::toResponse)
-                .toList();
+    @Transactional
+    public CategoryResponse updateCategory(String id, CategoryRequest request) {
+        Category category = categoryRepository.findById(id)
+                .filter(c -> !c.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
+
+        String oldParentId = category.getParentId();
+        String oldName = category.getName();
+        String oldSlug = category.getSlug();
+
+        categoryMapper.updateCategoryFromRequest(request, category);
+
+        // Handle Slug Update (if not provided, check if name changed to regenerate)
+        if (!StringUtils.hasText(request.getSlug())) {
+            if (!category.getName().equals(oldName)) {
+                category.setSlug(com.example.ecp_api.util.SlugUtils.toSlug(category.getName()));
+            } else {
+                category.setSlug(oldSlug); // Restore old slug if name didn't change and slug was null in request
+            }
+        }
+
+        // Check slug uniqueness if it's changed
+        if (!category.getSlug().equals(oldSlug)
+                && categoryRepository.existsBySlugAndDeletedFalse(category.getSlug())) {
+            throw new AppException("Category with Slug already exists", HttpStatus.BAD_REQUEST);
+        }
+
+        if (request.getIsActive() != null) {
+            category.setActive(request.getIsActive());
+        }
+
+        // Handle parent change & Hierarchy validation
+        boolean parentChanged = false;
+        if (StringUtils.hasText(request.getParentId())) {
+            if (!request.getParentId().equals(oldParentId)) {
+                categoryHelper.validateHierarchy(id, request.getParentId());
+
+                Category parent = categoryRepository.findById(request.getParentId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Parent Category not found with id: " + request.getParentId()));
+
+                category.setLevel(parent.getLevel() + 1);
+                category.setPath(parent.getPath() == null ? parent.getId() : parent.getPath() + "/" + parent.getId());
+                parentChanged = true;
+            }
+        } else if (oldParentId != null) {
+            category.setLevel(1);
+            category.setPath(null);
+            category.setParentId(null);
+            parentChanged = true;
+        }
+
+        Category updatedCategory = categoryRepository.save(category);
+
+        // Update descendants' paths and levels if parent changed
+        if (parentChanged) {
+            categoryHelper.updateDescendants(updatedCategory);
+        }
+
+        return categoryMapper.toResponse(updatedCategory);
     }
 
+    // DELETE A CATEGORY
     @Override
     @Transactional
     public void deleteCategory(String id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
 
-        // Kiểm tra xem có danh mục con không
+        // Check exist child categories
         if (categoryRepository.existsByParentIdAndDeletedFalse(id)) {
             throw new AppException("Cannot delete category that has sub-categories", HttpStatus.BAD_REQUEST);
         }
@@ -211,158 +195,135 @@ public class CategoryServiceImpl implements CategoryService {
         categoryRepository.save(category);
     }
 
+    // GET CATEGORY DETAIL
+    @Override
+    public CategoryResponse getCategoryById(String id) {
+        Category category = categoryRepository.findById(id)
+                .filter(c -> !c.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found or deleted with id: " + id));
+        return categoryMapper.toResponse(category);
+    }
+
+    // GET CATEGORY PARENTS
+    @Override
+    public List<CategoryResponse> getParentCategories() {
+        return categoryRepository.findByParentIdIsNullAndDeletedFalse().stream()
+                .map(categoryMapper::toResponse)
+                .toList();
+    }
+
+
+//--------------------------------
+//    TODO: Fix later
     @Override
     @Transactional(readOnly = true)
-    public void exportAllToExcel(OutputStream outputStream) throws IOException {
+    public void exportAllToExcel(OutputStream outputStream) {
         try (Stream<Category> categoryStream = categoryRepository.findAllByDeletedFalse()) {
-            List<CategoryResponse> categories = categoryStream
-                    .map(categoryMapper::toResponse)
+            AtomicInteger index = new AtomicInteger(1);
+            List<CategoryExcelDto> excelDtos = categoryStream
+                    .map(cat -> {
+                        CategoryResponse res = categoryMapper.toResponse(cat);
+                        return CategoryExcelDto.builder()
+                                .index(index.getAndIncrement())
+                                .id(res.getId())
+                                .name(res.getName())
+                                .slug(res.getSlug())
+                                .level(res.getLevel())
+                                .status(res.isActive() ? "Hoạt động" : "Ngừng hoạt động")
+                                .createdAt(DateTimeUtils.format(res.getCreatedAt()))
+                                .updatedAt(DateTimeUtils.format(res.getUpdatedAt()))
+                                .build();
+                    })
                     .toList();
-            exportCategoriesToExcel(outputStream, categories);
+
+            EasyExcel.write(outputStream, CategoryExcelDto.class)
+                    .sheet("Danh sách loại hàng hoá")
+                    .doWrite(excelDtos);
         }
     }
 
+//    TODO: Fix later
     @Override
-    public void exportCategoriesToExcel(OutputStream outputStream, List<CategoryResponse> categories) throws IOException {
-        try (SXSSFWorkbook workbook = new SXSSFWorkbook(100)) {
-            Sheet sheet = workbook.createSheet("Danh sách loại hàng hoá");
-            
-            // Bật tính năng theo dõi độ rộng cột để auto-size (dành riêng cho SXSSF)
-            if (sheet instanceof SXSSFSheet) {
-                ((SXSSFSheet) sheet).trackAllColumnsForAutoSizing();
-            }
+    public void exportCategoriesToExcel(OutputStream outputStream, List<CategoryResponse> categories) {
+        AtomicInteger index = new AtomicInteger(1);
+        List<CategoryExcelDto> excelDtos = categories.stream()
+                .map(res -> CategoryExcelDto.builder()
+                        .index(index.getAndIncrement())
+                        .id(res.getId())
+                        .name(res.getName())
+                        .slug(res.getSlug())
+                        .level(res.getLevel())
+                        .status(res.isActive() ? "Hoạt động" : "Ngừng hoạt động")
+                        .createdAt(DateTimeUtils.format(res.getCreatedAt()))
+                        .updatedAt(DateTimeUtils.format(res.getUpdatedAt()))
+                        .build())
+                .toList();
 
-            // Create Header Style
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerStyle.setFont(headerFont);
-            headerStyle.setFillForegroundColor(IndexedColors.ORANGE.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-
-            // Create Header Row
-            String[] headers = {"STT", "_id", "Tên loại sản phẩm", "Slug", "Cấp độ", "Mô tả", "Trạng thái HĐ", "Ngày tạo", "Ngày sửa"};
-            Row headerRow = sheet.createRow(0);
-            for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
-            }
-
-            // Fill data into rows
-            int rowIdx = 1;
-            for (CategoryResponse category : categories) {
-                Row row = sheet.createRow(rowIdx++);
-                row.createCell(0).setCellValue(rowIdx - 1);
-                row.createCell(1).setCellValue(category.getId() != null ? category.getId() : "");
-                row.createCell(2).setCellValue(category.getName() != null ? category.getName() : "");
-                row.createCell(3).setCellValue(category.getSlug() != null ? category.getSlug() : "");
-                row.createCell(4).setCellValue(category.getLevel());
-                row.createCell(5).setCellValue(category.getDescription() != null ? category.getDescription() : "");
-                row.createCell(6).setCellValue(category.isActive() ? "Hoạt động" : "Ngừng hoạt động");
-                row.createCell(7).setCellValue(DateTimeUtils.format(category.getCreatedAt()));
-                row.createCell(8).setCellValue(DateTimeUtils.format(category.getUpdatedAt()));
-            }
-
-            // Tự động căn chỉnh độ rộng cho tất cả các cột
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
-
-            workbook.write(outputStream);
-            outputStream.flush();
-            workbook.dispose();
-        }
+        EasyExcel.write(outputStream, CategoryExcelDto.class)
+                .sheet("Danh sách loại hàng hoá")
+                .doWrite(excelDtos);
     }
 
-//    TODO: Update later
+    //    TODO: Fix later
     @Override
-    public void downloadCategoryTemplate(OutputStream outputStream) throws IOException {
-        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
-            XSSFSheet sheet = workbook.createSheet("Template Import Category");
-
-            String[] headers = {"STT (*)", "ID (Để trống nếu tạo mới)", "Tên loại sản phẩm (*)", "Slug (Tự động nếu trống)", "Danh mục cha (Chọn list)", "Mô tả", "Trạng thái"};
-
-            // Header Style
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerFont.setColor(IndexedColors.WHITE.getIndex());
-            headerStyle.setFont(headerFont);
-            headerStyle.setFillForegroundColor(IndexedColors.CORNFLOWER_BLUE.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            headerStyle.setAlignment(HorizontalAlignment.CENTER);
-            headerStyle.setBorderBottom(BorderStyle.THIN);
-
-            // Tạo Header Row
-            Row headerRow = sheet.createRow(0);
-            for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
-            }
-
-            // Tạo Hidden Sheet chứa dữ liệu Category Cha
-            Sheet hiddenSheet = workbook.createSheet("CategoriesData");
-            workbook.setSheetHidden(workbook.getSheetIndex(hiddenSheet), true);
-
-            List<Category> existingCategories;
-            try (Stream<Category> categoryStream = categoryRepository.findAllByDeletedFalse()) {
-                existingCategories = categoryStream.toList();
-            }
-
-            for (int i = 0; i < existingCategories.size(); i++) {
-                Category cat = existingCategories.get(i);
-                Row row = hiddenSheet.createRow(i);
-                // Format: "Ten Danh Muc | ID" để người dùng dễ nhận biết nhưng vẫn lấy được ID
-                row.createCell(0).setCellValue(cat.getName() + " | " + cat.getId());
-            }
-
-            // Thêm Validation Dropdown cho cột "Danh mục cha" (Cột E - Index 4)
-            DataValidationHelper validationHelper = sheet.getDataValidationHelper();
-            if (!existingCategories.isEmpty()) {
-                // Tạo Name Range cho danh sách (Cách này ổn định hơn công thức trực tiếp)
-                Name namedRange = workbook.createName();
-                namedRange.setNameName("ParentList");
-                namedRange.setRefersToFormula("CategoriesData!$A$1:$A$" + existingCategories.size());
-
-                DataValidationConstraint constraint = validationHelper.createFormulaListConstraint("ParentList");
-                // Áp dụng từ dòng 2 đến 2000, cột E (index 4)
-                CellRangeAddressList addressList = new CellRangeAddressList(1, 2000, 4, 4);
-                DataValidation validation = validationHelper.createValidation(constraint, addressList);
-
-                validation.setErrorStyle(DataValidation.ErrorStyle.STOP);
-                validation.createErrorBox("Dữ liệu không hợp lệ", "Vui lòng chọn danh mục từ danh sách thả xuống!");
-                validation.setShowErrorBox(true);
-                validation.setSuppressDropDownArrow(true); // Quan trọng: Hiển thị mũi tên dropdown
-
-                sheet.addValidationData(validation);
-            }
-
-            // Thêm Dropdown cố định cho cột "Trạng thái" (Cột G - Index 6)
-            DataValidationConstraint statusConstraint = validationHelper.createExplicitListConstraint(new String[]{"Hoạt động", "Ngừng hoạt động"});
-            CellRangeAddressList statusAddress = new CellRangeAddressList(1, 2000, 6, 6);
-            DataValidation statusValidation = validationHelper.createValidation(statusConstraint, statusAddress);
-            sheet.addValidationData(statusValidation);
-
-            // Thêm dòng mẫu (Sample data)
-            Row sampleRow = sheet.createRow(1);
-            sampleRow.createCell(0).setCellValue(1);
-            sampleRow.createCell(1).setCellValue(""); // ID trống để hiểu là tạo mới
-            sampleRow.createCell(2).setCellValue("Snack mặn");
-            sampleRow.createCell(3).setCellValue("snack-man");
-            sampleRow.createCell(4).setCellValue(""); // Root category
-            sampleRow.createCell(5).setCellValue("Các loại đồ ăn vặt vị mặn");
-            sampleRow.createCell(6).setCellValue("Hoạt động");
-
-            // Auto size columns cho đẹp
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
-
-            // Ghi dữ liệu
-            workbook.write(outputStream);
-            outputStream.flush();
+    public void downloadCategoryTemplate(OutputStream outputStream) {
+        List<String> parentCategories = new ArrayList<>();
+        try (Stream<Category> categoryStream = categoryRepository.findAllByDeletedFalse()) {
+            categoryStream.forEach(cat -> parentCategories.add(cat.getName() + " | " + cat.getId()));
+        } catch (Exception e) {
+            // Log or handle the exception if needed, but since EasyExcel handles it, we can just let it be
         }
+
+        CategoryTemplateDto sample = CategoryTemplateDto.builder()
+                .index(1)
+                .id("")
+                .name("Snack mặn")
+                .slug("snack-man")
+                .parentNameWithId("")
+                .description("Các loại đồ ăn vặt vị mặn")
+                .status("Hoạt động")
+                .build();
+
+        EasyExcel.write(outputStream, CategoryTemplateDto.class)
+                .registerWriteHandler(new SheetWriteHandler() {
+                    @Override
+                    public void afterSheetCreate(WriteWorkbookHolder writeWorkbookHolder, WriteSheetHolder writeSheetHolder) {
+                        Sheet sheet = writeSheetHolder.getSheet();
+                        DataValidationHelper helper = sheet.getDataValidationHelper();
+
+                        // 1. Parent Categories Dropdown (Column E - Index 4)
+                        if (!parentCategories.isEmpty()) {
+                            Workbook workbook = writeWorkbookHolder.getWorkbook();
+                            Sheet hiddenSheet = workbook.createSheet("CategoriesData");
+                            workbook.setSheetHidden(workbook.getSheetIndex(hiddenSheet), true);
+
+                            for (int i = 0; i < parentCategories.size(); i++) {
+                                hiddenSheet.createRow(i).createCell(0).setCellValue(parentCategories.get(i));
+                            }
+
+                            Name namedRange = workbook.createName();
+                            namedRange.setNameName("ParentList");
+                            namedRange.setRefersToFormula("CategoriesData!$A$1:$A$" + parentCategories.size());
+
+                            DataValidationConstraint constraint = helper.createFormulaListConstraint("ParentList");
+                            CellRangeAddressList addressList = new CellRangeAddressList(1, 2000, 4, 4);
+                            DataValidation validation = helper.createValidation(constraint, addressList);
+
+                            validation.setErrorStyle(DataValidation.ErrorStyle.STOP);
+                            validation.createErrorBox("Dữ liệu không hợp lệ", "Vui lòng chọn danh mục từ danh sách thả xuống!");
+                            validation.setShowErrorBox(true);
+
+                            sheet.addValidationData(validation);
+                        }
+
+                        // 2. Status Dropdown (Column G - Index 6)
+                        DataValidationConstraint statusConstraint = helper.createExplicitListConstraint(new String[]{"Hoạt động", "Ngừng hoạt động"});
+                        CellRangeAddressList statusAddress = new CellRangeAddressList(1, 2000, 6, 6);
+                        DataValidation statusValidation = helper.createValidation(statusConstraint, statusAddress);
+                        sheet.addValidationData(statusValidation);
+                    }
+                })
+                .sheet("Template Import Category")
+                .doWrite(List.of(sample));
     }
 }

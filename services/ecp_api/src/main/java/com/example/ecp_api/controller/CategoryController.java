@@ -21,50 +21,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/categories")
+@RequestMapping("/v1/categories")
 @RequiredArgsConstructor
 public class CategoryController {
 
     private final CategoryService categoryService;
 
-    @GetMapping("/export")
-    public ResponseEntity<StreamingResponseBody> exportToExcel() {
-        String fileName = "Danh_sach_loai_hang_hoa.xlsx";
-        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
-
-        StreamingResponseBody responseBody = outputStream -> {
-            try {
-                categoryService.exportAllToExcel(outputStream);
-            } catch (Exception e) {
-                throw new IOException("Error during excel export", e);
-            }
-        };
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFileName)
-                .body(responseBody);
-    }
-
-    @GetMapping("/template")
-    public ResponseEntity<StreamingResponseBody> downloadTemplate() {
-        String fileName = "Template_Import_Category.xlsx";
-        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
-
-        StreamingResponseBody responseBody = outputStream -> {
-            try {
-                categoryService.downloadCategoryTemplate(outputStream);
-            } catch (Exception e) {
-                throw new IOException("Error during template download", e);
-            }
-        };
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFileName)
-                .body(responseBody);
-    }
-
+    // API CREATE A NEW CATEGORY
     @PostMapping
     public ResponseEntity<ApiResponse<CategoryResponse>> createCategory(@Valid @RequestBody CategoryRequest request) {
         CategoryResponse response = categoryService.createCategory(request);
@@ -76,6 +39,39 @@ public class CategoryController {
         return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
     }
 
+    // API GET CATEGORY LIST WITH PAGINATION
+    @GetMapping
+    public ResponseEntity<PageResponse<CategoryResponse>> getAllCategories(
+            CategoryFilterRequest filter,
+            Pageable pageable) {
+        return ResponseEntity.ok(categoryService.getAllCategories(filter, pageable));
+    }
+
+    // API GET CATEGORY DETAIL
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<CategoryResponse>> getCategoryById(@PathVariable("id") String id) {
+        CategoryResponse response = categoryService.getCategoryById(id);
+        ApiResponse<CategoryResponse> apiResponse = ApiResponse.<CategoryResponse>builder()
+                .success(true)
+                .message("Category fetched successfully")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    // API GET PARENT CATEGORY LIST
+    @GetMapping("/parents")
+    public ResponseEntity<ApiResponse<List<CategoryResponse>>> getParentCategories() {
+        List<CategoryResponse> responses = categoryService.getParentCategories();
+        ApiResponse<List<CategoryResponse>> apiResponse = ApiResponse.<List<CategoryResponse>>builder()
+                .success(true)
+                .message("Parent categories fetched successfully")
+                .data(responses)
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    // API UPDATE A CATEGORY
     @PatchMapping("/{id}")
     public ResponseEntity<ApiResponse<CategoryResponse>> updateCategory(
             @PathVariable("id") String id,
@@ -89,35 +85,7 @@ public class CategoryController {
         return ResponseEntity.ok(apiResponse);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<CategoryResponse>> getCategoryById(@PathVariable("id") String id) {
-        CategoryResponse response = categoryService.getCategoryById(id);
-        ApiResponse<CategoryResponse> apiResponse = ApiResponse.<CategoryResponse>builder()
-                .success(true)
-                .message("Category fetched successfully")
-                .data(response)
-                .build();
-        return ResponseEntity.ok(apiResponse);
-    }
-
-    @GetMapping
-    public ResponseEntity<PageResponse<CategoryResponse>> getAllCategories(
-            CategoryFilterRequest filter,
-            Pageable pageable) {
-        return ResponseEntity.ok(categoryService.getAllCategories(filter, pageable));
-    }
-
-    @GetMapping("/parents")
-    public ResponseEntity<ApiResponse<List<CategoryResponse>>> getParentCategories() {
-        List<CategoryResponse> responses = categoryService.getParentCategories();
-        ApiResponse<List<CategoryResponse>> apiResponse = ApiResponse.<List<CategoryResponse>>builder()
-                .success(true)
-                .message("Parent categories fetched successfully")
-                .data(responses)
-                .build();
-        return ResponseEntity.ok(apiResponse);
-    }
-
+    // API DELETE A CATEGORY
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable("id") String id) {
         categoryService.deleteCategory(id);
@@ -127,4 +95,44 @@ public class CategoryController {
                 .build();
         return ResponseEntity.ok(apiResponse);
     }
+
+    // TODO: FIXING APIs
+//    @GetMapping("/export")
+//    public ResponseEntity<StreamingResponseBody> exportToExcel() {
+//        String fileName = "Danh_sach_loai_hang_hoa.xlsx";
+//        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+//
+//        StreamingResponseBody responseBody = outputStream -> {
+//            try {
+//                categoryService.exportAllToExcel(outputStream);
+//            } catch (Exception e) {
+//                throw new IOException("Error during excel export", e);
+//            }
+//        };
+//
+//        return ResponseEntity.ok()
+//                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+//                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFileName)
+//                .body(responseBody);
+//    }
+//
+//    @GetMapping("/template")
+//    public ResponseEntity<StreamingResponseBody> downloadTemplate() {
+//        String fileName = "Template_Import_Category.xlsx";
+//        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+//
+//        StreamingResponseBody responseBody = outputStream -> {
+//            try {
+//                categoryService.downloadCategoryTemplate(outputStream);
+//            } catch (Exception e) {
+//                throw new IOException("Error during template download", e);
+//            }
+//        };
+//
+//        return ResponseEntity.ok()
+//                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+//                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFileName)
+//                .body(responseBody);
+//    }
+
 }

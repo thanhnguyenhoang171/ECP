@@ -31,22 +31,16 @@ public class ProductVariant {
     private String sku;
 
     @Indexed(unique = true)
+    private String sku_id; // id of skus (mysql)
+
+    @Indexed(unique = true)
     private String barcode;
 
-    @Field("barcode_type")
-    @Builder.Default
-    private String barcodeType = "EAN-13";
-
     private BigDecimal price;
-
-    @Builder.Default
-    private int stock = 0;
 
     // Attributes: { "Color": "Titan", "Storage": "256GB" }
     @Builder.Default
     private Map<String, Object> attributes = new HashMap<>();
-
-    private String image;
 
     @Field("is_active")
     @Builder.Default

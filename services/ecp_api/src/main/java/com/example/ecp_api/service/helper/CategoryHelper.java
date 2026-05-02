@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 public class CategoryHelper {
@@ -52,6 +54,37 @@ public class CategoryHelper {
         // 4. Kiểm tra vòng lặp: Parent không được là con cháu của danh mục hiện tại
         if (categoryId != null && parent.getPath() != null && parent.getPath().contains(categoryId)) {
             throw new AppException("Category cannot be a child of its own descendant", HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    /**
+     * Cập nhật thông tin phân cấp cho các category con trực tiếp của category cha.
+     *
+     * Khi category cha thay đổi level hoặc path (ví dụ đổi parent hoặc thay đổi vị trí trong cây),
+     * các category con cũng cần được đồng bộ lại để đảm bảo cấu trúc cây chính xác.
+     *
+     * Chức năng:
+     * - Tìm tất cả category con trực tiếp của parent (theo parentId)
+     * - Bỏ qua các category đã bị soft delete
+     * - Cập nhật level của child = level của parent + 1
+     * - Cập nhật path để lưu chuỗi tổ tiên của category
+     * - Lưu lại thay đổi vào database
+     *
+     * Lưu ý:
+     * Hiện tại hàm này chỉ cập nhật các category con trực tiếp (1 cấp),
+     * chưa xử lý đệ quy cho các cấp sâu hơn như cháu, chắt...
+     *
+     * @param parent category cha cần đồng bộ descendants
+     */
+    public void updateDescendants(Category parent) {
+        List<Category> children = categoryRepository.findAll().stream()
+                .filter(c -> parent.getId().equals(c.getParentId()) && !c.isDeleted())
+                .toList();
+
+        for (Category child : children) {
+            child.setLevel(parent.getLevel() + 1);
+            child.setPath(parent.getPath() == null ? parent.getId() : parent.getPath() + "/" + parent.getId());
+            categoryRepository.save(child);
         }
     }
 }

@@ -19,13 +19,15 @@ public interface ProductMapper {
     // --- Product Mappings ---
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "totalStock", ignore = true)
+    @Mapping(target = "published", source = "isPublished")
     @Mapping(target = "deleted", ignore = true)
-    @Mapping(target = "published", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Product toEntity(ProductRequest request);
 
+    @Mapping(target = "isPublished", source = "published")
+    @Mapping(target = "isDeleted", source = "deleted")
+    @Mapping(target = "totalStock", ignore = true)
     ProductResponse toResponse(Product product);
 
     default PageResponse<ProductResponse> toPageResponse(Page<Product> page) {
@@ -51,9 +53,8 @@ public interface ProductMapper {
     }
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "totalStock", ignore = true)
+    @Mapping(target = "published", source = "isPublished")
     @Mapping(target = "deleted", ignore = true)
-    @Mapping(target = "published", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateProductFromRequest(ProductRequest request, @MappingTarget Product product);
@@ -62,16 +63,20 @@ public interface ProductMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "productId", ignore = true)
-    @Mapping(target = "active", ignore = true)
+    @Mapping(target = "sku_id", ignore = true)
+    @Mapping(target = "active", source = "isActive")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     ProductVariant toVariantEntity(ProductRequest.ProductVariantRequest request);
 
+    @Mapping(target = "isActive", source = "active")
+    @Mapping(target = "skuId", source = "sku_id")
     ProductResponse.ProductVariantResponse toVariantResponse(ProductVariant variant);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "productId", ignore = true)
-    @Mapping(target = "active", ignore = true)
+    @Mapping(target = "sku_id", ignore = true)
+    @Mapping(target = "active", source = "isActive")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateVariantFromRequest(ProductRequest.ProductVariantRequest request, @MappingTarget ProductVariant variant);
