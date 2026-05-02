@@ -1,5 +1,6 @@
 package com.example.ecp_api;
 
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -10,10 +11,16 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.TimeZone;
 
 @SpringBootApplication
 @Slf4j
 public class EcpApiApplication {
+
+	@PostConstruct
+	void init() {
+		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+	}
 
 	public static void main(String[] args) throws UnknownHostException {
 		SpringApplication app = new SpringApplication(EcpApiApplication.class);
