@@ -18,7 +18,6 @@ public class CategoryResponse {
     private String parentId;
     private String path;
     private int level;
-    private String description;
     private boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

@@ -39,13 +39,12 @@ public class ProductResponse {
     @Builder
     public static class ProductVariantResponse {
         private String id;
+        private String productId;
         private String sku;
+        private String skuId; // maps from sku_id
         private String barcode;
-        private String barcodeType;
         private BigDecimal price;
-        private int stock;
         private Map<String, Object> attributes;
-        private String image;
         private boolean isActive;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
