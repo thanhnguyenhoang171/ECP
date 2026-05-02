@@ -11,6 +11,7 @@ export function useCategories(
     size: number;
     sort?: string;
     name?: string;
+    id?: string;
     parentId?: string;
     level?: number;
     active?: boolean;

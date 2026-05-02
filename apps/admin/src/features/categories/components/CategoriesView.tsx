@@ -41,12 +41,10 @@ import CategoryForm from './CategoryForm';
 import CategoryImportDialog from './CategoryImportDialog';
 import { useCategories, useParentCategories } from '../hooks/use-categories';
 import { useDeleteCategory } from '../hooks/use-category-mutation';
-import { categoryApi } from '../api/category.api';
-import { toast } from 'sonner';
 
 import { formatDate, formatDateTimeForFilename } from '@/lib/formatters';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
-import { cn } from '@/lib/utils';
+import { cn, isIdLike } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 
 interface CategoriesViewProps {
@@ -67,12 +65,12 @@ export default function CategoriesView({
     setPage,
     setSize,
     setSort,
-    setSearch,
     searchParams,
-  } = useViewParams('name,asc');
+  } = useViewParams('createdAt,desc');
 
   const activeParam = searchParams.get('active');
   const levelParam = searchParams.get('level');
+  const idParam = searchParams.get('id') || '';
 
   // TanStack Query
   const { data, isLoading, isFetching } = useCategories(
@@ -81,6 +79,7 @@ export default function CategoriesView({
       size,
       sort,
       name,
+      id: idParam,
       active:
         activeParam === 'true'
           ? true
@@ -92,12 +91,24 @@ export default function CategoriesView({
     initialData,
   );
 
+  // Nếu có dữ liệu từ API thì dùng, không thì dùng từ Server
   const { data: dynamicParentCategories } = useParentCategories();
   const parentCategories = dynamicParentCategories?.length
     ? dynamicParentCategories
     : serverParentCategories;
 
-  const [searchTerm, setSearchTerm] = useDebounceSearch(name, setSearch);
+  const handleSearch = (val: string) => {
+    if (isIdLike(val)) {
+      updateUrl({ id: val, name: '', page: 0 });
+    } else {
+      updateUrl({ name: val, id: '', page: 0 });
+    }
+  };
+
+  const [searchTerm, setSearchTerm] = useDebounceSearch(
+    name || idParam,
+    handleSearch,
+  );
 
   const deleteMutation = useDeleteCategory();
 
@@ -118,28 +129,6 @@ export default function CategoriesView({
     setIsFormOpen(true);
   };
 
-  const handleExport = async () => {
-    try {
-      setIsExporting(true);
-      const blob = await categoryApi.export();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const timestamp = formatDateTimeForFilename(new Date());
-      link.setAttribute('download', `categories_export_${timestamp}.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode?.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      toast.success('Xuất file thành công');
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Có lỗi xảy ra khi xuất file');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   const categoriesData = data || initialData;
   const categories = categoriesData.data || [];
   const pagination = categoriesData.pagination;
@@ -154,7 +143,10 @@ export default function CategoriesView({
   const commonActions = (
     <>
       <ImportButton onClick={() => setIsImportDialogOpen(true)} />
-      <ExportButton onExport={handleExport} isLoading={isExporting} />
+      <ExportButton
+        onExport={() => alert('Dang cap nhat')}
+        isLoading={isExporting}
+      />
       <AddNewButton onClick={handleCreate} />
     </>
   );
@@ -181,7 +173,7 @@ export default function CategoriesView({
             <SearchInput
               value={searchTerm}
               onChange={setSearchTerm}
-              placeholder='Tìm tên danh mục...'
+              placeholder='Tìm tên hoặc ID danh mục...'
               isLoading={isLoading || isFetching}
             />
 
@@ -209,10 +201,7 @@ export default function CategoriesView({
                       <button
                         className={filterBtnClass(activeParam === 'false')}
                         onClick={() => updateUrl({ active: 'false', page: 0 })}>
-                        <Badge
-                          variant='secondary'
-                          className='mr-2 h-2 w-2 rounded-full p-0'
-                        />{' '}
+                        <Badge className='mr-2 h-2 w-2 rounded-full p-0 bg-red-500' />{' '}
                         Ẩn
                       </button>
                     </div>
@@ -335,7 +324,7 @@ export default function CategoriesView({
                             <TableCell className='text-center py-4'>
                               <Badge
                                 variant={
-                                  category.active ? 'default' : 'secondary'
+                                  category.active ? 'default' : 'destructive'
                                 }
                                 className='text-[10px] h-5 px-2'>
                                 {category.active ? 'Hoạt động' : 'Ẩn'}
@@ -401,7 +390,6 @@ export default function CategoriesView({
                     name: editingCategory.name,
                     slug: editingCategory.slug,
                     parentId: editingCategory.parentId || 'none',
-                    description: editingCategory.description || '',
                     active: editingCategory.active,
                   }
                 : undefined

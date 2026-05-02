@@ -19,7 +19,7 @@ public class EcpApiApplication {
 
 	@PostConstruct
 	void init() {
-		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+		TimeZone.setDefault(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
 	}
 
 	public static void main(String[] args) throws UnknownHostException {

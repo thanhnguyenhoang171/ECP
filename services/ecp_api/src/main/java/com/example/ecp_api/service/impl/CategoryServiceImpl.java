@@ -65,8 +65,10 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = categoryMapper.toEntity(request);
         category.setSlug(slugGenerated);
 
-        // MapStruct might set false if request.isActive is null, so we override it
-        if (request.getIsActive() == null) {
+        // Ensure we use the value from request if provided, otherwise default to true
+        if (request.getActive() != null) {
+            category.setActive(request.getActive());
+        } else {
             category.setActive(true);
         }
 
@@ -92,6 +94,10 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public PageResponse<CategoryResponse> getAllCategories(CategoryFilterRequest filter, Pageable pageable) {
         Query query = new Query().with(pageable);
+
+        if (StringUtils.hasText(filter.getId())) {
+            query.addCriteria(Criteria.where("id").is(filter.getId()));
+        }
 
         if (StringUtils.hasText(filter.getName())) {
             query.addCriteria(Criteria.where("name").regex(filter.getName(), "i"));
@@ -145,8 +151,8 @@ public class CategoryServiceImpl implements CategoryService {
             throw new AppException("Category with Slug already exists", HttpStatus.BAD_REQUEST);
         }
 
-        if (request.getIsActive() != null) {
-            category.setActive(request.getIsActive());
+        if (request.getActive() != null) {
+            category.setActive(request.getActive());
         }
 
         // Handle parent change & Hierarchy validation

@@ -11,6 +11,7 @@ export const categoryApi = {
     size: number;
     sort?: string;
     name?: string;
+    id?: string;
     parentId?: string;
     level?: number;
     active?: boolean;
@@ -24,6 +25,7 @@ export const categoryApi = {
 
     // Filter params
     if (params.name) query.append('name', params.name);
+    if (params.id) query.append('id', params.id);
     if (params.parentId) query.append('parentId', params.parentId);
     if (params.level !== undefined)
       query.append('level', params.level.toString());
@@ -90,12 +92,12 @@ export const categoryApi = {
     return result.success ? result.data : [];
   },
 
-  // Export file excel
-  export: async (): Promise<Blob> => {
-    const res = await fetch(`${BASE_URL}/export`, {
-      method: 'GET',
-    });
-    if (!res.ok) throw new Error('Failed to export categories');
-    return res.blob();
-  },
+  // // Export file excel
+  // export: async (): Promise<Blob> => {
+  //   const res = await fetch(`${BASE_URL}/export`, {
+  //     method: 'GET',
+  //   });
+  //   if (!res.ok) throw new Error('Failed to export categories');
+  //   return res.blob();
+  // },
 };

@@ -3,44 +3,63 @@ import { PageResponse } from '@/types/pagination';
 import { Category } from '@/features/categories/types/category.interface';
 
 // Hàm fetch dữ liệu tại Server với Caching
-async function getCategories(page: number, size: number, sort: string): Promise<PageResponse<Category>> {
+async function getCategories(
+  page: number,
+  size: number,
+  sort: string,
+): Promise<PageResponse<Category>> {
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/categories?page=${page}&size=${size}&sort=${sort}`,
-      { 
-        next: { 
+      `${process.env.NEXT_PUBLIC_API_URL}/v1/categories?page=${page}&size=${size}&sort=${sort}`,
+      {
+        next: {
           revalidate: 3600, // Cache 1 giờ
-          tags: ['categories-list'] // Tag để xóa cache chủ động
-        } 
-      }
+          tags: ['categories-list'], // Tag để xóa cache chủ động
+        },
+      },
     );
-    
+
     if (!res.ok) throw new Error('Failed to fetch categories');
-    return await res.json();
+
+    const result = await res.json();
+    console.log('Checking get categories result at SERVER:', result);
+
+    return result;
   } catch (error) {
-    console.error("Server fetch categories error:", error);
+    console.error('Server fetch categories error:', error);
     return {
       success: false,
-      message: "Error fetching data from server",
+      message: 'Error fetching data from server',
       data: [],
-      pagination: { currentPage: 0, totalPages: 0, totalElements: 0, pageSize: size, last: true, first: true }
+      pagination: {
+        currentPage: 0,
+        totalPages: 0,
+        totalElements: 0,
+        pageSize: size,
+        last: true,
+        first: true,
+      },
     };
   }
 }
 
 async function getParentCategories() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/categories/parents`, {
-      next: { 
-        revalidate: 3600,
-        tags: ['categories-parents']
-      }
-    });
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/v1/categories/parents`,
+      {
+        next: {
+          revalidate: 3600,
+          tags: ['categories-parents'],
+        },
+      },
+    );
     if (!res.ok) return [];
     const result = await res.json();
+    console.log('Checking get parent categories result at SERVER:', result);
     return result.success ? result.data : [];
   } catch (error) {
-    console.error("Server fetch parent categories error:", error);
+    console.error('Server fetch parent categories error:', error);
     return [];
   }
 }
@@ -57,13 +76,13 @@ export default async function CategoriesPage({
 
   const [categoriesResponse, parentCategories] = await Promise.all([
     getCategories(page, size, sort),
-    getParentCategories()
+    getParentCategories(),
   ]);
 
   return (
-    <CategoriesView 
-      initialData={categoriesResponse} 
-      parentCategories={parentCategories} 
+    <CategoriesView
+      initialData={categoriesResponse}
+      parentCategories={parentCategories}
     />
   );
 }
