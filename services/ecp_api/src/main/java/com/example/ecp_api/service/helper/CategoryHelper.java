@@ -24,34 +24,34 @@ public class CategoryHelper {
     }
 
     /**
-     * Kiểm tra tính hợp lệ của phân cấp danh mục (Giới hạn tối đa 2 cấp)
-     * 1. Một danh mục đang là cha (có con) thì không được phép gán parentId.
-     * 2. Danh mục cha được gán phải là danh mục cấp 1 (không có parentId).
-     * 3. Danh mục không được là cha của chính mình hoặc con cháu của mình.
+     * Check the validity of the category hierarchy (Maximum limit of 2 levels)
+     * 1. A category that is already a parent (has children) cannot be assigned a parentId
+     * 2. The assigned parent category must be a level 1 (without a parentId)
+     * 3. A category cannot be its own parent or its descendants
      */
     public void validateHierarchy(String categoryId, String newParentId) {
         if (!StringUtils.hasText(newParentId)) {
             return;
         }
 
-        // 1. Nếu đang update: Chặn không cho gán parent cho danh mục đã có con
+        // If updating: Prevent assign parent to child categories
         if (categoryId != null && categoryRepository.existsByParentIdAndDeletedFalse(categoryId)) {
             throw new AppException("Cannot assign a parent to a category that has sub-categories", HttpStatus.BAD_REQUEST);
         }
 
-        // 2. Chặn không cho gán chính mình làm cha
+        // Prevent assigned its own
         if (newParentId.equals(categoryId)) {
             throw new AppException("Category cannot be its own parent", HttpStatus.BAD_REQUEST);
         }
 
         Category parent = getCategoryOrThrow(newParentId);
 
-        // 3. Giới hạn 2 cấp: Parent được chọn không được là một sub-category (đã có parent)
+        // Two-level limitation: the selected parent cannot be a sub-category (one that already has a parent)
         if (StringUtils.hasText(parent.getParentId())) {
             throw new AppException("Parent category cannot be a sub-category", HttpStatus.BAD_REQUEST);
         }
 
-        // 4. Kiểm tra vòng lặp: Parent không được là con cháu của danh mục hiện tại
+        // Loop check: Parent must not be a descendant of the current category
         if (categoryId != null && parent.getPath() != null && parent.getPath().contains(categoryId)) {
             throw new AppException("Category cannot be a child of its own descendant", HttpStatus.BAD_REQUEST);
         }
