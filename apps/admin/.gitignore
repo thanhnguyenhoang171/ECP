@@ -11,7 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
-.emv
+.env
 .env.local
 .env.development.local
 .env.test.local
