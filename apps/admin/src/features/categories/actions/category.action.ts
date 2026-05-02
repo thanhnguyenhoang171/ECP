@@ -44,11 +44,6 @@ export async function updateCategoryAction(
       payload.parentId = null; // Dùng null thay vì ""
     }
 
-    // Map active to isActive if API requires it
-    if (payload.active !== undefined) {
-      payload.isActive = payload.active;
-    }
-
     const result = await categoryApi.update(id, payload);
 
     revalidateTag('categories-list', 'default');

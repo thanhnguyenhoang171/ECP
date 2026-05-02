@@ -19,13 +19,11 @@ public interface CategoryMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "path", ignore = true)
     @Mapping(target = "level", ignore = true)
-    @Mapping(target = "active", source = "isActive")
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Category toEntity(CategoryRequest request);
 
-    @Mapping(target = "isActive", source = "active")
     CategoryResponse toResponse(Category category);
 
     default PageResponse<CategoryResponse> toPageResponse(Page<Category> page) {
@@ -53,7 +51,6 @@ public interface CategoryMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "path", ignore = true)
     @Mapping(target = "level", ignore = true)
-    @Mapping(target = "active", source = "isActive")
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)

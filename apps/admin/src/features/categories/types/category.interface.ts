@@ -5,7 +5,6 @@ export interface Category {
   parentId: string | null;
   path: string | null;
   level: number;
-  description: string;
   active: boolean;
   createdAt?: string;
   updatedAt?: string;

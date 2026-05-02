@@ -15,5 +15,5 @@ public class CategoryRequest {
     private String name;
     private String slug;
     private String parentId;
-    private Boolean isActive;
+    private Boolean active;
 }

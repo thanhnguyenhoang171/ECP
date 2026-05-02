@@ -52,7 +52,6 @@ export default function CategoryForm({
       name: '',
       slug: '',
       parentId: 'none',
-      description: '',
       active: true,
     },
   });
@@ -66,7 +65,6 @@ export default function CategoryForm({
         name: '',
         slug: '',
         parentId: 'none',
-        description: '',
         active: true,
       });
     }
@@ -178,24 +176,6 @@ export default function CategoryForm({
               </FormItem>
             );
           }}
-        />
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-xs font-bold uppercase text-slate-500">Mô tả</FormLabel>
-              <FormControl>
-                <textarea 
-                  placeholder="Mô tả ngắn gọn về danh mục" 
-                  className="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
         />
 
         <FormField

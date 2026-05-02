@@ -295,7 +295,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f8fafc]">
+    <div className="flex h-screen h-[100dvh] overflow-hidden bg-[#f8fafc]">
       <aside className={cn(
         "hidden lg:block transition-all duration-300 ease-in-out border-r border-slate-200 bg-white will-change-transform z-30",
         isCollapsed ? "w-20" : "w-64"
@@ -374,8 +374,8 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
           </div>
         </header>
         
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
-          <div className="max-w-7xl mx-auto min-h-full overflow-hidden">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar pb-20 sm:pb-10">
+          <div className="max-w-7xl mx-auto min-h-full">
             <div 
               key={pathname}
               className="animate-page-fade-in will-change-transform"

@@ -41,7 +41,6 @@ export function useViewParams(defaultSort = 'name,asc') {
   const setPage = (newPage: number) => updateUrl({ page: newPage });
   const setSize = (newSize: number) => updateUrl({ page: 0, size: newSize });
   const setSort = (newSort: string) => updateUrl({ page: 0, sort: newSort });
-  const setSearch = (newSearch: string) => updateUrl({ page: 0, name: newSearch });
 
   return {
     page,
@@ -53,7 +52,6 @@ export function useViewParams(defaultSort = 'name,asc') {
     setPage,
     setSize,
     setSort,
-    setSearch,
   };
 }
 
