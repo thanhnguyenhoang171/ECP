@@ -17,7 +17,7 @@ public interface CategoryService {
     PageResponse<CategoryResponse> getAllCategories(CategoryFilterRequest filter, Pageable pageable);
     List<CategoryResponse> getParentCategories();
     void deleteCategory(String id);
-    void exportCategoriesToExcel(OutputStream outputStream, List<CategoryResponse> categories) throws IOException;
-    void exportAllToExcel(OutputStream outputStream) throws IOException;
-    void downloadCategoryTemplate(OutputStream outputStream) throws IOException;
+    void exportCategoriesToExcel(OutputStream outputStream, List<CategoryResponse> categories);
+    void exportAllToExcel(OutputStream outputStream);
+    void downloadCategoryTemplate(OutputStream outputStream);
 }

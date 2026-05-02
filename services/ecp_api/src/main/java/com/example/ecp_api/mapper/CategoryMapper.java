@@ -20,6 +20,7 @@ public interface CategoryMapper {
     @Mapping(target = "path", ignore = true)
     @Mapping(target = "level", ignore = true)
     @Mapping(target = "active", source = "isActive")
+    @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Category toEntity(CategoryRequest request);
@@ -53,6 +54,7 @@ public interface CategoryMapper {
     @Mapping(target = "path", ignore = true)
     @Mapping(target = "level", ignore = true)
     @Mapping(target = "active", source = "isActive")
+    @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateCategoryFromRequest(CategoryRequest request, @MappingTarget Category category);

@@ -49,10 +49,6 @@ public class Product {
     @Builder.Default
     private List<String> images = new ArrayList<>();
 
-    @Field("total_stock")
-    @Builder.Default
-    private int totalStock = 0;
-
     @Builder.Default
     private Map<String, Object> specifications = new HashMap<>();
 

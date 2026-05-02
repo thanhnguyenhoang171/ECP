@@ -39,8 +39,6 @@ public class Category {
     @Builder.Default
     private int level = 1;
 
-    private String description;
-
     @Field("is_active")
     @Builder.Default
     private boolean active = true;
