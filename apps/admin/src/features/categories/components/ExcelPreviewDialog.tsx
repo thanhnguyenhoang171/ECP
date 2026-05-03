@@ -92,7 +92,7 @@ export default function ExcelPreviewDialog({
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-800">
             <FileSpreadsheet className="h-5 w-5 text-green-600" />
-            Xem trước dữ liệu: <span className="text-blue-600 truncate max-w-[400px]">{file?.name}</span>
+            Xem trước dữ liệu: <span className="text-blue-600 truncate max-w-100">{file?.name}</span>
           </DialogTitle>
         </DialogHeader>
 

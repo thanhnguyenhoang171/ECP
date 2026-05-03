@@ -46,6 +46,9 @@ import { formatDate, formatDateTimeForFilename } from '@/lib/formatters';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { cn, isIdLike } from '@/lib/utils';
 import { Plus } from 'lucide-react';
+import { set } from 'nprogress';
+import { categoryApi } from '../api/category.api';
+import { toast } from 'sonner';
 
 interface CategoriesViewProps {
   initialData: PageResponse<Category>;
@@ -129,6 +132,37 @@ export default function CategoriesView({
     setIsFormOpen(true);
   };
 
+  const handleExportExcelFile = async () => {
+    try {
+      setIsExporting(true);
+      const blob = await categoryApi.export();
+
+      // Tạo URL cho blob
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Đặt tên file
+      const filename = `danh-muc_${formatDateTimeForFilename()}.xlsx`;
+      link.setAttribute('download', filename);
+
+      // Thêm vào document và click
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success('Xuất file Excel thành công');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Có lỗi xảy ra khi xuất file Excel');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const categoriesData = data || initialData;
   const categories = categoriesData.data || [];
   const pagination = categoriesData.pagination;
@@ -143,10 +177,7 @@ export default function CategoriesView({
   const commonActions = (
     <>
       <ImportButton onClick={() => setIsImportDialogOpen(true)} />
-      <ExportButton
-        onExport={() => alert('Dang cap nhat')}
-        isLoading={isExporting}
-      />
+      <ExportButton onExport={handleExportExcelFile} isLoading={isExporting} />
       <AddNewButton onClick={handleCreate} />
     </>
   );

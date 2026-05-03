@@ -92,12 +92,12 @@ export const categoryApi = {
     return result.success ? result.data : [];
   },
 
-  // // Export file excel
-  // export: async (): Promise<Blob> => {
-  //   const res = await fetch(`${BASE_URL}/export`, {
-  //     method: 'GET',
-  //   });
-  //   if (!res.ok) throw new Error('Failed to export categories');
-  //   return res.blob();
-  // },
+  // Export file excel
+  export: async (): Promise<Blob> => {
+    const res = await fetch(`${BASE_URL}/export`, {
+      method: 'GET',
+    });
+    if (!res.ok) throw new Error('Failed to export categories');
+    return res.blob();
+  },
 };

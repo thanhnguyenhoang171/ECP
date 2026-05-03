@@ -6,7 +6,6 @@ import com.alibaba.excel.annotation.write.style.HeadFontStyle;
 import com.alibaba.excel.annotation.write.style.HeadStyle;
 import com.alibaba.excel.enums.BooleanEnum;
 import com.alibaba.excel.enums.poi.FillPatternTypeEnum;
-import com.alibaba.excel.enums.poi.HorizontalAlignmentEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

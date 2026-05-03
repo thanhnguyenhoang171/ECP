@@ -98,25 +98,24 @@ public class CategoryController {
         return ResponseEntity.ok(apiResponse);
     }
 
-    // TODO: FIXING APIs
-//    @GetMapping("/export")
-//    public ResponseEntity<StreamingResponseBody> exportToExcel() {
-//        String fileName = "Danh_sach_loai_hang_hoa.xlsx";
-//        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
-//
-//        StreamingResponseBody responseBody = outputStream -> {
-//            try {
-//                categoryService.exportAllToExcel(outputStream);
-//            } catch (Exception e) {
-//                throw new IOException("Error during excel export", e);
-//            }
-//        };
-//
-//        return ResponseEntity.ok()
-//                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-//                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFileName)
-//                .body(responseBody);
-//    }
+    @GetMapping("/export")
+    public ResponseEntity<StreamingResponseBody> exportToExcel() {
+        String fileName = "Danh_sach_loai_hang_hoa.xlsx";
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+
+        StreamingResponseBody responseBody = outputStream -> {
+            try {
+                categoryService.exportAllCategoriesToExcel(outputStream);
+            } catch (Exception e) {
+                throw new IOException("Error during excel export", e);
+            }
+        };
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFileName)
+                .body(responseBody);
+    }
 //
 //    @GetMapping("/template")
 //    public ResponseEntity<StreamingResponseBody> downloadTemplate() {
