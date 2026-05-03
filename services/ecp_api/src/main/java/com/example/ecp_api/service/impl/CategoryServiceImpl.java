@@ -223,7 +223,7 @@ public class CategoryServiceImpl implements CategoryService {
 //    TODO: Fix later
     @Override
     @Transactional(readOnly = true)
-    public void exportAllToExcel(OutputStream outputStream) {
+    public void exportAllCategoriesToExcel(OutputStream outputStream) {
         try (Stream<Category> categoryStream = categoryRepository.findAllByDeletedFalse()) {
             AtomicInteger index = new AtomicInteger(1);
             List<CategoryExcelDto> excelDtos = categoryStream
@@ -235,7 +235,7 @@ public class CategoryServiceImpl implements CategoryService {
                                 .name(res.getName())
                                 .slug(res.getSlug())
                                 .level(res.getLevel())
-                                .status(res.isActive() ? "Hoạt động" : "Ngừng hoạt động")
+                                .status(res.getActive())
                                 .createdAt(DateTimeUtils.format(res.getCreatedAt()))
                                 .updatedAt(DateTimeUtils.format(res.getUpdatedAt()))
                                 .build();
@@ -246,28 +246,6 @@ public class CategoryServiceImpl implements CategoryService {
                     .sheet("Danh sách loại hàng hoá")
                     .doWrite(excelDtos);
         }
-    }
-
-//    TODO: Fix later
-    @Override
-    public void exportCategoriesToExcel(OutputStream outputStream, List<CategoryResponse> categories) {
-        AtomicInteger index = new AtomicInteger(1);
-        List<CategoryExcelDto> excelDtos = categories.stream()
-                .map(res -> CategoryExcelDto.builder()
-                        .index(index.getAndIncrement())
-                        .id(res.getId())
-                        .name(res.getName())
-                        .slug(res.getSlug())
-                        .level(res.getLevel())
-                        .status(res.isActive() ? "Hoạt động" : "Ngừng hoạt động")
-                        .createdAt(DateTimeUtils.format(res.getCreatedAt()))
-                        .updatedAt(DateTimeUtils.format(res.getUpdatedAt()))
-                        .build())
-                .toList();
-
-        EasyExcel.write(outputStream, CategoryExcelDto.class)
-                .sheet("Danh sách loại hàng hoá")
-                .doWrite(excelDtos);
     }
 
     //    TODO: Fix later

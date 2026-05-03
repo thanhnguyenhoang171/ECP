@@ -1,7 +1,6 @@
 package com.example.ecp_api.dto.request;
 
 import com.example.ecp_api.enums.users.UserGender;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
