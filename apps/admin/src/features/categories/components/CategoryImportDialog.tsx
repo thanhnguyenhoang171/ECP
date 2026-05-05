@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import ExcelPreviewDialog from './ExcelPreviewDialog';
 import { toast } from 'sonner';
+import { categoryApi } from '../api/category.api';
 
 interface CategoryImportDialogProps {
   isOpen: boolean;
@@ -72,8 +73,21 @@ export default function CategoryImportDialog({
     }
   };
 
-  const handleDownloadTemplate = () => {
-    toast.info('Đang chuẩn bị tệp mẫu...');
+  const handleDownloadTemplate = async () => {
+    try {
+      toast.info('Đang chuẩn bị tệp mẫu...');
+      const blob = await categoryApi.template();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'mau_nhap_danh_muc.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error('Không thể tải file mẫu. Vui lòng thử lại sau.');
+    }
   };
 
   const handlePreview = (selectedFile: File) => {

@@ -116,24 +116,24 @@ public class CategoryController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFileName)
                 .body(responseBody);
     }
-//
-//    @GetMapping("/template")
-//    public ResponseEntity<StreamingResponseBody> downloadTemplate() {
-//        String fileName = "Template_Import_Category.xlsx";
-//        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
-//
-//        StreamingResponseBody responseBody = outputStream -> {
-//            try {
-//                categoryService.downloadCategoryTemplate(outputStream);
-//            } catch (Exception e) {
-//                throw new IOException("Error during template download", e);
-//            }
-//        };
-//
-//        return ResponseEntity.ok()
-//                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-//                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFileName)
-//                .body(responseBody);
-//    }
+
+   @GetMapping("/template")
+   public ResponseEntity<StreamingResponseBody> downloadTemplate() {
+       String fileName = "Template_Import_Category.xlsx";
+       String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+
+       StreamingResponseBody responseBody = outputStream -> {
+           try {
+               categoryService.downloadCategoryTemplate(outputStream);
+           } catch (Exception e) {
+               throw new IOException("Error during template download", e);
+           }
+       };
+
+       return ResponseEntity.ok()
+               .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+               .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFileName)
+               .body(responseBody);
+   }
 
 }

@@ -31,10 +31,6 @@ import lombok.NoArgsConstructor;
 )
 
 // Content style
-@ContentStyle(
-        horizontalAlignment = HorizontalAlignmentEnum.CENTER
-)
-
 @ContentFontStyle(
         fontHeightInPoints = 12,
         fontName = "Arial"
@@ -43,10 +39,11 @@ import lombok.NoArgsConstructor;
 
 public class CategoryExcelDto {
     @ExcelProperty("STT")
-    @ColumnWidth(10)
+    @ColumnWidth(8)
     private Integer index;
 
-    @ExcelProperty("_id")
+    @ExcelProperty("ID")
+    @ColumnWidth(25)
     private String id;
 
     @ExcelProperty("Tên loại sản phẩm")
@@ -54,18 +51,30 @@ public class CategoryExcelDto {
     private String name;
 
     @ExcelProperty("Đường dẫn slug")
+    @ColumnWidth(25)
     private String slug;
+
+    @ExcelProperty("ID danh mục cha")
+    @ColumnWidth(25)
+    private String parentId;
+
+    @ExcelProperty("Đường dẫn phân cấp")
+    @ColumnWidth(30)
+    private String path;
 
     @ExcelProperty("Cấp độ")
     @ColumnWidth(10)
     private Integer level;
 
-    @ExcelProperty("Trạng thái")
+    @ExcelProperty("Trạng thái (Hoạt động)")
+    @ColumnWidth(20)
     private Boolean status;
 
     @ExcelProperty("Ngày tạo")
+    @ColumnWidth(20)
     private String createdAt;
 
     @ExcelProperty("Ngày sửa")
+    @ColumnWidth(20)
     private String updatedAt;
 }

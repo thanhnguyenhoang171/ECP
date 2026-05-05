@@ -100,4 +100,13 @@ export const categoryApi = {
     if (!res.ok) throw new Error('Failed to export categories');
     return res.blob();
   },
+  
+  // Fetch template file
+  template: async (): Promise<Blob> => {
+    const res = await fetch(`${BASE_URL}/template`, {
+      method: 'GET',
+    });
+    if (!res.ok) throw new Error('Failed to fetch template');
+    return res.blob();
+  },
 };
