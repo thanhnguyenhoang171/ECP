@@ -150,7 +150,7 @@ public class CategoryServiceImpl implements CategoryService {
                 && categoryRepository.existsBySlugAndDeletedFalse(category.getSlug())) {
             throw new AppException("Category with Slug already exists", HttpStatus.BAD_REQUEST);
         }
-
+ 
         if (request.getActive() != null) {
             category.setActive(request.getActive());
         }
@@ -218,9 +218,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .toList();
     }
 
-
-//--------------------------------
-//    TODO: Fix later
+    // EXPORT ALL CATEGORIES TO EXCEL
     @Override
     @Transactional(readOnly = true)
     public void exportAllCategoriesToExcel(OutputStream outputStream) {
@@ -234,6 +232,8 @@ public class CategoryServiceImpl implements CategoryService {
                                 .id(res.getId())
                                 .name(res.getName())
                                 .slug(res.getSlug())
+                                .parentId(res.getParentId())
+                                .path(res.getPath())
                                 .level(res.getLevel())
                                 .status(res.getActive())
                                 .createdAt(DateTimeUtils.format(res.getCreatedAt()))
@@ -248,66 +248,45 @@ public class CategoryServiceImpl implements CategoryService {
         }
     }
 
-    //    TODO: Fix later
     @Override
+    @Transactional(readOnly = true)
     public void downloadCategoryTemplate(OutputStream outputStream) {
-        List<String> parentCategories = new ArrayList<>();
-        try (Stream<Category> categoryStream = categoryRepository.findAllByDeletedFalse()) {
-            categoryStream.forEach(cat -> parentCategories.add(cat.getName() + " | " + cat.getId()));
-        } catch (Exception e) {
-            // Log or handle the exception if needed, but since EasyExcel handles it, we can just let it be
-        }
-
-        CategoryTemplateDto sample = CategoryTemplateDto.builder()
-                .index(1)
-                .id("")
-                .name("Snack mặn")
-                .slug("snack-man")
-                .parentNameWithId("")
-                .description("Các loại đồ ăn vặt vị mặn")
-                .status("Hoạt động")
-                .build();
+        // Create specific sample data as requested
+        List<CategoryTemplateDto> samples = List.of(
+                CategoryTemplateDto.builder()
+                        .index(1)
+                        .id("69f73c4595bcc35a47dfdaf3")
+                        .name("parent category new")
+                        .slug("parent-category-new")
+                        .parentId("")
+                        .level(1)
+                        .status(true)
+                        .createdAt("03/05/2026 19:15:01")
+                        .updatedAt("03/05/2026 19:15:01")
+                        .build(),
+                CategoryTemplateDto.builder()
+                        .index(2)
+                        .id("69f73c4595bcc35a47dfdaf4")
+                        .name("child category new")
+                        .slug("child-category-new")
+                        .parentId("69f73c4595bcc35a47dfdaf3")
+                        .level(2)
+                        .status(false)
+                        .createdAt("03/05/2026 19:15:01")
+                        .updatedAt("03/05/2026 19:15:01")
+                        .build()
+        );
 
         EasyExcel.write(outputStream, CategoryTemplateDto.class)
                 .registerWriteHandler(new SheetWriteHandler() {
                     @Override
                     public void afterSheetCreate(WriteWorkbookHolder writeWorkbookHolder, WriteSheetHolder writeSheetHolder) {
                         Sheet sheet = writeSheetHolder.getSheet();
-                        DataValidationHelper helper = sheet.getDataValidationHelper();
-
-                        // 1. Parent Categories Dropdown (Column E - Index 4)
-                        if (!parentCategories.isEmpty()) {
-                            Workbook workbook = writeWorkbookHolder.getWorkbook();
-                            Sheet hiddenSheet = workbook.createSheet("CategoriesData");
-                            workbook.setSheetHidden(workbook.getSheetIndex(hiddenSheet), true);
-
-                            for (int i = 0; i < parentCategories.size(); i++) {
-                                hiddenSheet.createRow(i).createCell(0).setCellValue(parentCategories.get(i));
-                            }
-
-                            Name namedRange = workbook.createName();
-                            namedRange.setNameName("ParentList");
-                            namedRange.setRefersToFormula("CategoriesData!$A$1:$A$" + parentCategories.size());
-
-                            DataValidationConstraint constraint = helper.createFormulaListConstraint("ParentList");
-                            CellRangeAddressList addressList = new CellRangeAddressList(1, 2000, 4, 4);
-                            DataValidation validation = helper.createValidation(constraint, addressList);
-
-                            validation.setErrorStyle(DataValidation.ErrorStyle.STOP);
-                            validation.createErrorBox("Dữ liệu không hợp lệ", "Vui lòng chọn danh mục từ danh sách thả xuống!");
-                            validation.setShowErrorBox(true);
-
-                            sheet.addValidationData(validation);
-                        }
-
-                        // 2. Status Dropdown (Column G - Index 6)
-                        DataValidationConstraint statusConstraint = helper.createExplicitListConstraint(new String[]{"Hoạt động", "Ngừng hoạt động"});
-                        CellRangeAddressList statusAddress = new CellRangeAddressList(1, 2000, 6, 6);
-                        DataValidation statusValidation = helper.createValidation(statusConstraint, statusAddress);
-                        sheet.addValidationData(statusValidation);
+                        // Freeze the first row (Header)
+                        sheet.createFreezePane(0, 1);
                     }
                 })
                 .sheet("Template Import Category")
-                .doWrite(List.of(sample));
+                .doWrite(samples);
     }
 }

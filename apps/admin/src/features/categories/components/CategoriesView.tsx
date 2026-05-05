@@ -46,7 +46,6 @@ import { formatDate, formatDateTimeForFilename } from '@/lib/formatters';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { cn, isIdLike } from '@/lib/utils';
 import { Plus } from 'lucide-react';
-import { set } from 'nprogress';
 import { categoryApi } from '../api/category.api';
 import { toast } from 'sonner';
 
