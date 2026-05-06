@@ -48,49 +48,56 @@ export default function LoginView() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-muted/30 py-12 px-4 sm:px-6 lg:px-8 animate-page-fade-in">
-      <Card className="w-full max-w-md shadow-xl border-t-4 border-t-primary">
-        <CardHeader className="text-center space-y-1">
-          <CardTitle className="text-3xl font-extrabold text-primary italic">ECP Admin</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Hệ thống quản trị bán hàng hiện đại
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div 
+      className="flex items-center justify-center min-h-screen bg-cover bg-center bg-no-repeat relative"
+      style={{ backgroundImage: "url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=2070')" }}
+    >
+      <div className="absolute inset-0 bg-black/40" />
+      
+      <div className="w-full max-w-md mx-4 z-10">
+        <div className="backdrop-blur-lg bg-white/10 p-8 rounded-2xl border border-white/20 shadow-2xl space-y-8">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold liquid-text-primary tracking-tight">Login</h1>
+          </div>
+          
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               <FormField
                 control={form.control}
                 name="username"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="space-y-1">
+                    <label className="text-sm liquid-text-secondary ml-1">Enter your email</label>
                     <FormControl>
-                      <div className="relative">
-                        <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Tên đăng nhập (admin)" className="pl-10" {...field} />
-                      </div>
+                      <input 
+                        {...field} 
+                        className="w-full bg-transparent border-b border-white/50 py-2 text-white outline-none focus:border-white transition-colors placeholder:text-white/30"
+                      />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-300" />
                   </FormItem>
                 )}
               />
+              
               <FormField
                 control={form.control}
                 name="password"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="space-y-1">
+                    <label className="text-sm liquid-text-secondary ml-1">Enter your password</label>
                     <FormControl>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input type="password" placeholder="Mật khẩu" className="pl-10" {...field} />
-                      </div>
+                      <input 
+                        type="password"
+                        {...field} 
+                        className="w-full bg-transparent border-b border-white/50 py-2 text-white outline-none focus:border-white transition-colors placeholder:text-white/30"
+                      />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-300" />
                   </FormItem>
                 )}
               />
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between text-white text-sm">
                 <FormField
                   control={form.control}
                   name="remember"
@@ -98,38 +105,43 @@ export default function LoginView() {
                     <div className="flex items-center space-x-2">
                       <Checkbox 
                         id="remember" 
+                        className="border-white/50 data-[state=checked]:bg-white data-[state=checked]:text-black"
                         checked={field.value} 
                         onCheckedChange={field.onChange} 
                       />
                       <label 
                         htmlFor="remember" 
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        className="cursor-pointer liquid-text-secondary"
                       >
-                        Ghi nhớ tôi
+                        Remember me
                       </label>
                     </div>
                   )}
                 />
-                <Link href="#" className="text-sm text-primary hover:underline">
-                  Quên mật khẩu?
+                <Link href="#" className="liquid-text-secondary hover:underline opacity-90 hover:opacity-100 transition-opacity">
+                  Forgot password?
                 </Link>
               </div>
 
-              <Button type="submit" className="w-full h-11 text-base font-bold" disabled={isLoading}>
+              <Button 
+                type="submit" 
+                className="w-full h-12 bg-white text-black hover:bg-white/90 font-bold rounded-lg transition-all shadow-xl" 
+                disabled={isLoading}
+              >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Đăng nhập
+                Log In
               </Button>
 
-              <div className="text-center text-sm text-muted-foreground pt-2">
-                Chưa có tài khoản?{" "}
-                <Link href="/register" className="text-primary font-medium hover:underline">
-                  Đăng ký ngay
+              <div className="text-center text-sm liquid-text-secondary pt-2">
+                Don't have an account?{" "}
+                <Link href="/register" className="text-white font-bold hover:underline underline-offset-4 shadow-sm">
+                  Register
                 </Link>
               </div>
             </form>
           </Form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

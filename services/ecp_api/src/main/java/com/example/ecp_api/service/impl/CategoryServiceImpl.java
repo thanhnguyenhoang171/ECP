@@ -15,6 +15,7 @@ import com.example.ecp_api.exception.AppException;
 import com.example.ecp_api.exception.ResourceNotFoundException;
 import com.example.ecp_api.mapper.CategoryMapper;
 import com.example.ecp_api.repository.mongodb.CategoryRepository;
+import com.example.ecp_api.service.AuditLogService;
 import com.example.ecp_api.service.CategoryService;
 import com.example.ecp_api.service.helper.CategoryHelper;
 import com.example.ecp_api.util.DateTimeUtils;
@@ -48,6 +49,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryMapper categoryMapper;
     private final MongoTemplate mongoTemplate;
     private final CategoryHelper categoryHelper;
+    private final AuditLogService auditLogService;
 
     // CREATE A NEW CATEGORY
     @Override
@@ -87,6 +89,10 @@ public class CategoryServiceImpl implements CategoryService {
         }
 
         Category savedCategory = categoryRepository.save(category);
+        
+        // TODO: Replace "SYSTEM" with actual logged-in user when authentication is implemented
+        auditLogService.log("CREATE_CATEGORY", "SYSTEM", "Created category: " + savedCategory.getName());
+        
         return categoryMapper.toResponse(savedCategory);
     }
 
@@ -182,6 +188,9 @@ public class CategoryServiceImpl implements CategoryService {
             categoryHelper.updateDescendants(updatedCategory);
         }
 
+        // TODO: Replace "SYSTEM" with actual logged-in user when authentication is implemented
+        auditLogService.log("UPDATE_CATEGORY", "SYSTEM", "Updated category with ID: " + updatedCategory.getId());
+
         return categoryMapper.toResponse(updatedCategory);
     }
 
@@ -199,6 +208,9 @@ public class CategoryServiceImpl implements CategoryService {
 
         category.setDeleted(true);
         categoryRepository.save(category);
+
+        // TODO: Replace "SYSTEM" with actual logged-in user when authentication is implemented
+        auditLogService.log("DELETE_CATEGORY", "SYSTEM", "Soft deleted category with ID: " + category.getId());
     }
 
     // GET CATEGORY DETAIL

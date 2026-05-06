@@ -1,7 +1,7 @@
 package com.example.ecp_api.controller;
 
 import com.example.ecp_api.dto.request.UserFilterRequest;
-import com.example.ecp_api.dto.request.UserRequest;
+import com.example.ecp_api.dto.request.UserUpdateRequest;
 import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.UserResponse;
@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -21,17 +22,6 @@ import java.util.UUID;
 public class UserController {
 
     private final UserService userService;
-
-    @PostMapping("/register")
-    public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody UserRequest userRequest) {
-        UserResponse response = userService.registerUserByUsername(userRequest);
-        ApiResponse<UserResponse> apiResponse = ApiResponse.<UserResponse>builder()
-                .success(true)
-                .message("User registered successfully")
-                .data(response)
-                .build();
-        return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
-    }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> getUser(@PathVariable("id") UUID id) {
@@ -45,9 +35,34 @@ public class UserController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<PageResponse<UserResponse>> getAllUsers(
             UserFilterRequest filter,
             Pageable pageable) {
         return ResponseEntity.ok(userService.searchUsers(filter, pageable));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<UserResponse>> updateUser(
+            @PathVariable("id") UUID id,
+            @Valid @RequestBody UserUpdateRequest request) {
+        UserResponse response = userService.updateUser(id, request);
+        ApiResponse<UserResponse> apiResponse = ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message("User updated successfully")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable("id") UUID id) {
+        userService.deleteUser(id);
+        ApiResponse<Void> apiResponse = ApiResponse.<Void>builder()
+                .success(true)
+                .message("User deleted successfully")
+                .build();
+        return ResponseEntity.ok(apiResponse);
     }
 }

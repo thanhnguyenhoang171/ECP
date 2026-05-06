@@ -48,6 +48,8 @@ import { formatCurrency } from '@/lib/formatters';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { cn } from '@/lib/utils';
 
+import { useBackground } from '@/components/providers/BackgroundProvider';
+
 interface ProductViewProps {
   initialData: PageResponse<Product>;
   categories: Category[];
@@ -57,6 +59,7 @@ export default function ProductView({
   initialData,
   categories,
 }: ProductViewProps) {
+  const { currentBackground } = useBackground();
   const {
     page,
     size,
@@ -66,7 +69,6 @@ export default function ProductView({
     setPage,
     setSize,
     setSort,
-    setSearch,
     searchParams,
   } = useViewParams('name,asc');
 
@@ -76,7 +78,7 @@ export default function ProductView({
   // local state cho dữ liệu demo
   const [products, setProducts] = useState<Product[]>(initialData.data);
   
-  const [searchTerm, setSearchTerm] = useDebounceSearch(name, setSearch);
+  const [searchTerm, setSearchTerm] = useDebounceSearch(name, (val) => updateUrl({ name: val, page: 0 }));
 
   // Sử dụng useMemo để tính toán filteredProducts thay vì useEffect + useState
   const filteredProducts = React.useMemo(() => {
@@ -131,7 +133,9 @@ export default function ProductView({
 
   const filterBtnClass = (active: boolean) => cn(
     "justify-start font-normal text-xs px-2 py-1.5 rounded-md text-left transition-colors flex items-center",
-    active ? "bg-slate-100 text-slate-900" : "hover:bg-slate-50 text-slate-500"
+    active 
+      ? (currentBackground ? "bg-white/20 text-white" : "bg-slate-100 text-slate-900")
+      : (currentBackground ? "hover:bg-white/10 text-white/70" : "hover:bg-slate-50 text-slate-500")
   );
 
   return (
@@ -210,12 +214,12 @@ export default function ProductView({
                         <TableCell className='font-mono text-[11px] font-bold py-4 px-6 text-slate-400'>{product.sku}</TableCell>
                         <TableCell className='py-4'>
                           <div className='flex flex-col'>
-                            <span className='text-sm font-bold text-slate-700'>{product.name}</span>
-                            <span className='text-[11px] text-slate-400'>{product.brand}</span>
+                            <span className='text-sm font-bold'>{product.name}</span>
+                            <span className='text-[11px] opacity-60'>{product.brand}</span>
                           </div>
                         </TableCell>
-                        <TableCell className='text-sm text-slate-500 py-4 hidden md:table-cell'>{product.categoryName}</TableCell>
-                        <TableCell className='text-right text-sm font-bold text-blue-600 py-4'>{formatCurrency(product.price)}</TableCell>
+                        <TableCell className='text-sm py-4 hidden md:table-cell'>{product.categoryName}</TableCell>
+                        <TableCell className={cn('text-right text-sm font-bold py-4', !currentBackground && "text-blue-600")}>{formatCurrency(product.price)}</TableCell>
                         <TableCell className='text-center py-4'>
                           <Badge variant='secondary' className='text-[10px] h-5 px-2 bg-slate-100 text-slate-600 border-none'>{product.stock}</Badge>
                         </TableCell>

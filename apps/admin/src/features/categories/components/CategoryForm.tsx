@@ -30,6 +30,9 @@ import {
   useUpdateCategory,
 } from '../hooks/use-category-mutation';
 
+import { useBackground } from '@/components/providers/BackgroundProvider';
+import { cn } from '@/lib/utils';
+
 interface CategoryFormProps {
   onSuccess: () => void;
   initialData?: CategoryFormValues;
@@ -43,6 +46,7 @@ export default function CategoryForm({
   parentCategories = [],
   id,
 }: CategoryFormProps) {
+  const { currentBackground } = useBackground();
   const createMutation = useCreateCategory();
   const updateMutation = useUpdateCategory();
 
@@ -112,7 +116,7 @@ export default function CategoryForm({
           name='name'
           render={({ field }) => (
             <FormItem>
-              <FormLabel className='text-xs font-bold uppercase text-slate-500'>
+              <FormLabel className={cn('text-xs font-bold uppercase', currentBackground ? "text-white/60" : "text-slate-500")}>
                 Tên danh mục
               </FormLabel>
               <FormControl>
@@ -128,9 +132,9 @@ export default function CategoryForm({
           name='slug'
           render={({ field }) => (
             <FormItem>
-              <FormLabel className='text-xs font-bold uppercase text-slate-500'>
+              <FormLabel className={cn('text-xs font-bold uppercase', currentBackground ? "text-white/60" : "text-slate-500")}>
                 Đường dẫn (Slug){' '}
-                <span className='text-[10px] font-normal lowercase text-slate-400'>
+                <span className={cn('text-[10px] font-normal lowercase', currentBackground ? "text-white/40" : "text-slate-400")}>
                   (Tùy chọn)
                 </span>
               </FormLabel>
@@ -152,12 +156,12 @@ export default function CategoryForm({
 
             return (
               <FormItem>
-                <FormLabel className='text-xs font-bold uppercase text-slate-500'>
+                <FormLabel className={cn('text-xs font-bold uppercase', currentBackground ? "text-white/60" : "text-slate-500")}>
                   Danh mục cha
                 </FormLabel>
                 <Select onValueChange={field.onChange} value={currentValue}>
                   <FormControl>
-                    <SelectTrigger className='bg-white'>
+                    <SelectTrigger className={cn(currentBackground ? 'bg-white/5 border-white/20' : 'bg-white')}>
                       <SelectValue placeholder='Chọn danh mục cha' />
                     </SelectTrigger>
                   </FormControl>
@@ -182,9 +186,9 @@ export default function CategoryForm({
           control={form.control}
           name='active'
           render={({ field }) => (
-            <FormItem className='flex flex-row items-center justify-between rounded-lg border border-slate-100 p-3 shadow-sm'>
+            <FormItem className={cn('flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm', currentBackground ? "bg-white/5 border-white/10" : "border-slate-100")}>
               <div className='space-y-0.5 mb-0'>
-                <FormLabel className='text-xs font-bold uppercase text-slate-500'>
+                <FormLabel className={cn('text-xs font-bold uppercase', currentBackground ? "text-white/60" : "text-slate-500")}>
                   Trạng thái hoạt động
                 </FormLabel>
               </div>
@@ -199,7 +203,7 @@ export default function CategoryForm({
           )}
         />
 
-        <div className='flex justify-end gap-3 pt-4 border-t border-slate-100'>
+        <div className={cn('flex justify-end gap-3 pt-4 border-t', currentBackground ? "border-white/10" : "border-slate-100")}>
           <Button
             type='button'
             variant='outline'

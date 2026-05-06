@@ -2,6 +2,7 @@ package com.example.ecp_api.service.impl;
 
 import com.example.ecp_api.dto.request.UserFilterRequest;
 import com.example.ecp_api.dto.request.UserRequest;
+import com.example.ecp_api.dto.request.UserUpdateRequest;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.UserResponse;
 import com.example.ecp_api.entity.jpa.User;
@@ -24,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -52,7 +54,7 @@ public class UserServiceImpl implements UserService {
         // Thiết lập các thuộc tính mặc định
         user.setPasswordHash(passwordEncoder.encode(userRequest.getPassword()));
         user.setProvider(AuthProvider.LOCAL);
-        user.setRole(UserRole.CUSTOMER);
+        user.setRole(UserRole.USER);
         user.setActive(true);
 
         if (user.getProfile() != null) {
@@ -109,5 +111,35 @@ public class UserServiceImpl implements UserService {
 
         Page<User> userPage = userRepository.findAll(spec, pageable);
         return userMapper.toPageResponse(userPage);
+    }
+
+    @Override
+    public UserResponse updateUser(UUID id, UserUpdateRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new AppException("User not found", HttpStatus.NOT_FOUND));
+
+        userMapper.updateUserFromRequest(request, user);
+
+        if (user.getProfile() != null && user.getProfile().getUser() == null) {
+            user.getProfile().setUser(user);
+        }
+
+        user = userRepository.save(user);
+
+        auditLogService.log("UPDATE_USER", user.getUsername(), "Updated user with ID: " + user.getId());
+
+        return userMapper.toResponse(user);
+    }
+
+    @Override
+    public void deleteUser(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new AppException("User not found", HttpStatus.NOT_FOUND));
+
+        user.setActive(false);
+        user.setDeletedAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        auditLogService.log("DELETE_USER", user.getUsername(), "Soft deleted user with ID: " + user.getId());
     }
 }

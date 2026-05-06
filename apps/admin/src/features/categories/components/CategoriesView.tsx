@@ -49,6 +49,8 @@ import { Plus } from 'lucide-react';
 import { categoryApi } from '../api/category.api';
 import { toast } from 'sonner';
 
+import { useBackground } from '@/components/providers/BackgroundProvider';
+
 interface CategoriesViewProps {
   initialData: PageResponse<Category>;
   parentCategories: Category[];
@@ -58,6 +60,7 @@ export default function CategoriesView({
   initialData,
   parentCategories: serverParentCategories,
 }: CategoriesViewProps) {
+  const { currentBackground } = useBackground();
   const {
     page,
     size,
@@ -185,8 +188,8 @@ export default function CategoriesView({
     cn(
       'justify-start font-normal text-xs px-2 py-1.5 rounded-md text-left transition-colors flex items-center',
       active
-        ? 'bg-slate-100 text-slate-900'
-        : 'hover:bg-slate-50 text-slate-500',
+        ? (currentBackground ? "bg-white/20 text-white" : "bg-slate-100 text-slate-900")
+        : (currentBackground ? "hover:bg-white/10 text-white/70" : "hover:bg-slate-50 text-slate-500"),
     );
 
   return (
@@ -238,7 +241,7 @@ export default function CategoriesView({
                   </div>
 
                   <div className='space-y-2'>
-                    <h4 className='font-medium text-xs leading-none'>
+                    <h4 className={cn('font-medium text-xs leading-none', currentBackground ? "text-white/60" : "text-slate-900")}>
                       Cấp độ (Level)
                     </h4>
                     <div className='grid grid-cols-2 gap-1'>
@@ -248,8 +251,8 @@ export default function CategoriesView({
                           className={cn(
                             'h-7 text-[10px] border rounded-md transition-colors',
                             levelParam === lv.toString()
-                              ? 'bg-slate-900 text-white border-slate-900'
-                              : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50',
+                              ? (currentBackground ? 'bg-white text-black border-white' : 'bg-slate-900 text-white border-slate-900')
+                              : (currentBackground ? 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'),
                           )}
                           onClick={() => updateUrl({ level: lv, page: 0 })}>
                           Lv {lv}
@@ -326,28 +329,28 @@ export default function CategoriesView({
                             className='hover:bg-slate-50/30 transition-colors border-b border-slate-50'>
                             <TableCell className='py-4 px-6'>
                               <div className='flex flex-col'>
-                                <span className='text-sm font-bold text-slate-700'>
+                                <span className='text-sm font-bold'>
                                   {category.name}
                                 </span>
-                                <span className='text-[11px] text-slate-400'>
+                                <span className='text-[11px] opacity-60'>
                                   ID: {category.id}
                                 </span>
                               </div>
                             </TableCell>
                             <TableCell className='py-4'>
-                              <code className='text-[11px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600'>
+                              <code className={cn('text-[11px] px-1.5 py-0.5 rounded', currentBackground ? "bg-white/10 text-white/80" : "bg-slate-100 text-slate-600")}>
                                 /{category.slug}
                               </code>
                             </TableCell>
                             <TableCell className='py-4'>
-                              <span className='text-[11px] text-slate-500 font-mono'>
+                              <span className='text-[11px] font-mono opacity-70'>
                                 {category.path || '---'}
                               </span>
                             </TableCell>
                             <TableCell className='text-center py-4'>
                               <Badge
                                 variant='outline'
-                                className='text-[10px] font-mono'>
+                                className={cn('text-[10px] font-mono', currentBackground && "border-white/20 text-white/70")}>
                                 Level {category.level}
                               </Badge>
                             </TableCell>
@@ -356,11 +359,11 @@ export default function CategoriesView({
                                 variant={
                                   category.active ? 'default' : 'destructive'
                                 }
-                                className='text-[10px] h-5 px-2'>
+                                className='text-[10px] h-5 px-2 border-none'>
                                 {category.active ? 'Hoạt động' : 'Ẩn'}
                               </Badge>
                             </TableCell>
-                            <TableCell className='text-center py-4 text-[11px] text-slate-500'>
+                            <TableCell className='text-center py-4 text-[11px]'>
                               {formatDate(category.createdAt)}
                             </TableCell>
                             <TableCell className='text-right py-4 pr-6'>
