@@ -14,6 +14,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
@@ -25,12 +26,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/v1/categories")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('SUPER_ADMIN')")
 public class CategoryController {
 
     private final CategoryService categoryService;
 
     // API CREATE A NEW CATEGORY
     @PostMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<CategoryResponse>> createCategory(@Valid @RequestBody CategoryRequest request) {
         CategoryResponse response = categoryService.createCategory(request);
         ApiResponse<CategoryResponse> apiResponse = ApiResponse.<CategoryResponse>builder()
@@ -43,6 +46,7 @@ public class CategoryController {
 
     // API GET CATEGORY LIST WITH PAGINATION
     @GetMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<PageResponse<CategoryResponse>> getAllCategories(
             CategoryFilterRequest filter,
             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -51,6 +55,7 @@ public class CategoryController {
 
     // API GET CATEGORY DETAIL
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<CategoryResponse>> getCategoryById(@PathVariable("id") String id) {
         CategoryResponse response = categoryService.getCategoryById(id);
         ApiResponse<CategoryResponse> apiResponse = ApiResponse.<CategoryResponse>builder()
@@ -63,6 +68,7 @@ public class CategoryController {
 
     // API GET PARENT CATEGORY LIST
     @GetMapping("/parents")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<List<CategoryResponse>>> getParentCategories() {
         List<CategoryResponse> responses = categoryService.getParentCategories();
         ApiResponse<List<CategoryResponse>> apiResponse = ApiResponse.<List<CategoryResponse>>builder()
@@ -75,6 +81,7 @@ public class CategoryController {
 
     // API UPDATE A CATEGORY
     @PatchMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<CategoryResponse>> updateCategory(
             @PathVariable("id") String id,
             @RequestBody CategoryRequest request) {
@@ -89,6 +96,7 @@ public class CategoryController {
 
     // API DELETE A CATEGORY
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable("id") String id) {
         categoryService.deleteCategory(id);
         ApiResponse<Void> apiResponse = ApiResponse.<Void>builder()
@@ -99,6 +107,7 @@ public class CategoryController {
     }
 
     @GetMapping("/export")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     public ResponseEntity<StreamingResponseBody> exportToExcel() {
         String fileName = "Danh_sach_loai_hang_hoa.xlsx";
         String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
@@ -118,6 +127,7 @@ public class CategoryController {
     }
 
    @GetMapping("/template")
+   @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
    public ResponseEntity<StreamingResponseBody> downloadTemplate() {
        String fileName = "Template_Import_Category.xlsx";
        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");

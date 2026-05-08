@@ -48,8 +48,6 @@ import { formatCurrency } from '@/lib/formatters';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { cn } from '@/lib/utils';
 
-import { useBackground } from '@/components/providers/BackgroundProvider';
-
 interface ProductViewProps {
   initialData: PageResponse<Product>;
   categories: Category[];
@@ -59,7 +57,6 @@ export default function ProductView({
   initialData,
   categories,
 }: ProductViewProps) {
-  const { currentBackground } = useBackground();
   const {
     page,
     size,
@@ -133,9 +130,7 @@ export default function ProductView({
 
   const filterBtnClass = (active: boolean) => cn(
     "justify-start font-normal text-xs px-2 py-1.5 rounded-md text-left transition-colors flex items-center",
-    active 
-      ? (currentBackground ? "bg-white/20 text-white" : "bg-slate-100 text-slate-900")
-      : (currentBackground ? "hover:bg-white/10 text-white/70" : "hover:bg-slate-50 text-slate-500")
+    active ? "bg-slate-100 text-slate-900" : "hover:bg-slate-50 text-slate-500"
   );
 
   return (
@@ -219,7 +214,7 @@ export default function ProductView({
                           </div>
                         </TableCell>
                         <TableCell className='text-sm py-4 hidden md:table-cell'>{product.categoryName}</TableCell>
-                        <TableCell className={cn('text-right text-sm font-bold py-4', !currentBackground && "text-blue-600")}>{formatCurrency(product.price)}</TableCell>
+                        <TableCell className='text-right text-sm font-bold py-4 text-blue-600'>{formatCurrency(product.price)}</TableCell>
                         <TableCell className='text-center py-4'>
                           <Badge variant='secondary' className='text-[10px] h-5 px-2 bg-slate-100 text-slate-600 border-none'>{product.stock}</Badge>
                         </TableCell>

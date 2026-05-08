@@ -4,8 +4,7 @@ import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
-
-import { BackgroundProvider } from './BackgroundProvider';
+import AuthProvider from './AuthProvider';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -21,12 +20,12 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BackgroundProvider>
-        <TooltipProvider delayDuration={0}>
+      <TooltipProvider delayDuration={0}>
+        <AuthProvider>
           {children}
           <Toaster position='top-center' richColors />
-        </TooltipProvider>
-      </BackgroundProvider>
+        </AuthProvider>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }

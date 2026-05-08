@@ -1,20 +1,40 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-/**
- * Tạm thời vô hiệu hóa kiểm tra bảo mật để phát triển giao diện
- * Khi có API Auth, hãy mở lại logic kiểm tra Token ở đây.
- */
-export async function proxy(_request: NextRequest) {
-  // Cho phép tất cả các request đi qua
+export function proxy(request: NextRequest) {
+  const refreshToken = request.cookies.get('refreshToken');
+  const { pathname } = request.nextUrl;
+
+  // Protected routes
+  if (pathname.startsWith('/dashboard') || 
+      pathname.startsWith('/products') || 
+      pathname.startsWith('/categories') ||
+      pathname.startsWith('/orders') ||
+      pathname.startsWith('/users')) {
+    
+    if (!refreshToken) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+  }
+
+  // Auth routes (redirect to dashboard if already logged in)
+  if (pathname === '/login' || pathname === '/register') {
+    if (refreshToken) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    /*
-     * Khớp tất cả các request trừ tài nguyên tĩnh
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/dashboard/:path*',
+    '/products/:path*',
+    '/categories/:path*',
+    '/orders/:path*',
+    '/users/:path*',
+    '/login',
+    '/register',
   ],
 };

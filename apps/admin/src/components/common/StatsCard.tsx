@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -25,23 +25,41 @@ export const StatsCard = ({
   className
 }: StatsCardProps) => {
   return (
-    <Card className={cn("shadow-sm border-slate-100", color, className)}>
+    <Card className={cn("overflow-hidden border-none shadow-md hover:shadow-lg transition-all duration-300", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
           {title}
         </CardTitle>
-        <div className="p-1.5 bg-muted/50 rounded-md">
-          {icon}
+        <div className={cn("p-2 rounded-xl", color || "bg-slate-100 text-slate-600")}>
+          {React.cloneElement(icon as React.ReactElement, { size: 18 })}
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-2xl font-black text-slate-900 tracking-tight">{value}</div>
         {(description || trend) && (
-          <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1 font-medium">
-            {trend === 'up' && <ArrowUpRight size={10} className="text-green-500" />}
-            {trend === 'down' && <ArrowDownRight size={10} className="text-red-500" />}
-            {description}
-          </p>
+          <div className="flex items-center gap-1.5 mt-2">
+            {trend === 'up' && (
+              <div className="flex items-center text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-md">
+                <ArrowUpRight size={12} className="mr-0.5" />
+                Tăng
+              </div>
+            )}
+            {trend === 'down' && (
+              <div className="flex items-center text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-md">
+                <ArrowDownRight size={12} className="mr-0.5" />
+                Giảm
+              </div>
+            )}
+            {trend === 'neutral' && (
+              <div className="flex items-center text-[10px] font-bold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded-md">
+                <Minus size={12} className="mr-0.5" />
+                Ổn định
+              </div>
+            )}
+            <p className="text-[10px] text-slate-400 font-medium">
+              {description}
+            </p>
+          </div>
         )}
       </CardContent>
     </Card>

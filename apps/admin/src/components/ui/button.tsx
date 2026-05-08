@@ -1,7 +1,6 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
-import { useBackground } from "@/components/providers/BackgroundProvider"
 
 import { cn } from "@/lib/utils"
 
@@ -43,26 +42,10 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const { currentBackground } = useBackground();
     const Comp = asChild ? Slot : "button"
-    
-    // Apply liquid styles if background is active and it's not a ghost/link variant
-    const isSpecialVariant = variant === "ghost" || variant === "link";
-    const liquidClass = currentBackground && !isSpecialVariant 
-      ? "bg-white/10 text-white border border-white/20 hover:bg-white/20 shadow-lg backdrop-blur-md" 
-      : "";
-    
-    const ghostLiquidClass = currentBackground && variant === "ghost"
-      ? "text-white/70 hover:bg-white/10 hover:text-white"
-      : "";
-
     return (
       <Comp
-        className={cn(
-          buttonVariants({ variant, size, className }),
-          liquidClass,
-          ghostLiquidClass
-        )}
+        className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         {...props}
       />

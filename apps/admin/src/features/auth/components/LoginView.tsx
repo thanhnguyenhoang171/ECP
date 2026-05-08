@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { User, Lock, Loader2 } from 'lucide-react';
+import { User, Lock, Loader2, Package } from 'lucide-react';
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   FormField,
   FormItem,
   FormMessage,
+  FormLabel,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,9 +23,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 import { loginSchema, LoginFormValues } from "@/features/auth/schemas/auth.schema";
 
+import { useAuthStore } from "@/store/authStore";
+
 export default function LoginView() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const setAuth = useAuthStore((state) => state.setAuth);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -35,69 +39,100 @@ export default function LoginView() {
     },
   });
 
-  function onSubmit(values: LoginFormValues) {
+  async function onSubmit(values: LoginFormValues) {
     setIsLoading(true);
-    console.log(values);
-    
-    setTimeout(() => {
-      localStorage.setItem('access_token', 'fake_token_123');
-      toast.success('Chào mừng bạn quay trở lại!');
-      router.push('/dashboard');
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: values.username,
+          password: values.password,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setAuth(result.data.accessToken, result.data.user);
+        toast.success('Chào mừng bạn quay trở lại!');
+        router.push('/dashboard');
+      } else {
+        toast.error(result.message || 'Đăng nhập thất bại');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('Có lỗi xảy ra, vui lòng thử lại sau');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   }
 
   return (
-    <div 
-      className="flex items-center justify-center min-h-screen bg-cover bg-center bg-no-repeat relative"
-      style={{ backgroundImage: "url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=2070')" }}
-    >
-      <div className="absolute inset-0 bg-black/40" />
-      
-      <div className="w-full max-w-md mx-4 z-10">
-        <div className="backdrop-blur-lg bg-white/10 p-8 rounded-2xl border border-white/20 shadow-2xl space-y-8">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold liquid-text-primary tracking-tight">Login</h1>
+    <div className="flex items-center justify-center min-h-screen bg-slate-50">
+      <div className="w-full max-w-md mx-4">
+        <div className="flex flex-col items-center mb-8">
+          <div className="bg-primary p-3 rounded-2xl shadow-lg mb-4">
+            <Package className="text-white h-8 w-8" />
           </div>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <label className="text-sm liquid-text-secondary ml-1">Enter your email</label>
-                    <FormControl>
-                      <input 
-                        {...field} 
-                        className="w-full bg-transparent border-b border-white/50 py-2 text-white outline-none focus:border-white transition-colors placeholder:text-white/30"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-300" />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <label className="text-sm liquid-text-secondary ml-1">Enter your password</label>
-                    <FormControl>
-                      <input 
-                        type="password"
-                        {...field} 
-                        className="w-full bg-transparent border-b border-white/50 py-2 text-white outline-none focus:border-white transition-colors placeholder:text-white/30"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-300" />
-                  </FormItem>
-                )}
-              />
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">ECP Admin</h1>
+          <p className="text-slate-500 mt-2">Đăng nhập vào hệ thống quản trị</p>
+        </div>
 
-              <div className="flex items-center justify-between text-white text-sm">
+        <Card className="border-none shadow-xl">
+          <CardHeader className="space-y-1 pt-8">
+            <CardTitle className="text-2xl font-bold text-center">Đăng nhập</CardTitle>
+            <CardDescription className="text-center">
+              Nhập thông tin tài khoản của bạn bên dưới
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-8">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tên đăng nhập / Email</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="admin@example.com" 
+                          {...field} 
+                          className="h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>Mật khẩu</FormLabel>
+                        <Link href="#" className="text-xs text-primary font-semibold hover:underline">
+                          Quên mật khẩu?
+                        </Link>
+                      </div>
+                      <FormControl>
+                        <Input 
+                          type="password"
+                          placeholder="••••••••"
+                          {...field} 
+                          className="h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <FormField
                   control={form.control}
                   name="remember"
@@ -105,42 +140,42 @@ export default function LoginView() {
                     <div className="flex items-center space-x-2">
                       <Checkbox 
                         id="remember" 
-                        className="border-white/50 data-[state=checked]:bg-white data-[state=checked]:text-black"
                         checked={field.value} 
                         onCheckedChange={field.onChange} 
                       />
                       <label 
                         htmlFor="remember" 
-                        className="cursor-pointer liquid-text-secondary"
+                        className="text-sm font-medium text-slate-600 cursor-pointer select-none"
                       >
-                        Remember me
+                        Ghi nhớ đăng nhập
                       </label>
                     </div>
                   )}
                 />
-                <Link href="#" className="liquid-text-secondary hover:underline opacity-90 hover:opacity-100 transition-opacity">
-                  Forgot password?
-                </Link>
-              </div>
 
-              <Button 
-                type="submit" 
-                className="w-full h-12 bg-white text-black hover:bg-white/90 font-bold rounded-lg transition-all shadow-xl" 
-                disabled={isLoading}
-              >
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Log In
-              </Button>
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg transition-all shadow-md" 
+                  disabled={isLoading}
+                >
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Đăng nhập
+                </Button>
 
-              <div className="text-center text-sm liquid-text-secondary pt-2">
-                Don't have an account?{" "}
-                <Link href="/register" className="text-white font-bold hover:underline underline-offset-4 shadow-sm">
-                  Register
-                </Link>
-              </div>
-            </form>
-          </Form>
-        </div>
+                <div className="text-center text-sm text-slate-500 pt-2">
+                  Chưa có tài khoản?{" "}
+                  <Link href="/register" className="text-primary font-bold hover:underline">
+                    Đăng ký ngay
+                  </Link>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+        
+        <p className="text-center text-xs text-slate-400 mt-8">
+          &copy; 2024 ECP Admin. Bảo lưu mọi quyền.
+        </p>
       </div>
     </div>
   );

@@ -2,14 +2,14 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { createCategoryAction, deleteCategoryAction, updateCategoryAction } from '../actions/category.action';
+import { categoryApi } from '../api/category.api';
 import { CategoryFormValues } from '../schemas/category.schema';
 
 export function useCreateCategory() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (values: CategoryFormValues) => createCategoryAction(values),
+    mutationFn: (values: CategoryFormValues) => categoryApi.create(values),
     onSuccess: (result) => {
       if (result.success) {
         toast.success('Tạo danh mục thành công');
@@ -31,7 +31,7 @@ export function useUpdateCategory() {
 
   return useMutation({
     mutationFn: ({ id, values }: { id: string; values: CategoryFormValues }) => 
-      updateCategoryAction(id, values),
+      categoryApi.update(id, values),
     onSuccess: (result) => {
       if (result.success) {
         toast.success('Cập nhật danh mục thành công');
@@ -52,7 +52,7 @@ export function useDeleteCategory() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => deleteCategoryAction(id),
+    mutationFn: (id: string) => categoryApi.delete(id),
     onSuccess: (result) => {
       if (result.success) {
         toast.success('Xóa danh mục thành công');
