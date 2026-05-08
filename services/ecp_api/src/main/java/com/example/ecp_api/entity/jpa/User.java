@@ -47,7 +47,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
-    private UserRole role = UserRole.CUSTOMER;
+    private UserRole role = UserRole.USER;
 
     @Column(name = "is_active")
     private boolean active = true;

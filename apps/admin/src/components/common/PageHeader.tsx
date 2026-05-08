@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { cn } from "@/lib/utils";
+import { useBackground } from '@/components/providers/BackgroundProvider';
 
 interface PageHeaderProps {
   title: string;
@@ -16,14 +17,26 @@ export const PageHeader = ({
   actions,
   className
 }: PageHeaderProps) => {
+  const { currentBackground } = useBackground();
+
   return (
     <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6", className)}>
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+      <div className="space-y-1">
+        <h1 className={cn(
+          "text-2xl sm:text-4xl font-black tracking-tight transition-all duration-300",
+          currentBackground 
+            ? "liquid-text-primary italic drop-shadow-2xl" 
+            : "text-slate-900"
+        )}>
           {title}
         </h1>
         {description && (
-          <p className="text-slate-500 text-sm mt-1">
+          <p className={cn(
+            "text-sm font-medium transition-all duration-300",
+            currentBackground 
+              ? "liquid-text-secondary opacity-90" 
+              : "text-slate-500"
+          )}>
             {description}
           </p>
         )}

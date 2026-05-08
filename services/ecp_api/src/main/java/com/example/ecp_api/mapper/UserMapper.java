@@ -1,6 +1,7 @@
 package com.example.ecp_api.mapper;
 
 import com.example.ecp_api.dto.request.UserRequest;
+import com.example.ecp_api.dto.request.UserUpdateRequest;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.PaginationResponse;
 import com.example.ecp_api.dto.response.UserResponse;
@@ -86,5 +87,5 @@ public interface UserMapper {
     @Mapping(target = "profile.lastName", source = "lastName")
     @Mapping(target = "profile.dob", source = "dob")
     @Mapping(target = "profile.gender", source = "gender")
-    void updateUserFromRequest(UserRequest request, @MappingTarget User user);
+    void updateUserFromRequest(UserUpdateRequest request, @MappingTarget User user);
 }
