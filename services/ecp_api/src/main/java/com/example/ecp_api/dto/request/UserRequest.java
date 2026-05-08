@@ -26,11 +26,9 @@ public class UserRequest {
     @Pattern(regexp = "^(0[3|5|7|8|9])+([0-9]{8})$", message = "Phone number is invalid")
     private String phoneNumber;
 
-    @NotBlank(message = "First name cannot be blank")
     @Size(max = 100, message = "First name must not exceed 100 characters")
     private String firstName;
 
-    @NotBlank(message = "Last name cannot be blank")
     @Size(max = 100, message = "Last name must not exceed 100 characters")
     private String lastName;
 

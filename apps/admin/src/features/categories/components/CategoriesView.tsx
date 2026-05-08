@@ -49,8 +49,6 @@ import { Plus } from 'lucide-react';
 import { categoryApi } from '../api/category.api';
 import { toast } from 'sonner';
 
-import { useBackground } from '@/components/providers/BackgroundProvider';
-
 interface CategoriesViewProps {
   initialData: PageResponse<Category>;
   parentCategories: Category[];
@@ -60,7 +58,6 @@ export default function CategoriesView({
   initialData,
   parentCategories: serverParentCategories,
 }: CategoriesViewProps) {
-  const { currentBackground } = useBackground();
   const {
     page,
     size,
@@ -186,10 +183,10 @@ export default function CategoriesView({
 
   const filterBtnClass = (active: boolean) =>
     cn(
-      'justify-start font-normal text-xs px-2 py-1.5 rounded-md text-left transition-colors flex items-center',
+      'justify-start font-medium text-xs px-3 py-2 rounded-lg text-left transition-all flex items-center',
       active
-        ? (currentBackground ? "bg-white/20 text-white" : "bg-slate-100 text-slate-900")
-        : (currentBackground ? "hover:bg-white/10 text-white/70" : "hover:bg-slate-50 text-slate-500"),
+        ? "bg-primary/10 text-primary"
+        : "bg-transparent hover:bg-slate-50 text-slate-500",
     );
 
   return (
@@ -200,8 +197,8 @@ export default function CategoriesView({
         actions={commonActions}
       />
 
-      <Card className='shadow-sm border-slate-100 overflow-hidden'>
-        <CardHeader className='pb-4 bg-slate-50/30 border-b border-slate-50'>
+      <Card className='overflow-hidden'>
+        <CardHeader className='pb-4 bg-slate-50/50 border-b border-slate-100'>
           <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
             <SearchInput
               value={searchTerm}
@@ -214,12 +211,12 @@ export default function CategoriesView({
               <FilterPopover
                 activeCount={(activeParam ? 1 : 0) + (levelParam ? 1 : 0)}
                 onClear={() => updateUrl({ active: '', level: '', page: 0 })}>
-                <div className='space-y-4'>
+                <div className='space-y-4 p-1'>
                   <div className='space-y-2'>
-                    <h4 className='font-medium text-xs leading-none'>
+                    <h4 className='font-bold text-[10px] uppercase tracking-wider text-slate-400 px-3'>
                       Trạng thái
                     </h4>
-                    <div className='flex flex-col gap-1'>
+                    <div className='flex flex-col gap-0.5'>
                       <button
                         className={filterBtnClass(!activeParam)}
                         onClick={() => updateUrl({ active: '', page: 0 })}>
@@ -228,31 +225,31 @@ export default function CategoriesView({
                       <button
                         className={filterBtnClass(activeParam === 'true')}
                         onClick={() => updateUrl({ active: 'true', page: 0 })}>
-                        <Badge className='mr-2 h-2 w-2 rounded-full p-0 bg-blue-500' />{' '}
+                        <div className='mr-2 h-2 w-2 rounded-full bg-green-500' />{' '}
                         Hoạt động
                       </button>
                       <button
                         className={filterBtnClass(activeParam === 'false')}
                         onClick={() => updateUrl({ active: 'false', page: 0 })}>
-                        <Badge className='mr-2 h-2 w-2 rounded-full p-0 bg-red-500' />{' '}
+                        <div className='mr-2 h-2 w-2 rounded-full bg-red-500' />{' '}
                         Ẩn
                       </button>
                     </div>
                   </div>
 
-                  <div className='space-y-2'>
-                    <h4 className={cn('font-medium text-xs leading-none', currentBackground ? "text-white/60" : "text-slate-900")}>
+                  <div className='space-y-2 pt-2'>
+                    <h4 className='font-bold text-[10px] uppercase tracking-wider text-slate-400 px-3'>
                       Cấp độ (Level)
                     </h4>
-                    <div className='grid grid-cols-2 gap-1'>
+                    <div className='grid grid-cols-2 gap-2 px-3'>
                       {[1, 2].map((lv) => (
                         <button
                           key={lv}
                           className={cn(
-                            'h-7 text-[10px] border rounded-md transition-colors',
+                            'h-8 text-xs font-semibold border rounded-lg transition-all',
                             levelParam === lv.toString()
-                              ? (currentBackground ? 'bg-white text-black border-white' : 'bg-slate-900 text-white border-slate-900')
-                              : (currentBackground ? 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'),
+                              ? 'bg-primary text-white border-primary shadow-sm'
+                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50',
                           )}
                           onClick={() => updateUrl({ level: lv, page: 0 })}>
                           Lv {lv}
@@ -281,35 +278,35 @@ export default function CategoriesView({
               <EmptyState
                 title='Chưa có danh mục nào'
                 description='Bắt đầu phân loại sản phẩm bằng cách tạo danh mục đầu tiên.'
-                icon={<Plus className='h-10 w-10 text-blue-500 opacity-80' />}
-                iconColor='bg-blue-50'
+                icon={<Plus className='h-10 w-10 text-primary opacity-80' />}
+                iconColor='bg-primary/10'
               />
             </div>
           ) : (
             <>
               <div className='overflow-x-auto'>
                 <Table>
-                  <TableHeader className='bg-slate-50/50'>
+                  <TableHeader className='bg-slate-50/30'>
                     <TableRow>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 px-6 text-slate-500'>
+                      <TableHead className='text-xs font-bold uppercase py-4 px-6'>
                         Tên danh mục
                       </TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-slate-500'>
-                        Đường dẫn (Slug)
+                      <TableHead className='text-xs font-bold uppercase py-4'>
+                        Đường dẫn
                       </TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-slate-500'>
+                      <TableHead className='text-xs font-bold uppercase py-4'>
                         Path
                       </TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-center text-slate-500'>
+                      <TableHead className='text-xs font-bold uppercase py-4 text-center'>
                         Cấp độ
                       </TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-center text-slate-500'>
+                      <TableHead className='text-xs font-bold uppercase py-4 text-center'>
                         Trạng thái
                       </TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-center text-slate-500'>
+                      <TableHead className='text-xs font-bold uppercase py-4 text-center'>
                         Ngày tạo
                       </TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-right pr-6 text-slate-500'>
+                      <TableHead className='text-xs font-bold uppercase py-4 text-right pr-6'>
                         Thao tác
                       </TableHead>
                     </TableRow>
@@ -326,32 +323,32 @@ export default function CategoriesView({
                       : categories.map((category) => (
                           <TableRow
                             key={category.id}
-                            className='hover:bg-slate-50/30 transition-colors border-b border-slate-50'>
+                            className='hover:bg-slate-50/50 transition-colors'>
                             <TableCell className='py-4 px-6'>
                               <div className='flex flex-col'>
-                                <span className='text-sm font-bold'>
+                                <span className='text-sm font-bold text-slate-900'>
                                   {category.name}
                                 </span>
-                                <span className='text-[11px] opacity-60'>
+                                <span className='text-[10px] text-slate-400 font-medium'>
                                   ID: {category.id}
                                 </span>
                               </div>
                             </TableCell>
                             <TableCell className='py-4'>
-                              <code className={cn('text-[11px] px-1.5 py-0.5 rounded', currentBackground ? "bg-white/10 text-white/80" : "bg-slate-100 text-slate-600")}>
+                              <code className='text-[11px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium'>
                                 /{category.slug}
                               </code>
                             </TableCell>
                             <TableCell className='py-4'>
-                              <span className='text-[11px] font-mono opacity-70'>
+                              <span className='text-[11px] font-mono text-slate-500'>
                                 {category.path || '---'}
                               </span>
                             </TableCell>
                             <TableCell className='text-center py-4'>
                               <Badge
                                 variant='outline'
-                                className={cn('text-[10px] font-mono', currentBackground && "border-white/20 text-white/70")}>
-                                Level {category.level}
+                                className='text-[10px] font-bold border-slate-200 text-slate-500'>
+                                Cấp {category.level}
                               </Badge>
                             </TableCell>
                             <TableCell className='text-center py-4'>
@@ -359,11 +356,11 @@ export default function CategoriesView({
                                 variant={
                                   category.active ? 'default' : 'destructive'
                                 }
-                                className='text-[10px] h-5 px-2 border-none'>
-                                {category.active ? 'Hoạt động' : 'Ẩn'}
+                                className='text-[10px] font-bold h-5 px-2 uppercase tracking-tight border-none'>
+                                {category.active ? 'Hoạt động' : 'Đã ẩn'}
                               </Badge>
                             </TableCell>
-                            <TableCell className='text-center py-4 text-[11px]'>
+                            <TableCell className='text-center py-4 text-xs font-medium text-slate-500'>
                               {formatDate(category.createdAt)}
                             </TableCell>
                             <TableCell className='text-right py-4 pr-6'>
@@ -390,7 +387,7 @@ export default function CategoriesView({
                 itemsPerPage={pagination.pageSize}
                 onItemsPerPageChange={setSize}
                 onPageChange={(p) => setPage(p - 1)}
-                className='bg-slate-50/20'
+                className='bg-slate-50/30'
               />
             </>
           )}

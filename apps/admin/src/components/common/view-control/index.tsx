@@ -14,8 +14,6 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
-import { useBackground } from '@/components/providers/BackgroundProvider';
-
 // 1. Search Input
 export interface SearchInputProps {
   value: string;
@@ -25,15 +23,14 @@ export interface SearchInputProps {
 }
 
 export const SearchInput = ({ value, onChange, placeholder, isLoading }: SearchInputProps) => {
-  const { currentBackground } = useBackground();
   return (
     <div className='relative w-full md:w-80'>
-      <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4', currentBackground ? "text-white/40" : "text-slate-400")} />
+      <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400' />
       <Input
         placeholder={placeholder || 'Tìm kiếm...'}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={cn('pl-9 h-10 text-sm border-slate-200 focus-visible:ring-blue-500', currentBackground ? "bg-white/5 border-white/10" : "bg-white")}
+        className='pl-9 h-10 text-sm border-slate-200 focus-visible:ring-blue-500 bg-white'
       />
       {isLoading && (
         <Loader2 className='absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-blue-500' />
@@ -64,12 +61,11 @@ export const AddNewButton = ({ onClick, label = 'Thêm mới' }: { onClick: () =
 
 // 3. Popover Controls
 export const FilterPopover = ({ children, activeCount, onClear }: { children: React.ReactNode; activeCount?: number; onClear?: () => void }) => {
-  const { currentBackground } = useBackground();
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant={activeCount ? 'default' : 'outline'} className={cn('h-10 text-xs border-slate-200', currentBackground && "border-white/20")}>
-          <Filter className={cn('mr-2 h-4 w-4', currentBackground ? "text-white" : "text-slate-400")} />
+        <Button variant={activeCount ? 'default' : 'outline'} className='h-10 text-xs border-slate-200'>
+          <Filter className={cn('mr-2 h-4 w-4', activeCount ? "text-white" : "text-slate-400")} />
           Lọc {activeCount ? `(${activeCount})` : ''}
         </Button>
       </PopoverTrigger>
@@ -89,12 +85,11 @@ export const FilterPopover = ({ children, activeCount, onClear }: { children: Re
 };
 
 export const SortPopover = ({ options, currentValue, onSelect }: { options: { label: string; value: string }[]; currentValue: string; onSelect: (value: string) => void }) => {
-  const { currentBackground } = useBackground();
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant='outline' className={cn('h-10 text-xs border-slate-200', currentBackground && "border-white/20")}>
-          <ArrowUpDown className={cn('mr-2 h-4 w-4', currentBackground ? "text-white" : "text-slate-400")} /> Sắp xếp
+        <Button variant='outline' className='h-10 text-xs border-slate-200'>
+          <ArrowUpDown className='mr-2 h-4 w-4 text-slate-400' /> Sắp xếp
         </Button>
       </PopoverTrigger>
       <PopoverContent align='end' className='w-48 p-2'>

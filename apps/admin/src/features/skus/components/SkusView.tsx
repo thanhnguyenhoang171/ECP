@@ -38,8 +38,6 @@ import { formatCurrency } from '@/lib/formatters';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { cn } from '@/lib/utils';
 
-import { useBackground } from '@/components/providers/BackgroundProvider';
-
 interface SkusViewProps {
   initialData: PageResponse<Sku>;
 }
@@ -47,7 +45,6 @@ interface SkusViewProps {
 export default function SkusView({
   initialData,
 }: SkusViewProps) {
-  const { currentBackground } = useBackground();
   const {
     sort,
     searchParams,
@@ -103,9 +100,7 @@ export default function SkusView({
 
   const filterBtnClass = (active: boolean) => cn(
     "justify-start font-normal text-xs px-2 py-1.5 rounded-md text-left transition-colors flex items-center",
-    active 
-      ? (currentBackground ? "bg-white/20 text-white" : "bg-slate-100 text-slate-900")
-      : (currentBackground ? "hover:bg-white/10 text-white/70" : "hover:bg-slate-50 text-slate-500")
+    active ? "bg-slate-100 text-slate-900" : "hover:bg-slate-50 text-slate-500"
   );
 
   return (
@@ -165,12 +160,12 @@ export default function SkusView({
                   <TableBody>
                     {filteredSkus.map((sku) => (
                       <TableRow key={sku.id} className='hover:bg-slate-50/30 transition-colors border-b border-slate-50'>
-                        <TableCell className={cn('font-mono text-[11px] font-bold py-4 px-6', !currentBackground && "text-blue-600")}>{sku.sku}</TableCell>
+                        <TableCell className='font-mono text-[11px] font-bold py-4 px-6 text-blue-600'>{sku.sku}</TableCell>
                         <TableCell className='py-4'><span className='text-sm font-medium'>{sku.productName}</span></TableCell>
                         <TableCell className='py-4'>
                           <div className='flex flex-wrap gap-1'>
                             {Object.entries(sku.attributes).map(([key, value]) => (
-                              <Badge key={key} variant="outline" className={cn("text-[10px] font-normal border-slate-200", currentBackground ? "text-white/70 border-white/20" : "text-slate-500")}>{key}: {value}</Badge>
+                              <Badge key={key} variant="outline" className="text-[10px] font-normal border-slate-200 text-slate-500">{key}: {value}</Badge>
                             ))}
                           </div>
                         </TableCell>

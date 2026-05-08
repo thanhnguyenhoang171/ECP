@@ -1,8 +1,7 @@
 import { Category } from '../types/category.interface';
 import { CategoryFormValues } from '../schemas/category.schema';
 import { PageResponse } from '@/types/pagination';
-
-const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/v1/categories`;
+import { clientFetch } from '@/lib/clientFetch';
 
 export const categoryApi = {
   // Lấy danh sách danh mục có phân trang và lọc
@@ -32,7 +31,7 @@ export const categoryApi = {
     if (params.active !== undefined)
       query.append('active', params.active.toString());
 
-    const res = await fetch(`${BASE_URL}?${query.toString()}`);
+    const res = await clientFetch(`v1/categories?${query.toString()}`);
     if (!res.ok) throw new Error('Failed to fetch categories');
     return res.json();
   },
@@ -42,7 +41,7 @@ export const categoryApi = {
     id: string,
     values: Partial<CategoryFormValues>,
   ): Promise<{ success: boolean; data: Category }> => {
-    const res = await fetch(`${BASE_URL}/${id}`, {
+    const res = await clientFetch(`v1/categories/${id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -58,7 +57,7 @@ export const categoryApi = {
   create: async (
     values: CategoryFormValues,
   ): Promise<{ success: boolean; data: Category }> => {
-    const res = await fetch(BASE_URL, {
+    const res = await clientFetch('v1/categories', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -72,7 +71,7 @@ export const categoryApi = {
 
   // Xóa danh mục
   delete: async (id: string): Promise<{ success: boolean }> => {
-    const res = await fetch(`${BASE_URL}/${id}`, {
+    const res = await clientFetch(`v1/categories/${id}`, {
       method: 'DELETE',
     });
     if (!res.ok) {
@@ -84,8 +83,8 @@ export const categoryApi = {
 
   // Lấy danh sách danh mục cha
   getParents: async (): Promise<Category[]> => {
-    const res = await fetch(`${BASE_URL}/parents`, {
-      cache: 'no-store', // Đảm bảo không lấy cache trình duyệt
+    const res = await clientFetch('v1/categories/parents', {
+      cache: 'no-store',
     });
     if (!res.ok) throw new Error('Failed to fetch parent categories');
     const result = await res.json();
@@ -94,7 +93,7 @@ export const categoryApi = {
 
   // Export file excel
   export: async (): Promise<Blob> => {
-    const res = await fetch(`${BASE_URL}/export`, {
+    const res = await clientFetch('v1/categories/export', {
       method: 'GET',
     });
     if (!res.ok) throw new Error('Failed to export categories');
@@ -103,7 +102,7 @@ export const categoryApi = {
   
   // Fetch template file
   template: async (): Promise<Blob> => {
-    const res = await fetch(`${BASE_URL}/template`, {
+    const res = await clientFetch('v1/categories/template', {
       method: 'GET',
     });
     if (!res.ok) throw new Error('Failed to fetch template');

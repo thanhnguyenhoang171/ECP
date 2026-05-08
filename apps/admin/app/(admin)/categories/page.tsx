@@ -1,6 +1,7 @@
 import CategoriesView from '@/features/categories/components/CategoriesView';
 import { PageResponse } from '@/types/pagination';
 import { Category } from '@/features/categories/types/category.interface';
+import { serverFetch } from '@/lib/serverFetch';
 
 // Hàm fetch dữ liệu tại Server với Caching
 async function getCategories(
@@ -9,21 +10,19 @@ async function getCategories(
   sort: string,
 ): Promise<PageResponse<Category>> {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/v1/categories?page=${page}&size=${size}&sort=${sort}`,
+    const res = await serverFetch(
+      `v1/categories?page=${page}&size=${size}&sort=${sort}`,
       {
         next: {
           revalidate: 3600, // Cache 1 giờ
           tags: ['categories-list'], // Tag để xóa cache chủ động
         },
-      },
+      } as any,
     );
 
     if (!res.ok) throw new Error('Failed to fetch categories');
 
     const result = await res.json();
-    console.log('Checking get categories result at SERVER:', result);
-
     return result;
   } catch (error) {
     console.error('Server fetch categories error:', error);
@@ -45,18 +44,17 @@ async function getCategories(
 
 async function getParentCategories() {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/v1/categories/parents`,
+    const res = await serverFetch(
+      `v1/categories/parents`,
       {
         next: {
           revalidate: 3600,
           tags: ['categories-parents'],
         },
-      },
+      } as any,
     );
     if (!res.ok) return [];
     const result = await res.json();
-    console.log('Checking get parent categories result at SERVER:', result);
     return result.success ? result.data : [];
   } catch (error) {
     console.error('Server fetch parent categories error:', error);

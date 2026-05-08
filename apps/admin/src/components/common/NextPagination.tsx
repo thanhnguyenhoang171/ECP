@@ -24,20 +24,6 @@ interface NextPaginationProps {
   pageSizeOptions?: number[];
 }
 
-import { useBackground } from "@/components/providers/BackgroundProvider";
-
-interface NextPaginationProps {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-  totalItems?: number;
-  itemsPerPage: number;
-  onItemsPerPageChange?: (size: number) => void;
-  className?: string;
-  showTotal?: boolean;
-  pageSizeOptions?: number[];
-}
-
 export const NextPagination = ({
   currentPage,
   totalPages,
@@ -49,7 +35,6 @@ export const NextPagination = ({
   showTotal = true,
   pageSizeOptions = [10, 20, 50, 100],
 }: NextPaginationProps) => {
-  const { currentBackground } = useBackground();
   // Logic to calculate page numbers to show
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
@@ -80,34 +65,28 @@ export const NextPagination = ({
 
   return (
     <div className={cn(
-      "flex flex-col md:flex-row items-center justify-between gap-4 px-4 py-4 border-t", 
-      currentBackground ? "bg-white/5 border-white/10" : "bg-white border-slate-100",
+      "flex flex-col md:flex-row items-center justify-between gap-4 px-4 py-4 border-t bg-white border-slate-100",
       className
     )}>
       {/* Left side: Total items info */}
       <div className="flex items-center gap-4">
         {showTotal && totalItems !== undefined && (
-          <div className={cn("text-[11px] font-medium italic whitespace-nowrap", currentBackground ? "text-white/60" : "text-slate-500")}>
-            Hiển thị <span className={cn("font-bold", currentBackground ? "text-white" : "text-slate-900")}>{startItem}-{endItem}</span> trên <span className={cn("font-bold", currentBackground ? "text-white" : "text-slate-900")}>{totalItems}</span> bản ghi
+          <div className="text-[11px] font-medium italic whitespace-nowrap text-slate-500">
+            Hiển thị <span className="font-bold text-slate-900">{startItem}-{endItem}</span> trên <span className="font-bold text-slate-900">{totalItems}</span> bản ghi
           </div>
         )}
 
         {/* Page size select */}
         {onItemsPerPageChange && (
-          <div className={cn("flex items-center gap-2 border-l pl-4", currentBackground ? "border-white/10" : "border-slate-100")}>
-            <span className={cn("text-[11px] font-medium", currentBackground ? "text-white/40" : "text-slate-400")}>Hiển thị:</span>
+          <div className="flex items-center gap-2 border-l pl-4 border-slate-100">
+            <span className="text-[11px] font-medium text-slate-400">Hiển thị:</span>
             <select 
               value={itemsPerPage}
               onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-              className={cn(
-                "border text-[11px] font-bold rounded-lg block p-1 transition-all outline-none cursor-pointer",
-                currentBackground 
-                  ? "bg-white/10 border-white/20 text-white focus:ring-white/30 focus:border-white/40" 
-                  : "bg-slate-50 border-slate-200 text-slate-700 focus:ring-blue-500 focus:border-blue-500"
-              )}
+              className="border text-[11px] font-bold rounded-lg block p-1 transition-all outline-none cursor-pointer bg-slate-50 border-slate-200 text-slate-700 focus:ring-blue-500 focus:border-blue-500"
             >
               {pageSizeOptions.map(option => (
-                <option key={option} value={option} className={currentBackground ? "bg-slate-900" : ""}>{option} / trang</option>
+                <option key={option} value={option}>{option} / trang</option>
               ))}
             </select>
           </div>
@@ -125,10 +104,7 @@ export const NextPagination = ({
               }}
               href="#"
               className={cn(
-                "h-8 px-3 text-[11px] font-bold transition-all cursor-pointer",
-                currentBackground
-                  ? "border-white/10 text-white hover:bg-white/10 hover:text-white"
-                  : "border-slate-200 text-slate-900 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100",
+                "h-8 px-3 text-[11px] font-bold transition-all cursor-pointer border-slate-200 text-slate-900 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100",
                 currentPage === 1 && "pointer-events-none opacity-40 grayscale"
               )}
             />
@@ -137,7 +113,7 @@ export const NextPagination = ({
           {pages.map((page, index) => (
             <PaginationItem key={index}>
               {page === 'ellipsis' ? (
-                <PaginationEllipsis className={cn("h-8 w-8", currentBackground ? "text-white/40" : "text-slate-400")} />
+                <PaginationEllipsis className="h-8 w-8 text-slate-400" />
               ) : (
                 <PaginationLink
                   href="#"
@@ -149,12 +125,8 @@ export const NextPagination = ({
                   className={cn(
                     "h-8 w-8 min-w-8 text-[11px] font-bold transition-all cursor-pointer",
                     currentPage === page 
-                      ? (currentBackground 
-                          ? "bg-white text-black border-white shadow-lg" 
-                          : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 hover:text-white shadow-sm shadow-blue-100")
-                      : (currentBackground
-                          ? "border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
-                          : "border-slate-200 text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100")
+                      ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 hover:text-white shadow-sm shadow-blue-100"
+                      : "border-slate-200 text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100"
                   )}
                 >
                   {page}
@@ -171,10 +143,7 @@ export const NextPagination = ({
               }}
               href="#"
               className={cn(
-                "h-8 px-3 text-[11px] font-bold transition-all cursor-pointer",
-                currentBackground
-                  ? "border-white/10 text-white hover:bg-white/10 hover:text-white"
-                  : "border-slate-200 text-slate-900 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100",
+                "h-8 px-3 text-[11px] font-bold transition-all cursor-pointer border-slate-200 text-slate-900 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100",
                 currentPage === totalPages && "pointer-events-none opacity-40 grayscale"
               )}
             />
