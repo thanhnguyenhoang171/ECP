@@ -29,6 +29,17 @@ services:
       - ecp_network
     restart: always
 
+  redis:
+    image: redis:alpine
+    container_name: ecp_redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - ecp_network
+    restart: always
+
   api:
     image: ghcr.io/thanhnguyenhoang171/ecp/ecp-api:latest
     container_name: ecp_api
@@ -39,12 +50,15 @@ services:
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-root}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-142857}
       SPRING_MONGODB_URI: ${SPRING_MONGODB_URI:-mongodb://admin:142857@mongodb:27017/ecp_mongo?authSource=admin}
+      SPRING_REDIS_HOST: ${SPRING_REDIS_HOST:-redis}
+      SPRING_REDIS_PORT: ${SPRING_REDIS_PORT:-6379}
       SPRING_PROFILES_ACTIVE: prod
     networks:
       - ecp_network
     depends_on:
       - mysql
       - mongodb
+      - redis
     restart: always
 
   admin:
@@ -76,3 +90,4 @@ networks:
 volumes:
   mysql_data:
   mongo_data:
+  redis_data:
