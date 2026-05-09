@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Package } from 'lucide-react';
 
 import {
@@ -58,13 +58,9 @@ export default function ProductView({
   categories,
 }: ProductViewProps) {
   const {
-    page,
-    size,
     sort,
     name,
     updateUrl,
-    setPage,
-    setSize,
     setSort,
     searchParams,
   } = useViewParams('name,asc');
