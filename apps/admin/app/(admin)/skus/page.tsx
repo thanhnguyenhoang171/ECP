@@ -4,9 +4,9 @@ import { PageResponse } from '@/types/pagination';
 import { Sku } from '@/features/skus/types/sku.interface';
 
 export default async function SkusPage({
-  searchParams,
+  _searchParams,
 }: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  _searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   // Dữ liệu mẫu (Mock Data)
   const sampleSkus: Sku[] = [

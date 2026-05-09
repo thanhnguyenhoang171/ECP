@@ -4,9 +4,9 @@ import { PageResponse } from '@/types/pagination';
 import { Product } from '@/features/products/types/product.interface';
 
 export default async function ProductPage({
-  searchParams,
+  _searchParams,
 }: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  _searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   // Dữ liệu mẫu (Mock Data)
   const sampleProducts: Product[] = [

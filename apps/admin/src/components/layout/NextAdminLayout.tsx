@@ -101,15 +101,19 @@ const SidebarItem = memo(({
   isMobile?: boolean;
   onNavigate?: () => void;
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
   const hasChildren = !!item.children;
   const isActive = pathname === item.key || item.children?.some(c => pathname === c.key);
-  
-  useEffect(() => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [prevIsActive, setPrevIsActive] = useState(isActive);
+
+  if (isActive !== prevIsActive) {
+    setPrevIsActive(isActive);
     if (isActive && !isCollapsed) {
       setIsOpen(true);
     }
-  }, [isActive, isCollapsed]);
+  }
+
+  // Effect removed to avoid cascading renders warning
 
   if (isCollapsed && !isMobile && hasChildren) {
     return (
