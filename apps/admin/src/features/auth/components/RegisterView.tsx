@@ -71,70 +71,66 @@ export default function RegisterView() {
   }
 
   return (
-    <div className="relative flex items-center justify-center min-h-screen overflow-hidden py-12">
+    <div className="relative flex flex-col items-center min-h-screen py-10 px-4">
       {/* Background Image with Overlay */}
       <div 
-        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: "url('/background/ocean.jpg')" }}
       >
         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]" />
       </div>
 
-      <div className="relative z-10 w-full max-w-lg mx-4">
-        <div className="flex flex-col items-center mb-6">
-          <div className="bg-primary p-3 rounded-2xl shadow-2xl mb-4 ring-4 ring-primary/20">
-            <Package className="text-white h-10 w-10" />
-          </div>
-          <h1 className="text-4xl font-extrabold text-white tracking-tight drop-shadow-md">ECP ADMIN</h1>
-          <p className="text-slate-200 mt-2 font-medium">Tham gia hệ thống quản trị ngay</p>
+      <div className="relative z-10 w-full max-w-lg my-auto">
+        <div className="flex flex-col items-center mb-8">
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tighter drop-shadow-lg text-center">ECP ADMIN</h1>
         </div>
 
         <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-sm overflow-hidden">
-          <CardHeader className="space-y-1 pt-8 pb-6 bg-slate-50/50 border-b">
-            <CardTitle className="text-2xl font-bold text-center text-slate-900">Tạo tài khoản</CardTitle>
-            <CardDescription className="text-center text-slate-500">
+          <CardHeader className="space-y-1 pt-6 sm:pt-8 pb-4 sm:pb-6 bg-slate-50/50 border-b px-5 sm:px-8">
+            <CardTitle className="text-xl sm:text-2xl font-bold text-center text-slate-900">Tạo tài khoản</CardTitle>
+            <CardDescription className="text-center text-slate-500 text-xs sm:text-sm">
               Điền thông tin của bạn để bắt đầu
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-8">
+          <CardContent className="p-5 sm:p-8">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
                 <FormField
                   control={form.control}
                   name="username"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-slate-700 font-semibold">Tên đăng nhập</FormLabel>
+                      <FormLabel className="text-slate-700 font-semibold text-sm sm:text-base">Tên đăng nhập</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <User className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+                          <User className="absolute left-3 top-3 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
                           <Input 
                             placeholder="username" 
                             {...field} 
-                            className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+                            className="pl-9 sm:pl-10 h-10 sm:h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all text-sm sm:text-base"
                           />
                         </div>
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-xs" />
                     </FormItem>
                   )}
                 />
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <FormField
                     control={form.control}
                     name="lastName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-700 font-semibold">Họ</FormLabel>
+                        <FormLabel className="text-slate-700 font-semibold text-sm sm:text-base">Họ</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="Nguyễn" 
                             {...field} 
-                            className="h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+                            className="h-10 sm:h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all text-sm sm:text-base"
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-xs" />
                       </FormItem>
                     )}
                   />
@@ -143,15 +139,15 @@ export default function RegisterView() {
                     name="firstName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-700 font-semibold">Tên</FormLabel>
+                        <FormLabel className="text-slate-700 font-semibold text-sm sm:text-base">Tên</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="Thành" 
                             {...field} 
-                            className="h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+                            className="h-10 sm:h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all text-sm sm:text-base"
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-xs" />
                       </FormItem>
                     )}
                   />
@@ -163,26 +159,26 @@ export default function RegisterView() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-700 font-semibold">Mật khẩu</FormLabel>
+                        <FormLabel className="text-slate-700 font-semibold text-sm sm:text-base">Mật khẩu</FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <Lock className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+                            <Lock className="absolute left-3 top-3 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
                             <Input 
                               type={showPassword ? "text" : "password"}
                               placeholder="••••••••"
                               {...field} 
-                              className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+                              className="pl-9 sm:pl-10 h-10 sm:h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all text-sm sm:text-base"
                             />
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
                               className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition-colors"
                             >
-                              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                              {showPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
                             </button>
                           </div>
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-xs" />
                       </FormItem>
                     )}
                   />
@@ -192,19 +188,19 @@ export default function RegisterView() {
                     name="confirm"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-700 font-semibold">Xác nhận mật khẩu</FormLabel>
+                        <FormLabel className="text-slate-700 font-semibold text-sm sm:text-base">Xác nhận mật khẩu</FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <Lock className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+                            <Lock className="absolute left-3 top-3 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
                             <Input 
                               type={showPassword ? "text" : "password"}
                               placeholder="••••••••"
                               {...field} 
-                              className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+                              className="pl-9 sm:pl-10 h-10 sm:h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all text-sm sm:text-base"
                             />
                           </div>
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-xs" />
                       </FormItem>
                     )}
                   />
@@ -212,22 +208,22 @@ export default function RegisterView() {
 
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl transition-all shadow-lg mt-4 active:scale-[0.98]" 
+                  className="w-full h-10 sm:h-12 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl transition-all shadow-lg mt-2 sm:mt-4 active:scale-[0.98] text-sm sm:text-base" 
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
                   ) : (
                     <span className="flex items-center">
-                      <UserPlus className="mr-2 h-5 w-5" /> Đăng ký tài khoản
+                      <UserPlus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Đăng ký tài khoản
                     </span>
                   )}
                 </Button>
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex flex-col border-t bg-slate-50/50 p-6">
-            <div className="text-center text-sm text-slate-500">
+          <CardFooter className="flex flex-col border-t bg-slate-50/50 p-5 sm:p-6">
+            <div className="text-center text-xs sm:text-sm text-slate-500">
               Đã có tài khoản?{" "}
               <Link href="/login" className="text-primary font-bold hover:underline">
                 Đăng nhập
