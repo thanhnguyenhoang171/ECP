@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { User, Lock, Loader2, Package, Eye, EyeOff, UserPlus } from 'lucide-react';
+import { User, Lock, Loader2, Package, Eye, EyeOff, UserPlus, Mail } from 'lucide-react';
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ export default function RegisterView() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
+      email: "",
       firstName: "",
       lastName: "",
       password: "",
@@ -48,6 +49,7 @@ export default function RegisterView() {
         },
         body: JSON.stringify({
           username: values.username,
+          email: values.email,
           firstName: values.firstName,
           lastName: values.lastName,
           password: values.password,
@@ -106,6 +108,27 @@ export default function RegisterView() {
                           <User className="absolute left-3 top-3 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
                           <Input 
                             placeholder="username" 
+                            {...field} 
+                            className="pl-9 sm:pl-10 h-10 sm:h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all text-sm sm:text-base"
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-700 font-semibold text-sm sm:text-base">Email</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-3 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
+                          <Input 
+                            placeholder="admin@example.com" 
                             {...field} 
                             className="pl-9 sm:pl-10 h-10 sm:h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all text-sm sm:text-base"
                           />

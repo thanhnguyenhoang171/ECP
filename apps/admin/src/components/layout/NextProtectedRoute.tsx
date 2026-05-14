@@ -31,9 +31,9 @@ export default function NextProtectedRoute({ children }: { children: React.React
   if (!isAuthenticated) return null;
 
   // Chặn người dùng có role là USER truy cập vào admin
-  const isRestricted = user?.roles.includes('ROLE_USER') && 
-                     !user?.roles.includes('ROLE_SUPER_ADMIN') && 
-                     !user?.roles.includes('ROLE_MANAGER');
+  const isRestricted = user?.roles?.includes('ROLE_USER') && 
+                     !user?.roles?.includes('ROLE_SUPER_ADMIN') && 
+                     !user?.roles?.includes('ROLE_MANAGER');
 
   if (isRestricted) {
     return <Forbidden />;
