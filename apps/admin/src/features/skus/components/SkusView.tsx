@@ -4,19 +4,15 @@ import React, { useState } from 'react';
 import { Layers } from 'lucide-react';
 
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
   Badge,
   Card,
   CardContent,
   CardHeader,
   NextPagination,
   PageHeader,
-  EmptyState,
+  DataTable,
+  DataCard,
+  type ColumnDef,
 } from '@/components/common';
 import {
   SearchInput,
@@ -36,6 +32,8 @@ import { toast } from 'sonner';
 
 import { formatCurrency } from '@/lib/formatters';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
+import { useHotkeys } from '@/hooks/use-hotkeys';
+import { getSortOptions } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface SkusViewProps {
@@ -72,8 +70,13 @@ export default function SkusView({
 
   const [searchTerm, setSearchTerm] = useDebounceSearch(skuParam, (val) => updateUrl({ sku: val, page: 0 }));
 
-
   const [isExporting, setIsExporting] = useState(false);
+
+  const handleCreate = () => {
+    toast.info('Tính năng Thêm mới đang được phát triển (Demo)');
+  };
+
+  useHotkeys('+', handleCreate);
 
   const handleExport = () => {
     setIsExporting(true);
@@ -83,11 +86,65 @@ export default function SkusView({
     }, 1000);
   };
 
-  const sortOptions = [
-    { label: 'SKU (A-Z)', value: 'sku,asc' },
-    { label: 'SKU (Z-A)', value: 'sku,desc' },
-    { label: 'Giá giảm dần', value: 'price,desc' },
-    { label: 'Giá tăng dần', value: 'price,asc' },
+  const sortOptions = getSortOptions(['SKU', 'PRICE']);
+
+  const columns: ColumnDef<Sku>[] = [
+    {
+      header: 'Mã SKU',
+      accessorKey: 'sku',
+      className: 'font-mono text-[11px] font-bold text-blue-600',
+    },
+    {
+      header: 'Sản phẩm',
+      accessorKey: 'productName',
+      className: 'text-sm font-medium',
+    },
+    {
+      header: 'Biến thể / Thuộc tính',
+      cell: (sku) => (
+        <div className='flex flex-wrap gap-1'>
+          {Object.entries(sku.attributes).map(([key, value]) => (
+            <Badge key={key} variant="outline" className="text-[10px] font-normal border-slate-200 text-slate-500">
+              {key}: {value}
+            </Badge>
+          ))}
+        </div>
+      ),
+    },
+    {
+      header: 'Giá bán',
+      align: 'right',
+      cell: (sku) => formatCurrency(sku.price),
+      className: 'text-sm font-bold',
+    },
+    {
+      header: 'Tồn kho',
+      align: 'center',
+      cell: (sku) => (
+        <Badge variant='secondary' className='text-[10px] py-0.5 px-2 bg-slate-100 text-slate-600 border-none whitespace-nowrap'>
+          {sku.stock}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Trạng thái',
+      align: 'center',
+      cell: (sku) => (
+        <Badge variant={sku.active ? 'default' : 'secondary'} className='text-[10px] py-0.5 px-2 border-none whitespace-nowrap'>
+          {sku.active ? 'Hoạt động' : 'Tạm ngừng'}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Thao tác',
+      align: 'right',
+      cell: (sku) => (
+        <div className='flex justify-end gap-1'>
+          <EditActionButton onClick={() => toast.info('Tính năng Chỉnh sửa đang được phát triển (Demo)')} />
+          <DeleteActionButton onClick={() => setDeleteConfirmId(sku.id)} />
+        </div>
+      ),
+    },
   ];
 
   const commonActions = (
@@ -107,91 +164,58 @@ export default function SkusView({
     <div className='space-y-6'>
       <PageHeader title='Quản lý SKUs' description='Xem và quản lý các đơn vị hàng hóa chi tiết (Stock Keeping Units).' actions={commonActions} />
 
-      <Card className='shadow-sm border-slate-100 overflow-hidden'>
-        <CardHeader className='pb-4 bg-slate-50/30 border-b border-slate-50'>
-          <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
-            <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder='Tìm mã SKU...' />
-            
-            <div className='flex items-center gap-2'>
-              <FilterPopover 
-                activeCount={activeParam ? 1 : 0}
-                onClear={() => updateUrl({ active: '', page: 0 })}
-              >
-                <div className="space-y-2">
-                  <h4 className="font-medium text-xs leading-none">Trạng thái</h4>
-                  <div className="flex flex-col gap-1">
-                    <button className={filterBtnClass(!activeParam)} onClick={() => updateUrl({ active: '', page: 0 })}>
-                      Tất cả trạng thái
-                    </button>
-                    <button className={filterBtnClass(activeParam === 'true')} onClick={() => updateUrl({ active: 'true', page: 0 })}>
-                      <Badge className='mr-2 h-2 w-2 rounded-full p-0 bg-blue-500' /> Hoạt động
-                    </button>
-                    <button className={filterBtnClass(activeParam === 'false')} onClick={() => updateUrl({ active: 'false', page: 0 })}>
-                      <Badge variant='secondary' className='mr-2 h-2 w-2 rounded-full p-0' /> Tạm ngừng
-                    </button>
-                  </div>
+      <DataCard
+        search={<SearchInput value={searchTerm} onChange={setSearchTerm} placeholder='Tìm mã SKU...' />}
+        extra={
+          <>
+            <FilterPopover 
+              activeCount={activeParam ? 1 : 0}
+              onClear={() => updateUrl({ active: '', page: 0 })}
+            >
+              <div className="space-y-2">
+                <h4 className="font-medium text-xs leading-none">Trạng thái</h4>
+                <div className="flex flex-col gap-1">
+                  <button className={filterBtnClass(!activeParam)} onClick={() => updateUrl({ active: '', page: 0 })}>
+                    Tất cả trạng thái
+                  </button>
+                  <button className={filterBtnClass(activeParam === 'true')} onClick={() => updateUrl({ active: 'true', page: 0 })}>
+                    <Badge className='mr-2 h-2 w-2 rounded-full p-0 bg-blue-500' /> Hoạt động
+                  </button>
+                  <button className={filterBtnClass(activeParam === 'false')} onClick={() => updateUrl({ active: 'false', page: 0 })}>
+                    <Badge variant='secondary' className='mr-2 h-2 w-2 rounded-full p-0' /> Tạm ngừng
+                  </button>
                 </div>
-              </FilterPopover>
-
-              <SortPopover options={sortOptions} currentValue={sort} onSelect={setSort} />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className='p-0 relative'>
-          {filteredSkus.length === 0 ? (
-            <div className='py-20'>
-              <EmptyState title='Không tìm thấy mã SKU' description='Vui lòng cấu hình sản phẩm để hệ thống tự động sinh mã SKU.' icon={<Layers className='h-10 w-10 text-blue-500 opacity-80' />} iconColor='bg-blue-50' />
-            </div>
-          ) : (
-            <>
-              <div className='overflow-x-auto'>
-                <Table>
-                  <TableHeader className='bg-slate-50/50'>
-                    <TableRow>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 px-6 text-slate-500'>Mã SKU</TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-slate-500'>Sản phẩm</TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-slate-500'>Biến thể / Thuộc tính</TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-right text-slate-500'>Giá bán</TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-center text-slate-500'>Tồn kho</TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-center text-slate-500'>Trạng thái</TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-right pr-6 text-slate-500'>Thao tác</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredSkus.map((sku) => (
-                      <TableRow key={sku.id} className='hover:bg-slate-50/30 transition-colors border-b border-slate-50'>
-                        <TableCell className='font-mono text-[11px] font-bold py-4 px-6 text-blue-600'>{sku.sku}</TableCell>
-                        <TableCell className='py-4'><span className='text-sm font-medium'>{sku.productName}</span></TableCell>
-                        <TableCell className='py-4'>
-                          <div className='flex flex-wrap gap-1'>
-                            {Object.entries(sku.attributes).map(([key, value]) => (
-                              <Badge key={key} variant="outline" className="text-[10px] font-normal border-slate-200 text-slate-500">{key}: {value}</Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell className='text-right text-sm font-bold py-4'>{formatCurrency(sku.price)}</TableCell>
-                        <TableCell className='text-center py-4'>
-                          <Badge variant='secondary' className='text-[10px] h-5 px-2 bg-slate-100 text-slate-600 border-none'>{sku.stock}</Badge>
-                        </TableCell>
-                        <TableCell className='text-center py-4'>
-                          <Badge variant={sku.active ? 'default' : 'secondary'} className='text-[10px] h-5 px-2 border-none'>{sku.active ? 'Hoạt động' : 'Tạm ngừng'}</Badge>
-                        </TableCell>
-                        <TableCell className='text-right py-4 pr-6'>
-                          <div className='flex justify-end gap-1'>
-                            <EditActionButton onClick={() => toast.info('Tính năng Chỉnh sửa đang được phát triển (Demo)')} />
-                            <DeleteActionButton onClick={() => setDeleteConfirmId(sku.id)} />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
               </div>
-              <NextPagination currentPage={1} totalPages={1} totalItems={filteredSkus.length} itemsPerPage={10} onItemsPerPageChange={() => {}} onPageChange={() => {}} className='bg-slate-50/20' />
-            </>
-          )}
-        </CardContent>
-      </Card>
+            </FilterPopover>
+
+            <SortPopover options={sortOptions} currentValue={sort} onSelect={setSort} />
+          </>
+        }
+        footer={
+          filteredSkus.length > 0 && (
+            <NextPagination 
+              currentPage={1} 
+              totalPages={1} 
+              totalItems={filteredSkus.length} 
+              itemsPerPage={10} 
+              onItemsPerPageChange={() => {}} 
+              onPageChange={() => {}} 
+              className='bg-slate-50/20' 
+            />
+          )
+        }
+      >
+        <DataTable
+          columns={columns}
+          data={filteredSkus}
+          emptyState={{
+            title: 'Không tìm thấy mã SKU',
+            description: 'Vui lòng cấu hình sản phẩm để hệ thống tự động sinh mã SKU.',
+            icon: <Layers className='h-10 w-10 text-blue-500 opacity-80' />,
+            iconColor: 'bg-blue-50',
+          }}
+        />
+      </DataCard>
 
       <DeleteConfirmDialog 
         isOpen={!!deleteConfirmId} 

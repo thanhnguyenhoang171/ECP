@@ -10,19 +10,15 @@ import {
 import { 
   Button, 
   Badge, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow, 
   PageHeader, 
   StatsCard,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
+  CardTitle,
+  DataTable,
+  type ColumnDef,
 } from '@/components/common';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DashboardStat, RecentOrder, TopProduct } from '@/features/dashboard/types/dashboard.interface';
@@ -34,6 +30,40 @@ interface DashboardViewProps {
 }
 
 export default function DashboardView({ stats, recentOrders, topProducts }: DashboardViewProps) {
+  const orderColumns: ColumnDef<RecentOrder>[] = [
+    {
+      header: 'Mã đơn hàng',
+      accessorKey: 'id',
+      className: 'text-sm font-bold text-primary',
+    },
+    {
+      header: 'Khách hàng',
+      accessorKey: 'customer',
+      className: 'text-sm',
+    },
+    {
+      header: 'Tổng tiền',
+      accessorKey: 'amount',
+      className: 'text-sm font-semibold',
+    },
+    {
+      header: 'Trạng thái',
+      cell: (order) => (
+        <Badge
+          className='px-2.5 py-0.5 text-[10px] font-bold uppercase'
+          variant={
+            order.status === 'Completed'
+              ? 'default'
+              : order.status === 'Pending'
+                ? 'outline'
+                : 'secondary'
+          }>
+          {order.status === 'Completed' ? 'Hoàn thành' : order.status === 'Pending' ? 'Chờ xử lý' : 'Đã hủy'}
+        </Badge>
+      ),
+    },
+  ];
+
   return (
     <div className='space-y-6'>
       <PageHeader 
@@ -139,56 +169,11 @@ export default function DashboardView({ stats, recentOrders, topProducts }: Dash
           </Button>
         </CardHeader>
         <CardContent className='p-0'>
-          <div className='overflow-x-auto'>
-            <Table>
-              <TableHeader className="bg-slate-50/30">
-                <TableRow>
-                  <TableHead className='text-xs font-bold uppercase py-4'>
-                    Mã đơn hàng
-                  </TableHead>
-                  <TableHead className='text-xs font-bold uppercase py-4'>
-                    Khách hàng
-                  </TableHead>
-                  <TableHead className='text-xs font-bold uppercase py-4'>
-                    Tổng tiền
-                  </TableHead>
-                  <TableHead className='text-xs font-bold uppercase py-4'>
-                    Trạng thái
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentOrders.map((order) => (
-                  <TableRow
-                    key={order.id}
-                    className='hover:bg-slate-50/50 transition-colors'>
-                    <TableCell className='text-sm font-bold py-4 px-6 text-primary'>
-                      {order.id}
-                    </TableCell>
-                    <TableCell className='text-sm py-4'>
-                      {order.customer}
-                    </TableCell>
-                    <TableCell className='text-sm font-semibold py-4'>
-                      {order.amount}
-                    </TableCell>
-                    <TableCell className='py-4'>
-                      <Badge
-                        className='px-2.5 py-0.5 text-[10px] font-bold uppercase'
-                        variant={
-                          order.status === 'Completed'
-                            ? 'default'
-                            : order.status === 'Pending'
-                              ? 'outline'
-                              : 'secondary'
-                        }>
-                        {order.status === 'Completed' ? 'Hoàn thành' : order.status === 'Pending' ? 'Chờ xử lý' : 'Đã hủy'}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <DataTable
+            columns={orderColumns}
+            data={recentOrders}
+            tableClassName='min-w-full'
+          />
         </CardContent>
       </Card>
     </div>

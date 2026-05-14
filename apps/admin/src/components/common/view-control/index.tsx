@@ -55,7 +55,7 @@ export const ExportButton = ({ onExport, isLoading, label = 'Xuất file' }: { o
 
 export const AddNewButton = ({ onClick, label = 'Thêm mới' }: { onClick: () => void; label?: string }) => (
   <Button size='sm' variant='default' onClick={onClick} className='h-9 shadow-md shadow-blue-100'>
-    <Plus className='mr-2 h-4 w-4' /> {label}
+    <Plus className='mr-2 h-4 w-4' /> {label} 
   </Button>
 );
 

@@ -26,4 +26,6 @@ export { PageHeader } from "./PageHeader";
 export { StatsCard } from "./StatsCard";
 export { EmptyState } from "./EmptyState";
 export { FileUpload } from "./FileUpload";
+export { DataTable, type ColumnDef } from "./DataTable";
+export { DataCard } from "./DataCard";
 export { default as Forbidden } from "./Forbidden";
