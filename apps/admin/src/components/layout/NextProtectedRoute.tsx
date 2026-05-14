@@ -3,12 +3,13 @@ import React, { useEffect, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { useAuthStore } from '@/store/authStore';
+import { Forbidden } from '@/components/common';
 
 const emptySubscribe = () => () => {};
 
 export default function NextProtectedRoute({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { isAuthenticated, hasHydrated } = useAuthStore();
+  const { isAuthenticated, hasHydrated, user } = useAuthStore();
   
   const isClient = useSyncExternalStore(
     emptySubscribe,
@@ -28,6 +29,15 @@ export default function NextProtectedRoute({ children }: { children: React.React
   
   // Nếu đã hydrated nhưng chưa login, useEffect ở trên sẽ redirect, ở đây return null
   if (!isAuthenticated) return null;
+
+  // Chặn người dùng có role là USER truy cập vào admin
+  const isRestricted = user?.roles.includes('ROLE_USER') && 
+                     !user?.roles.includes('ROLE_SUPER_ADMIN') && 
+                     !user?.roles.includes('ROLE_MANAGER');
+
+  if (isRestricted) {
+    return <Forbidden />;
+  }
 
   return <>{children}</>;
 }

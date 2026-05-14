@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/store/authStore';
+import { toast } from 'sonner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9090/api';
 
@@ -51,6 +52,11 @@ export const clientFetch = async (url: string, options: RequestInit = {}) => {
           window.location.href = '/login';
       }
     }
+  }
+
+  // Handle Forbidden (403)
+  if (response.status === 403) {
+    toast.error('Bạn không có quyền thực hiện hành động này.');
   }
   
   return response;
