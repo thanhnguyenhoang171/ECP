@@ -34,5 +34,11 @@ export async function serverFetch(url: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);
   headers.set('Authorization', `Bearer ${accessToken}`);
 
-  return fetch(finalUrl, { ...options, headers });
+  const response = await fetch(finalUrl, { ...options, headers });
+
+  if (response.status === 403) {
+    throw new Error('Forbidden (403): Bạn không có quyền truy cập tài nguyên này.');
+  }
+
+  return response;
 }

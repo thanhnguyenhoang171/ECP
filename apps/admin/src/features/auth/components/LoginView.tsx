@@ -57,7 +57,20 @@ export default function LoginView() {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        setAuth(result.data.accessToken, result.data.user);
+        const user = result.data.user;
+        
+        // Chặn người dùng có role là USER truy cập vào admin
+        const isRestricted = user.roles.includes('ROLE_USER') && 
+                           !user.roles.includes('ROLE_SUPER_ADMIN') && 
+                           !user.roles.includes('ROLE_MANAGER');
+
+        if (isRestricted) {
+          toast.error('Tài khoản của bạn không có quyền truy cập hệ thống quản trị');
+          setIsLoading(false);
+          return;
+        }
+
+        setAuth(result.data.accessToken, user);
         toast.success('Chào mừng bạn quay trở lại!');
         router.push('/dashboard');
       } else {
