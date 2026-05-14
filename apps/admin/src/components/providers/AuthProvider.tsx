@@ -12,7 +12,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     const initAuth = async () => {
-      // Không gọi refresh ở các trang login/register để tránh dư thừa
+      // Chỉ chạy refresh khi ứng dụng khởi tạo (F5)
+      // Không chạy ở trang login/register
       if (pathname === '/login' || pathname === '/register') {
         setIsInitializing(false);
         return;
@@ -24,12 +25,13 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
         if (response.ok && result.success) {
           setAuth(result.data.accessToken, result.data.user);
-        } else {
+        } else if (response.status === 401) {
+          // Chỉ xóa auth nếu server xác nhận token không hợp lệ
           clearAuth();
         }
       } catch (error) {
-        // Silent fail on init
-        clearAuth();
+        console.error('AuthProvider init error:', error);
+        // Không xóa auth ở đây để tránh mất session do lỗi mạng tạm thời
       } finally {
         setIsInitializing(false);
       }
@@ -37,7 +39,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
     initAuth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // Run once on mount
 
   if (isInitializing) {
     return (

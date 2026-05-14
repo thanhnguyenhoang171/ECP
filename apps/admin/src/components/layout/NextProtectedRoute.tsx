@@ -8,7 +8,7 @@ const emptySubscribe = () => () => {};
 
 export default function NextProtectedRoute({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, hasHydrated } = useAuthStore();
   
   const isClient = useSyncExternalStore(
     emptySubscribe,
@@ -17,13 +17,18 @@ export default function NextProtectedRoute({ children }: { children: React.React
   );
 
   useEffect(() => {
-    if (isClient && !isAuthenticated) {
+    // Chỉ kiểm tra quyền sau khi đã load xong dữ liệu từ storage (hydration)
+    if (isClient && hasHydrated && !isAuthenticated) {
       router.replace('/login');
     }
-  }, [isClient, isAuthenticated, router]);
+  }, [isClient, hasHydrated, isAuthenticated, router]);
 
-  if (!isClient) return null;
+  // Trong lúc đang chờ hydration hoặc render server-side, không render children để tránh lộ thông tin
+  if (!isClient || !hasHydrated) return null;
+  
+  // Nếu đã hydrated nhưng chưa login, useEffect ở trên sẽ redirect, ở đây return null
   if (!isAuthenticated) return null;
 
   return <>{children}</>;
 }
+
