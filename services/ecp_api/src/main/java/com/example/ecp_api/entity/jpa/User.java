@@ -47,15 +47,19 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
+    @Builder.Default
     private UserRole role = UserRole.USER;
 
     @Column(name = "is_active")
+    @Builder.Default
     private boolean active = true;
 
     @Column(name = "is_email_verified")
+    @Builder.Default
     private boolean emailVerified = false;
 
     @Column(name = "is_phone_verified")
+    @Builder.Default
     private boolean phoneVerified = false;
 
     @CreationTimestamp
