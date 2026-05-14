@@ -38,6 +38,11 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'ecp-auth-storage',
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+        hasHydrated: state.hasHydrated,
+      }),
       onRehydrateStorage: (state) => {
         return () => state?.setHasHydrated(true);
       },

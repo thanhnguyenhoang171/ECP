@@ -245,7 +245,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
     };
   }, [pathname]);
 
-  const { clearAuth, accessToken } = useAuthStore();
+  const { clearAuth, accessToken, user } = useAuthStore();
 
   const handleLogout = useCallback(async () => {
     try {
@@ -266,6 +266,11 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
   const handleNavigate = useCallback(() => {
     setIsSheetOpen(false);
   }, []);
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'AD';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+  };
 
   const renderSidebarContent = (mobile = false) => (
     <div className="flex flex-col h-full bg-slate-900">
@@ -361,11 +366,15 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
               <DropdownMenuTrigger asChild>
                 <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 p-1.5 rounded-lg transition-all group">
                   <div className="hidden sm:flex flex-col items-end leading-tight">
-                    <span className="text-sm font-semibold text-slate-900">Admin User</span>
-                    <span className="text-[10px] uppercase font-bold text-primary tracking-wider">Quản trị viên</span>
+                    <span className="text-sm font-semibold text-slate-900">{user?.username || 'Admin User'}</span>
+                    <span className="text-[10px] uppercase font-bold text-primary tracking-wider">
+                      {user?.roles?.[0] || 'Quản trị viên'}
+                    </span>
                   </div>
                   <Avatar className="h-9 w-9 border border-slate-200 shadow-sm">
-                    <AvatarFallback className="bg-slate-100 text-slate-600 font-bold text-xs">AD</AvatarFallback>
+                    <AvatarFallback className="bg-slate-100 text-slate-600 font-bold text-xs">
+                      {getInitials(user?.username)}
+                    </AvatarFallback>
                   </Avatar>
                 </div>
               </DropdownMenuTrigger>
