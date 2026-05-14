@@ -23,7 +23,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       <TooltipProvider delayDuration={0}>
         <AuthProvider>
           {children}
-          <Toaster position='top-center' richColors />
+          <Toaster 
+            position={typeof window !== 'undefined' && window.innerWidth < 640 ? 'bottom-center' : 'top-center'} 
+            richColors 
+          />
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>

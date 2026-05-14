@@ -22,16 +22,26 @@ export async function POST(request: Request) {
     }
 
     const { accessToken, refreshToken, username, email, roles } = data.data;
+    const { remember } = body;
 
     // Set HttpOnly cookie for Refresh Token
     const cookieStore = await cookies();
-    cookieStore.set('refreshToken', refreshToken, {
+    
+    // Cookie options
+    const cookieOptions: any = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       path: '/', // accessible to all routes
-      maxAge: 7 * 24 * 60 * 60, // 7 days (adjust based on backend refresh expiration)
-    });
+    };
+
+    // If "Remember Me" is checked, set expiration (7 days)
+    // If not, it becomes a Session Cookie (expires when browser closes)
+    if (remember) {
+      cookieOptions.maxAge = 7 * 24 * 60 * 60; // 7 days
+    }
+
+    cookieStore.set('refreshToken', refreshToken, cookieOptions);
 
     // Return Access Token and User info (No refresh token in body)
     return NextResponse.json({
