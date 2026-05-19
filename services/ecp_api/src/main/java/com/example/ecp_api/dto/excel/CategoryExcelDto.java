@@ -46,28 +46,24 @@ public class CategoryExcelDto {
     @ColumnWidth(25)
     private String id;
 
-    @ExcelProperty("Tên loại sản phẩm")
+    @ExcelProperty("Tên danh mục")
     @ColumnWidth(30)
     private String name;
 
-    @ExcelProperty("Đường dẫn slug")
+    @ExcelProperty("Slug")
     @ColumnWidth(25)
     private String slug;
 
-    @ExcelProperty("ID danh mục cha")
-    @ColumnWidth(25)
-    private String parentId;
-
-    @ExcelProperty("Đường dẫn phân cấp")
+    @ExcelProperty("Slug danh mục cha")
     @ColumnWidth(30)
-    private String path;
+    private String parentSlug;
 
     @ExcelProperty("Cấp độ")
     @ColumnWidth(10)
     private Integer level;
 
-    @ExcelProperty("Trạng thái (Hoạt động)")
-    @ColumnWidth(20)
+    @ExcelProperty("Trạng thái (TRUE/FALSE)")
+    @ColumnWidth(25)
     private Boolean status;
 
     @ExcelProperty("Ngày tạo")

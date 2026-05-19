@@ -17,7 +17,8 @@ import {
   Bell,
   Search,
   Settings,
-  ChevronDown
+  ChevronDown,
+  FileClock,
 } from 'lucide-react';
 
 import { cn } from "@/lib/utils";
@@ -86,6 +87,7 @@ const menuItems: MenuItem[] = [
     ],
   },
   { key: '/users', icon: <UserCircle size={18} />, label: 'Nhân viên' },
+  { key: '/audit-logs', icon: <FileClock size={18} />, label: 'Nhật ký kiểm toán' },
 ];
 
 const SidebarItem = memo(({ 

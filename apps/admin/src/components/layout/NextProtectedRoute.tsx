@@ -24,9 +24,18 @@ export default function NextProtectedRoute({ children }: { children: React.React
     }
   }, [isClient, hasHydrated, isAuthenticated, router]);
 
-  // Trong lúc đang chờ hydration hoặc render server-side, không render children để tránh lộ thông tin
-  if (!isClient || !hasHydrated) return null;
-  
+  // Trong lúc đang chờ hydration hoặc render server-side, hiển thị loading để tránh màn hình trắng
+  if (!isClient || !hasHydrated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-slate-500">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Nếu đã hydrated nhưng chưa login, useEffect ở trên sẽ redirect, ở đây return null
   if (!isAuthenticated) return null;
 

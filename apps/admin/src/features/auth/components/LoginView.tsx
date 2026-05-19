@@ -73,6 +73,10 @@ export default function LoginView() {
 
         setAuth(accessToken, user);
         toast.success('Chào mừng bạn quay trở lại!');
+        // Dùng router.refresh() trước để force Next.js reload lại server state
+        // (middleware sẽ nhận cookie refreshToken mới), sau đó navigate sang dashboard.
+        // Điều này tránh race condition giữa Zustand hydration và client-side navigation.
+        router.refresh();
         router.push('/dashboard');
       } else {
         toast.error(result.message || 'Đăng nhập thất bại');

@@ -24,6 +24,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -40,6 +42,14 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final AuditLogService auditLogService;
+
+    private String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated() && !authentication.getPrincipal().equals("anonymousUser")) {
+            return authentication.getName();
+        }
+        return "SYSTEM";
+    }
 
     @Override
     public UserResponse registerUserByUsername(UserRequest userRequest) {
@@ -65,7 +75,7 @@ public class UserServiceImpl implements UserService {
         user = userRepository.save(user);
 
         // Ghi log hoạt động vào MongoDB
-        auditLogService.log("USER_REGISTER", user.getUsername(), "New user registered with ID: " + user.getId());
+        auditLogService.log("USER_REGISTER", getCurrentUsername(), "New user registered with ID: " + user.getId());
 
         return userMapper.toResponse(user);
     }
@@ -76,7 +86,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
         
         // Ghi log vào MongoDB mỗi khi truy vấn User
-        auditLogService.log("GET_USER", user.getUsername(), "Fetched user with ID: " + id);
+        auditLogService.log("GET_USER", getCurrentUsername(), "Fetched user with ID: " + id);
         
         return userMapper.toResponse(user);
     }
@@ -126,7 +136,7 @@ public class UserServiceImpl implements UserService {
 
         user = userRepository.save(user);
 
-        auditLogService.log("UPDATE_USER", user.getUsername(), "Updated user with ID: " + user.getId());
+        auditLogService.log("UPDATE_USER", getCurrentUsername(), "Updated user with ID: " + user.getId());
 
         return userMapper.toResponse(user);
     }
@@ -140,6 +150,6 @@ public class UserServiceImpl implements UserService {
         user.setDeletedAt(LocalDateTime.now());
         userRepository.save(user);
 
-        auditLogService.log("DELETE_USER", user.getUsername(), "Soft deleted user with ID: " + user.getId());
+        auditLogService.log("DELETE_USER", getCurrentUsername(), "Soft deleted user with ID: " + user.getId());
     }
 }
