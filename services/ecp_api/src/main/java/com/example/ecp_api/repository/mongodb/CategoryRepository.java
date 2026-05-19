@@ -13,6 +13,7 @@ import java.util.stream.Stream;
 @Repository
 public interface CategoryRepository extends MongoRepository<Category, String> {
     Optional<Category> findBySlug(String slug);
+    Optional<Category> findBySlugAndDeletedFalse(String slug);
     boolean existsBySlugAndDeletedFalse(String slug);
     boolean existsByParentIdAndDeletedFalse(String parentId);
     Page<Category> findByDeletedFalse(Pageable pageable);

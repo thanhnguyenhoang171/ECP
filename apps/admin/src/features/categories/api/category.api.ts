@@ -108,4 +108,18 @@ export const categoryApi = {
     if (!res.ok) throw new Error('Failed to fetch template');
     return res.blob();
   },
+
+  // Import categories from Excel file
+  import: async (file: File): Promise<{ success: boolean; message: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await clientFetch('v1/categories/import', {
+      method: 'POST',
+      body: formData,
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.message || 'Failed to import categories');
+    return result;
+  },
 };

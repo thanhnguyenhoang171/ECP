@@ -6,6 +6,7 @@ import com.example.ecp_api.dto.response.CategoryResponse;
 import com.example.ecp_api.dto.response.PageResponse;
 import org.springframework.data.domain.Pageable;
 
+import org.springframework.web.multipart.MultipartFile;
 import java.io.OutputStream;
 import java.util.List;
 
@@ -18,4 +19,5 @@ public interface CategoryService {
     void deleteCategory(String id);
     void exportAllCategoriesToExcel(OutputStream outputStream);
     void downloadCategoryTemplate(OutputStream outputStream);
+    void importCategoriesFromExcel(MultipartFile file);
 }

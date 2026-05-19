@@ -56,9 +56,9 @@ public class CategoryTemplateDto {
     @ColumnWidth(10)
     private Integer level;
 
-    @ExcelProperty("ID danh mục cha")
-    @ColumnWidth(25)
-    private String parentId;
+    @ExcelProperty("Slug danh mục cha")
+    @ColumnWidth(30)
+    private String parentSlug;
 
     @ExcelProperty("Trạng thái (TRUE/FALSE)")
     @ColumnWidth(35)

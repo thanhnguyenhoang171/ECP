@@ -68,3 +68,21 @@ export function useDeleteCategory() {
     },
   });
 }
+
+export function useImportCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => categoryApi.import(file),
+    onSuccess: (result) => {
+      if (result.success) {
+        toast.success('Nhập dữ liệu danh mục thành công');
+        queryClient.invalidateQueries({ queryKey: ['categories'] });
+      }
+    },
+    onError: (error) => {
+      console.error("Import error:", error);
+      // toast.error is handled globally by clientFetch
+    },
+  });
+}

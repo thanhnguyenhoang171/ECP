@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.IOException;
@@ -146,4 +147,14 @@ public class CategoryController {
                .body(responseBody);
    }
 
+    @PostMapping(value = "/import", consumes = "multipart/form-data")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<Void>> importCategories(@RequestParam("file") MultipartFile file) {
+        categoryService.importCategoriesFromExcel(file);
+        ApiResponse<Void> apiResponse = ApiResponse.<Void>builder()
+                .success(true)
+                .message("Categories imported successfully")
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
 }

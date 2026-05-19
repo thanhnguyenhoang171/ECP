@@ -21,6 +21,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import ExcelPreviewDialog from './ExcelPreviewDialog';
 import { toast } from 'sonner';
 import { categoryApi } from '../api/category.api';
+import { useImportCategory } from '../hooks/use-category-mutation';
 
 interface CategoryImportDialogProps {
   isOpen: boolean;
@@ -35,43 +36,26 @@ export default function CategoryImportDialog({
 }: CategoryImportDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  // Giả lập tiến trình upload khi nhấn nút "Bắt đầu nhập"
-  const handleImport = async () => {
+  const importMutation = useImportCategory();
+
+  const handleImport = () => {
     if (!file) return;
 
     setIsImporting(true);
-    setUploadProgress(0);
-
-    const duration = 2000;
-    const interval = 50;
-    const steps = duration / interval;
-    const increment = 100 / steps;
-
-    const timer = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(timer);
-          return 100;
-        }
-        return prev + increment;
-      });
-    }, interval);
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, duration + 500));
-      toast.success('Nhập dữ liệu thành công');
-      onOpenChange(false);
-      setFile(null);
-      onSuccess?.();
-    } catch (error) {
-      toast.error('Có lỗi xảy ra khi nhập dữ liệu');
-    } finally {
-      setIsImporting(false);
-      setUploadProgress(0);
-    }
+    
+    importMutation.mutate(file, {
+      onSuccess: () => {
+        setIsImporting(false);
+        onOpenChange(false);
+        setFile(null);
+        onSuccess?.();
+      },
+      onError: () => {
+        setIsImporting(false);
+      }
+    });
   };
 
   const handleDownloadTemplate = async () => {
@@ -140,7 +124,7 @@ export default function CategoryImportDialog({
               onChange={setFile}
               onPreview={handlePreview}
               isUploading={isImporting}
-              progress={Math.round(uploadProgress)}
+              progress={isImporting ? 50 : 0}
               accept={{
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
                 'application/vnd.ms-excel': ['.xls']
@@ -156,7 +140,7 @@ export default function CategoryImportDialog({
               <ul className="text-[11px] text-slate-500 space-y-1 list-disc pl-4">
                 <li>Hệ thống sẽ tự động tạo Slug nếu bỏ trống.</li>
                 <li>Tên danh mục là bắt buộc và không được trùng lặp.</li>
-                <li>Nếu là danh mục con, hãy điền đúng ID của danh mục cha.</li>
+                <li>Nếu là danh mục con, hãy điền đúng Slug của danh mục cha.</li>
                 <li>Định dạng cột phải khớp chính xác với file mẫu.</li>
               </ul>
             </div>
