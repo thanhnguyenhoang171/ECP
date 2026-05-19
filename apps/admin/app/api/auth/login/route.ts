@@ -6,7 +6,7 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9090/ap
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
+
     const response = await fetch(`${BACKEND_URL}/auth/login`, {
       method: 'POST',
       headers: {
@@ -21,12 +21,12 @@ export async function POST(request: Request) {
       return NextResponse.json(data, { status: response.status });
     }
 
-    const { accessToken, refreshToken, username, email, roles } = data.data;
+    const { id, accessToken, refreshToken, username, email, roles } = data.data;
     const { remember } = body;
 
     // Set HttpOnly cookie for Refresh Token
     const cookieStore = await cookies();
-    
+
     // Cookie options
     const cookieOptions: any = {
       httpOnly: true,
@@ -43,13 +43,16 @@ export async function POST(request: Request) {
 
     cookieStore.set('refreshToken', refreshToken, cookieOptions);
 
-    // Return Access Token and User info (No refresh token in body)
+    // Return Access Token and User info (Including refreshToken as requested)
     return NextResponse.json({
       success: true,
       message: 'Login successful',
       data: {
+        id,
         accessToken,
-        user: { username, email, roles }
+        username,
+        email,
+        roles
       }
     });
 

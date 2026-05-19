@@ -16,12 +16,12 @@ export function useCreateCategory() {
         // Làm mới danh sách categories
         queryClient.invalidateQueries({ queryKey: ['categories'] });
       } else {
-        toast.error(result.message || 'Có lỗi xảy ra');
+        // toast.error is handled globally by clientFetch
       }
     },
     onError: (error) => {
-      const message = error instanceof Error ? error.message : 'Lỗi kết nối server';
-      toast.error(message);
+      console.error("Mutation error:", error);
+      // toast.error is handled globally by clientFetch
     },
   });
 }
@@ -38,12 +38,12 @@ export function useUpdateCategory() {
         // Làm mới toàn bộ cache liên quan đến categories
         queryClient.invalidateQueries({ queryKey: ['categories'] });
       } else {
-        toast.error(result.message || 'Có lỗi xảy ra');
+        // toast.error is handled globally by clientFetch
       }
     },
     onError: (error) => {
-      const message = error instanceof Error ? error.message : 'Lỗi kết nối server';
-      toast.error(message);
+      console.error("Mutation error:", error);
+      // toast.error is handled globally by clientFetch
     },
   });
 }
@@ -59,12 +59,12 @@ export function useDeleteCategory() {
         // Làm mới danh sách categories
         queryClient.invalidateQueries({ queryKey: ['categories'] });
       } else {
-        toast.error(result.message || 'Không thể xóa danh mục');
+        // toast.error is handled globally by clientFetch
       }
     },
     onError: (error) => {
-      const message = error instanceof Error ? error.message : 'Lỗi kết nối server';
-      toast.error(message);
+      console.error("Mutation error:", error);
+      // toast.error is handled globally by clientFetch
     },
   });
 }

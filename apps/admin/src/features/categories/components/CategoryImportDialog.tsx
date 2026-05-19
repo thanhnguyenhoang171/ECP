@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Card, CardContent } from '@/components/ui/card';
 import ExcelPreviewDialog from './ExcelPreviewDialog';
 import { toast } from 'sonner';
 import { categoryApi } from '../api/category.api';
@@ -101,7 +102,7 @@ export default function CategoryImportDialog({
         <DialogContent className="sm:max-w-[650px]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <Upload className="h-5 w-5 text-blue-600" />
+              <Download className="h-5 w-5 text-blue-600" />
               Nhập danh mục từ Excel
             </DialogTitle>
             <DialogDescription>
@@ -109,27 +110,29 @@ export default function CategoryImportDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
+          <div className="space-y-6 py-4 w-full min-w-0 overflow-hidden">
             {/* Template Download Section */}
-            <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-4 flex items-start gap-3">
-              <div className="bg-blue-100 p-2 rounded-lg">
-                <FileText className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <h4 className="text-sm font-semibold text-blue-900">Bạn chưa có file mẫu?</h4>
-                <p className="text-xs text-blue-700 leading-relaxed">
-                  Tải xuống file Excel mẫu để đảm bảo dữ liệu của bạn đúng định dạng yêu cầu của hệ thống.
-                </p>
-                <Button 
-                  variant="link" 
-                  size="sm" 
-                  className="h-auto p-0 text-blue-600 font-bold hover:text-blue-700 mt-1"
-                  onClick={handleDownloadTemplate}
-                >
-                  <Download className="h-3 w-3 mr-1" /> Tải file mẫu (.xlsx)
-                </Button>
-              </div>
-            </div>
+            <Card className="bg-blue-50/50 border-blue-100 shadow-none w-full overflow-hidden">
+              <CardContent className="p-4 flex items-start gap-3 min-w-0">
+                <div className="bg-blue-100 p-2 rounded-lg shrink-0">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0 space-y-1">
+                  <h4 className="text-sm font-semibold text-blue-900 truncate">Bạn chưa có file mẫu?</h4>
+                  <p className="text-xs text-blue-700 leading-relaxed">
+                    Tải xuống file Excel mẫu để đảm bảo dữ liệu của bạn đúng định dạng yêu cầu của hệ thống.
+                  </p>
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="h-auto p-0 text-blue-600 font-bold hover:text-blue-700 mt-1"
+                    onClick={handleDownloadTemplate}
+                  >
+                    <Download className="h-3 w-3 mr-1 shrink-0" /> Tải file mẫu (.xlsx)
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Reusable FileUpload Component with Excel Preview */}
             <FileUpload 

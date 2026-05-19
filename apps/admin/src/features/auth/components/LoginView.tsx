@@ -57,12 +57,13 @@ export default function LoginView() {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        const user = result.data.user;
+        const { id, username, email, roles, accessToken } = result.data;
+        const user = { id, username, email, roles };
         
         // Chặn người dùng có role là USER truy cập vào admin
-        const isRestricted = user.roles.includes('ROLE_USER') && 
-                           !user.roles.includes('ROLE_SUPER_ADMIN') && 
-                           !user.roles.includes('ROLE_MANAGER');
+        const isRestricted = roles.includes('ROLE_USER') && 
+                           !roles.includes('ROLE_SUPER_ADMIN') && 
+                           !roles.includes('ROLE_MANAGER');
 
         if (isRestricted) {
           toast.error('Tài khoản của bạn không có quyền truy cập hệ thống quản trị');
@@ -70,7 +71,7 @@ export default function LoginView() {
           return;
         }
 
-        setAuth(result.data.accessToken, user);
+        setAuth(accessToken, user);
         toast.success('Chào mừng bạn quay trở lại!');
         router.push('/dashboard');
       } else {

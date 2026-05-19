@@ -17,12 +17,13 @@ import { Button } from './index';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-import { 
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Card, CardContent } from '@/components/ui/card';
 
 interface FileUploadProps {
   value?: File | null;
@@ -130,10 +131,10 @@ export const FileUpload = ({
   return (
     <TooltipProvider delayDuration={300}>
       <div className={cn('w-full space-y-3', className)}>
-        <div
+        <Card
           {...getRootProps()}
           className={cn(
-            'relative border-2 border-dashed rounded-xl p-6 transition-all cursor-pointer outline-none flex flex-col items-center justify-center gap-3 w-full overflow-hidden',
+            'relative border-2 border-dashed shadow-none transition-all cursor-pointer outline-none flex flex-col items-center justify-center w-full overflow-hidden',
             isDragActive 
               ? 'border-blue-500 bg-blue-50' 
               : file 
@@ -142,115 +143,117 @@ export const FileUpload = ({
             (disabled || isUploading) && 'opacity-60 cursor-not-allowed pointer-events-none'
           )}
         >
-          <input {...getInputProps()} />
-          
-          {!file ? (
-            <>
-              <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center">
-                <Upload className={cn('h-6 w-6', isDragActive ? 'text-blue-500' : 'text-slate-500')} />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-medium text-slate-700">
-                  {isDragActive ? 'Thả file vào đây' : 'Nhấn để chọn file hoặc kéo thả vào đây'}
-                </p>
-                {description && (
-                  <p className="text-xs text-slate-400 mt-1">
-                    {description}
+          <CardContent className="p-6 flex flex-col items-center justify-center gap-3 w-full min-w-0">
+            <input {...getInputProps()} />
+            
+            {!file ? (
+              <div className="flex flex-col items-center justify-center gap-3 w-full min-w-0">
+                <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                  <Upload className={cn('h-6 w-6', isDragActive ? 'text-blue-500' : 'text-slate-500')} />
+                </div>
+                <div className="text-center min-w-0">
+                  <p className="text-sm font-medium text-slate-700 truncate">
+                    {isDragActive ? 'Thả file vào đây' : 'Nhấn để chọn file hoặc kéo thả vào đây'}
                   </p>
+                  {description && (
+                    <p className="text-xs text-slate-400 mt-1 truncate">
+                      {description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="w-full space-y-4 min-w-0">
+                <div className="flex items-center gap-3 w-full min-w-0">
+                  <div className="h-12 w-12 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                    {previewUrl ? (
+                      <img src={previewUrl} alt="Preview" className="h-full w-full object-cover" />
+                    ) : (
+                      getFileIcon()
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p className="text-sm font-bold text-slate-700 truncate block cursor-default">
+                          {file.name}
+                        </p>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        {file.name}
+                      </TooltipContent>
+                    </Tooltip>
+                    <p className="text-[11px] text-slate-400 truncate">
+                      {(file.size / 1024).toFixed(1)} KB • {file.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0 ml-auto">
+                    {!isUploading && (
+                      <>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-slate-400 hover:text-blue-600"
+                              onClick={handlePreview}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">Xem nhanh file</TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-slate-400 hover:text-red-500"
+                              onClick={removeFile}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">Gỡ bỏ file này</TooltipContent>
+                        </Tooltip>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Uploading State */}
+                {isUploading && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-blue-600 font-medium flex items-center gap-1.5">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Đang tải lên...
+                      </span>
+                      <span className="text-slate-500 font-mono">{progress}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-blue-500 transition-all duration-300 ease-out"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Success State */}
+                {!isUploading && file && (
+                  <div className="flex items-center gap-1.5 text-[11px] text-green-600 font-bold bg-green-50 w-fit px-2 py-0.5 rounded-full">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Đã tải lên thành công
+                  </div>
                 )}
               </div>
-            </>
-          ) : (
-            <div className="w-full space-y-4">
-              <div className="flex items-center gap-3 w-full overflow-hidden">
-                <div className="h-12 w-12 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden shrink-0">
-                  {previewUrl ? (
-                    <img src={previewUrl} alt="Preview" className="h-full w-full object-cover" />
-                  ) : (
-                    getFileIcon()
-                  )}
-                </div>
-                <div className="flex-1 min-w-0 overflow-hidden">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <p className="text-sm font-bold text-slate-700 truncate block w-full cursor-default">
-                        {file.name}
-                      </p>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      {file.name}
-                    </TooltipContent>
-                  </Tooltip>
-                  <p className="text-[11px] text-slate-400">
-                    {(file.size / 1024).toFixed(1)} KB • {file.type.split('/')[1]?.toUpperCase() || 'FILE'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 shrink-0 ml-auto">
-                  {!isUploading && (
-                    <>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-slate-400 hover:text-blue-600"
-                            onClick={handlePreview}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">Xem nhanh file</TooltipContent>
-                      </Tooltip>
-
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-slate-400 hover:text-red-500"
-                            onClick={removeFile}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">Gỡ bỏ file này</TooltipContent>
-                      </Tooltip>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Uploading State */}
-              {isUploading && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-blue-600 font-medium flex items-center gap-1.5">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      Đang tải lên...
-                    </span>
-                    <span className="text-slate-500 font-mono">{progress}%</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-blue-500 transition-all duration-300 ease-out"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Success State */}
-              {!isUploading && file && (
-                <div className="flex items-center gap-1.5 text-[11px] text-green-600 font-bold bg-green-50 w-fit px-2 py-0.5 rounded-full">
-                  <CheckCircle2 className="h-3 w-3" />
-                  Đã tải lên thành công
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </TooltipProvider>
   );

@@ -61,7 +61,7 @@ public class CategoryServiceImpl implements CategoryService {
                 : SlugUtils.toSlug(request.getName());
 
         if (categoryRepository.existsBySlugAndDeletedFalse(slugGenerated)) {
-            throw new AppException("Category with Slug already exists", HttpStatus.BAD_REQUEST);
+            throw new AppException("CATEGORY_SLUG_EXISTS", "Category with Slug already exists", HttpStatus.BAD_REQUEST);
         }
 
         Category category = categoryMapper.toEntity(request);
@@ -154,7 +154,7 @@ public class CategoryServiceImpl implements CategoryService {
         // Check slug uniqueness if it's changed
         if (!category.getSlug().equals(oldSlug)
                 && categoryRepository.existsBySlugAndDeletedFalse(category.getSlug())) {
-            throw new AppException("Category with Slug already exists", HttpStatus.BAD_REQUEST);
+            throw new AppException("CATEGORY_SLUG_EXISTS", "Category with Slug already exists", HttpStatus.BAD_REQUEST);
         }
  
         if (request.getActive() != null) {
@@ -203,7 +203,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         // Check exist child categories
         if (categoryRepository.existsByParentIdAndDeletedFalse(id)) {
-            throw new AppException("Cannot delete category that has sub-categories", HttpStatus.BAD_REQUEST);
+            throw new AppException("CATEGORY_HAS_CHILDREN", "Cannot delete category that has sub-categories", HttpStatus.BAD_REQUEST);
         }
 
         category.setDeleted(true);

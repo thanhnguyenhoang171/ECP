@@ -10,6 +10,13 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { ChevronsLeft, ChevronsRight } from 'lucide-react';
 
@@ -95,15 +102,21 @@ export const NextPagination = ({
         {onItemsPerPageChange && (
           <div className="flex items-center gap-2 border-l pl-4 border-slate-100">
             <span className="text-[11px] font-medium text-slate-400">Hiển thị:</span>
-            <select 
-              value={itemsPerPage}
-              onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-              className="border text-[11px] font-bold rounded-lg block p-1 transition-all outline-none cursor-pointer bg-slate-50 border-slate-200 text-slate-700 focus:ring-blue-500 focus:border-blue-500"
+            <Select 
+              value={String(itemsPerPage)}
+              onValueChange={(value) => onItemsPerPageChange(Number(value))}
             >
-              {pageSizeOptions.map(option => (
-                <option key={option} value={option}>{option} / trang</option>
-              ))}
-            </select>
+              <SelectTrigger className="h-7 w-[110px] text-[11px] font-bold bg-slate-50 border-slate-200 text-slate-700">
+                <SelectValue placeholder={`${itemsPerPage} / trang`} />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map(option => (
+                  <SelectItem key={option} value={String(option)} className="text-[11px] font-bold">
+                    {option} / trang
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
       </div>

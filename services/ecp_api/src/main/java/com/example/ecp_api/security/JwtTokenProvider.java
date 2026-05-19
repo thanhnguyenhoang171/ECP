@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -30,38 +32,48 @@ public class JwtTokenProvider {
 
     public String generateAccessToken(Authentication authentication) {
         CustomUserDetails userPrincipal = (CustomUserDetails) authentication.getPrincipal();
-        return generateTokenFromUsername(userPrincipal.getUsername(), jwtExpirationMs);
+        return generateToken(userPrincipal, jwtExpirationMs);
     }
 
-    public String generateAccessTokenFromUsername(String username) {
-        return generateTokenFromUsername(username, jwtExpirationMs);
+    public String generateAccessToken(CustomUserDetails userDetails) {
+        return generateToken(userDetails, jwtExpirationMs);
     }
 
     public String generateRefreshToken(Authentication authentication) {
         CustomUserDetails userPrincipal = (CustomUserDetails) authentication.getPrincipal();
-        return generateTokenFromUsername(userPrincipal.getUsername(), refreshExpirationMs);
+        return generateToken(userPrincipal, refreshExpirationMs);
     }
 
-    public String generateRefreshTokenFromUsername(String username) {
-        return generateTokenFromUsername(username, refreshExpirationMs);
+    public String generateRefreshToken(CustomUserDetails userDetails) {
+        return generateToken(userDetails, refreshExpirationMs);
     }
 
-    private String generateTokenFromUsername(String username, long expirationMs) {
+    private String generateToken(CustomUserDetails userDetails, long expirationMs) {
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(item -> item.getAuthority())
+                .collect(Collectors.toList());
+
         return Jwts.builder()
-                .subject(username)
+                .subject(userDetails.getUsername())
+                .claim("id", userDetails.getId().toString())
+                .claim("email", userDetails.getEmail())
+                .claim("roles", roles)
                 .issuedAt(new Date())
                 .expiration(new Date((new Date()).getTime() + expirationMs))
                 .signWith(key())
                 .compact();
     }
 
-    public String getUsernameFromJwtToken(String token) {
+    public Claims getClaimsFromJwtToken(String token) {
         return Jwts.parser()
                 .verifyWith(key())
                 .build()
                 .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+                .getPayload();
+    }
+
+    public String getUsernameFromJwtToken(String token) {
+        return getClaimsFromJwtToken(token).getSubject();
     }
 
     public boolean validateJwtToken(String authToken) {

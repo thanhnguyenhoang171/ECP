@@ -36,24 +36,24 @@ public class CategoryHelper {
 
         // If updating: Prevent assign parent to child categories
         if (categoryId != null && categoryRepository.existsByParentIdAndDeletedFalse(categoryId)) {
-            throw new AppException("Cannot assign a parent to a category that has sub-categories", HttpStatus.BAD_REQUEST);
+            throw new AppException("CATEGORY_HAS_CHILDREN", "Cannot assign a parent to a category that has sub-categories", HttpStatus.BAD_REQUEST);
         }
 
         // Prevent assigned its own
         if (newParentId.equals(categoryId)) {
-            throw new AppException("Category cannot be its own parent", HttpStatus.BAD_REQUEST);
+            throw new AppException("CATEGORY_INVALID_PARENT", "Category cannot be its own parent", HttpStatus.BAD_REQUEST);
         }
 
         Category parent = getCategoryOrThrow(newParentId);
 
         // Two-level limitation: the selected parent cannot be a sub-category (one that already has a parent)
         if (StringUtils.hasText(parent.getParentId())) {
-            throw new AppException("Parent category cannot be a sub-category", HttpStatus.BAD_REQUEST);
+            throw new AppException("CATEGORY_INVALID_PARENT", "Parent category cannot be a sub-category", HttpStatus.BAD_REQUEST);
         }
 
         // Loop check: Parent must not be a descendant of the current category
         if (categoryId != null && parent.getPath() != null && parent.getPath().contains(categoryId)) {
-            throw new AppException("Category cannot be a child of its own descendant", HttpStatus.BAD_REQUEST);
+            throw new AppException("CATEGORY_INVALID_PARENT", "Category cannot be a child of its own descendant", HttpStatus.BAD_REQUEST);
         }
     }
 

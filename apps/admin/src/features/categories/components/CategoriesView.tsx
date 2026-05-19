@@ -208,6 +208,12 @@ export default function CategoriesView({
       className: 'text-xs font-medium text-slate-500',
     },
     {
+      header: 'Ngày sửa',
+      align: 'center',
+      cell: (category) => formatDate(category.updatedAt),
+      className: 'text-xs font-medium text-slate-500',
+    },
+    {
       header: 'Thao tác',
       align: 'right',
       cell: (category) => (
