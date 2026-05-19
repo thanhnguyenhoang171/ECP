@@ -5,7 +5,6 @@ import com.alibaba.excel.write.handler.SheetWriteHandler;
 import com.alibaba.excel.write.metadata.holder.WriteSheetHolder;
 import com.alibaba.excel.write.metadata.holder.WriteWorkbookHolder;
 import com.example.ecp_api.dto.excel.CategoryExcelDto;
-import com.example.ecp_api.dto.excel.CategoryTemplateDto;
 import com.example.ecp_api.dto.request.CategoryFilterRequest;
 import com.example.ecp_api.dto.request.CategoryRequest;
 import com.example.ecp_api.dto.response.CategoryResponse;
@@ -22,7 +21,6 @@ import com.example.ecp_api.util.DateTimeUtils;
 import com.example.ecp_api.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.ss.util.CellRangeAddressList;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -34,9 +32,10 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -51,6 +50,14 @@ public class CategoryServiceImpl implements CategoryService {
     private final MongoTemplate mongoTemplate;
     private final CategoryHelper categoryHelper;
     private final AuditLogService auditLogService;
+
+    private String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated() && !authentication.getPrincipal().equals("anonymousUser")) {
+            return authentication.getName();
+        }
+        return "SYSTEM";
+    }
 
     // CREATE A NEW CATEGORY
     @Override
@@ -91,8 +98,13 @@ public class CategoryServiceImpl implements CategoryService {
 
         Category savedCategory = categoryRepository.save(category);
         
-        // TODO: Replace "SYSTEM" with actual logged-in user when authentication is implemented
-        auditLogService.log("CREATE_CATEGORY", "SYSTEM", "Created category: " + savedCategory.getName());
+        // Update path now that we have an ID
+        if (!StringUtils.hasText(request.getParentId())) {
+            savedCategory.setPath(savedCategory.getId());
+            categoryRepository.save(savedCategory);
+        }
+        
+        auditLogService.log("CREATE_CATEGORY", getCurrentUsername(), "Created category: " + savedCategory.getName());
         
         return categoryMapper.toResponse(savedCategory);
     }
@@ -189,8 +201,7 @@ public class CategoryServiceImpl implements CategoryService {
             categoryHelper.updateDescendants(updatedCategory);
         }
 
-        // TODO: Replace "SYSTEM" with actual logged-in user when authentication is implemented
-        auditLogService.log("UPDATE_CATEGORY", "SYSTEM", "Updated category with ID: " + updatedCategory.getId());
+        auditLogService.log("UPDATE_CATEGORY", getCurrentUsername(), "Updated category with ID: " + updatedCategory.getId());
 
         return categoryMapper.toResponse(updatedCategory);
     }
@@ -210,8 +221,7 @@ public class CategoryServiceImpl implements CategoryService {
         category.setDeleted(true);
         categoryRepository.save(category);
 
-        // TODO: Replace "SYSTEM" with actual logged-in user when authentication is implemented
-        auditLogService.log("DELETE_CATEGORY", "SYSTEM", "Soft deleted category with ID: " + category.getId());
+        auditLogService.log("DELETE_CATEGORY", getCurrentUsername(), "Soft deleted category with ID: " + category.getId());
     }
 
     // GET CATEGORY DETAIL
@@ -236,21 +246,29 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional(readOnly = true)
     public void exportAllCategoriesToExcel(OutputStream outputStream) {
         try (Stream<Category> categoryStream = categoryRepository.findAllByDeletedFalse()) {
+            List<Category> allCategories = categoryStream.toList();
+            
+            // Build a map for quick parent slug lookup to avoid N+1 queries
+            java.util.Map<String, String> idToSlugMap = allCategories.stream()
+                    .collect(java.util.stream.Collectors.toMap(Category::getId, Category::getSlug));
+
             AtomicInteger index = new AtomicInteger(1);
-            List<CategoryExcelDto> excelDtos = categoryStream
+            List<CategoryExcelDto> excelDtos = allCategories.stream()
                     .map(cat -> {
-                        CategoryResponse res = categoryMapper.toResponse(cat);
+                        String parentSlug = "";
+                        if (StringUtils.hasText(cat.getParentId())) {
+                            parentSlug = idToSlugMap.getOrDefault(cat.getParentId(), "");
+                        }
                         return CategoryExcelDto.builder()
                                 .index(index.getAndIncrement())
-                                .id(res.getId())
-                                .name(res.getName())
-                                .slug(res.getSlug())
-                                .parentId(res.getParentId())
-                                .path(res.getPath())
-                                .level(res.getLevel())
-                                .status(res.getActive())
-                                .createdAt(DateTimeUtils.format(res.getCreatedAt()))
-                                .updatedAt(DateTimeUtils.format(res.getUpdatedAt()))
+                                .id(cat.getId())
+                                .name(cat.getName())
+                                .slug(cat.getSlug())
+                                .parentSlug(parentSlug)
+                                .level(cat.getLevel())
+                                .status(cat.isActive())
+                                .createdAt(DateTimeUtils.format(cat.getCreatedAt()))
+                                .updatedAt(DateTimeUtils.format(cat.getUpdatedAt()))
                                 .build();
                     })
                     .toList();
@@ -265,8 +283,8 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional(readOnly = true)
     public void downloadCategoryTemplate(OutputStream outputStream) {
         // Create specific sample data as requested
-        List<CategoryTemplateDto> samples = List.of(
-                CategoryTemplateDto.builder()
+        List<CategoryExcelDto> samples = List.of(
+                CategoryExcelDto.builder()
                         .index(1)
                         .id("") // Để trống để tạo mới
                         .name("Áo thun nam")
@@ -277,7 +295,7 @@ public class CategoryServiceImpl implements CategoryService {
                         .createdAt("03/05/2026 19:15:01")
                         .updatedAt("03/05/2026 19:15:01")
                         .build(),
-                CategoryTemplateDto.builder()
+                CategoryExcelDto.builder()
                         .index(2)
                         .id("") // Để trống để tạo mới
                         .name("Áo thun polo")
@@ -290,7 +308,7 @@ public class CategoryServiceImpl implements CategoryService {
                         .build()
         );
 
-        EasyExcel.write(outputStream, CategoryTemplateDto.class)
+        EasyExcel.write(outputStream, CategoryExcelDto.class)
                 .registerWriteHandler(new SheetWriteHandler() {
                     @Override
                     public void afterSheetCreate(WriteWorkbookHolder writeWorkbookHolder, WriteSheetHolder writeSheetHolder) {
@@ -307,13 +325,20 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     public void importCategoriesFromExcel(MultipartFile file) {
         try {
-            List<CategoryTemplateDto> dataList = EasyExcel.read(file.getInputStream())
-                    .head(CategoryTemplateDto.class)
+            List<CategoryExcelDto> dataList = EasyExcel.read(file.getInputStream())
+                    .head(CategoryExcelDto.class)
                     .sheet()
                     .doReadSync();
 
+            // Sort data to process parent categories first (level 1 before level 2)
+            dataList.sort((d1, d2) -> {
+                Integer l1 = d1.getLevel() != null ? d1.getLevel() : (StringUtils.hasText(d1.getParentSlug()) ? 2 : 1);
+                Integer l2 = d2.getLevel() != null ? d2.getLevel() : (StringUtils.hasText(d2.getParentSlug()) ? 2 : 1);
+                return l1.compareTo(l2);
+            });
+
             int count = 0;
-            for (CategoryTemplateDto dto : dataList) {
+            for (CategoryExcelDto dto : dataList) {
                 if (!StringUtils.hasText(dto.getName())) {
                     continue;
                 }
@@ -341,7 +366,7 @@ public class CategoryServiceImpl implements CategoryService {
                 count++;
             }
             
-            auditLogService.log("IMPORT_CATEGORIES", "SYSTEM", "Imported " + count + " categories from Excel");
+            auditLogService.log("IMPORT_CATEGORIES", getCurrentUsername(), "Imported " + count + " categories from Excel");
         } catch (AppException e) {
             throw e; 
         } catch (Exception e) {
