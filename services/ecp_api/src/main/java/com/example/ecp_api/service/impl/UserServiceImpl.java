@@ -45,7 +45,7 @@ public class UserServiceImpl implements UserService {
     public UserResponse registerUserByUsername(UserRequest userRequest) {
         // Checking existed email
         if (userRepository.existsByUsername(userRequest.getUsername())) {
-            throw new AppException("Username already exists", HttpStatus.BAD_REQUEST);
+            throw new AppException("USER_ALREADY_EXISTS", "Username already exists", HttpStatus.BAD_REQUEST);
         }
 
         // Map DTO to Entity
@@ -73,7 +73,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse getUserById(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new AppException("User not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
         
         // Ghi log vào MongoDB mỗi khi truy vấn User
         auditLogService.log("GET_USER", user.getUsername(), "Fetched user with ID: " + id);
@@ -116,7 +116,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse updateUser(UUID id, UserUpdateRequest request) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new AppException("User not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
 
         userMapper.updateUserFromRequest(request, user);
 
@@ -134,7 +134,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void deleteUser(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new AppException("User not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
 
         user.setActive(false);
         user.setDeletedAt(LocalDateTime.now());

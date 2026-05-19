@@ -7,17 +7,23 @@ export async function POST(request: Request) {
   try {
     const authHeader = request.headers.get('Authorization');
     
+    const cookieStore = await cookies();
+    const refreshToken = cookieStore.get('refreshToken')?.value;
+
     // Optional: notify backend about logout to blacklist token
-    if (authHeader) {
+    if (authHeader || refreshToken) {
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json'
+        };
+        if (authHeader) headers['Authorization'] = authHeader;
+
         await fetch(`${BACKEND_URL}/auth/logout`, {
             method: 'POST',
-            headers: {
-                'Authorization': authHeader
-            }
+            headers,
+            body: refreshToken ? JSON.stringify({ refreshToken }) : undefined
         });
     }
 
-    const cookieStore = await cookies();
     cookieStore.delete('refreshToken');
 
     return NextResponse.json({

@@ -24,7 +24,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         const result = await response.json();
 
         if (response.ok && result.success) {
-          setAuth(result.data.accessToken, result.data.user);
+          const { id, accessToken, username, email, roles } = result.data;
+          setAuth(accessToken, { id, username, email, roles });
         } else if (response.status === 401) {
           // Chỉ xóa auth nếu server xác nhận token không hợp lệ
           clearAuth();

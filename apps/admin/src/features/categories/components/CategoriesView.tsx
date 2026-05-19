@@ -2,19 +2,12 @@
 
 import { useState } from 'react';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
   Badge,
-  Card,
-  CardContent,
-  CardHeader,
   NextPagination,
   PageHeader,
-  EmptyState,
+  DataTable,
+  type ColumnDef,
+  DataCard,
 } from '@/components/common';
 import {
   Dialog,
@@ -46,8 +39,10 @@ import { formatDate, formatDateTimeForFilename } from '@/lib/formatters';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { cn, isIdLike } from '@/lib/utils';
 import { Plus } from 'lucide-react';
-import { categoryApi } from '../api/category.api';
+import { getSortOptions } from '@/types';
 import { toast } from 'sonner';
+import { categoryApi } from '../api/category.api';
+import { useHotkeys } from '@/hooks/use-hotkeys';
 
 interface CategoriesViewProps {
   initialData: PageResponse<Category>;
@@ -131,6 +126,8 @@ export default function CategoriesView({
     setIsFormOpen(true);
   };
 
+  useHotkeys('+', handleCreate);
+
   const handleExportExcelFile = async () => {
     try {
       setIsExporting(true);
@@ -166,11 +163,66 @@ export default function CategoriesView({
   const categories = categoriesData.data || [];
   const pagination = categoriesData.pagination;
 
-  const sortOptions = [
-    { label: 'Tên (A-Z)', value: 'name,asc' },
-    { label: 'Tên (Z-A)', value: 'name,desc' },
-    { label: 'Mới nhất (Ngày tạo)', value: 'createdAt,desc' },
-    { label: 'Cũ nhất (Ngày tạo)', value: 'createdAt,asc' },
+  const sortOptions = getSortOptions(['NAME', 'DATE']);
+
+  const columns: ColumnDef<Category>[] = [
+    {
+      header: 'Tên danh mục',
+      cell: (category) => (
+        <div className='flex flex-col'>
+          <span className='text-sm font-bold text-slate-900'>
+            {category.name}
+          </span>
+          <span className='text-[10px] text-slate-400 font-medium'>
+            ID: {category.id}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: 'Cấp độ',
+      align: 'center',
+      cell: (category) => (
+        <Badge
+          variant='outline'
+          className='text-[10px] font-bold border-slate-200 text-slate-500'>
+          Cấp {category.level}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Trạng thái',
+      align: 'center',
+      cell: (category) => (
+        <Badge
+          variant={category.active ? 'default' : 'destructive'}
+          className='text-[10px] font-bold py-0.5 px-2 uppercase tracking-tight border-none whitespace-nowrap'>
+          {category.active ? 'Hoạt động' : 'Đã ẩn'}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Ngày tạo',
+      align: 'center',
+      cell: (category) => formatDate(category.createdAt),
+      className: 'text-xs font-medium text-slate-500',
+    },
+    {
+      header: 'Ngày sửa',
+      align: 'center',
+      cell: (category) => formatDate(category.updatedAt),
+      className: 'text-xs font-medium text-slate-500',
+    },
+    {
+      header: 'Thao tác',
+      align: 'right',
+      cell: (category) => (
+        <div className='flex justify-end gap-1'>
+          <EditActionButton onClick={() => handleEdit(category)} />
+          <DeleteActionButton onClick={() => setDeleteConfirmId(category.id)} />
+        </div>
+      ),
+    },
   ];
 
   const commonActions = (
@@ -197,202 +249,103 @@ export default function CategoriesView({
         actions={commonActions}
       />
 
-      <Card className='overflow-hidden'>
-        <CardHeader className='pb-4 bg-slate-50/50 border-b border-slate-100'>
-          <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
-            <SearchInput
-              value={searchTerm}
-              onChange={setSearchTerm}
-              placeholder='Tìm tên hoặc ID danh mục...'
-              isLoading={isLoading || isFetching}
-            />
-
-            <div className='flex items-center gap-2'>
-              <FilterPopover
-                activeCount={(activeParam ? 1 : 0) + (levelParam ? 1 : 0)}
-                onClear={() => updateUrl({ active: '', level: '', page: 0 })}>
-                <div className='space-y-4 p-1'>
-                  <div className='space-y-2'>
-                    <h4 className='font-bold text-[10px] uppercase tracking-wider text-slate-400 px-3'>
-                      Trạng thái
-                    </h4>
-                    <div className='flex flex-col gap-0.5'>
-                      <button
-                        className={filterBtnClass(!activeParam)}
-                        onClick={() => updateUrl({ active: '', page: 0 })}>
-                        Tất cả trạng thái
-                      </button>
-                      <button
-                        className={filterBtnClass(activeParam === 'true')}
-                        onClick={() => updateUrl({ active: 'true', page: 0 })}>
-                        <div className='mr-2 h-2 w-2 rounded-full bg-green-500' />{' '}
-                        Hoạt động
-                      </button>
-                      <button
-                        className={filterBtnClass(activeParam === 'false')}
-                        onClick={() => updateUrl({ active: 'false', page: 0 })}>
-                        <div className='mr-2 h-2 w-2 rounded-full bg-red-500' />{' '}
-                        Ẩn
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className='space-y-2 pt-2'>
-                    <h4 className='font-bold text-[10px] uppercase tracking-wider text-slate-400 px-3'>
-                      Cấp độ (Level)
-                    </h4>
-                    <div className='grid grid-cols-2 gap-2 px-3'>
-                      {[1, 2].map((lv) => (
-                        <button
-                          key={lv}
-                          className={cn(
-                            'h-8 text-xs font-semibold border rounded-lg transition-all',
-                            levelParam === lv.toString()
-                              ? 'bg-primary text-white border-primary shadow-sm'
-                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50',
-                          )}
-                          onClick={() => updateUrl({ level: lv, page: 0 })}>
-                          Lv {lv}
-                        </button>
-                      ))}
-                    </div>
+      <DataCard
+        isLoading={isLoading}
+        isFetching={isFetching}
+        search={
+          <SearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder='Tìm tên hoặc ID danh mục...'
+            isLoading={isLoading || isFetching}
+          />
+        }
+        extra={
+          <>
+            <FilterPopover
+              activeCount={(activeParam ? 1 : 0) + (levelParam ? 1 : 0)}
+              onClear={() => updateUrl({ active: '', level: '', page: 0 })}>
+              <div className='space-y-4 p-1'>
+                <div className='space-y-2'>
+                  <h4 className='font-bold text-[10px] uppercase tracking-wider text-slate-400 px-3'>
+                    Trạng thái
+                  </h4>
+                  <div className='flex flex-col gap-0.5'>
+                    <button
+                      className={filterBtnClass(!activeParam)}
+                      onClick={() => updateUrl({ active: '', page: 0 })}>
+                      Tất cả trạng thái
+                    </button>
+                    <button
+                      className={filterBtnClass(activeParam === 'true')}
+                      onClick={() => updateUrl({ active: 'true', page: 0 })}>
+                      <div className='mr-2 h-2 w-2 rounded-full bg-green-500' />{' '}
+                      Hoạt động
+                    </button>
+                    <button
+                      className={filterBtnClass(activeParam === 'false')}
+                      onClick={() => updateUrl({ active: 'false', page: 0 })}>
+                      <div className='mr-2 h-2 w-2 rounded-full bg-red-500' />{' '}
+                      Ẩn
+                    </button>
                   </div>
                 </div>
-              </FilterPopover>
 
-              <SortPopover
-                options={sortOptions}
-                currentValue={sort}
-                onSelect={setSort}
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className='p-0 relative'>
-          {isFetching && !isLoading && (
-            <div className='absolute inset-0 bg-white/40 z-10 flex items-center justify-center backdrop-blur-[1px]' />
-          )}
-
-          {categories.length === 0 && !isLoading ? (
-            <div className='py-20'>
-              <EmptyState
-                title='Chưa có danh mục nào'
-                description='Bắt đầu phân loại sản phẩm bằng cách tạo danh mục đầu tiên.'
-                icon={<Plus className='h-10 w-10 text-primary opacity-80' />}
-                iconColor='bg-primary/10'
-              />
-            </div>
-          ) : (
-            <>
-              <div className='overflow-x-auto'>
-                <Table>
-                  <TableHeader className='bg-slate-50/30'>
-                    <TableRow>
-                      <TableHead className='text-xs font-bold uppercase py-4 px-6'>
-                        Tên danh mục
-                      </TableHead>
-                      <TableHead className='text-xs font-bold uppercase py-4'>
-                        Đường dẫn
-                      </TableHead>
-                      <TableHead className='text-xs font-bold uppercase py-4'>
-                        Path
-                      </TableHead>
-                      <TableHead className='text-xs font-bold uppercase py-4 text-center'>
-                        Cấp độ
-                      </TableHead>
-                      <TableHead className='text-xs font-bold uppercase py-4 text-center'>
-                        Trạng thái
-                      </TableHead>
-                      <TableHead className='text-xs font-bold uppercase py-4 text-center'>
-                        Ngày tạo
-                      </TableHead>
-                      <TableHead className='text-xs font-bold uppercase py-4 text-right pr-6'>
-                        Thao tác
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoading
-                      ? Array.from({ length: 5 }).map((_, i) => (
-                          <TableRow key={i}>
-                            <TableCell colSpan={7} className='h-16 px-6'>
-                              <div className='h-4 w-full bg-slate-100 animate-pulse rounded' />
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      : categories.map((category) => (
-                          <TableRow
-                            key={category.id}
-                            className='hover:bg-slate-50/50 transition-colors'>
-                            <TableCell className='py-4 px-6'>
-                              <div className='flex flex-col'>
-                                <span className='text-sm font-bold text-slate-900'>
-                                  {category.name}
-                                </span>
-                                <span className='text-[10px] text-slate-400 font-medium'>
-                                  ID: {category.id}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className='py-4'>
-                              <code className='text-[11px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium'>
-                                /{category.slug}
-                              </code>
-                            </TableCell>
-                            <TableCell className='py-4'>
-                              <span className='text-[11px] font-mono text-slate-500'>
-                                {category.path || '---'}
-                              </span>
-                            </TableCell>
-                            <TableCell className='text-center py-4'>
-                              <Badge
-                                variant='outline'
-                                className='text-[10px] font-bold border-slate-200 text-slate-500'>
-                                Cấp {category.level}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className='text-center py-4'>
-                              <Badge
-                                variant={
-                                  category.active ? 'default' : 'destructive'
-                                }
-                                className='text-[10px] font-bold h-5 px-2 uppercase tracking-tight border-none'>
-                                {category.active ? 'Hoạt động' : 'Đã ẩn'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className='text-center py-4 text-xs font-medium text-slate-500'>
-                              {formatDate(category.createdAt)}
-                            </TableCell>
-                            <TableCell className='text-right py-4 pr-6'>
-                              <div className='flex justify-end gap-1'>
-                                <EditActionButton
-                                  onClick={() => handleEdit(category)}
-                                />
-                                <DeleteActionButton
-                                  onClick={() =>
-                                    setDeleteConfirmId(category.id)
-                                  }
-                                />
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                  </TableBody>
-                </Table>
+                <div className='space-y-2 pt-2'>
+                  <h4 className='font-bold text-[10px] uppercase tracking-wider text-slate-400 px-3'>
+                    Cấp độ (Level)
+                  </h4>
+                  <div className='grid grid-cols-2 gap-2 px-3'>
+                    {[1, 2].map((lv) => (
+                      <button
+                        key={lv}
+                        className={cn(
+                          'h-8 text-xs font-semibold border rounded-lg transition-all',
+                          levelParam === lv.toString()
+                            ? 'bg-primary text-white border-primary shadow-sm'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50',
+                        )}
+                        onClick={() => updateUrl({ level: lv, page: 0 })}>
+                        Lv {lv}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <NextPagination
-                currentPage={pagination.currentPage + 1}
-                totalPages={pagination.totalPages}
-                totalItems={pagination.totalElements}
-                itemsPerPage={pagination.pageSize}
-                onItemsPerPageChange={setSize}
-                onPageChange={(p) => setPage(p - 1)}
-                className='bg-slate-50/30'
-              />
-            </>
-          )}
-        </CardContent>
-      </Card>
+            </FilterPopover>
+
+            <SortPopover
+              options={sortOptions}
+              currentValue={sort}
+              onSelect={setSort}
+            />
+          </>
+        }
+        footer={
+          categories.length > 0 && (
+            <NextPagination
+              currentPage={pagination.currentPage + 1}
+              totalPages={pagination.totalPages}
+              totalItems={pagination.totalElements}
+              itemsPerPage={pagination.pageSize}
+              onItemsPerPageChange={setSize}
+              onPageChange={(p) => setPage(p - 1)}
+              className='bg-slate-50/30'
+            />
+          )
+        }>
+        <DataTable
+          columns={columns}
+          data={categories}
+          isLoading={isLoading}
+          emptyState={{
+            title: 'Chưa có danh mục nào',
+            description: 'Bắt đầu phân loại sản phẩm bằng cách tạo danh mục đầu tiên.',
+            icon: <Plus className='h-10 w-10 text-primary opacity-80' />,
+            iconColor: 'bg-primary/10',
+          }}
+        />
+      </DataCard>
 
       {/* Dialogs */}
       <Dialog

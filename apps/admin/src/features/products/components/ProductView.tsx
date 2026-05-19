@@ -4,20 +4,13 @@ import React, { useState } from 'react';
 import { Package } from 'lucide-react';
 
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
   Badge,
-  Card,
-  CardContent,
-  CardHeader,
   NextPagination,
   PageHeader,
-  EmptyState,
   Button,
+  DataTable,
+  type ColumnDef,
+  DataCard,
 } from '@/components/common';
 import {
   Dialog,
@@ -46,6 +39,8 @@ import { toast } from 'sonner';
 
 import { formatCurrency } from '@/lib/formatters';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
+import { useHotkeys } from '@/hooks/use-hotkeys';
+import { getSortOptions } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface ProductViewProps {
@@ -101,6 +96,8 @@ export default function ProductView({
     setIsFormOpen(true);
   };
 
+  useHotkeys('+', handleCreate);
+
   const handleExport = () => {
     setIsExporting(true);
     setTimeout(() => {
@@ -109,11 +106,64 @@ export default function ProductView({
     }, 1000);
   };
 
-  const sortOptions = [
-    { label: 'Tên (A-Z)', value: 'name,asc' },
-    { label: 'Tên (Z-A)', value: 'name,desc' },
-    { label: 'Giá giảm dần', value: 'price,desc' },
-    { label: 'Giá tăng dần', value: 'price,asc' },
+  const sortOptions = getSortOptions(['NAME', 'PRICE']);
+
+  const columns: ColumnDef<Product>[] = [
+    {
+      header: 'Mã SKU',
+      accessorKey: 'sku',
+      className: 'font-mono text-[11px] font-bold text-slate-400',
+      headerClassName: 'w-20',
+    },
+    {
+      header: 'Tên sản phẩm',
+      cell: (product) => (
+        <div className='flex flex-col'>
+          <span className='text-sm font-bold'>{product.name}</span>
+          <span className='text-[11px] opacity-60'>{product.brand}</span>
+        </div>
+      ),
+    },
+    {
+      header: 'Danh mục',
+      accessorKey: 'categoryName',
+      className: 'text-sm hidden md:table-cell',
+      headerClassName: 'hidden md:table-cell',
+    },
+    {
+      header: 'Giá',
+      align: 'right',
+      cell: (product) => formatCurrency(product.price),
+      className: 'text-sm font-bold text-blue-600',
+    },
+    {
+      header: 'Tồn kho',
+      align: 'center',
+      cell: (product) => (
+        <Badge variant='secondary' className='text-[10px] py-0.5 px-2 bg-slate-100 text-slate-600 border-none whitespace-nowrap'>
+          {product.stock}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Trạng thái',
+      align: 'center',
+      cell: (product) => (
+        <Badge variant={product.isPublished ? 'default' : 'secondary'} className='text-[10px] py-0.5 px-2 border-none whitespace-nowrap'>
+          {product.isPublished ? 'Đang bán' : 'Ngừng bán'}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Thao tác',
+      align: 'right',
+      cell: (product) => (
+        <div className='flex justify-end gap-1'>
+          <EditActionButton onClick={() => handleEdit(product)} />
+          <DeleteActionButton onClick={() => setDeleteConfirmId(product.id)} />
+        </div>
+      ),
+    },
   ];
 
   const commonActions = (
@@ -133,106 +183,74 @@ export default function ProductView({
     <div className='space-y-6'>
       <PageHeader title='Quản lý sản phẩm' description='Xem và quản lý danh mục sản phẩm của bạn.' actions={commonActions} />
 
-      <Card className='shadow-sm border-slate-100 overflow-hidden'>
-        <CardHeader className='pb-4 bg-slate-50/30 border-b border-slate-50'>
-          <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
-            <SearchInput value={searchTerm} onChange={setSearchTerm} placeholder='Tìm tên sản phẩm...' />
-            
-            <div className='flex items-center gap-2'>
-              <FilterPopover 
-                activeCount={(categoryIdParam ? 1 : 0) + (isPublishedParam ? 1 : 0)}
-                onClear={() => updateUrl({ categoryId: '', isPublished: '', page: 0 })}
-              >
-                <div className='space-y-4'>
-                  <div className='space-y-2'>
-                    <h4 className='font-medium text-xs leading-none'>Danh mục</h4>
-                    <div className='flex flex-col gap-1 max-h-40 overflow-y-auto custom-scrollbar'>
-                      <button className={filterBtnClass(!categoryIdParam)} onClick={() => updateUrl({ categoryId: '', page: 0 })}>
-                        Tất cả danh mục
+      <DataCard 
+        search={<SearchInput value={searchTerm} onChange={setSearchTerm} placeholder='Tìm tên sản phẩm...' />}
+        extra={
+          <>
+            <FilterPopover 
+              activeCount={(categoryIdParam ? 1 : 0) + (isPublishedParam ? 1 : 0)}
+              onClear={() => updateUrl({ categoryId: '', isPublished: '', page: 0 })}
+            >
+              <div className='space-y-4'>
+                <div className='space-y-2'>
+                  <h4 className='font-medium text-xs leading-none'>Danh mục</h4>
+                  <div className='flex flex-col gap-1 max-h-40 overflow-y-auto custom-scrollbar'>
+                    <button className={filterBtnClass(!categoryIdParam)} onClick={() => updateUrl({ categoryId: '', page: 0 })}>
+                      Tất cả danh mục
+                    </button>
+                    {categories.map((cat) => (
+                      <button key={cat.id} className={filterBtnClass(categoryIdParam === cat.id)} onClick={() => updateUrl({ categoryId: cat.id, page: 0 })}>
+                        {cat.name}
                       </button>
-                      {categories.map((cat) => (
-                        <button key={cat.id} className={filterBtnClass(categoryIdParam === cat.id)} onClick={() => updateUrl({ categoryId: cat.id, page: 0 })}>
-                          {cat.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className='space-y-2'>
-                    <h4 className='font-medium text-xs leading-none'>Trạng thái</h4>
-                    <div className='flex flex-col gap-1'>
-                      <button className={filterBtnClass(!isPublishedParam)} onClick={() => updateUrl({ isPublished: '', page: 0 })}>
-                        Tất cả trạng thái
-                      </button>
-                      <button className={filterBtnClass(isPublishedParam === 'true')} onClick={() => updateUrl({ isPublished: 'true', page: 0 })}>
-                        <Badge className='mr-2 h-2 w-2 rounded-full p-0 bg-blue-500' /> Đang bán
-                      </button>
-                      <button className={filterBtnClass(isPublishedParam === 'false')} onClick={() => updateUrl({ isPublished: 'false', page: 0 })}>
-                        <Badge variant='secondary' className='mr-2 h-2 w-2 rounded-full p-0' /> Ngừng bán
-                      </button>
-                    </div>
+                    ))}
                   </div>
                 </div>
-              </FilterPopover>
 
-              <SortPopover options={sortOptions} currentValue={sort} onSelect={setSort} />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className='p-0 relative'>
-          {filteredProducts.length === 0 ? (
-            <div className='py-20'>
-              <EmptyState title='Không tìm thấy sản phẩm' description='Thử thay đổi bộ lọc hoặc thêm sản phẩm mới.' icon={<Package className='h-10 w-10 text-blue-500 opacity-80' />} iconColor='bg-blue-50' />
-            </div>
-          ) : (
-            <>
-              <div className='overflow-x-auto'>
-                <Table>
-                  <TableHeader className='bg-slate-50/50'>
-                    <TableRow>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 px-6 w-20 text-slate-500'>Mã SKU</TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-slate-500'>Tên sản phẩm</TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-slate-500 hidden md:table-cell'>Danh mục</TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-right text-slate-500'>Giá</TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-center text-slate-500'>Tồn kho</TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-center text-slate-500'>Trạng thái</TableHead>
-                      <TableHead className='text-[11px] font-bold uppercase py-4 text-right pr-6 text-slate-500'>Thao tác</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredProducts.map((product) => (
-                      <TableRow key={product.id} className='hover:bg-slate-50/30 transition-colors border-b border-slate-50'>
-                        <TableCell className='font-mono text-[11px] font-bold py-4 px-6 text-slate-400'>{product.sku}</TableCell>
-                        <TableCell className='py-4'>
-                          <div className='flex flex-col'>
-                            <span className='text-sm font-bold'>{product.name}</span>
-                            <span className='text-[11px] opacity-60'>{product.brand}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className='text-sm py-4 hidden md:table-cell'>{product.categoryName}</TableCell>
-                        <TableCell className='text-right text-sm font-bold py-4 text-blue-600'>{formatCurrency(product.price)}</TableCell>
-                        <TableCell className='text-center py-4'>
-                          <Badge variant='secondary' className='text-[10px] h-5 px-2 bg-slate-100 text-slate-600 border-none'>{product.stock}</Badge>
-                        </TableCell>
-                        <TableCell className='text-center py-4'>
-                          <Badge variant={product.isPublished ? 'default' : 'secondary'} className='text-[10px] h-5 px-2 border-none'>{product.isPublished ? 'Đang bán' : 'Ngừng bán'}</Badge>
-                        </TableCell>
-                        <TableCell className='text-right py-4 pr-6'>
-                          <div className='flex justify-end gap-1'>
-                            <EditActionButton onClick={() => handleEdit(product)} />
-                            <DeleteActionButton onClick={() => setDeleteConfirmId(product.id)} />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className='space-y-2'>
+                  <h4 className='font-medium text-xs leading-none'>Trạng thái</h4>
+                  <div className='flex flex-col gap-1'>
+                    <button className={filterBtnClass(!isPublishedParam)} onClick={() => updateUrl({ isPublished: '', page: 0 })}>
+                      Tất cả trạng thái
+                    </button>
+                    <button className={filterBtnClass(isPublishedParam === 'true')} onClick={() => updateUrl({ isPublished: 'true', page: 0 })}>
+                      <Badge className='mr-2 h-2 w-2 rounded-full p-0 bg-blue-500' /> Đang bán
+                    </button>
+                    <button className={filterBtnClass(isPublishedParam === 'false')} onClick={() => updateUrl({ isPublished: 'false', page: 0 })}>
+                      <Badge variant='secondary' className='mr-2 h-2 w-2 rounded-full p-0' /> Ngừng bán
+                    </button>
+                  </div>
+                </div>
               </div>
-              <NextPagination currentPage={1} totalPages={1} totalItems={filteredProducts.length} itemsPerPage={10} onItemsPerPageChange={() => {}} onPageChange={() => {}} className='bg-slate-50/20' />
-            </>
-          )}
-        </CardContent>
-      </Card>
+            </FilterPopover>
+
+            <SortPopover options={sortOptions} currentValue={sort} onSelect={setSort} />
+          </>
+        }
+        footer={
+          filteredProducts.length > 0 && (
+            <NextPagination 
+              currentPage={1} 
+              totalPages={1} 
+              totalItems={filteredProducts.length} 
+              itemsPerPage={10} 
+              onItemsPerPageChange={() => {}} 
+              onPageChange={() => {}} 
+              className='bg-slate-50/20' 
+            />
+          )
+        }
+      >
+        <DataTable
+          columns={columns}
+          data={filteredProducts}
+          emptyState={{
+            title: 'Không tìm thấy sản phẩm',
+            description: 'Thử thay đổi bộ lọc hoặc thêm sản phẩm mới.',
+            icon: <Package className='h-10 w-10 text-blue-500 opacity-80' />,
+            iconColor: 'bg-blue-50',
+          }}
+        />
+      </DataCard>
 
       {/* Dialogs */}
       <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setEditingProduct(null); }}>

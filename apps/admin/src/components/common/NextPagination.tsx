@@ -10,7 +10,15 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 interface NextPaginationProps {
   currentPage: number;
@@ -35,26 +43,40 @@ export const NextPagination = ({
   showTotal = true,
   pageSizeOptions = [10, 20, 50, 100],
 }: NextPaginationProps) => {
-  // Logic to calculate page numbers to show
+  // Logic to calculate page numbers to show (Smart Pagination)
   const getPageNumbers = () => {
-    const pages: (number | string)[] = [];
-    const showMax = 7; // Increased to show more context
+    const current = currentPage;
+    const last = totalPages;
+    const delta = 1; // Number of pages to show around the current page
+    const boundary = 2; // Number of pages to show at the start and end
 
-    if (totalPages <= showMax) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Logic for ellipsis
-      if (currentPage <= 4) {
-        pages.push(1, 2, 3, 4, 5, 'ellipsis', totalPages);
-      } else if (currentPage >= totalPages - 3) {
-        pages.push(1, 'ellipsis', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
-      } else {
-        pages.push(1, 'ellipsis', currentPage - 1, currentPage, currentPage + 1, 'ellipsis', totalPages);
+    const range = [];
+    for (let i = 1; i <= last; i++) {
+      if (
+        i <= boundary || // Start boundaries
+        i > last - boundary || // End boundaries
+        (i >= current - delta && i <= current + delta) // Around current page
+      ) {
+        range.push(i);
       }
     }
-    return pages;
+
+    const rangeWithDots: (number | string)[] = [];
+    let l: number | undefined;
+
+    for (const i of range) {
+      if (l !== undefined) {
+        if (i - l === 2) {
+          rangeWithDots.push(l + 1);
+        } else if (i - l !== 1) {
+          rangeWithDots.push('ellipsis');
+        }
+      }
+      rangeWithDots.push(i);
+      l = i;
+    }
+
+    return rangeWithDots;
   };
 
   const pages = getPageNumbers();
@@ -80,15 +102,21 @@ export const NextPagination = ({
         {onItemsPerPageChange && (
           <div className="flex items-center gap-2 border-l pl-4 border-slate-100">
             <span className="text-[11px] font-medium text-slate-400">Hiển thị:</span>
-            <select 
-              value={itemsPerPage}
-              onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-              className="border text-[11px] font-bold rounded-lg block p-1 transition-all outline-none cursor-pointer bg-slate-50 border-slate-200 text-slate-700 focus:ring-blue-500 focus:border-blue-500"
+            <Select 
+              value={String(itemsPerPage)}
+              onValueChange={(value) => onItemsPerPageChange(Number(value))}
             >
-              {pageSizeOptions.map(option => (
-                <option key={option} value={option}>{option} / trang</option>
-              ))}
-            </select>
+              <SelectTrigger className="h-7 w-[110px] text-[11px] font-bold bg-slate-50 border-slate-200 text-slate-700">
+                <SelectValue placeholder={`${itemsPerPage} / trang`} />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map(option => (
+                  <SelectItem key={option} value={String(option)} className="text-[11px] font-bold">
+                    {option} / trang
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
       </div>
@@ -97,6 +125,22 @@ export const NextPagination = ({
       <Pagination className="w-auto mx-0 justify-end">
         <PaginationContent className="gap-1">
           <PaginationItem>
+            <PaginationLink
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                if (currentPage > 1) onPageChange(1);
+              }}
+              className={cn(
+                "h-8 w-8 p-0 text-[11px] font-bold transition-all cursor-pointer border-slate-200 text-slate-900 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100",
+                currentPage === 1 && "pointer-events-none opacity-40 grayscale"
+              )}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </PaginationLink>
+          </PaginationItem>
+          
+          <PaginationItem>
             <PaginationPrevious 
               onClick={(e) => {
                 e.preventDefault();
@@ -104,7 +148,7 @@ export const NextPagination = ({
               }}
               href="#"
               className={cn(
-                "h-8 px-3 text-[11px] font-bold transition-all cursor-pointer border-slate-200 text-slate-900 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100",
+                "h-8 w-8 text-[11px] font-bold transition-all cursor-pointer border-slate-200 text-slate-900 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100",
                 currentPage === 1 && "pointer-events-none opacity-40 grayscale"
               )}
             />
@@ -143,10 +187,26 @@ export const NextPagination = ({
               }}
               href="#"
               className={cn(
-                "h-8 px-3 text-[11px] font-bold transition-all cursor-pointer border-slate-200 text-slate-900 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100",
+                "h-8 w-8 text-[11px] font-bold transition-all cursor-pointer border-slate-200 text-slate-900 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100",
                 currentPage === totalPages && "pointer-events-none opacity-40 grayscale"
               )}
             />
+          </PaginationItem>
+
+          <PaginationItem>
+            <PaginationLink
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                if (currentPage < totalPages) onPageChange(totalPages);
+              }}
+              className={cn(
+                "h-8 w-8 p-0 text-[11px] font-bold transition-all cursor-pointer border-slate-200 text-slate-900 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100",
+                currentPage === totalPages && "pointer-events-none opacity-40 grayscale"
+              )}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </PaginationLink>
           </PaginationItem>
         </PaginationContent>
       </Pagination>

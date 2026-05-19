@@ -23,12 +23,12 @@ export async function POST() {
     const data = await response.json();
 
     if (!response.ok) {
-        // If refresh fails, clear the cookie
-        cookieStore.delete('refreshToken');
-        return NextResponse.json(data, { status: response.status });
+      // If refresh fails, clear the cookie
+      cookieStore.delete('refreshToken');
+      return NextResponse.json(data, { status: response.status });
     }
 
-    const { accessToken, username, email, roles } = data.data;
+    const { id, accessToken, username, email, roles } = data.data;
 
     // We keep the same refresh token or backend might have returned a new one (not in current backend code)
     // If backend returns a new one, we should update the cookie here.
@@ -37,8 +37,11 @@ export async function POST() {
       success: true,
       message: 'Token refreshed',
       data: {
+        id,
         accessToken,
-        user: { username, email, roles }
+        username,
+        email,
+        roles
       }
     });
 

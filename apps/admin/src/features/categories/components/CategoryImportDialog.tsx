@@ -17,9 +17,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Card, CardContent } from '@/components/ui/card';
 import ExcelPreviewDialog from './ExcelPreviewDialog';
 import { toast } from 'sonner';
 import { categoryApi } from '../api/category.api';
+import { useImportCategory } from '../hooks/use-category-mutation';
 
 interface CategoryImportDialogProps {
   isOpen: boolean;
@@ -34,43 +36,26 @@ export default function CategoryImportDialog({
 }: CategoryImportDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  // Giả lập tiến trình upload khi nhấn nút "Bắt đầu nhập"
-  const handleImport = async () => {
+  const importMutation = useImportCategory();
+
+  const handleImport = () => {
     if (!file) return;
 
     setIsImporting(true);
-    setUploadProgress(0);
-
-    const duration = 2000;
-    const interval = 50;
-    const steps = duration / interval;
-    const increment = 100 / steps;
-
-    const timer = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(timer);
-          return 100;
-        }
-        return prev + increment;
-      });
-    }, interval);
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, duration + 500));
-      toast.success('Nhập dữ liệu thành công');
-      onOpenChange(false);
-      setFile(null);
-      onSuccess?.();
-    } catch (error) {
-      toast.error('Có lỗi xảy ra khi nhập dữ liệu');
-    } finally {
-      setIsImporting(false);
-      setUploadProgress(0);
-    }
+    
+    importMutation.mutate(file, {
+      onSuccess: () => {
+        setIsImporting(false);
+        onOpenChange(false);
+        setFile(null);
+        onSuccess?.();
+      },
+      onError: () => {
+        setIsImporting(false);
+      }
+    });
   };
 
   const handleDownloadTemplate = async () => {
@@ -101,7 +86,7 @@ export default function CategoryImportDialog({
         <DialogContent className="sm:max-w-[650px]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <Upload className="h-5 w-5 text-blue-600" />
+              <Download className="h-5 w-5 text-blue-600" />
               Nhập danh mục từ Excel
             </DialogTitle>
             <DialogDescription>
@@ -109,27 +94,29 @@ export default function CategoryImportDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
+          <div className="space-y-6 py-4 w-full min-w-0 overflow-hidden">
             {/* Template Download Section */}
-            <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-4 flex items-start gap-3">
-              <div className="bg-blue-100 p-2 rounded-lg">
-                <FileText className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <h4 className="text-sm font-semibold text-blue-900">Bạn chưa có file mẫu?</h4>
-                <p className="text-xs text-blue-700 leading-relaxed">
-                  Tải xuống file Excel mẫu để đảm bảo dữ liệu của bạn đúng định dạng yêu cầu của hệ thống.
-                </p>
-                <Button 
-                  variant="link" 
-                  size="sm" 
-                  className="h-auto p-0 text-blue-600 font-bold hover:text-blue-700 mt-1"
-                  onClick={handleDownloadTemplate}
-                >
-                  <Download className="h-3 w-3 mr-1" /> Tải file mẫu (.xlsx)
-                </Button>
-              </div>
-            </div>
+            <Card className="bg-blue-50/50 border-blue-100 shadow-none w-full overflow-hidden">
+              <CardContent className="p-4 flex items-start gap-3 min-w-0">
+                <div className="bg-blue-100 p-2 rounded-lg shrink-0">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0 space-y-1">
+                  <h4 className="text-sm font-semibold text-blue-900 truncate">Bạn chưa có file mẫu?</h4>
+                  <p className="text-xs text-blue-700 leading-relaxed">
+                    Tải xuống file Excel mẫu để đảm bảo dữ liệu của bạn đúng định dạng yêu cầu của hệ thống.
+                  </p>
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="h-auto p-0 text-blue-600 font-bold hover:text-blue-700 mt-1"
+                    onClick={handleDownloadTemplate}
+                  >
+                    <Download className="h-3 w-3 mr-1 shrink-0" /> Tải file mẫu (.xlsx)
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Reusable FileUpload Component with Excel Preview */}
             <FileUpload 
@@ -137,7 +124,7 @@ export default function CategoryImportDialog({
               onChange={setFile}
               onPreview={handlePreview}
               isUploading={isImporting}
-              progress={Math.round(uploadProgress)}
+              progress={isImporting ? 50 : 0}
               accept={{
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
                 'application/vnd.ms-excel': ['.xls']
@@ -153,7 +140,7 @@ export default function CategoryImportDialog({
               <ul className="text-[11px] text-slate-500 space-y-1 list-disc pl-4">
                 <li>Hệ thống sẽ tự động tạo Slug nếu bỏ trống.</li>
                 <li>Tên danh mục là bắt buộc và không được trùng lặp.</li>
-                <li>Nếu là danh mục con, hãy điền đúng ID của danh mục cha.</li>
+                <li>Nếu là danh mục con, hãy điền đúng Slug của danh mục cha.</li>
                 <li>Định dạng cột phải khớp chính xác với file mẫu.</li>
               </ul>
             </div>

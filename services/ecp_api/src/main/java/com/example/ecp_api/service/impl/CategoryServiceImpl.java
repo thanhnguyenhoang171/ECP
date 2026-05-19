@@ -30,6 +30,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -61,7 +62,7 @@ public class CategoryServiceImpl implements CategoryService {
                 : SlugUtils.toSlug(request.getName());
 
         if (categoryRepository.existsBySlugAndDeletedFalse(slugGenerated)) {
-            throw new AppException("Category with Slug already exists", HttpStatus.BAD_REQUEST);
+            throw new AppException("CATEGORY_SLUG_EXISTS", "Category with Slug already exists", HttpStatus.BAD_REQUEST);
         }
 
         Category category = categoryMapper.toEntity(request);
@@ -154,7 +155,7 @@ public class CategoryServiceImpl implements CategoryService {
         // Check slug uniqueness if it's changed
         if (!category.getSlug().equals(oldSlug)
                 && categoryRepository.existsBySlugAndDeletedFalse(category.getSlug())) {
-            throw new AppException("Category with Slug already exists", HttpStatus.BAD_REQUEST);
+            throw new AppException("CATEGORY_SLUG_EXISTS", "Category with Slug already exists", HttpStatus.BAD_REQUEST);
         }
  
         if (request.getActive() != null) {
@@ -203,7 +204,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         // Check exist child categories
         if (categoryRepository.existsByParentIdAndDeletedFalse(id)) {
-            throw new AppException("Cannot delete category that has sub-categories", HttpStatus.BAD_REQUEST);
+            throw new AppException("CATEGORY_HAS_CHILDREN", "Cannot delete category that has sub-categories", HttpStatus.BAD_REQUEST);
         }
 
         category.setDeleted(true);
@@ -267,10 +268,10 @@ public class CategoryServiceImpl implements CategoryService {
         List<CategoryTemplateDto> samples = List.of(
                 CategoryTemplateDto.builder()
                         .index(1)
-                        .id("69f73c4595bcc35a47dfdaf3")
-                        .name("parent category new")
-                        .slug("parent-category-new")
-                        .parentId("")
+                        .id("") // Để trống để tạo mới
+                        .name("Áo thun nam")
+                        .slug("ao-thun-nam")
+                        .parentSlug("")
                         .level(1)
                         .status(true)
                         .createdAt("03/05/2026 19:15:01")
@@ -278,12 +279,12 @@ public class CategoryServiceImpl implements CategoryService {
                         .build(),
                 CategoryTemplateDto.builder()
                         .index(2)
-                        .id("69f73c4595bcc35a47dfdaf4")
-                        .name("child category new")
-                        .slug("child-category-new")
-                        .parentId("69f73c4595bcc35a47dfdaf3")
+                        .id("") // Để trống để tạo mới
+                        .name("Áo thun polo")
+                        .slug("ao-thun-polo")
+                        .parentSlug("ao-thun-nam") // Dùng Slug của danh mục cha
                         .level(2)
-                        .status(false)
+                        .status(true)
                         .createdAt("03/05/2026 19:15:01")
                         .updatedAt("03/05/2026 19:15:01")
                         .build()
@@ -300,5 +301,51 @@ public class CategoryServiceImpl implements CategoryService {
                 })
                 .sheet("Template Import Category")
                 .doWrite(samples);
+    }
+
+    @Override
+    @Transactional
+    public void importCategoriesFromExcel(MultipartFile file) {
+        try {
+            List<CategoryTemplateDto> dataList = EasyExcel.read(file.getInputStream())
+                    .head(CategoryTemplateDto.class)
+                    .sheet()
+                    .doReadSync();
+
+            int count = 0;
+            for (CategoryTemplateDto dto : dataList) {
+                if (!StringUtils.hasText(dto.getName())) {
+                    continue;
+                }
+
+                CategoryRequest request = new CategoryRequest();
+                request.setName(dto.getName());
+                request.setSlug(dto.getSlug());
+                
+                // Lookup parent by slug if provided
+                if (StringUtils.hasText(dto.getParentSlug())) {
+                    Category parent = categoryRepository.findBySlugAndDeletedFalse(dto.getParentSlug())
+                            .orElseThrow(() -> new AppException("PARENT_NOT_FOUND", "Không tìm thấy danh mục cha với slug: " + dto.getParentSlug(), HttpStatus.BAD_REQUEST));
+                    request.setParentId(parent.getId());
+                } else {
+                    request.setParentId(null);
+                }
+
+                request.setActive(dto.getStatus() != null ? dto.getStatus() : true);
+
+                if (StringUtils.hasText(dto.getId())) {
+                    updateCategory(dto.getId(), request);
+                } else {
+                    createCategory(request);
+                }
+                count++;
+            }
+            
+            auditLogService.log("IMPORT_CATEGORIES", "SYSTEM", "Imported " + count + " categories from Excel");
+        } catch (AppException e) {
+            throw e; 
+        } catch (Exception e) {
+            throw new AppException("CATEGORY_IMPORT_FAILED", "Failed to import categories: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 }

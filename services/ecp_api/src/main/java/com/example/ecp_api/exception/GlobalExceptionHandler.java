@@ -26,6 +26,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.UNAUTHORIZED.value())
                 .error("Unauthorized")
+                .code("AUTH_INVALID_CREDENTIALS")
                 .message("Invalid username or password.")
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();
@@ -40,6 +41,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.FORBIDDEN.value())
                 .error("Forbidden")
+                .code("AUTH_ACCESS_DENIED")
                 .message("You do not have permission to access this resource.")
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();
@@ -54,6 +56,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(ex.getStatus().value())
                 .error(ex.getStatus().getReasonPhrase())
+                .code(ex.getCode() != null ? ex.getCode() : "SYS_UNKNOWN_ERROR")
                 .message(ex.getMessage())
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();
@@ -73,6 +76,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("Validation Failed")
+                .code("SYS_VALIDATION_FAILED")
                 .message("Invalid input data")
                 .path(request.getDescription(false).replace("uri=", ""))
                 .validationErrors(errors)
@@ -89,6 +93,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.NOT_FOUND.value())
                 .error("Not Found")
+                .code("USER_NOT_FOUND") // Use USER_NOT_FOUND or generic NOT_FOUND
                 .message(ex.getMessage())
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();
@@ -103,6 +108,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error("Internal Server Error")
+                .code("SYS_INTERNAL_ERROR")
                 .message("An error occurred on the system. Please try again later..")
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();

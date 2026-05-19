@@ -13,9 +13,9 @@ async function getCategories(
     const res = await serverFetch(
       `v1/categories?page=${page}&size=${size}&sort=${sort}`,
       {
+        cache: 'no-store', // Admin mong muốn dữ liệu mới nhất khi F5
         next: {
-          revalidate: 3600, // Cache 1 giờ
-          tags: ['categories-list'], // Tag để xóa cache chủ động
+          tags: ['categories-list'],
         },
       } as any,
     );

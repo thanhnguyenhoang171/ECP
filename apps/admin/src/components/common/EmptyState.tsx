@@ -27,7 +27,7 @@ export const EmptyState = ({
             {icon}
           </div>
           <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
+          <CardDescription className='whitespace-normal wrap-break-word'>{description}</CardDescription>
         </CardHeader>
         <CardContent className="text-center text-sm text-muted-foreground italic">
           Vui lòng quay lại sau!

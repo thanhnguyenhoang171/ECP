@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
+import { getErrorMessage, ErrorMessages } from '@/constants/errorMessages';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9090/api';
 
@@ -31,10 +32,10 @@ export const clientFetch = async (url: string, options: RequestInit = {}) => {
     if (refreshRes.ok) {
       const result = await refreshRes.json();
       if (result.success && result.data) {
-        const { accessToken: newAccessToken, user } = result.data;
+        const { accessToken: newAccessToken, username, email, roles } = result.data;
         
         // Update new token in Zustand
-        setAuth(newAccessToken, user);
+        setAuth(newAccessToken, { username, email, roles });
         
         // Retry the original request with new token
         headers.set('Authorization', `Bearer ${newAccessToken}`);
@@ -54,9 +55,36 @@ export const clientFetch = async (url: string, options: RequestInit = {}) => {
     }
   }
 
-  // Handle Forbidden (403)
-  if (response.status === 403) {
-    toast.error('Bạn không có quyền thực hiện hành động này.');
+  // Xử lý Global Business Error Code khi response không thành công
+  if (!response.ok && response.status !== 401) {
+    try {
+      // Clone response để không ảnh hưởng đến việc đọc json ở các component gọi hàm này
+      const clonedResponse = response.clone();
+      const data = await clonedResponse.json();
+      
+      // Hỗ trợ nhiều định dạng code phổ biến (tùy BE cấu hình)
+      const businessCode = data?.error?.code || data?.errorCode || data?.code;
+
+      if (businessCode) {
+        toast.error(getErrorMessage(businessCode));
+      } else {
+        // Fallback xử lý theo HTTP Status nếu không có mã code từ BE
+        if (response.status === 403) {
+          toast.error(ErrorMessages["AUTH_ACCESS_DENIED"]);
+        } else if (response.status >= 500) {
+          toast.error(ErrorMessages["SYS_INTERNAL_ERROR"]);
+        } else {
+          toast.error(ErrorMessages["SYS_UNKNOWN_ERROR"]);
+        }
+      }
+    } catch (e) {
+      // Nếu API trả về lỗi nhưng không phải JSON
+      if (response.status === 403) {
+        toast.error(ErrorMessages["AUTH_ACCESS_DENIED"]);
+      } else {
+        toast.error(ErrorMessages["SYS_UNKNOWN_ERROR"]);
+      }
+    }
   }
   
   return response;
