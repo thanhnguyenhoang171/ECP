@@ -18,6 +18,7 @@ public interface UserMapper {
 
     // Convert Request -> Entity (CREATE)
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "email", ignore = true)
     @Mapping(target = "passwordHash", ignore = true)
     @Mapping(target = "role", ignore = true)
     @Mapping(target = "active", ignore = true)
@@ -41,6 +42,7 @@ public interface UserMapper {
 
 
     // Convert Entity -> Response (READ)
+    @Mapping(target = "isActive", source = "active")
     @Mapping(target = "firstName", source = "profile.firstName")
     @Mapping(target = "lastName", source = "profile.lastName")
     @Mapping(target = "avatarUrl", source = "profile.avatarUrl")
@@ -53,10 +55,10 @@ public interface UserMapper {
     default PageResponse<UserResponse> toPageResponse(Page<User> page) {
         List<UserResponse> list = page.getContent().stream()
                 .map(this::toResponse)
-                .toList();
+                .collect(java.util.stream.Collectors.toList());
 
         PaginationResponse pagination = PaginationResponse.builder()
-                .currentPage(page.getNumber())
+                .currentPage(page.getNumber() + 1)
                 .totalPages(page.getTotalPages())
                 .totalElements(page.getTotalElements())
                 .pageSize(page.getSize())
@@ -75,12 +77,21 @@ public interface UserMapper {
 
     // Update Entity from Request (UPDATE)
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "email", ignore = true)
+    @Mapping(target = "username", ignore = true)
     @Mapping(target = "passwordHash", ignore = true)
     @Mapping(target = "role", ignore = true)
+    @Mapping(target = "active", ignore = true)
+    @Mapping(target = "emailVerified", ignore = true)
+    @Mapping(target = "phoneVerified", ignore = true)
     @Mapping(target = "provider", ignore = true)
     @Mapping(target = "providerId", ignore = true)
+    @Mapping(target = "lastLoginAt", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
+    @Mapping(target = "passwordChangedAt", ignore = true)
+    @Mapping(target = "deletedBy", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "profile.firstName", source = "firstName")

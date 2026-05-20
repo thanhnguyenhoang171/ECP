@@ -17,6 +17,7 @@ import com.example.ecp_api.repository.mongodb.CategoryRepository;
 import com.example.ecp_api.service.AuditLogService;
 import com.example.ecp_api.service.CategoryService;
 import com.example.ecp_api.service.helper.CategoryHelper;
+import com.example.ecp_api.service.helper.CategoryExcelHelper;
 import com.example.ecp_api.util.DateTimeUtils;
 import com.example.ecp_api.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import org.apache.poi.ss.usermodel.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -49,6 +51,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryMapper categoryMapper;
     private final MongoTemplate mongoTemplate;
     private final CategoryHelper categoryHelper;
+    private final CategoryExcelHelper categoryExcelHelper;
     private final AuditLogService auditLogService;
 
     private String getCurrentUsername() {
@@ -112,7 +115,15 @@ public class CategoryServiceImpl implements CategoryService {
     // GET LIST CATEGORIES WITH PAGINATION
     @Override
     public PageResponse<CategoryResponse> getAllCategories(CategoryFilterRequest filter, Pageable pageable) {
-        Query query = new Query().with(pageable);
+        // Đảm bảo luôn có sort ổn định để tránh trùng lặp dữ liệu giữa các trang (Stable Sorting)
+        Sort sort = pageable.getSort();
+        if (sort.isUnsorted()) {
+            sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        }
+        // Thêm tie-breaker bằng id
+        sort = sort.and(Sort.by(Sort.Direction.ASC, "id"));
+
+        Query query = new Query().with(pageable).with(sort);
 
         if (StringUtils.hasText(filter.getId())) {
             query.addCriteria(Criteria.where("id").is(filter.getId()));
@@ -325,52 +336,64 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     public void importCategoriesFromExcel(MultipartFile file) {
         try {
-            List<CategoryExcelDto> dataList = EasyExcel.read(file.getInputStream())
-                    .head(CategoryExcelDto.class)
-                    .sheet()
-                    .doReadSync();
+            List<CategoryExcelDto> dataList = new java.util.ArrayList<>();
+            List<String> errorMessages = new java.util.ArrayList<>();
 
-            // Sort data to process parent categories first (level 1 before level 2)
+            EasyExcel.read(file.getInputStream(), CategoryExcelDto.class, new com.alibaba.excel.read.listener.ReadListener<CategoryExcelDto>() {
+                @Override
+                public void invoke(CategoryExcelDto data, com.alibaba.excel.context.AnalysisContext context) {
+                    data.setRowNumber(context.readRowHolder().getRowIndex() + 1);
+                    dataList.add(data);
+                }
+
+                @Override
+                public void onException(Exception exception, com.alibaba.excel.context.AnalysisContext context) {
+                    if (exception instanceof com.alibaba.excel.exception.ExcelDataConvertException) {
+                        com.alibaba.excel.exception.ExcelDataConvertException convertException = (com.alibaba.excel.exception.ExcelDataConvertException) exception;
+                        int row = convertException.getRowIndex() + 1;
+                        int col = convertException.getColumnIndex() + 1;
+                        // Thử lấy tên cột nếu có thể, không thì dùng số thứ tự cột
+                        errorMessages.add("Hàng " + row + ", Cột " + col + ": Dữ liệu không hợp lệ (Sai định dạng)");
+                    } else {
+                        errorMessages.add("Lỗi đọc file tại dòng " + (context.readRowHolder().getRowIndex() + 1) + ": " + exception.getMessage());
+                    }
+                }
+
+                @Override
+                public void doAfterAllAnalysed(com.alibaba.excel.context.AnalysisContext context) {}
+            }).sheet().doRead();
+
+            // Sắp xếp dữ liệu để xử lý cha trước con
             dataList.sort((d1, d2) -> {
                 Integer l1 = d1.getLevel() != null ? d1.getLevel() : (StringUtils.hasText(d1.getParentSlug()) ? 2 : 1);
                 Integer l2 = d2.getLevel() != null ? d2.getLevel() : (StringUtils.hasText(d2.getParentSlug()) ? 2 : 1);
                 return l1.compareTo(l2);
             });
 
-            int count = 0;
+            int successCount = 0;
+
             for (CategoryExcelDto dto : dataList) {
-                if (!StringUtils.hasText(dto.getName())) {
-                    continue;
+                try {
+                    categoryExcelHelper.upsertCategoryForImport(dto);
+                    successCount++;
+                } catch (Exception e) {
+                    errorMessages.add("Hàng " + dto.getRowNumber() + ": " + e.getMessage());
                 }
-
-                CategoryRequest request = new CategoryRequest();
-                request.setName(dto.getName());
-                request.setSlug(dto.getSlug());
-                
-                // Lookup parent by slug if provided
-                if (StringUtils.hasText(dto.getParentSlug())) {
-                    Category parent = categoryRepository.findBySlugAndDeletedFalse(dto.getParentSlug())
-                            .orElseThrow(() -> new AppException("PARENT_NOT_FOUND", "Không tìm thấy danh mục cha với slug: " + dto.getParentSlug(), HttpStatus.BAD_REQUEST));
-                    request.setParentId(parent.getId());
-                } else {
-                    request.setParentId(null);
-                }
-
-                request.setActive(dto.getStatus() != null ? dto.getStatus() : true);
-
-                if (StringUtils.hasText(dto.getId())) {
-                    updateCategory(dto.getId(), request);
-                } else {
-                    createCategory(request);
-                }
-                count++;
             }
             
-            auditLogService.log("IMPORT_CATEGORIES", getCurrentUsername(), "Imported " + count + " categories from Excel");
+            // Nếu có lỗi (bao gồm lỗi định dạng và lỗi nghiệp vụ)
+            if (!errorMessages.isEmpty()) {
+                String detailError = String.join("\n", errorMessages);
+                throw new AppException("IMPORT_PARTIAL_ERROR", 
+                    "Import hoàn tất với " + successCount + " thành công và " + errorMessages.size() + " thất bại. \n * Chi tiết: \n" + '-' + detailError + "\n", 
+                    HttpStatus.BAD_REQUEST);
+            }
+
+            auditLogService.log("IMPORT_CATEGORIES", getCurrentUsername(), "Imported " + successCount + " categories from Excel");
         } catch (AppException e) {
             throw e; 
         } catch (Exception e) {
-            throw new AppException("CATEGORY_IMPORT_FAILED", "Failed to import categories: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            throw new AppException("CATEGORY_IMPORT_FAILED", "Lỗi xử lý file: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 }

@@ -49,7 +49,7 @@ export default async function SkusPage({
     success: true,
     data: sampleSkus,
     pagination: {
-      currentPage: 0,
+      currentPage: 1,
       totalPages: 1,
       totalElements: sampleSkus.length,
       pageSize: 10,

@@ -22,11 +22,22 @@ export const getActionBadge = (action: string) => {
   }
   
   if (normalizedAction.includes('LOGIN')) {
-    return <Badge className="bg-slate-50 text-slate-600 border-slate-100 font-medium">Đăng nhập</Badge>;
+    return <Badge className="bg-cyan-50 text-cyan-600 border-cyan-100 font-medium">Đăng nhập</Badge>;
+  }
+   
+  if (normalizedAction.includes('REGISTER')) {
+    return <Badge className="bg-slate-50 text-slate-600 border-slate-100 font-medium">Đăng ký</Badge>;
+  }
+   if (normalizedAction.includes('LOGOUT')) {
+    return <Badge className="bg-slate-50 text-slate-600 border-slate-100 font-medium">Đăng xuất</Badge>;
   }
   
   if (normalizedAction.includes('EXPORT')) {
     return <Badge className="bg-amber-50 text-amber-600 border-amber-100 font-medium">Xuất dữ liệu</Badge>;
+  }
+
+    if (normalizedAction.includes('IMPORT')) {
+    return <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-medium">Nhập dữ liệu</Badge>;
   }
   
   return <Badge className="bg-indigo-50 text-indigo-600 border-indigo-100 font-medium">Khác</Badge>;

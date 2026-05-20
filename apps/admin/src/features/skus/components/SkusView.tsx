@@ -48,6 +48,10 @@ export default function SkusView({
     searchParams,
     updateUrl,
     setSort,
+    page,
+    size,
+    setPage,
+    setSize,
   } = useViewParams('sku,asc');
 
   const skuParam = searchParams.get('sku') || '';
@@ -68,7 +72,10 @@ export default function SkusView({
     return result;
   }, [skuParam, activeParam, skus]);
 
-  const [searchTerm, setSearchTerm] = useDebounceSearch(skuParam, (val) => updateUrl({ sku: val, page: 0 }));
+  const totalPages = Math.max(1, Math.ceil(filteredSkus.length / size));
+  const paginatedSkus = filteredSkus.slice((page - 1) * size, page * size);
+
+  const [searchTerm, setSearchTerm] = useDebounceSearch(skuParam, (val) => updateUrl({ sku: val, page: 1 }));
 
   const [isExporting, setIsExporting] = useState(false);
 
@@ -140,8 +147,8 @@ export default function SkusView({
       align: 'right',
       cell: (sku) => (
         <div className='flex justify-end gap-1'>
-          <EditActionButton onClick={() => toast.info('Tính năng Chỉnh sửa đang được phát triển (Demo)')} />
-          <DeleteActionButton onClick={() => setDeleteConfirmId(sku.id)} />
+          <EditActionButton onClick={() => toast.info('Tính năng Chỉnh sửa đang được phát triển (Demo)')} disabled={isExporting} />
+          <DeleteActionButton onClick={() => setDeleteConfirmId(sku.id)} disabled={isExporting} />
         </div>
       ),
     },
@@ -149,9 +156,9 @@ export default function SkusView({
 
   const commonActions = (
     <>
-      <ImportButton onClick={() => toast.info('Tính năng Nhập file đang được phát triển (Demo)')} />
+      <ImportButton onClick={() => toast.info('Tính năng Nhập file đang được phát triển (Demo)')} disabled={isExporting} />
       <ExportButton onExport={handleExport} isLoading={isExporting} />
-      <AddNewButton onClick={() => toast.info('Tính năng Thêm mới đang được phát triển (Demo)')} />
+      <AddNewButton onClick={() => toast.info('Tính năng Thêm mới đang được phát triển (Demo)')} disabled={isExporting} />
     </>
   );
 
@@ -170,36 +177,37 @@ export default function SkusView({
           <>
             <FilterPopover 
               activeCount={activeParam ? 1 : 0}
-              onClear={() => updateUrl({ active: '', page: 0 })}
+              onClear={() => updateUrl({ active: '', page: 1 })}
+              disabled={isExporting}
             >
               <div className="space-y-2">
                 <h4 className="font-medium text-xs leading-none">Trạng thái</h4>
                 <div className="flex flex-col gap-1">
-                  <button className={filterBtnClass(!activeParam)} onClick={() => updateUrl({ active: '', page: 0 })}>
+                  <button className={filterBtnClass(!activeParam)} onClick={() => updateUrl({ active: '', page: 1 })}>
                     Tất cả trạng thái
                   </button>
-                  <button className={filterBtnClass(activeParam === 'true')} onClick={() => updateUrl({ active: 'true', page: 0 })}>
+                  <button className={filterBtnClass(activeParam === 'true')} onClick={() => updateUrl({ active: 'true', page: 1 })}>
                     <Badge className='mr-2 h-2 w-2 rounded-full p-0 bg-blue-500' /> Hoạt động
                   </button>
-                  <button className={filterBtnClass(activeParam === 'false')} onClick={() => updateUrl({ active: 'false', page: 0 })}>
+                  <button className={filterBtnClass(activeParam === 'false')} onClick={() => updateUrl({ active: 'false', page: 1 })}>
                     <Badge variant='secondary' className='mr-2 h-2 w-2 rounded-full p-0' /> Tạm ngừng
                   </button>
                 </div>
               </div>
             </FilterPopover>
 
-            <SortPopover options={sortOptions} currentValue={sort} onSelect={setSort} />
+            <SortPopover options={sortOptions} currentValue={sort} onSelect={setSort} disabled={isExporting} />
           </>
         }
         footer={
           filteredSkus.length > 0 && (
             <NextPagination 
-              currentPage={1} 
-              totalPages={1} 
+              currentPage={page} 
+              totalPages={totalPages} 
               totalItems={filteredSkus.length} 
-              itemsPerPage={10} 
-              onItemsPerPageChange={() => {}} 
-              onPageChange={() => {}} 
+              itemsPerPage={size} 
+              onItemsPerPageChange={setSize} 
+              onPageChange={setPage} 
               className='bg-slate-50/20' 
             />
           )
@@ -207,7 +215,7 @@ export default function SkusView({
       >
         <DataTable
           columns={columns}
-          data={filteredSkus}
+          data={paginatedSkus}
           emptyState={{
             title: 'Không tìm thấy mã SKU',
             description: 'Vui lòng cấu hình sản phẩm để hệ thống tự động sinh mã SKU.',

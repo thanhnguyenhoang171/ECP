@@ -12,11 +12,14 @@ public interface BarcodeScanMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "scannedAt", ignore = true)
+    @Mapping(target = "skuId", source = "variantSku")
     BarcodeScan toEntity(BarcodeScanRequest request);
 
+    @Mapping(target = "variantSku", source = "skuId")
     BarcodeScanResponse toResponse(BarcodeScan barcodeScan);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "scannedAt", ignore = true)
+    @Mapping(target = "skuId", source = "variantSku")
     void updateBarcodeScanFromRequest(BarcodeScanRequest request, @MappingTarget BarcodeScan barcodeScan);
 }

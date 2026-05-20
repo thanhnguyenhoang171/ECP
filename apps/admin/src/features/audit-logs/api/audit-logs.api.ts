@@ -1,6 +1,7 @@
 import { PageResponse } from "@/types/pagination";
 import { AuditLog } from "../types/audit-logs.interface";
 import { clientFetch } from "@/lib/clientFetch";
+import { toApiPage, syncPagination } from "@/lib/utils";
 
 export const auditLogsApi = {
   getPaged: async (params: {
@@ -13,7 +14,7 @@ export const auditLogsApi = {
     const query = new URLSearchParams();
 
     // Pageable params
-    query.append('page', params.page.toString());
+    query.append('page', toApiPage(params.page).toString());
     query.append('size', params.size.toString());
 
     if (params.sort) query.append('sort', params.sort);
@@ -23,8 +24,13 @@ export const auditLogsApi = {
     if (params.username) query.append('username', params.username);
  
 
-    const res = await clientFetch(`v1/audit-logs?${query.toString()}`);
+    const res = await clientFetch(`v1/audit-logs?${query.toString()}`, {
+      cache: 'no-store',
+    });
+    
     if (!res.ok) throw new Error('Failed to fetch audit logs');
-    return res.json();
+    const result: PageResponse<AuditLog> = await res.json();
+    
+    return syncPagination<PageResponse<AuditLog>>(result);
   },
 };

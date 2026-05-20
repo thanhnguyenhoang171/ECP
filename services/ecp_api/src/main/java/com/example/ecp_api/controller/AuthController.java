@@ -39,6 +39,7 @@ public class AuthController {
         private final JwtTokenProvider jwtTokenProvider;
         private final TokenService tokenService;
         private final UserService userService;
+        private final com.example.ecp_api.service.AuditLogService auditLogService;
         private final CustomUserDetailsService customUserDetailsService;
 
         @PostMapping("/register")
@@ -55,55 +56,65 @@ public class AuthController {
         @PostMapping("/login")
         public ResponseEntity<ApiResponse<AuthResponse>> authenticateUser(
                         @Valid @RequestBody LoginRequest loginRequest,
+                        HttpServletRequest request,
                         HttpServletResponse response) {
 
-                Authentication authentication = authenticationManager.authenticate(
-                                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(),
-                                                loginRequest.getPassword()));
+                try {
+                        Authentication authentication = authenticationManager.authenticate(
+                                        new UsernamePasswordAuthenticationToken(loginRequest.getUsername(),
+                                                        loginRequest.getPassword()));
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                String accessToken = jwtTokenProvider.generateAccessToken(authentication);
-                String refreshToken = jwtTokenProvider.generateRefreshToken(authentication);
+                        String accessToken = jwtTokenProvider.generateAccessToken(authentication);
+                        String refreshToken = jwtTokenProvider.generateRefreshToken(authentication);
 
-                CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
-                // Save tokens to Redis
-                tokenService.saveAccessToken(accessToken, userDetails.getUsername(),
-                                jwtTokenProvider.getJwtExpirationMs());
-                tokenService.saveRefreshToken(refreshToken, userDetails.getUsername(),
-                                jwtTokenProvider.getRefreshExpirationMs());
+                        // Save tokens to Redis
+                        tokenService.saveAccessToken(accessToken, userDetails.getUsername(),
+                                        jwtTokenProvider.getJwtExpirationMs());
+                        tokenService.saveRefreshToken(refreshToken, userDetails.getUsername(),
+                                        jwtTokenProvider.getRefreshExpirationMs());
 
-                List<String> roles = userDetails.getAuthorities().stream()
-                                .map(GrantedAuthority::getAuthority)
-                                .collect(Collectors.toList());
+                        List<String> roles = userDetails.getAuthorities().stream()
+                                        .map(GrantedAuthority::getAuthority)
+                                        .collect(Collectors.toList());
 
-                AuthResponse authResponse = AuthResponse.builder()
-                                .id(userDetails.getId().toString())
-                                .accessToken(accessToken)
-                                .refreshToken(refreshToken)
-                                .username(userDetails.getUsername())
-                                .email(userDetails.getEmail())
-                                .roles(roles)
-                                .build();
+                        AuthResponse authResponse = AuthResponse.builder()
+                                        .id(userDetails.getId().toString())
+                                        .accessToken(accessToken)
+                                        .refreshToken(refreshToken)
+                                        .username(userDetails.getUsername())
+                                        .email(userDetails.getEmail())
+                                        .roles(roles)
+                                        .build();
 
-                ApiResponse<AuthResponse> apiResponse = ApiResponse.<AuthResponse>builder()
-                                .success(true)
-                                .message("Login successful")
-                                .data(authResponse)
-                                .build();
+                        ApiResponse<AuthResponse> apiResponse = ApiResponse.<AuthResponse>builder()
+                                        .success(true)
+                                        .message("Login successful")
+                                        .data(authResponse)
+                                        .build();
 
-                // Set Refresh Token in HttpOnly Cookie
-                ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
-                                .httpOnly(true)
-                                .secure(true) // ideally true in production, set false if testing on localhost http
-                                .path("/api/auth")
-                                .maxAge(jwtTokenProvider.getRefreshExpirationMs() / 1000)
-                                .sameSite("Strict")
-                                .build();
-                response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+                        // Set Refresh Token in HttpOnly Cookie
+                        ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
+                                        .httpOnly(true)
+                                        .secure(true) // ideally true in production, set false if testing on localhost http
+                                        .path("/api/auth")
+                                        .maxAge(jwtTokenProvider.getRefreshExpirationMs() / 1000)
+                                        .sameSite("Strict")
+                                        .build();
+                        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-                return ResponseEntity.ok(apiResponse);
+                        // Log success
+                        auditLogService.log("LOGIN_SUCCESS", userDetails.getUsername(), "User logged in from " + request.getRemoteAddr());
+
+                        return ResponseEntity.ok(apiResponse);
+                } catch (Exception e) {
+                        // Log failure
+                        auditLogService.log("LOGIN_FAILURE", loginRequest.getUsername(), "Failed login attempt from " + request.getRemoteAddr() + ": " + e.getMessage());
+                        throw e;
+                }
         }
 
         @PostMapping("/refresh")
@@ -181,6 +192,11 @@ public class AuthController {
 
                 // Delete tokens from Redis
                 tokenService.deleteTokens(accessToken, refreshToken);
+
+                // Log logout
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                String username = (auth != null) ? auth.getName() : "UNKNOWN";
+                auditLogService.log("LOGOUT", username, "User logged out from " + request.getRemoteAddr());
 
                 // Xóa Refresh Token Cookie
                 ResponseCookie cookie = ResponseCookie.from("refreshToken", "")

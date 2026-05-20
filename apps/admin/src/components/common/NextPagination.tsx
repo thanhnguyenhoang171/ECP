@@ -84,6 +84,7 @@ export const NextPagination = ({
   // Calculate range for "Showing x-y of z"
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems || 0);
+  const actualStartItem = Math.min(startItem, totalItems || 0);
 
   return (
     <div className={cn(
@@ -94,7 +95,7 @@ export const NextPagination = ({
       <div className="flex items-center gap-4">
         {showTotal && totalItems !== undefined && (
           <div className="text-[11px] font-medium italic whitespace-nowrap text-slate-500">
-            Hiển thị <span className="font-bold text-slate-900">{startItem}-{endItem}</span> trên <span className="font-bold text-slate-900">{totalItems}</span> bản ghi
+            Hiển thị <span className="font-bold text-slate-900">{actualStartItem}-{endItem}</span> trên <span className="font-bold text-slate-900">{totalItems}</span> bản ghi
           </div>
         )}
 

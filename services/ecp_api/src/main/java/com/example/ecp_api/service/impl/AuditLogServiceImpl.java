@@ -8,13 +8,16 @@ import com.example.ecp_api.mapper.AuditLogMapper;
 import com.example.ecp_api.repository.mongodb.AuditLogRepository;
 import com.example.ecp_api.service.AuditLogService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -25,6 +28,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuditLogServiceImpl implements AuditLogService {
 
     private final AuditLogRepository auditLogRepository;
@@ -42,10 +46,33 @@ public class AuditLogServiceImpl implements AuditLogService {
         auditLogRepository.save(auditLog);
     }
 
+    /**
+     * Tác vụ chạy ngầm để xóa Audit Log cũ hơn 90 ngày.
+     * Chạy vào lúc 1 giờ sáng hàng ngày.
+     */
+    @Scheduled(cron = "0 0 1 * * *")
+    public void cleanOldLogs() {
+        LocalDateTime expiryDate = LocalDateTime.now().minusDays(90);
+        log.info("Bắt đầu dọn dẹp Audit Log cũ hơn 90 ngày (trước ngày: {})", expiryDate);
+        try {
+            auditLogRepository.deleteByTimestampBefore(expiryDate);
+            log.info("Dọn dẹp Audit Log hoàn tất.");
+        } catch (Exception e) {
+            log.error("Lỗi khi dọn dẹp Audit Log: {}", e.getMessage());
+        }
+    }
+
     @Override
     public PageResponse<AuditLogResponse> getAllLogs(AuditLogFilterRequest filter, Pageable pageable) {
+        // Đảm bảo luôn có sort ổn định để tránh trùng lặp dữ liệu giữa các trang (Stable Sorting)
+        Sort sort = pageable.getSort();
+        if (sort.isUnsorted()) {
+            sort = Sort.by(Sort.Direction.DESC, "timestamp");
+        }
+        // Thêm tie-breaker bằng id
+        sort = sort.and(Sort.by(Sort.Direction.ASC, "id"));
 
-        Query query = new Query().with(pageable);
+        Query query = new Query().with(pageable).with(sort);
 
         if (StringUtils.hasText(filter.getAction())) {
             query.addCriteria(Criteria.where("action").regex(filter.getAction(), "i"));

@@ -4,9 +4,14 @@ import { getErrorMessage, ErrorMessages } from '@/constants/errorMessages';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9090/api';
 
-export const clientFetch = async (url: string, options: RequestInit = {}) => {
+export interface FetchOptions extends RequestInit {
+  skipToast?: boolean;
+}
+
+export const clientFetch = async (url: string, options: FetchOptions = {}) => {
+  const { skipToast, ...fetchOptions } = options;
   const { accessToken, setAuth, clearAuth } = useAuthStore.getState();
-  const headers = new Headers(options.headers);
+  const headers = new Headers(fetchOptions.headers);
   
   if (accessToken) {
     headers.set('Authorization', `Bearer ${accessToken}`);
@@ -22,7 +27,7 @@ export const clientFetch = async (url: string, options: RequestInit = {}) => {
     ? (url.startsWith('http') ? url : `${APP_URL}${url}`) 
     : `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
 
-  let response = await fetch(finalUrl, { ...options, headers });
+  let response = await fetch(finalUrl, { ...fetchOptions, headers });
 
   // Handle Access Token expiration (401)
   if (response.status === 401) {
@@ -39,7 +44,7 @@ export const clientFetch = async (url: string, options: RequestInit = {}) => {
         
         // Retry the original request with new token
         headers.set('Authorization', `Bearer ${newAccessToken}`);
-        response = await fetch(finalUrl, { ...options, headers });
+        response = await fetch(finalUrl, { ...fetchOptions, headers });
       } else {
         clearAuth();
         if (typeof window !== 'undefined') {
@@ -56,7 +61,7 @@ export const clientFetch = async (url: string, options: RequestInit = {}) => {
   }
 
   // Xử lý Global Business Error Code khi response không thành công
-  if (!response.ok && response.status !== 401) {
+  if (!response.ok && response.status !== 401 && !skipToast) {
     try {
       // Clone response để không ảnh hưởng đến việc đọc json ở các component gọi hàm này
       const clonedResponse = response.clone();

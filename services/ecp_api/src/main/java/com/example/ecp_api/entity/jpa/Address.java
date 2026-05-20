@@ -47,6 +47,7 @@ public class Address {
     @Column(name = "street_detail", nullable = false)
     private String streetDetail;
 
+    @Builder.Default
     @Column(name = "is_default")
     private boolean isDefault = false;
 

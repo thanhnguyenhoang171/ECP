@@ -39,3 +39,28 @@ export function removeVietnameseTones(str: string): string {
   return str;
 }
 
+/**
+ * Chuyển đổi page từ UI (1-indexed) sang API (1-indexed, BE đã bật one-indexed-parameters)
+ */
+export function toApiPage(page: number): number {
+  return Math.max(1, page);
+}
+
+/**
+ * Chuyển đổi page từ API (1-indexed) sang UI (1-indexed)
+ */
+export function toUiPage(page: number): number {
+  return page;
+}
+
+/**
+ * Đồng bộ hóa dữ liệu phân trang từ API về UI format
+ * Hiện tại BE đã trả về 1-indexed, nên hàm này chủ yếu để giữ cấu trúc
+ */
+export function syncPagination<T>(response: any): T {
+  if (response && response.pagination) {
+    response.pagination.currentPage = toUiPage(response.pagination.currentPage);
+  }
+  return response as T;
+}
+

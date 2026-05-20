@@ -5,11 +5,13 @@ import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.PaginationResponse;
 import com.example.ecp_api.entity.mongodb.AuditLog;
 import org.mapstruct.Mapper;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.ReportingPolicy;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE, nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface AuditLogMapper {
     // Mapping for AuditLog
     AuditLogResponse toResponse(AuditLog auditLog);
@@ -17,10 +19,10 @@ public interface AuditLogMapper {
     default PageResponse<AuditLogResponse> toPageResponse(Page<AuditLog> page) {
         List<AuditLogResponse> list = page.getContent().stream()
                 .map(this::toResponse)
-                .toList();
+                .collect(java.util.stream.Collectors.toList());
 
         PaginationResponse pagination = PaginationResponse.builder()
-                .currentPage(page.getNumber())
+                .currentPage(page.getNumber() + 1)
                 .totalPages(page.getTotalPages())
                 .totalElements(page.getTotalElements())
                 .pageSize(page.getSize())
