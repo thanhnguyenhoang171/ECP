@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Activity, Clock, User, FileText, RotateCcw, ShieldCheck } from 'lucide-react';
+import { Activity, Clock, User, FileText, RotateCcw, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react';
 import { 
   PageHeader, 
   DataCard, 
@@ -9,7 +9,8 @@ import {
   type ColumnDef, 
   Badge,
   NextPagination,
-  Button
+  Button,
+  Forbidden
 } from '@/components/common';
 import { 
   SearchInput, 
@@ -23,17 +24,26 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuditLogs } from '../hooks/use-audit-logs';
 import { getActionBadge } from '../utils/audit-log-formatters';
+import { useAuthStore } from '@/store/authStore';
 
 const ACTIONS = [
-  { label: 'Tất cả hành động', value: '' },
   { label: 'Tạo mới', value: 'CREATE' },
   { label: 'Cập nhật', value: 'UPDATE' },
   { label: 'Xóa', value: 'DELETE' },
-  { label: 'Hệ thống', value: 'SYSTEM' },
-  { label: 'Bảo mật', value: 'SECURITY' },
+  { label: 'Nhập dữ liệu', value: 'IMPORT' },
+  { label: 'Xuất dữ liệu', value: 'EXPORT' },
+  { label: 'Đăng nhập', value: 'LOGIN' },
+  { label: 'Đăng ký', value: 'REGISTER' },
+  { label: 'Đăng xuất', value: 'LOGOUT' },
+  // Giả sử có thêm nhiều action khác...
 ];
 
+const INITIAL_VISIBLE_ACTIONS = 5; // Số lượng action hiển thị mặc định
+
 export default function AuditLogsView() {
+  const { user } = useAuthStore();
+  const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN');
+
   const {
     page,
     size,
@@ -55,8 +65,15 @@ export default function AuditLogsView() {
     action: actionParam
   });
 
-  const [searchTerm, setSearchTerm] = useDebounceSearch(usernameParam, (val) => updateUrl({ username: val, page: 0 }));
+  const [searchTerm, setSearchTerm] = useDebounceSearch(usernameParam, (val) => updateUrl({ username: val, page: 1 }));
   const [isExporting, setIsExporting] = useState(false);
+  
+  // State quản lý việc mở rộng danh sách Filter
+  const [isActionsExpanded, setIsActionsExpanded] = useState(false);
+
+  if (!isSuperAdmin) {
+    return <Forbidden />;
+  }
 
   const handleExport = () => {
     setIsExporting(true);
@@ -129,6 +146,11 @@ export default function AuditLogsView() {
       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
   );
 
+  // Tính toán danh sách action hiển thị dựa trên trạng thái
+  const visibleActions = isActionsExpanded 
+    ? ACTIONS 
+    : ACTIONS.slice(0, INITIAL_VISIBLE_ACTIONS);
+
   return (
     <div className="space-y-6">
       <PageHeader 
@@ -141,14 +163,15 @@ export default function AuditLogsView() {
               size="sm"
               className="h-9 px-4 border-slate-200 text-slate-600 hover:bg-slate-50"
               onClick={() => {
-                updateUrl({ username: '', action: '', page: 0 });
+                updateUrl({ username: '', action: '', page: 1 });
                 refetch();
               }}
+              disabled={isLoading}
             >
               <RotateCcw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
               Làm mới
             </Button>
-            <ExportButton onExport={handleExport} isLoading={isExporting} />
+            <ExportButton onExport={handleExport} isLoading={isExporting} disabled={isLoading} />
           </div>
         }
       />
@@ -165,16 +188,21 @@ export default function AuditLogsView() {
         extra={
           <FilterPopover
             activeCount={actionParam ? 1 : 0}
-            onClear={() => updateUrl({ action: '', page: 0 })}
+            onClear={() => {
+              updateUrl({ action: '', page: 1 });
+              setIsActionsExpanded(false); // Reset lại trạng thái xem thêm khi clear filter
+            }}
           >
             <div className="space-y-2">
               <h4 className="font-semibold text-[11px] text-slate-400 uppercase tracking-widest pl-1">Nhóm hành động</h4>
+              
+              {/* Danh sách Action Buttons */}
               <div className="flex flex-col gap-1.5">
-                {ACTIONS.map((act) => (
+                {visibleActions.map((act) => (
                   <button
                     key={act.value}
                     className={filterBtnClass(actionParam === act.value)}
-                    onClick={() => updateUrl({ action: act.value, page: 0 })}
+                    onClick={() => updateUrl({ action: act.value, page: 1 })}
                   >
                     <span>{act.label}</span>
                     {actionParam === act.value && <div className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />}
@@ -182,10 +210,27 @@ export default function AuditLogsView() {
                 ))}
               </div>
               
+              {/* Nút Xem thêm / Thu gọn */}
+              {ACTIONS.length > INITIAL_VISIBLE_ACTIONS && (
+                <button
+                  onClick={() => setIsActionsExpanded(!isActionsExpanded)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 mt-1 text-[12px] font-medium text-blue-600 hover:text-blue-800 transition-colors w-full"
+                >
+                  {isActionsExpanded ? (
+                    <>
+                      <ChevronUp className="h-3.5 w-3.5" />
+                      Thu gọn
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3.5 w-3.5" />
+                      Xem thêm ({ACTIONS.length - INITIAL_VISIBLE_ACTIONS})
+                    </>
+                  )}
+                </button>
+              )}
+              
               <div className="pt-2 border-t border-slate-100">
-                <p className="text-[10px] text-slate-400 italic px-1">
-                  * Dữ liệu được lưu trữ trong vòng 90 ngày gần nhất.
-                </p>
               </div>
             </div>
           </FilterPopover>

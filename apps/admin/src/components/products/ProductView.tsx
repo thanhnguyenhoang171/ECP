@@ -37,6 +37,9 @@ export default function ProductView({ initialProducts }: ProductViewProps) {
   const [itemsPerPage, setItemsPerPage] = React.useState(10);
   const [products] = React.useState(initialProducts);
 
+  const totalPages = Math.max(1, Math.ceil(products.length / itemsPerPage));
+  const paginatedProducts = products.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <div className='space-y-6'>
       <PageHeader
@@ -107,7 +110,7 @@ export default function ProductView({ initialProducts }: ProductViewProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {products.map((product) => (
+                {paginatedProducts.map((product) => (
                   <TableRow
                     key={product.id}
                     className='hover:bg-slate-50/30 transition-colors border-b border-slate-50'>
@@ -160,8 +163,8 @@ export default function ProductView({ initialProducts }: ProductViewProps) {
           </div>
           <NextPagination
             currentPage={currentPage}
-            totalPages={12}
-            totalItems={120}
+            totalPages={totalPages}
+            totalItems={products.length}
             itemsPerPage={itemsPerPage}
             onItemsPerPageChange={setItemsPerPage}
             onPageChange={setCurrentPage}

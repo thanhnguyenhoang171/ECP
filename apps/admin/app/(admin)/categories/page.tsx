@@ -2,6 +2,7 @@ import CategoriesView from '@/features/categories/components/CategoriesView';
 import { PageResponse } from '@/types/pagination';
 import { Category } from '@/features/categories/types/category.interface';
 import { serverFetch } from '@/lib/serverFetch';
+import { toApiPage, syncPagination } from '@/lib/utils';
 
 // Hàm fetch dữ liệu tại Server với Caching
 async function getCategories(
@@ -10,8 +11,9 @@ async function getCategories(
   sort: string,
 ): Promise<PageResponse<Category>> {
   try {
+    const apiPage = toApiPage(page);
     const res = await serverFetch(
-      `v1/categories?page=${page}&size=${size}&sort=${sort}`,
+      `v1/categories?page=${apiPage}&size=${size}&sort=${sort}`,
       {
         cache: 'no-store', // Admin mong muốn dữ liệu mới nhất khi F5
         next: {
@@ -22,8 +24,9 @@ async function getCategories(
 
     if (!res.ok) throw new Error('Failed to fetch categories');
 
-    const result = await res.json();
-    return result;
+    const result: PageResponse<Category> = await res.json();
+    
+    return syncPagination<PageResponse<Category>>(result);
   } catch (error) {
     console.error('Server fetch categories error:', error);
     return {
@@ -31,7 +34,7 @@ async function getCategories(
       message: 'Error fetching data from server',
       data: [],
       pagination: {
-        currentPage: 0,
+        currentPage: 1,
         totalPages: 0,
         totalElements: 0,
         pageSize: size,
@@ -68,7 +71,7 @@ export default async function CategoriesPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
-  const page = Number(params.page) || 0;
+  const page = Number(params.page) || 1;
   const size = Number(params.size) || 10;
   const sort = (params.sort as string) || 'name,asc';
 

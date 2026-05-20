@@ -37,6 +37,7 @@ export default function CategoryImportDialog({
   const [file, setFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const importMutation = useImportCategory();
 
@@ -44,6 +45,7 @@ export default function CategoryImportDialog({
     if (!file) return;
 
     setIsImporting(true);
+    setImportError(null);
     
     importMutation.mutate(file, {
       onSuccess: () => {
@@ -52,10 +54,21 @@ export default function CategoryImportDialog({
         setFile(null);
         onSuccess?.();
       },
-      onError: () => {
+      onError: (error: any) => {
         setIsImporting(false);
+        // Hiển thị lỗi chi tiết từ server nếu có
+        const message = error?.message || error?.error || 'Đã có lỗi xảy ra khi nhập dữ liệu';
+        setImportError(message);
       }
     });
+  };
+
+  const handleClose = (open: boolean) => {
+    onOpenChange(open);
+    if (!open) {
+      setImportError(null);
+      setFile(null);
+    }
   };
 
   const handleDownloadTemplate = async () => {
@@ -82,7 +95,7 @@ export default function CategoryImportDialog({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-[650px]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
@@ -95,6 +108,23 @@ export default function CategoryImportDialog({
           </DialogHeader>
 
           <div className="space-y-6 py-4 w-full min-w-0 overflow-hidden">
+            {/* Error Message Section */}
+            {importError && (
+              <Card className="bg-red-50 border-red-100 shadow-none w-full overflow-hidden">
+                <CardContent className="p-4 flex items-start gap-3 min-w-0">
+                  <div className="bg-red-100 p-2 rounded-lg shrink-0">
+                    <AlertCircle className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <h4 className="text-sm font-semibold text-red-900">Lỗi nhập dữ liệu</h4>
+                    <p className="text-xs text-red-700 leading-relaxed whitespace-pre-wrap">
+                      {importError}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Template Download Section */}
             <Card className="bg-blue-50/50 border-blue-100 shadow-none w-full overflow-hidden">
               <CardContent className="p-4 flex items-start gap-3 min-w-0">
@@ -121,7 +151,10 @@ export default function CategoryImportDialog({
             {/* Reusable FileUpload Component with Excel Preview */}
             <FileUpload 
               value={file}
-              onChange={setFile}
+              onChange={(f) => {
+                setFile(f);
+                setImportError(null);
+              }}
               onPreview={handlePreview}
               isUploading={isImporting}
               progress={isImporting ? 50 : 0}
@@ -149,7 +182,7 @@ export default function CategoryImportDialog({
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleClose(false)}
               disabled={isImporting}
             >
               Hủy bỏ

@@ -33,10 +33,10 @@ public interface ProductMapper {
     default PageResponse<ProductResponse> toPageResponse(Page<Product> page) {
         List<ProductResponse> list = page.getContent().stream()
                 .map(this::toResponse)
-                .toList();
+                .collect(java.util.stream.Collectors.toList());
 
         PaginationResponse pagination = PaginationResponse.builder()
-                .currentPage(page.getNumber())
+                .currentPage(page.getNumber() + 1)
                 .totalPages(page.getTotalPages())
                 .totalElements(page.getTotalElements())
                 .pageSize(page.getSize())

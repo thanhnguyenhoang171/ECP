@@ -55,7 +55,7 @@ export default async function ProductPage({
     success: true,
     data: sampleProducts,
     pagination: {
-      currentPage: 0,
+      currentPage: 1,
       totalPages: 1,
       totalElements: sampleProducts.length,
       pageSize: 10,

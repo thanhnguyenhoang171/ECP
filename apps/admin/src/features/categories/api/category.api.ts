@@ -2,6 +2,7 @@ import { Category } from '../types/category.interface';
 import { CategoryFormValues } from '../schemas/category.schema';
 import { PageResponse } from '@/types/pagination';
 import { clientFetch } from '@/lib/clientFetch';
+import { toApiPage, syncPagination } from '@/lib/utils';
 
 export const categoryApi = {
   // Lấy danh sách danh mục có phân trang và lọc
@@ -18,7 +19,7 @@ export const categoryApi = {
     const query = new URLSearchParams();
 
     // Pageable params
-    query.append('page', params.page.toString());
+    query.append('page', toApiPage(params.page).toString());
     query.append('size', params.size.toString());
     if (params.sort) query.append('sort', params.sort);
 
@@ -33,7 +34,9 @@ export const categoryApi = {
 
     const res = await clientFetch(`v1/categories?${query.toString()}`);
     if (!res.ok) throw new Error('Failed to fetch categories');
-    return res.json();
+    const result: PageResponse<Category> = await res.json();
+    
+    return syncPagination<PageResponse<Category>>(result);
   },
 
   // Cập nhật danh mục
@@ -117,9 +120,10 @@ export const categoryApi = {
     const res = await clientFetch('v1/categories/import', {
       method: 'POST',
       body: formData,
+      skipToast: true,
     });
     const result = await res.json();
-    if (!res.ok) throw new Error(result.message || 'Failed to import categories');
+    if (!res.ok) throw result;
     return result;
   },
 };

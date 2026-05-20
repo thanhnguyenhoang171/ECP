@@ -96,9 +96,9 @@ export default function CategoriesView({
 
   const handleSearch = (val: string) => {
     if (isIdLike(val)) {
-      updateUrl({ id: val, name: '', page: 0 });
+      updateUrl({ id: val, name: '', page: 1 });
     } else {
-      updateUrl({ name: val, id: '', page: 0 });
+      updateUrl({ name: val, id: '', page: 1 });
     }
   };
 
@@ -218,8 +218,8 @@ export default function CategoriesView({
       align: 'right',
       cell: (category) => (
         <div className='flex justify-end gap-1'>
-          <EditActionButton onClick={() => handleEdit(category)} />
-          <DeleteActionButton onClick={() => setDeleteConfirmId(category.id)} />
+          <EditActionButton onClick={() => handleEdit(category)} disabled={isLoading || isFetching} />
+          <DeleteActionButton onClick={() => setDeleteConfirmId(category.id)} disabled={isLoading || isFetching} />
         </div>
       ),
     },
@@ -227,9 +227,9 @@ export default function CategoriesView({
 
   const commonActions = (
     <>
-      <ImportButton onClick={() => setIsImportDialogOpen(true)} />
-      <ExportButton onExport={handleExportExcelFile} isLoading={isExporting} />
-      <AddNewButton onClick={handleCreate} />
+      <ImportButton onClick={() => setIsImportDialogOpen(true)} disabled={isLoading || isFetching} />
+      <ExportButton onExport={handleExportExcelFile} isLoading={isExporting} disabled={isLoading || isFetching} />
+      <AddNewButton onClick={handleCreate} disabled={isLoading || isFetching} />
     </>
   );
 
@@ -264,7 +264,7 @@ export default function CategoriesView({
           <>
             <FilterPopover
               activeCount={(activeParam ? 1 : 0) + (levelParam ? 1 : 0)}
-              onClear={() => updateUrl({ active: '', level: '', page: 0 })}>
+              onClear={() => updateUrl({ active: '', level: '', page: 1 })}>
               <div className='space-y-4 p-1'>
                 <div className='space-y-2'>
                   <h4 className='font-bold text-[10px] uppercase tracking-wider text-slate-400 px-3'>
@@ -273,18 +273,18 @@ export default function CategoriesView({
                   <div className='flex flex-col gap-0.5'>
                     <button
                       className={filterBtnClass(!activeParam)}
-                      onClick={() => updateUrl({ active: '', page: 0 })}>
+                      onClick={() => updateUrl({ active: '', page: 1 })}>
                       Tất cả trạng thái
                     </button>
                     <button
                       className={filterBtnClass(activeParam === 'true')}
-                      onClick={() => updateUrl({ active: 'true', page: 0 })}>
+                      onClick={() => updateUrl({ active: 'true', page: 1 })}>
                       <div className='mr-2 h-2 w-2 rounded-full bg-green-500' />{' '}
                       Hoạt động
                     </button>
                     <button
                       className={filterBtnClass(activeParam === 'false')}
-                      onClick={() => updateUrl({ active: 'false', page: 0 })}>
+                      onClick={() => updateUrl({ active: 'false', page: 1 })}>
                       <div className='mr-2 h-2 w-2 rounded-full bg-red-500' />{' '}
                       Ẩn
                     </button>
@@ -305,7 +305,7 @@ export default function CategoriesView({
                             ? 'bg-primary text-white border-primary shadow-sm'
                             : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50',
                         )}
-                        onClick={() => updateUrl({ level: lv, page: 0 })}>
+                        onClick={() => updateUrl({ level: lv, page: 1 })}>
                         Lv {lv}
                       </button>
                     ))}
@@ -324,12 +324,12 @@ export default function CategoriesView({
         footer={
           categories.length > 0 && (
             <NextPagination
-              currentPage={pagination.currentPage + 1}
+              currentPage={pagination.currentPage}
               totalPages={pagination.totalPages}
               totalItems={pagination.totalElements}
               itemsPerPage={pagination.pageSize}
               onItemsPerPageChange={setSize}
-              onPageChange={(p) => setPage(p - 1)}
+              onPageChange={setPage}
               className='bg-slate-50/30'
             />
           )

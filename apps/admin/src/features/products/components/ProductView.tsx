@@ -58,6 +58,10 @@ export default function ProductView({
     updateUrl,
     setSort,
     searchParams,
+    page,
+    size,
+    setPage,
+    setSize,
   } = useViewParams('name,asc');
 
   const categoryIdParam = searchParams.get('categoryId') || '';
@@ -66,7 +70,7 @@ export default function ProductView({
   // local state cho dữ liệu demo
   const [products, setProducts] = useState<Product[]>(initialData.data);
   
-  const [searchTerm, setSearchTerm] = useDebounceSearch(name, (val) => updateUrl({ name: val, page: 0 }));
+  const [searchTerm, setSearchTerm] = useDebounceSearch(name, (val) => updateUrl({ name: val, page: 1 }));
 
   // Sử dụng useMemo để tính toán filteredProducts thay vì useEffect + useState
   const filteredProducts = React.useMemo(() => {
@@ -79,6 +83,9 @@ export default function ProductView({
     }
     return result;
   }, [name, categoryIdParam, isPublishedParam, products]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / size));
+  const paginatedProducts = filteredProducts.slice((page - 1) * size, page * size);
 
   // States
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -159,8 +166,8 @@ export default function ProductView({
       align: 'right',
       cell: (product) => (
         <div className='flex justify-end gap-1'>
-          <EditActionButton onClick={() => handleEdit(product)} />
-          <DeleteActionButton onClick={() => setDeleteConfirmId(product.id)} />
+          <EditActionButton onClick={() => handleEdit(product)} disabled={isExporting} />
+          <DeleteActionButton onClick={() => setDeleteConfirmId(product.id)} disabled={isExporting} />
         </div>
       ),
     },
@@ -168,9 +175,9 @@ export default function ProductView({
 
   const commonActions = (
     <>
-      <ImportButton onClick={() => toast.info('Tính năng Nhập file đang được phát triển (Demo)')} />
+      <ImportButton onClick={() => toast.info('Tính năng Nhập file đang được phát triển (Demo)')} disabled={isExporting} />
       <ExportButton onExport={handleExport} isLoading={isExporting} />
-      <AddNewButton onClick={handleCreate} />
+      <AddNewButton onClick={handleCreate} disabled={isExporting} />
     </>
   );
 
@@ -189,17 +196,17 @@ export default function ProductView({
           <>
             <FilterPopover 
               activeCount={(categoryIdParam ? 1 : 0) + (isPublishedParam ? 1 : 0)}
-              onClear={() => updateUrl({ categoryId: '', isPublished: '', page: 0 })}
+              onClear={() => updateUrl({ categoryId: '', isPublished: '', page: 1 })}
             >
               <div className='space-y-4'>
                 <div className='space-y-2'>
                   <h4 className='font-medium text-xs leading-none'>Danh mục</h4>
                   <div className='flex flex-col gap-1 max-h-40 overflow-y-auto custom-scrollbar'>
-                    <button className={filterBtnClass(!categoryIdParam)} onClick={() => updateUrl({ categoryId: '', page: 0 })}>
+                    <button className={filterBtnClass(!categoryIdParam)} onClick={() => updateUrl({ categoryId: '', page: 1 })}>
                       Tất cả danh mục
                     </button>
                     {categories.map((cat) => (
-                      <button key={cat.id} className={filterBtnClass(categoryIdParam === cat.id)} onClick={() => updateUrl({ categoryId: cat.id, page: 0 })}>
+                      <button key={cat.id} className={filterBtnClass(categoryIdParam === cat.id)} onClick={() => updateUrl({ categoryId: cat.id, page: 1 })}>
                         {cat.name}
                       </button>
                     ))}
@@ -209,13 +216,13 @@ export default function ProductView({
                 <div className='space-y-2'>
                   <h4 className='font-medium text-xs leading-none'>Trạng thái</h4>
                   <div className='flex flex-col gap-1'>
-                    <button className={filterBtnClass(!isPublishedParam)} onClick={() => updateUrl({ isPublished: '', page: 0 })}>
+                    <button className={filterBtnClass(!isPublishedParam)} onClick={() => updateUrl({ isPublished: '', page: 1 })}>
                       Tất cả trạng thái
                     </button>
-                    <button className={filterBtnClass(isPublishedParam === 'true')} onClick={() => updateUrl({ isPublished: 'true', page: 0 })}>
+                    <button className={filterBtnClass(isPublishedParam === 'true')} onClick={() => updateUrl({ isPublished: 'true', page: 1 })}>
                       <Badge className='mr-2 h-2 w-2 rounded-full p-0 bg-blue-500' /> Đang bán
                     </button>
-                    <button className={filterBtnClass(isPublishedParam === 'false')} onClick={() => updateUrl({ isPublished: 'false', page: 0 })}>
+                    <button className={filterBtnClass(isPublishedParam === 'false')} onClick={() => updateUrl({ isPublished: 'false', page: 1 })}>
                       <Badge variant='secondary' className='mr-2 h-2 w-2 rounded-full p-0' /> Ngừng bán
                     </button>
                   </div>
@@ -229,12 +236,12 @@ export default function ProductView({
         footer={
           filteredProducts.length > 0 && (
             <NextPagination 
-              currentPage={1} 
-              totalPages={1} 
+              currentPage={page} 
+              totalPages={totalPages} 
               totalItems={filteredProducts.length} 
-              itemsPerPage={10} 
-              onItemsPerPageChange={() => {}} 
-              onPageChange={() => {}} 
+              itemsPerPage={size} 
+              onItemsPerPageChange={setSize} 
+              onPageChange={setPage} 
               className='bg-slate-50/20' 
             />
           )
@@ -242,7 +249,7 @@ export default function ProductView({
       >
         <DataTable
           columns={columns}
-          data={filteredProducts}
+          data={paginatedProducts}
           emptyState={{
             title: 'Không tìm thấy sản phẩm',
             description: 'Thử thay đổi bộ lọc hoặc thêm sản phẩm mới.',

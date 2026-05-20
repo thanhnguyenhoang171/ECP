@@ -26,8 +26,14 @@ public class BarcodeScan {
     @Field("barcode")
     private String barcode;
 
+    @Field("product_id")
+    private String productId;
+
     @Field("sku_id")
     private String skuId;
+
+    @Field("quantity")
+    private int quantity;
 
     @Field("scan_type")
     private String scanType; // view | add_to_cart | purchase | inventory
@@ -43,6 +49,10 @@ public class BarcodeScan {
     @Field("device_info")
     @Builder.Default
     private Map<String, Object> deviceInfo = new HashMap<>();
+
+    @Field("location")
+    @Builder.Default
+    private Map<String, Object> location = new HashMap<>();
 
     @CreatedDate
     @Field("scanned_at")

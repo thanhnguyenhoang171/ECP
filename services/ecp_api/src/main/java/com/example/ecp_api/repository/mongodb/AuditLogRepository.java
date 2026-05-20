@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface AuditLogRepository extends MongoRepository<AuditLog, String> {
     List<AuditLog> findByUsername(String username);
+    void deleteByTimestampBefore(java.time.LocalDateTime expiryDate);
 }

@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -43,6 +44,39 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public PageResponse<ProductResponse> getAllProducts(ProductFilterRequest filter, Pageable pageable) {
-       return null;
+        // Đảm bảo luôn có sort ổn định để tránh trùng lặp dữ liệu giữa các trang (Stable Sorting)
+        Sort sort = pageable.getSort();
+        if (sort.isUnsorted()) {
+            sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        }
+        // Thêm tie-breaker bằng id
+        sort = sort.and(Sort.by(Sort.Direction.ASC, "id"));
+
+        Query query = new Query().with(pageable).with(sort);
+
+        if (StringUtils.hasText(filter.getName())) {
+            query.addCriteria(Criteria.where("name").regex(filter.getName(), "i"));
+        }
+        if (StringUtils.hasText(filter.getSku())) {
+            query.addCriteria(Criteria.where("sku").regex(filter.getSku(), "i"));
+        }
+        if (StringUtils.hasText(filter.getCategoryId())) {
+            query.addCriteria(Criteria.where("category_id").is(filter.getCategoryId()));
+        }
+        if (StringUtils.hasText(filter.getBrand())) {
+            query.addCriteria(Criteria.where("brand").is(filter.getBrand()));
+        }
+        if (filter.getIsPublished() != null) {
+            query.addCriteria(Criteria.where("is_published").is(filter.getIsPublished()));
+        }
+
+        // Loại bỏ các sản phẩm đã xóa
+        query.addCriteria(Criteria.where("is_deleted").is(false));
+
+        long count = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), Product.class);
+        List<Product> products = mongoTemplate.find(query, Product.class);
+
+        Page<Product> productPage = new PageImpl<>(products, pageable, count);
+        return productMapper.toPageResponse(productPage);
     }
 }

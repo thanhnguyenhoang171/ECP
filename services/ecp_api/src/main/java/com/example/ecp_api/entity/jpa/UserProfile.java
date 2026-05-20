@@ -44,9 +44,11 @@ public class UserProfile {
     @Enumerated(EnumType.STRING)
     private UserGender gender;
 
+    @Builder.Default
     @Column(name = "loyalty_points")
     private Integer loyaltyPoints = 0;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "membership_tier")
     private MembershipTier membershipTier = MembershipTier.MEMBER;

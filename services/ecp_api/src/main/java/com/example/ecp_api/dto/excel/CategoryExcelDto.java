@@ -1,5 +1,6 @@
 package com.example.ecp_api.dto.excel;
 
+import com.alibaba.excel.annotation.ExcelIgnore;
 import com.alibaba.excel.annotation.ExcelProperty;
 import com.alibaba.excel.annotation.write.style.*;
 import com.alibaba.excel.enums.BooleanEnum;
@@ -38,6 +39,9 @@ import lombok.NoArgsConstructor;
 
 
 public class CategoryExcelDto {
+    @ExcelIgnore
+    private Integer rowNumber;
+
     @ExcelProperty("STT")
     @ColumnWidth(8)
     private Integer index;

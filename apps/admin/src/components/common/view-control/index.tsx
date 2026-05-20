@@ -40,31 +40,31 @@ export const SearchInput = ({ value, onChange, placeholder, isLoading }: SearchI
 };
 
 // 2. Action Buttons (Header)
-export const ImportButton = ({ onClick, label = 'Nhập file' }: { onClick: () => void; label?: string }) => (
-  <Button variant='outline' size='sm' className='h-9' onClick={onClick}>
+export const ImportButton = ({ onClick, label = 'Nhập file', disabled }: { onClick: () => void; label?: string; disabled?: boolean }) => (
+  <Button variant='outline' size='sm' className='h-9' onClick={onClick} disabled={disabled}>
     <Download className='mr-2 h-4 w-4 text-slate-500' /> {label}
   </Button>
 );
 
-export const ExportButton = ({ onExport, isLoading, label = 'Xuất file' }: { onExport: () => void; isLoading: boolean; label?: string }) => (
-  <Button variant='outline' size='sm' className='h-9' onClick={onExport} disabled={isLoading}>
+export const ExportButton = ({ onExport, isLoading, label = 'Xuất file', disabled }: { onExport: () => void; isLoading: boolean; label?: string; disabled?: boolean }) => (
+  <Button variant='outline' size='sm' className='h-9' onClick={onExport} disabled={isLoading || disabled}>
     {isLoading ? <Loader2 className='mr-2 h-4 w-4 animate-spin' /> : <Upload className='mr-2 h-4 w-4 text-slate-500' />}
     {isLoading ? 'Đang xuất...' : label}
   </Button>
 );
 
-export const AddNewButton = ({ onClick, label = 'Thêm mới' }: { onClick: () => void; label?: string }) => (
-  <Button size='sm' variant='default' onClick={onClick} className='h-9 shadow-md shadow-blue-100'>
+export const AddNewButton = ({ onClick, label = 'Thêm mới', disabled }: { onClick: () => void; label?: string; disabled?: boolean }) => (
+  <Button size='sm' variant='default' onClick={onClick} className='h-9 shadow-md shadow-blue-100' disabled={disabled}>
     <Plus className='mr-2 h-4 w-4' /> {label} 
   </Button>
 );
 
 // 3. Popover Controls
-export const FilterPopover = ({ children, activeCount, onClear }: { children: React.ReactNode; activeCount?: number; onClear?: () => void }) => {
+export const FilterPopover = ({ children, activeCount, onClear, disabled }: { children: React.ReactNode; activeCount?: number; onClear?: () => void; disabled?: boolean }) => {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant={activeCount ? 'default' : 'outline'} className='h-10 text-xs border-slate-200'>
+        <Button variant={activeCount ? 'default' : 'outline'} className='h-10 text-xs border-slate-200' disabled={disabled}>
           <Filter className={cn('mr-2 h-4 w-4', activeCount ? "text-white" : "text-slate-400")} />
           Lọc {activeCount ? `(${activeCount})` : ''}
         </Button>
@@ -84,18 +84,18 @@ export const FilterPopover = ({ children, activeCount, onClear }: { children: Re
   );
 };
 
-export const SortPopover = ({ options, currentValue, onSelect }: { options: { label: string; value: string }[]; currentValue: string; onSelect: (value: string) => void }) => {
+export const SortPopover = ({ options, currentValue, onSelect, disabled }: { options: { label: string; value: string }[]; currentValue: string; onSelect: (value: string) => void; disabled?: boolean }) => {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant='outline' className='h-10 text-xs border-slate-200'>
+        <Button variant='outline' className='h-10 text-xs border-slate-200' disabled={disabled}>
           <ArrowUpDown className='mr-2 h-4 w-4 text-slate-400' /> Sắp xếp
         </Button>
       </PopoverTrigger>
       <PopoverContent align='end' className='w-48 p-2'>
         <div className='flex flex-col gap-1'>
           {options.map((option) => (
-            <Button key={option.value} variant={currentValue === option.value ? 'secondary' : 'ghost'} size='sm' className='justify-start font-normal text-xs' onClick={() => onSelect(option.value)}>
+            <Button key={option.value} variant={currentValue === option.value ? 'secondary' : 'ghost'} size='sm' className='justify-start font-normal text-xs' onClick={() => onSelect(option.value)} disabled={disabled}>
               {option.label}
             </Button>
           ))}
@@ -106,14 +106,14 @@ export const SortPopover = ({ options, currentValue, onSelect }: { options: { la
 };
 
 // 4. Row Actions (Table)
-export const EditActionButton = ({ onClick }: { onClick: () => void }) => (
-  <Button variant='ghost' size='icon' onClick={onClick} className='h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50'>
+export const EditActionButton = ({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) => (
+  <Button variant='ghost' size='icon' onClick={onClick} className='h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50' disabled={disabled}>
     <Edit className='h-4 w-4' />
   </Button>
 );
 
-export const DeleteActionButton = ({ onClick }: { onClick: () => void }) => (
-  <Button variant='ghost' size='icon' onClick={onClick} className='h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50'>
+export const DeleteActionButton = ({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) => (
+  <Button variant='ghost' size='icon' onClick={onClick} className='h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50' disabled={disabled}>
     <Trash2 className='h-4 w-4' />
   </Button>
 );

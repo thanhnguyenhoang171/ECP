@@ -51,6 +51,7 @@ interface MenuItem {
   label: string;
   icon: React.ReactNode;
   children?: SubMenuItem[];
+  requiredRoles?: string[];
 }
 
 const menuItems: MenuItem[] = [
@@ -87,7 +88,12 @@ const menuItems: MenuItem[] = [
     ],
   },
   { key: '/users', icon: <UserCircle size={18} />, label: 'Nhân viên' },
-  { key: '/audit-logs', icon: <FileClock size={18} />, label: 'Nhật ký kiểm toán' },
+  { 
+    key: '/audit-logs', 
+    icon: <FileClock size={18} />, 
+    label: 'Nhật ký kiểm toán',
+    requiredRoles: ['ROLE_SUPER_ADMIN']
+  },
 ];
 
 const SidebarItem = memo(({ 
@@ -274,51 +280,60 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
-  const renderSidebarContent = (mobile = false) => (
-    <div className="flex flex-col h-full bg-slate-900">
-      <div className={cn(
-        "h-16 flex items-center px-6 border-b border-slate-800 shrink-0",
-        !isCollapsed || mobile ? "justify-start" : "justify-center"
-      )}>
-        <div className="bg-primary p-1.5 rounded-lg mr-3 shrink-0">
-          <Package className="text-white h-5 w-5" />
+  const renderSidebarContent = (mobile = false) => {
+    // Lọc menu items dựa trên role của user
+    const filteredMenuItems = menuItems.filter(item => {
+      if (!item.requiredRoles) return true;
+      if (!user?.roles) return false;
+      return item.requiredRoles.some(role => user.roles.includes(role));
+    });
+
+    return (
+      <div className="flex flex-col h-full bg-slate-900">
+        <div className={cn(
+          "h-16 flex items-center px-6 border-b border-slate-800 shrink-0",
+          !isCollapsed || mobile ? "justify-start" : "justify-center"
+        )}>
+          <div className="bg-primary p-1.5 rounded-lg mr-3 shrink-0">
+            <Package className="text-white h-5 w-5" />
+          </div>
+          {(!isCollapsed || mobile) && (
+            <span className="font-bold text-lg text-white tracking-tight">
+              ECP ADMIN
+            </span>
+          )}
         </div>
-        {(!isCollapsed || mobile) && (
-          <span className="font-bold text-lg text-white tracking-tight">
-            ECP ADMIN
-          </span>
-        )}
+        <nav className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar">
+          {filteredMenuItems.map((item) => (
+            <SidebarItem 
+              key={item.key} 
+              item={item} 
+              isCollapsed={isCollapsed} 
+              pathname={pathname}
+              isMobile={mobile}
+              onNavigate={mobile ? handleNavigate : undefined}
+            />
+          ))}
+        </nav>
+        <div className="p-4 border-t border-slate-800 shrink-0">
+          <Button 
+            variant="ghost" 
+            className={cn(
+              "w-full text-slate-400 hover:bg-red-500/10 hover:text-red-400 font-medium rounded-lg transition-all",
+              isCollapsed && !mobile ? "justify-center px-0" : "justify-start gap-3"
+            )} 
+            onClick={() => {
+              handleLogout();
+              if (mobile) handleNavigate();
+            }}
+          >
+            <LogOut size={18} />
+            {(!isCollapsed || mobile) && <span>Đăng xuất</span>}
+          </Button>
+        </div>
       </div>
-      <nav className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar">
-        {menuItems.map((item) => (
-          <SidebarItem 
-            key={item.key} 
-            item={item} 
-            isCollapsed={isCollapsed} 
-            pathname={pathname}
-            isMobile={mobile}
-            onNavigate={mobile ? handleNavigate : undefined}
-          />
-        ))}
-      </nav>
-      <div className="p-4 border-t border-slate-800 shrink-0">
-        <Button 
-          variant="ghost" 
-          className={cn(
-            "w-full text-slate-400 hover:bg-red-500/10 hover:text-red-400 font-medium rounded-lg transition-all",
-            isCollapsed && !mobile ? "justify-center px-0" : "justify-start gap-3"
-          )} 
-          onClick={() => {
-            handleLogout();
-            if (mobile) handleNavigate();
-          }}
-        >
-          <LogOut size={18} />
-          {(!isCollapsed || mobile) && <span>Đăng xuất</span>}
-        </Button>
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
@@ -338,7 +353,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
                   <MenuIcon size={20} />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-72 border-none">
+              <SheetContent side="left" className="p-0 w-72 border-none [&>button]:text-white [&>button]:opacity-80 hover:[&>button]:opacity-100">
                 {renderSidebarContent(true)}
               </SheetContent>
             </Sheet>
@@ -404,7 +419,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
           </div>
         </header>
         
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 custom-scrollbar">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 custom-scrollbar" style={{ scrollbarGutter: 'stable' }}>
           <div className="max-w-[1600px] mx-auto min-h-full">
             <div 
               key={pathname}

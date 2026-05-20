@@ -90,7 +90,7 @@ export default function LoginView() {
   }
 
   return (
-    <div className="relative flex flex-col items-center min-h-screen py-10 px-4">
+    <div className="relative flex flex-col items-center h-full overflow-y-auto py-10 px-4">
       {/* Background Image with Overlay */}
       <div 
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"

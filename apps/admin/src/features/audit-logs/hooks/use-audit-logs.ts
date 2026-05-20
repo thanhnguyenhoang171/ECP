@@ -13,6 +13,7 @@ export function useAuditLogs(params: {
   return useQuery({
     queryKey: ['audit-logs', params],
     queryFn: () => auditLogsApi.getPaged(params),
-    staleTime: 30 * 1000, // Audit logs might change frequently
+    staleTime: 0, // Audit logs change frequently, don't cache
+    refetchOnWindowFocus: true,
   });
 }

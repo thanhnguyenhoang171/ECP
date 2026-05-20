@@ -9,7 +9,7 @@ export function useViewParams(defaultSort = 'name,asc') {
   const searchParams = useSearchParams();
 
   // URL State
-  const page = Number(searchParams.get('page')) || 0;
+  const page = Number(searchParams.get('page')) || 1;
   const size = Number(searchParams.get('size')) || 10;
   const sort = searchParams.get('sort') || defaultSort;
   const name = searchParams.get('name') || '';
@@ -39,8 +39,8 @@ export function useViewParams(defaultSort = 'name,asc') {
   );
 
   const setPage = (newPage: number) => updateUrl({ page: newPage });
-  const setSize = (newSize: number) => updateUrl({ page: 0, size: newSize });
-  const setSort = (newSort: string) => updateUrl({ page: 0, sort: newSort });
+  const setSize = (newSize: number) => updateUrl({ page: 1, size: newSize });
+  const setSort = (newSort: string) => updateUrl({ page: 1, sort: newSort });
 
   return {
     page,
@@ -60,8 +60,11 @@ export function useDebounceSearch(initialValue: string, onSearch: (val: string) 
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchTerm !== initialValue) {
-        onSearch(searchTerm);
+      const trimmedValue = searchTerm.trim();
+      const trimmedInitial = initialValue.trim();
+      
+      if (trimmedValue !== trimmedInitial) {
+        onSearch(trimmedValue);
       }
     }, delay);
     return () => clearTimeout(timer);
