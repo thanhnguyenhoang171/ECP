@@ -336,7 +336,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
+    <div className="flex h-dvh overflow-hidden bg-slate-50">
       <aside className={cn(
         "hidden lg:block transition-all duration-300 ease-in-out z-30 shadow-xl",
         isCollapsed ? "w-20" : "w-64"

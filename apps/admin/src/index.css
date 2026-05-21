@@ -106,11 +106,11 @@
 html {
   /* Khóa thanh cuộn bên ngoài để các layout tự quản lý vùng cuộn của chúng */
   overflow: hidden;
-  height: 100%;
+  height: 100dvh;
 }
 
 body {
-  height: 100%;
+  height: 100dvh;
   margin: 0;
   padding: 0;
   width: 100%;
