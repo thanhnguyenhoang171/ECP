@@ -1,10 +1,11 @@
 package com.example.ecp_api.security;
 
+import com.example.ecp_api.config.JwtProperties;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
@@ -15,37 +16,31 @@ import java.util.stream.Collectors;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class JwtTokenProvider {
 
-    @Value("${app.jwt.secret}")
-    private String jwtSecret;
-
-    @Value("${app.jwt.expiration}")
-    private long jwtExpirationMs;
-
-    @Value("${app.jwt.refresh-expiration}")
-    private long refreshExpirationMs;
+    private final JwtProperties jwtProperties;
 
     private SecretKey key() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.getSecret()));
     }
 
     public String generateAccessToken(Authentication authentication) {
         CustomUserDetails userPrincipal = (CustomUserDetails) authentication.getPrincipal();
-        return generateToken(userPrincipal, jwtExpirationMs);
+        return generateToken(userPrincipal, jwtProperties.getExpiration());
     }
 
     public String generateAccessToken(CustomUserDetails userDetails) {
-        return generateToken(userDetails, jwtExpirationMs);
+        return generateToken(userDetails, jwtProperties.getExpiration());
     }
 
     public String generateRefreshToken(Authentication authentication) {
         CustomUserDetails userPrincipal = (CustomUserDetails) authentication.getPrincipal();
-        return generateToken(userPrincipal, refreshExpirationMs);
+        return generateToken(userPrincipal, jwtProperties.getRefreshExpiration());
     }
 
     public String generateRefreshToken(CustomUserDetails userDetails) {
-        return generateToken(userDetails, refreshExpirationMs);
+        return generateToken(userDetails, jwtProperties.getRefreshExpiration());
     }
 
     private String generateToken(CustomUserDetails userDetails, long expirationMs) {
@@ -93,10 +88,10 @@ public class JwtTokenProvider {
     }
 
     public long getJwtExpirationMs() {
-        return jwtExpirationMs;
+        return jwtProperties.getExpiration();
     }
 
     public long getRefreshExpirationMs() {
-        return refreshExpirationMs;
+        return jwtProperties.getRefreshExpiration();
     }
 }
