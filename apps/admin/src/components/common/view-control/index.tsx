@@ -12,6 +12,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 // 1. Search Input
@@ -107,15 +108,29 @@ export const SortPopover = ({ options, currentValue, onSelect, disabled }: { opt
 
 // 4. Row Actions (Table)
 export const EditActionButton = ({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) => (
-  <Button variant='ghost' size='icon' onClick={onClick} className='h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50' disabled={disabled}>
-    <Edit className='h-4 w-4' />
-  </Button>
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant='ghost' size='icon' onClick={onClick} className='h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50' disabled={disabled}>
+          <Edit className='h-4 w-4' />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent className='bg-blue-600 text-white'>Chỉnh sửa</TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
 );
 
 export const DeleteActionButton = ({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) => (
-  <Button variant='ghost' size='icon' onClick={onClick} className='h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50' disabled={disabled}>
-    <Trash2 className='h-4 w-4' />
-  </Button>
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant='ghost' size='icon' onClick={onClick} className='h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50' disabled={disabled}>
+          <Trash2 className='h-4 w-4' />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent className='bg-red-600 text-white'>Xoá</TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
 );
 
 // 5. Shared Dialogs

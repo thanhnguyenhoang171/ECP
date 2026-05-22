@@ -111,7 +111,7 @@ export function DataTable<T>({
                 <TableRow
                   key={rowKey(item) || index}
                   className={cn(
-                    'hover:bg-slate-50/30 transition-colors border-b border-slate-50',
+                    'hover:bg-slate-200 transition-colors border-b border-slate-50 even:bg-slate-100/40',
                     onRowClick && 'cursor-pointer'
                   )}
                   onClick={() => onRowClick?.(item)}>
