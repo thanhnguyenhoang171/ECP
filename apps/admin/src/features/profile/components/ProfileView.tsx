@@ -1,12 +1,13 @@
 'use client';
 
 import React from 'react';
-import { 
-  Mail, 
-  Phone, 
-  ShieldCheck, 
-  Save, 
-  Camera, 
+import {
+  ArrowLeft,
+  Mail,
+  Phone,
+  ShieldCheck,
+  Save,
+  Camera,
   KeyRound,
 } from 'lucide-react';
 import { useForm } from "react-hook-form";
@@ -48,9 +49,15 @@ export default function ProfileView({ initialData }: ProfileViewProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Hồ sơ cá nhân</h1>
-        <p className="text-muted-foreground">Quản lý thông tin cá nhân và bảo mật tài khoản của bạn.</p>
+      <div className='flex items-center gap-4'>
+        <Button variant='outline' size='sm' className='h-9 gap-2' onClick={() => window.history.back()}>
+          <ArrowLeft size={16} />
+          Quay lại
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Hồ sơ cá nhân</h1>
+          <p className="text-muted-foreground">Quản lý thông tin cá nhân và bảo mật tài khoản của bạn.</p>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-12">

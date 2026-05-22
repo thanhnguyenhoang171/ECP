@@ -253,6 +253,7 @@ export default function AuditLogsView() {
           columns={columns}
           data={response?.data || []}
           isLoading={isLoading}
+          loadingRows={size}
           emptyState={isError ? {
             title: 'Lỗi tải dữ liệu',
             description: 'Đã có lỗi xảy ra khi truy xuất nhật ký hệ thống.',
