@@ -17,6 +17,7 @@ export interface ColumnDef<T> {
   header: React.ReactNode;
   accessorKey?: keyof T;
   cell?: (item: T) => React.ReactNode;
+  skeleton?: React.ReactNode;
   className?: string;
   headerClassName?: string;
   align?: 'left' | 'center' | 'right';
@@ -100,9 +101,18 @@ export function DataTable<T>({
           {isLoading
             ? Array.from({ length: loadingRows }).map((_, i) => (
                 <TableRow key={i}>
-                  {columns.map((_, j) => (
-                    <TableCell key={j} className={cn('py-4', j === 0 && 'pl-6', j === columns.length - 1 && 'pr-6')}>
-                      <Skeleton className='h-4 w-full' />
+                  {columns.map((column, j) => (
+                    <TableCell 
+                      key={j} 
+                      className={cn(
+                        'py-4', 
+                        getAlignmentClass(column.align),
+                        column.className,
+                        j === 0 && 'pl-6', 
+                        j === columns.length - 1 && 'pr-6'
+                      )}
+                    >
+                      {column.skeleton || <Skeleton className='h-4 w-full' />}
                     </TableCell>
                   ))}
                 </TableRow>

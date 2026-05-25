@@ -43,6 +43,7 @@ import { getSortOptions } from '@/types';
 import { toast } from 'sonner';
 import { categoryApi } from '../api/category.api';
 import { useHotkeys } from '@/hooks/use-hotkeys';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface CategoriesViewProps {
   initialData: PageResponse<Category>;
@@ -168,6 +169,12 @@ export default function CategoriesView({
   const columns: ColumnDef<Category>[] = [
     {
       header: 'Tên danh mục',
+      skeleton: (
+        <div className='flex flex-col gap-2'>
+          <Skeleton className='h-4 w-32' />
+          <Skeleton className='h-3 w-24' />
+        </div>
+      ),
       cell: (category) => (
         <div className='flex flex-col'>
           <span className='text-sm font-bold text-slate-900'>
@@ -182,6 +189,7 @@ export default function CategoriesView({
     {
       header: 'Cấp độ',
       align: 'center',
+      skeleton: <Skeleton className='h-5 w-16 mx-auto rounded-full' />,
       cell: (category) => (
         <Badge
           variant='outline'
@@ -193,6 +201,7 @@ export default function CategoriesView({
     {
       header: 'Trạng thái',
       align: 'center',
+      skeleton: <Skeleton className='h-5 w-20 mx-auto rounded-full' />,
       cell: (category) => (
         <Badge
           variant={category.active ? 'default' : 'destructive'}
@@ -204,18 +213,26 @@ export default function CategoriesView({
     {
       header: 'Ngày tạo',
       align: 'center',
+      skeleton: <Skeleton className='h-4 w-24 mx-auto' />,
       cell: (category) => formatDate(category.createdAt),
       className: 'text-xs font-medium text-slate-500',
     },
     {
       header: 'Ngày sửa',
       align: 'center',
+      skeleton: <Skeleton className='h-4 w-24 mx-auto' />,
       cell: (category) => formatDate(category.updatedAt),
       className: 'text-xs font-medium text-slate-500',
     },
     {
       header: 'Thao tác',
       align: 'right',
+      skeleton: (
+        <div className='flex justify-end gap-1'>
+          <Skeleton className='h-8 w-8 rounded-md' />
+          <Skeleton className='h-8 w-8 rounded-md' />
+        </div>
+      ),
       cell: (category) => (
         <div className='flex justify-end gap-1'>
           <EditActionButton onClick={() => handleEdit(category)} disabled={isLoading || isFetching} />
