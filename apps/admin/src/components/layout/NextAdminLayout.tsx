@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, memo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 
 import {
   LayoutDashboard,
@@ -294,12 +295,17 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
           "h-16 flex items-center px-6 border-b border-slate-800 shrink-0",
           !isCollapsed || mobile ? "justify-start" : "justify-center"
         )}>
-          <div className="bg-primary p-1.5 rounded-lg mr-3 shrink-0">
-            <Package className="text-white h-5 w-5" />
+          <div className="relative h-9 w-9 mr-3 shrink-0 overflow-hidden rounded-lg border border-slate-700">
+            <Image 
+              src="/logo/z7862984783113_196fdab6026e07fc4a13a745f502233b.jpg" 
+              alt="Logo" 
+              fill
+              className="object-cover"
+            />
           </div>
           {(!isCollapsed || mobile) && (
             <span className="font-bold text-lg text-white tracking-tight">
-              ECP ADMIN
+              CACAO ADMIN
             </span>
           )}
         </div>

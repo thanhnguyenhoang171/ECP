@@ -7,4 +7,10 @@ public interface TokenService {
     boolean validateRefreshToken(String token);
     String getUsernameFromRefreshToken(String token);
     void deleteTokens(String accessToken, String refreshToken);
+    
+    // Presence methods
+    void updateUserPresence(String username);
+    boolean isUserOnline(String username);
+    void clearUserPresence(String username);
+    long countOnlineUsers();
 }

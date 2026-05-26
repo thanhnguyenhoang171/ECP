@@ -22,6 +22,8 @@ public interface CategoryMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
     Category toEntity(CategoryRequest request);
 
     CategoryResponse toResponse(Category category);

@@ -10,8 +10,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "ECP Admin Dashboard",
-  description: "Enterprise Control Panel Admin",
+  title: "CACAO Admin Dashboard",
+  description: "Cacao Admin Panel",
+  icons: {
+    icon: "/logo/z7862984783113_196fdab6026e07fc4a13a745f502233b.jpg",
+  },
 };
 
 export const viewport: Viewport = {

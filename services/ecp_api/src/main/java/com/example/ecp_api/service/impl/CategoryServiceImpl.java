@@ -19,13 +19,12 @@ import com.example.ecp_api.service.CategoryService;
 import com.example.ecp_api.service.helper.CategoryHelper;
 import com.example.ecp_api.service.helper.CategoryExcelHelper;
 import com.example.ecp_api.util.DateTimeUtils;
+import com.example.ecp_api.util.PaginationUtils;
+import com.example.ecp_api.util.SecurityUtils;
 import com.example.ecp_api.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -34,10 +33,9 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -53,14 +51,6 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryHelper categoryHelper;
     private final CategoryExcelHelper categoryExcelHelper;
     private final AuditLogService auditLogService;
-
-    private String getCurrentUsername() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated() && !authentication.getPrincipal().equals("anonymousUser")) {
-            return authentication.getName();
-        }
-        return "SYSTEM";
-    }
 
     // CREATE A NEW CATEGORY
     @Override
@@ -107,7 +97,7 @@ public class CategoryServiceImpl implements CategoryService {
             categoryRepository.save(savedCategory);
         }
         
-        auditLogService.log("CREATE_CATEGORY", getCurrentUsername(), "Created category: " + savedCategory.getName());
+        auditLogService.log("CREATE_CATEGORY", SecurityUtils.getCurrentUsername(), "Created category: " + savedCategory.getName());
         
         return categoryMapper.toResponse(savedCategory);
     }
@@ -115,18 +105,22 @@ public class CategoryServiceImpl implements CategoryService {
     // GET LIST CATEGORIES WITH PAGINATION
     @Override
     public PageResponse<CategoryResponse> getAllCategories(CategoryFilterRequest filter, Pageable pageable) {
-        // Đảm bảo luôn có sort ổn định để tránh trùng lặp dữ liệu giữa các trang (Stable Sorting)
-        Sort sort = pageable.getSort();
-        if (sort.isUnsorted()) {
-            sort = Sort.by(Sort.Direction.DESC, "createdAt");
-        }
-        // Thêm tie-breaker bằng id
-        sort = sort.and(Sort.by(Sort.Direction.ASC, "id"));
+        Pageable finalPageable = PaginationUtils.applyStableSort(pageable, 
+                Sort.Order.desc("createdAt"), 
+                Sort.Order.asc("id"));
 
-        Query query = new Query().with(pageable).with(sort);
+        Query query = new Query().with(finalPageable);
+
+        if (StringUtils.hasText(filter.getKeyword())) {
+            String pattern = filter.getKeyword();
+            query.addCriteria(new Criteria().orOperator(
+                    Criteria.where("name").regex(pattern, "i"),
+                    Criteria.where("slug").regex(pattern, "i")
+            ));
+        }
 
         if (StringUtils.hasText(filter.getId())) {
-            query.addCriteria(Criteria.where("id").is(filter.getId()));
+            query.addCriteria(Criteria.where("_id").is(filter.getId()));
         }
 
         if (StringUtils.hasText(filter.getName())) {
@@ -148,7 +142,7 @@ public class CategoryServiceImpl implements CategoryService {
         long count = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), Category.class);
         List<Category> categories = mongoTemplate.find(query, Category.class);
 
-        Page<Category> categoryPage = new PageImpl<>(categories, pageable, count);
+        Page<Category> categoryPage = new PageImpl<>(categories, finalPageable, count);
         return categoryMapper.toPageResponse(categoryPage);
     }
 
@@ -212,7 +206,7 @@ public class CategoryServiceImpl implements CategoryService {
             categoryHelper.updateDescendants(updatedCategory);
         }
 
-        auditLogService.log("UPDATE_CATEGORY", getCurrentUsername(), "Updated category with ID: " + updatedCategory.getId());
+        auditLogService.log("UPDATE_CATEGORY", SecurityUtils.getCurrentUsername(), "Updated category with ID: " + updatedCategory.getId());
 
         return categoryMapper.toResponse(updatedCategory);
     }
@@ -232,7 +226,7 @@ public class CategoryServiceImpl implements CategoryService {
         category.setDeleted(true);
         categoryRepository.save(category);
 
-        auditLogService.log("DELETE_CATEGORY", getCurrentUsername(), "Soft deleted category with ID: " + category.getId());
+        auditLogService.log("DELETE_CATEGORY", SecurityUtils.getCurrentUsername(), "Soft deleted category with ID: " + category.getId());
     }
 
     // GET CATEGORY DETAIL
@@ -389,7 +383,7 @@ public class CategoryServiceImpl implements CategoryService {
                     HttpStatus.BAD_REQUEST);
             }
 
-            auditLogService.log("IMPORT_CATEGORIES", getCurrentUsername(), "Imported " + successCount + " categories from Excel");
+            auditLogService.log("IMPORT_CATEGORIES", SecurityUtils.getCurrentUsername(), "Imported " + successCount + " categories from Excel");
         } catch (AppException e) {
             throw e; 
         } catch (Exception e) {

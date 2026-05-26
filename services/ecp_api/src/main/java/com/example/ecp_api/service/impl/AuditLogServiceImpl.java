@@ -7,20 +7,16 @@ import com.example.ecp_api.entity.mongodb.AuditLog;
 import com.example.ecp_api.mapper.AuditLogMapper;
 import com.example.ecp_api.repository.mongodb.AuditLogRepository;
 import com.example.ecp_api.service.AuditLogService;
+import com.example.ecp_api.util.PaginationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -64,15 +60,20 @@ public class AuditLogServiceImpl implements AuditLogService {
 
     @Override
     public PageResponse<AuditLogResponse> getAllLogs(AuditLogFilterRequest filter, Pageable pageable) {
-        // Đảm bảo luôn có sort ổn định để tránh trùng lặp dữ liệu giữa các trang (Stable Sorting)
-        Sort sort = pageable.getSort();
-        if (sort.isUnsorted()) {
-            sort = Sort.by(Sort.Direction.DESC, "timestamp");
-        }
-        // Thêm tie-breaker bằng id
-        sort = sort.and(Sort.by(Sort.Direction.ASC, "id"));
+        Pageable finalPageable = PaginationUtils.applyStableSort(pageable, 
+                Sort.Order.desc("timestamp"), 
+                Sort.Order.asc("id"));
 
-        Query query = new Query().with(pageable).with(sort);
+        Query query = new Query().with(finalPageable);
+
+        if (StringUtils.hasText(filter.getKeyword())) {
+            String pattern = filter.getKeyword();
+            query.addCriteria(new Criteria().orOperator(
+                    Criteria.where("action").regex(pattern, "i"),
+                    Criteria.where("username").regex(pattern, "i"),
+                    Criteria.where("details").regex(pattern, "i")
+            ));
+        }
 
         if (StringUtils.hasText(filter.getAction())) {
             query.addCriteria(Criteria.where("action").regex(filter.getAction(), "i"));
@@ -85,7 +86,7 @@ public class AuditLogServiceImpl implements AuditLogService {
         long count = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), AuditLog.class);
         List<AuditLog> auditLogs = mongoTemplate.find(query, AuditLog.class);
 
-        Page<AuditLog> auditLogPage = new PageImpl<>(auditLogs, pageable, count);
+        Page<AuditLog> auditLogPage = new PageImpl<>(auditLogs, finalPageable, count);
         
         return auditLogMapper.toPageResponse(auditLogPage);
     }

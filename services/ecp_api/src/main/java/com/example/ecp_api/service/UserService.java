@@ -5,6 +5,7 @@ import com.example.ecp_api.dto.request.UserRequest;
 import com.example.ecp_api.dto.request.UserUpdateRequest;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.UserResponse;
+import com.example.ecp_api.dto.response.UserStatisticsResponse;
 import org.springframework.data.domain.Pageable;
 
 import java.util.UUID;
@@ -16,4 +17,8 @@ public interface UserService {
     PageResponse<UserResponse> searchUsers(UserFilterRequest filter, Pageable pageable);
     UserResponse updateUser(UUID id, UserUpdateRequest request);
     void deleteUser(UUID id);
+    
+    // Auth helpers
+    void updateLastLogin(String username);
+    UserStatisticsResponse getStatistics();
 }

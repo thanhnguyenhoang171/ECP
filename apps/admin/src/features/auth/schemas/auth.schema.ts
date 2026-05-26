@@ -29,7 +29,7 @@ export const registerSchema = z.object({
     message: "Họ phải có ít nhất 2 ký tự.",
   }),
   password: z.string()
-    .min(6, { message: "Mật khẩu phải từ 6 ký tự trở lên." })
+    .min(8, { message: "Mật khẩu phải có ít nhất 8 ký tự." })
     .regex(noAccentRegex, { message: noAccentMessage }),
   confirm: z.string(),
 })

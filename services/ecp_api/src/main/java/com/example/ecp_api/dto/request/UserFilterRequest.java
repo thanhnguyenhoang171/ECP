@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserFilterRequest {
+    private String keyword;
     private String username;
     private String email;
     private UserRole role;

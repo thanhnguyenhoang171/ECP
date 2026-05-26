@@ -23,11 +23,11 @@ public interface ProductMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
     Product toEntity(ProductRequest request);
 
     @Mapping(target = "isPublished", source = "published")
-    @Mapping(target = "isDeleted", source = "deleted")
-    @Mapping(target = "totalStock", ignore = true)
     ProductResponse toResponse(Product product);
 
     default PageResponse<ProductResponse> toPageResponse(Page<Product> page) {
@@ -61,7 +61,6 @@ public interface ProductMapper {
 
     // --- Product Variant Mappings ---
 
-    @Mapping(target = "id", ignore = true)
     @Mapping(target = "productId", ignore = true)
     @Mapping(target = "sku_id", ignore = true)
     @Mapping(target = "active", source = "isActive")
@@ -73,7 +72,6 @@ public interface ProductMapper {
     @Mapping(target = "skuId", source = "sku_id")
     ProductResponse.ProductVariantResponse toVariantResponse(ProductVariant variant);
 
-    @Mapping(target = "id", ignore = true)
     @Mapping(target = "productId", ignore = true)
     @Mapping(target = "sku_id", ignore = true)
     @Mapping(target = "active", source = "isActive")
