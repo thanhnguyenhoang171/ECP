@@ -36,10 +36,4 @@ public class WarehouseResponse {
 
     @Schema(description = "Last update timestamp")
     private LocalDateTime updatedAt;
-
-    @Schema(description = "Creator username")
-    private String createdBy;
-
-    @Schema(description = "Last updater username")
-    private String updatedBy;
 }

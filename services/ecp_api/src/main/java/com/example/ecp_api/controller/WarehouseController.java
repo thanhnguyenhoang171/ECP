@@ -4,6 +4,7 @@ import com.example.ecp_api.dto.request.WarehouseFilterRequest;
 import com.example.ecp_api.dto.request.WarehouseRequest;
 import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.dto.response.PageResponse;
+import com.example.ecp_api.dto.response.WarehouseAdminResponse;
 import com.example.ecp_api.dto.response.WarehouseResponse;
 import com.example.ecp_api.service.WarehouseService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,6 +39,7 @@ public class WarehouseController {
                 ApiResponse.<WarehouseResponse>builder()
                         .success(true)
                         .message("Warehouse created successfully")
+                        .code("WAREHOUSE_CREATED")
                         .data(response)
                         .build(),
                 HttpStatus.CREATED
@@ -46,31 +48,72 @@ public class WarehouseController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
-    @Operation(
-            summary = "Get all warehouses",
-            description = "Retrieve paginated warehouses with advanced filtering. Supports filtering by ID, keyword (name, code, address), exact code, name, and active status."
-    )
+    @Operation(summary = "Get all warehouses", description = "Retrieve paginated warehouses with filter (Manager view)")
     @Parameters({
             @Parameter(name = "page", description = "Page number (1-indexed)", example = "1", schema = @Schema(type = "integer", defaultValue = "1")),
-            @Parameter(name = "size", description = "Number of items per page (max 100)", example = "20", schema = @Schema(type = "integer", defaultValue = "20", maximum = "100")),
-            @Parameter(name = "sort", description = "Sorting criteria (e.g. name,asc)", example = "createdAt,desc")
+            @Parameter(name = "size", description = "Number of items per page", example = "20", schema = @Schema(type = "integer", defaultValue = "20")),
+            @Parameter(name = "sort", description = "Sorting criteria (e.g. name,asc)", example = "name,asc")
     })
-    public ResponseEntity<PageResponse<WarehouseResponse>> getAllWarehouses(
+    public ResponseEntity<ApiResponse<PageResponse<WarehouseResponse>>> getAllWarehouses(
             @Valid WarehouseFilterRequest filter,
             @Parameter(hidden = true) @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(warehouseService.getAllWarehouses(filter, pageable));
+        return ResponseEntity.ok(
+                ApiResponse.<PageResponse<WarehouseResponse>>builder()
+                        .success(true)
+                        .message("Warehouses fetched successfully")
+                        .code("WAREHOUSE_FETCHED")
+                        .data(warehouseService.getAllWarehouses(filter, pageable))
+                        .build()
+        );
+    }
+
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Get all warehouses (Admin)", description = "Retrieve paginated warehouses with full audit info (Admin view)")
+    @Parameters({
+            @Parameter(name = "page", description = "Page number (1-indexed)", example = "1", schema = @Schema(type = "integer", defaultValue = "1")),
+            @Parameter(name = "size", description = "Number of items per page", example = "20", schema = @Schema(type = "integer", defaultValue = "20")),
+            @Parameter(name = "sort", description = "Sorting criteria (e.g. name,asc)", example = "name,asc")
+    })
+    public ResponseEntity<ApiResponse<PageResponse<WarehouseAdminResponse>>> getAllWarehousesForAdmin(
+            @Valid WarehouseFilterRequest filter,
+            @Parameter(hidden = true) @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(
+                ApiResponse.<PageResponse<WarehouseAdminResponse>>builder()
+                        .success(true)
+                        .message("Warehouses fetched successfully (Admin)")
+                        .code("WAREHOUSE_FETCHED")
+                        .data(warehouseService.getAllWarehousesForAdmin(filter, pageable))
+                        .build()
+        );
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
-    @Operation(summary = "Get warehouse by ID", description = "Retrieve detailed information for a specific physical storage location.")
+    @Operation(summary = "Get warehouse by ID", description = "Retrieve information for a specific storage location (Standard view for Managers).")
     public ResponseEntity<ApiResponse<WarehouseResponse>> getWarehouseById(
             @Parameter(description = "ID of the warehouse to retrieve") @PathVariable("id") String id) {
         return ResponseEntity.ok(
                 ApiResponse.<WarehouseResponse>builder()
                         .success(true)
                         .message("Warehouse fetched successfully")
+                        .code("WAREHOUSE_FETCHED")
                         .data(warehouseService.getWarehouseById(id))
+                        .build()
+        );
+    }
+
+    @GetMapping("/admin/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Get warehouse by ID (Admin)", description = "Retrieve detailed information including audit logs for a specific storage location.")
+    public ResponseEntity<ApiResponse<WarehouseAdminResponse>> getWarehouseByIdForAdmin(
+            @Parameter(description = "ID of the warehouse to retrieve") @PathVariable("id") String id) {
+        return ResponseEntity.ok(
+                ApiResponse.<WarehouseAdminResponse>builder()
+                        .success(true)
+                        .message("Warehouse fetched successfully (Admin)")
+                        .code("WAREHOUSE_FETCHED")
+                        .data(warehouseService.getWarehouseByIdForAdmin(id))
                         .build()
         );
     }
@@ -85,6 +128,7 @@ public class WarehouseController {
                 ApiResponse.<WarehouseResponse>builder()
                         .success(true)
                         .message("Warehouse updated successfully")
+                        .code("WAREHOUSE_UPDATED")
                         .data(warehouseService.updateWarehouse(id, request))
                         .build()
         );
@@ -100,6 +144,7 @@ public class WarehouseController {
                 ApiResponse.<Void>builder()
                         .success(true)
                         .message("Warehouse deleted successfully")
+                        .code("WAREHOUSE_DELETED")
                         .build()
         );
     }

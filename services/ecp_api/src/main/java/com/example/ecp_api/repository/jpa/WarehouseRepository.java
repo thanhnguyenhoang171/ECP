@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface WarehouseRepository extends JpaRepository<Warehouse, UUID>, JpaSpecificationExecutor<Warehouse> {
     boolean existsByCode(String code);
+    boolean existsByName(String name);
 }

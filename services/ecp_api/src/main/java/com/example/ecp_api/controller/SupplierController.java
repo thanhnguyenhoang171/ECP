@@ -4,6 +4,7 @@ import com.example.ecp_api.dto.request.SupplierRequest;
 import com.example.ecp_api.dto.request.SupplierRequestFilter;
 import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.dto.response.PageResponse;
+import com.example.ecp_api.dto.response.SupplierAdminResponse;
 import com.example.ecp_api.dto.response.SupplierResponse;
 import com.example.ecp_api.service.SupplierService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,6 +39,7 @@ public class SupplierController {
                 ApiResponse.<SupplierResponse>builder()
                         .success(true)
                         .message("Supplier created successfully")
+                        .code("SUPPLIER_CREATED")
                         .data(response)
                         .build(),
                 HttpStatus.CREATED
@@ -55,22 +57,66 @@ public class SupplierController {
             @Parameter(name = "size", description = "Number of items per page (max 100)", example = "20", schema = @Schema(type = "integer", defaultValue = "20", maximum = "100")),
             @Parameter(name = "sort", description = "Sorting criteria (e.g. name,asc)", example = "createdAt,desc")
     })
-    public ResponseEntity<PageResponse<SupplierResponse>> getAllSuppliers(
+    public ResponseEntity<ApiResponse<PageResponse<SupplierResponse>>> getAllSuppliers(
             @Valid SupplierRequestFilter filter,
             @Parameter(hidden = true) @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(supplierService.getAllSuppliers(filter, pageable));
+        return ResponseEntity.ok(
+                ApiResponse.<PageResponse<SupplierResponse>>builder()
+                        .success(true)
+                        .message("Suppliers fetched successfully")
+                        .code("SUPPLIER_FETCHED")
+                        .data(supplierService.getAllSuppliers(filter, pageable))
+                        .build()
+        );
+    }
+
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Get all suppliers (Admin)", description = "Retrieve paginated suppliers with full audit info (Admin view)")
+    @Parameters({
+            @Parameter(name = "page", description = "Page number (1-indexed)", example = "1", schema = @Schema(type = "integer", defaultValue = "1")),
+            @Parameter(name = "size", description = "Number of items per page", example = "20", schema = @Schema(type = "integer", defaultValue = "20")),
+            @Parameter(name = "sort", description = "Sorting criteria (e.g. name,asc)", example = "createdAt,desc")
+    })
+    public ResponseEntity<ApiResponse<PageResponse<SupplierAdminResponse>>> getAllSuppliersForAdmin(
+            @Valid SupplierRequestFilter filter,
+            @Parameter(hidden = true) @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(
+                ApiResponse.<PageResponse<SupplierAdminResponse>>builder()
+                        .success(true)
+                        .message("Suppliers fetched successfully (Admin)")
+                        .code("SUPPLIER_FETCHED")
+                        .data(supplierService.getAllSuppliersForAdmin(filter, pageable))
+                        .build()
+        );
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
-    @Operation(summary = "Get supplier by ID", description = "Retrieve detailed information for a specific supplier.")
+    @Operation(summary = "Get supplier by ID", description = "Retrieve detailed information for a specific supplier (Standard view for Managers).")
     public ResponseEntity<ApiResponse<SupplierResponse>> getSupplier(
             @Parameter(description = "ID of the supplier to retrieve") @PathVariable String id) {
         return ResponseEntity.ok(
                 ApiResponse.<SupplierResponse>builder()
                         .success(true)
                         .message("Supplier fetched successfully")
+                        .code("SUPPLIER_FETCHED")
                         .data(supplierService.getSupplierById(id))
+                        .build()
+        );
+    }
+
+    @GetMapping("/admin/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Get supplier by ID (Admin)", description = "Retrieve detailed information including audit logs for a specific supplier.")
+    public ResponseEntity<ApiResponse<SupplierAdminResponse>> getSupplierForAdmin(
+            @Parameter(description = "ID of the supplier to retrieve") @PathVariable String id) {
+        return ResponseEntity.ok(
+                ApiResponse.<SupplierAdminResponse>builder()
+                        .success(true)
+                        .message("Supplier fetched successfully (Admin)")
+                        .code("SUPPLIER_FETCHED")
+                        .data(supplierService.getSupplierByIdForAdmin(id))
                         .build()
         );
     }
@@ -85,6 +131,7 @@ public class SupplierController {
                 ApiResponse.<SupplierResponse>builder()
                         .success(true)
                         .message("Supplier updated successfully")
+                        .code("SUPPLIER_UPDATED")
                         .data(supplierService.updateSupplier(id, request))
                         .build()
         );
@@ -100,6 +147,7 @@ public class SupplierController {
                 ApiResponse.<Void>builder()
                         .success(true)
                         .message("Supplier deleted successfully")
+                        .code("SUPPLIER_DELETED")
                         .build()
         );
     }

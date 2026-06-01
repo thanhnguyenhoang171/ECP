@@ -12,7 +12,6 @@ import {
   Database,
   LogOut,
   Menu as MenuIcon,
-  Package,
   ShoppingCart,
   UserCircle,
   Bell,
@@ -73,6 +72,8 @@ const menuItems: MenuItem[] = [
     label: 'Kho hàng',
     children: [
       { key: '/stock', label: 'Tồn kho' },
+      { key: '/goods-receipt', label: 'Nhập kho' },
+      { key: '/suppliers', label: 'Nhà cung cấp' },
       { key: '/warehouses', label: 'Kho bãi' },
       { key: '/inventory-ledger', label: 'Sổ cái kho' },
       { key: '/barcode-scans', label: 'Quét mã vạch' },

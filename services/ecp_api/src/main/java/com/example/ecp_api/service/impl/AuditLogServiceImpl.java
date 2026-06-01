@@ -3,11 +3,12 @@ package com.example.ecp_api.service.impl;
 import com.example.ecp_api.dto.request.AuditLogFilterRequest;
 import com.example.ecp_api.dto.response.AuditLogResponse;
 import com.example.ecp_api.dto.response.PageResponse;
+import com.example.ecp_api.entity.mongodb.ActionAuditLog;
 import com.example.ecp_api.entity.mongodb.AuditLog;
+import com.example.ecp_api.entity.mongodb.AuthAuditLog;
 import com.example.ecp_api.mapper.AuditLogMapper;
 import com.example.ecp_api.repository.mongodb.AuditLogRepository;
 import com.example.ecp_api.service.AuditLogService;
-import com.example.ecp_api.util.PaginationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
@@ -33,13 +34,54 @@ public class AuditLogServiceImpl implements AuditLogService {
 
     @Override
     public void log(String action, String username, String details) {
-        AuditLog auditLog = AuditLog.builder()
+        String upperAction = action != null ? action.toUpperCase() : "";
+        AuditLog auditLog;
+
+        if (upperAction.contains("LOGIN") || upperAction.contains("LOGOUT") || upperAction.contains("AUTH")) {
+            auditLog = AuthAuditLog.builder()
+                    .action(action)
+                    .username(username)
+                    .details(details)
+                    .timestamp(LocalDateTime.now())
+                    .status("SUCCESS") // Default for generic log call
+                    .build();
+        } else {
+            auditLog = ActionAuditLog.builder()
+                    .action(action)
+                    .username(username)
+                    .details(details)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+        }
+        
+        auditLogRepository.save(auditLog);
+    }
+
+    @Override
+    public void logAuth(String action, String username, String status, String ip, String userAgent, String details) {
+        AuthAuditLog authLog = AuthAuditLog.builder()
                 .action(action)
                 .username(username)
+                .status(status)
+                .ipAddress(ip)
+                .userAgent(userAgent)
                 .details(details)
                 .timestamp(LocalDateTime.now())
                 .build();
-        auditLogRepository.save(auditLog);
+        auditLogRepository.save(authLog);
+    }
+
+    @Override
+    public void logAction(String action, String username, String resourceType, String resourceId, String details) {
+        ActionAuditLog actionLog = ActionAuditLog.builder()
+                .action(action)
+                .username(username)
+                .resourceType(resourceType)
+                .resourceId(resourceId)
+                .details(details)
+                .timestamp(LocalDateTime.now())
+                .build();
+        auditLogRepository.save(actionLog);
     }
 
     /**
@@ -60,18 +102,15 @@ public class AuditLogServiceImpl implements AuditLogService {
 
     @Override
     public PageResponse<AuditLogResponse> getAllLogs(AuditLogFilterRequest filter, Pageable pageable) {
-        Pageable finalPageable = PaginationUtils.applyStableSort(pageable, 
-                Sort.Order.desc("timestamp"), 
-                Sort.Order.asc("id"));
-
-        Query query = new Query().with(finalPageable);
+        Query query = new Query().with(pageable);
 
         if (StringUtils.hasText(filter.getKeyword())) {
             String pattern = filter.getKeyword();
             query.addCriteria(new Criteria().orOperator(
                     Criteria.where("action").regex(pattern, "i"),
                     Criteria.where("username").regex(pattern, "i"),
-                    Criteria.where("details").regex(pattern, "i")
+                    Criteria.where("details").regex(pattern, "i"),
+                    Criteria.where("ipAddress").regex(pattern, "i")
             ));
         }
 
@@ -86,7 +125,7 @@ public class AuditLogServiceImpl implements AuditLogService {
         long count = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), AuditLog.class);
         List<AuditLog> auditLogs = mongoTemplate.find(query, AuditLog.class);
 
-        Page<AuditLog> auditLogPage = new PageImpl<>(auditLogs, finalPageable, count);
+        Page<AuditLog> auditLogPage = new PageImpl<>(auditLogs, pageable, count);
         
         return auditLogMapper.toPageResponse(auditLogPage);
     }

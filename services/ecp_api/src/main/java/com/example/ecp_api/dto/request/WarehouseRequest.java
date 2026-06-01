@@ -14,8 +14,7 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Request object for creating or updating a warehouse")
 public class WarehouseRequest {
 
-    @NotBlank(message = "Warehouse code is required")
-    @Schema(description = "Unique warehouse code", example = "KHO-HCM-01", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Unique warehouse code (auto-generated if left blank)", example = "KHO-HCM-01")
     private String code;
 
     @NotBlank(message = "Warehouse name is required")
