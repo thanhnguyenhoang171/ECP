@@ -14,8 +14,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Schema(description = "Response object representing a purchase order item details")
-public class PurchaseOrderItemResponse {
+@Schema(description = "Response object representing a purchase order item (Admin view with full audit info)")
+public class PurchaseOrderItemAdminResponse {
 
     @Schema(description = "Unique ID of the purchase order item (UUID)", example = "550e8400-e29b-41d4-a716-446655440000")
     private UUID id;
@@ -52,4 +52,10 @@ public class PurchaseOrderItemResponse {
 
     @Schema(description = "Timestamp of the last update to the item")
     private LocalDateTime updatedAt;
+
+    @Schema(description = "Username of the creator")
+    private String createdBy;
+
+    @Schema(description = "Username of the last updater")
+    private String updatedBy;
 }

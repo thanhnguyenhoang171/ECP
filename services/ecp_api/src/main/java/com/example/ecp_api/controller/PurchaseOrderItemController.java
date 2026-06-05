@@ -4,6 +4,7 @@ import com.example.ecp_api.dto.request.PurchaseOrderItemFilterRequest;
 import com.example.ecp_api.dto.request.PurchaseOrderItemRequest;
 import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.dto.response.PageResponse;
+import com.example.ecp_api.dto.response.PurchaseOrderItemAdminResponse;
 import com.example.ecp_api.dto.response.PurchaseOrderItemResponse;
 import com.example.ecp_api.service.PurchaseOrderItemService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -49,7 +50,7 @@ public class PurchaseOrderItemController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     @Operation(
             summary = "Get all purchase order items",
-            description = "Retrieve paginated list of purchase order items with filtering. Supports filtering by purchase order and SKU."
+            description = "Retrieve paginated list of purchase order items. Managers use this; Admins can use /admin for full info."
     )
     @Parameters({
             @Parameter(name = "page", description = "Page number (1-indexed)", example = "1", schema = @Schema(type = "integer", defaultValue = "1")),
@@ -60,6 +61,23 @@ public class PurchaseOrderItemController {
             @Valid PurchaseOrderItemFilterRequest filter,
             @Parameter(hidden = true) @PageableDefault(sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(purchaseOrderItemService.getAllPurchaseOrderItems(filter, pageable));
+    }
+
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @Operation(
+            summary = "Get all purchase order items (Admin)",
+            description = "Retrieve paginated list of purchase order items with full audit info. Super Admin access required."
+    )
+    @Parameters({
+            @Parameter(name = "page", description = "Page number (1-indexed)", example = "1", schema = @Schema(type = "integer", defaultValue = "1")),
+            @Parameter(name = "size", description = "Number of items per page (max 100)", example = "20", schema = @Schema(type = "integer", defaultValue = "20", maximum = "100")),
+            @Parameter(name = "sort", description = "Sorting criteria (e.g. id,asc)", example = "id,asc")
+    })
+    public ResponseEntity<PageResponse<PurchaseOrderItemAdminResponse>> getAllPurchaseOrderItemsAdmin(
+            @Valid PurchaseOrderItemFilterRequest filter,
+            @Parameter(hidden = true) @PageableDefault(sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(purchaseOrderItemService.getAllPurchaseOrderItemsAdmin(filter, pageable));
     }
 
     @GetMapping("/{id}")
@@ -73,6 +91,21 @@ public class PurchaseOrderItemController {
                         .code("PURCHASE_ORDER_ITEM_FETCHED")
                         .message("Purchase order item fetched successfully")
                         .data(purchaseOrderItemService.getPurchaseOrderItemById(id))
+                        .build()
+        );
+    }
+
+    @GetMapping("/admin/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Get purchase order item by ID (Admin)", description = "Retrieve detailed information including audit info for a specific purchase order item.")
+    public ResponseEntity<ApiResponse<PurchaseOrderItemAdminResponse>> getPurchaseOrderItemAdmin(
+            @Parameter(description = "ID of the purchase order item to retrieve") @PathVariable String id) {
+        return ResponseEntity.ok(
+                ApiResponse.<PurchaseOrderItemAdminResponse>builder()
+                        .success(true)
+                        .code("PURCHASE_ORDER_ITEM_FETCHED")
+                        .message("Purchase order item fetched successfully (Admin)")
+                        .data(purchaseOrderItemService.getPurchaseOrderItemByIdAdmin(id))
                         .build()
         );
     }

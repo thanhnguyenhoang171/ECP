@@ -3,6 +3,7 @@ package com.example.ecp_api.mapper;
 import com.example.ecp_api.dto.request.PurchaseOrderRequest;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.PaginationResponse;
+import com.example.ecp_api.dto.response.PurchaseOrderAdminResponse;
 import com.example.ecp_api.dto.response.PurchaseOrderResponse;
 import com.example.ecp_api.entity.jpa.PurchaseOrder;
 import org.mapstruct.Mapper;
@@ -34,6 +35,14 @@ public interface PurchaseOrderMapper {
     @Mapping(target = "supplierName", source = "supplier.name")
     PurchaseOrderResponse toResponse(PurchaseOrder purchaseOrder);
 
+    @Mapping(target = "code", source = "poCode")
+    @Mapping(target = "warehouseId", source = "warehouse.id")
+    @Mapping(target = "warehouseCode", source = "warehouse.code")
+    @Mapping(target = "warehouseName", source = "warehouse.name")
+    @Mapping(target = "supplierId", source = "supplier.id")
+    @Mapping(target = "supplierName", source = "supplier.name")
+    PurchaseOrderAdminResponse toAdminResponse(PurchaseOrder purchaseOrder);
+
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "warehouse", ignore = true)
     @Mapping(target = "supplier", ignore = true)
@@ -58,6 +67,29 @@ public interface PurchaseOrderMapper {
                 .build();
 
         return PageResponse.<PurchaseOrderResponse>builder()
+                .success(true)
+                .code("PURCHASE_ORDER_LIST_FETCHED")
+                .message("Fetch data successfully")
+                .data(list)
+                .pagination(pagination)
+                .build();
+    }
+
+    default PageResponse<PurchaseOrderAdminResponse> toAdminPageResponse(Page<PurchaseOrder> page) {
+        List<PurchaseOrderAdminResponse> list = page.getContent().stream()
+                .map(this::toAdminResponse)
+                .collect(Collectors.toList());
+
+        PaginationResponse pagination = PaginationResponse.builder()
+                .currentPage(page.getNumber() + 1)
+                .totalPages(page.getTotalPages())
+                .totalElements(page.getTotalElements())
+                .pageSize(page.getSize())
+                .isLast(page.isLast())
+                .isFirst(page.isFirst())
+                .build();
+
+        return PageResponse.<PurchaseOrderAdminResponse>builder()
                 .success(true)
                 .code("PURCHASE_ORDER_LIST_FETCHED")
                 .message("Fetch data successfully")

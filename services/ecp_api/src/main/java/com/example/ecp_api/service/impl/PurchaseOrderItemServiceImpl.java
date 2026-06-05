@@ -3,6 +3,7 @@ package com.example.ecp_api.service.impl;
 import com.example.ecp_api.dto.request.PurchaseOrderItemFilterRequest;
 import com.example.ecp_api.dto.request.PurchaseOrderItemRequest;
 import com.example.ecp_api.dto.response.PageResponse;
+import com.example.ecp_api.dto.response.PurchaseOrderItemAdminResponse;
 import com.example.ecp_api.dto.response.PurchaseOrderItemResponse;
 import com.example.ecp_api.entity.jpa.PurchaseOrder;
 import com.example.ecp_api.entity.jpa.PurchaseOrderItem;
@@ -118,11 +119,37 @@ public class PurchaseOrderItemServiceImpl implements PurchaseOrderItemService {
     }
 
     @Override
+    public PurchaseOrderItemAdminResponse getPurchaseOrderItemByIdAdmin(String id) {
+        PurchaseOrderItem item = purchaseOrderItemRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new AppException("PO_ITEM_NOT_FOUND", "Không tìm thấy sản phẩm đơn mua hàng với ID: " + id, HttpStatus.NOT_FOUND));
+
+        return purchaseOrderItemMapper.toAdminResponse(item);
+    }
+
+    @Override
     public PageResponse<PurchaseOrderItemResponse> getAllPurchaseOrderItems(PurchaseOrderItemFilterRequest filter, Pageable pageable) {
         Pageable finalPageable = PaginationUtils.applyStableSort(pageable, 
                 Sort.Order.asc("id"));
 
-        Specification<PurchaseOrderItem> spec = (root, query, cb) -> {
+        Specification<PurchaseOrderItem> spec = createSpecification(filter);
+
+        Page<PurchaseOrderItem> page = purchaseOrderItemRepository.findAll(spec, finalPageable);
+        return purchaseOrderItemMapper.toPageResponse(page);
+    }
+
+    @Override
+    public PageResponse<PurchaseOrderItemAdminResponse> getAllPurchaseOrderItemsAdmin(PurchaseOrderItemFilterRequest filter, Pageable pageable) {
+        Pageable finalPageable = PaginationUtils.applyStableSort(pageable, 
+                Sort.Order.asc("id"));
+
+        Specification<PurchaseOrderItem> spec = createSpecification(filter);
+
+        Page<PurchaseOrderItem> page = purchaseOrderItemRepository.findAll(spec, finalPageable);
+        return purchaseOrderItemMapper.toAdminPageResponse(page);
+    }
+
+    private Specification<PurchaseOrderItem> createSpecification(PurchaseOrderItemFilterRequest filter) {
+        return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             if (filter != null) {
@@ -145,9 +172,6 @@ public class PurchaseOrderItemServiceImpl implements PurchaseOrderItemService {
 
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-
-        Page<PurchaseOrderItem> page = purchaseOrderItemRepository.findAll(spec, finalPageable);
-        return purchaseOrderItemMapper.toPageResponse(page);
     }
 
     @Override
