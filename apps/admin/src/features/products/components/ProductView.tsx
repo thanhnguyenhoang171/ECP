@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Package } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 import {
   Badge,
@@ -10,6 +11,7 @@ import {
   DataTable,
   type ColumnDef,
   DataCard,
+  Breadcrumbs,
 } from '@/components/common';
 import {
   Dialog,
@@ -52,6 +54,7 @@ export default function ProductView({
   initialData,
   categories,
 }: ProductViewProps) {
+  const router = useRouter();
   const {
     sort,
     name,
@@ -99,8 +102,7 @@ export default function ProductView({
   };
 
   const handleCreate = () => {
-    setEditingProduct(null);
-    setIsFormOpen(true);
+    router.push('/products/create');
   };
 
   useHotkeys('+', handleCreate);
@@ -186,8 +188,13 @@ export default function ProductView({
     active ? "bg-slate-100 text-slate-900" : "hover:bg-slate-50 text-slate-500"
   );
 
+  const breadcrumbItems = [
+    { label: 'Sản phẩm', icon: Package },
+  ];
+
   return (
     <div className='space-y-6'>
+      <Breadcrumbs items={breadcrumbItems} />
       <PageHeader title='Quản lý sản phẩm' description='Xem và quản lý danh mục sản phẩm của bạn.' actions={commonActions} />
 
       <DataCard 
@@ -263,32 +270,34 @@ export default function ProductView({
       <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setEditingProduct(null); }}>
         <DialogContent className='sm:max-w-4xl max-h-[90vh] overflow-y-auto custom-scrollbar'>
           <DialogHeader>
-            <DialogTitle className='text-xl font-bold text-slate-900'>{editingProduct ? 'Cập nhật sản phẩm' : 'Tạo sản phẩm mới'}</DialogTitle>
-            <DialogDescription>{editingProduct ? 'Chỉnh sửa thông tin sản phẩm và các biến thể.' : 'Nhập thông tin sản phẩm và các biến thể kho hàng.'}</DialogDescription>
+            <DialogTitle className='text-xl font-bold text-slate-900'>Cập nhật sản phẩm</DialogTitle>
+            <DialogDescription>Chỉnh sửa thông tin sản phẩm và các biến thể.</DialogDescription>
           </DialogHeader>
           
-          <ProductForm 
-            onSuccess={() => {
-              setIsFormOpen(false);
-              setEditingProduct(null);
-              toast.success(editingProduct ? 'Cập nhật thành công (Demo)' : 'Tạo mới thành công (Demo)');
-            }}
-            initialData={editingProduct ? {
-              name: editingProduct.name,
-              sku: editingProduct.sku,
-              brand: editingProduct.brand || '',
-              categoryId: editingProduct.categoryId,
-              isPublished: editingProduct.isPublished,
-              description: editingProduct.description || '',
-              variants: editingProduct.variants?.map(v => ({
-                sku: v.sku,
-                price: v.price,
-                stock: v.stock,
-                attributes: v.attributes || {}
-              })) || [{ sku: editingProduct.sku, price: editingProduct.price, stock: editingProduct.stock, attributes: {} }],
-              slug: editingProduct.slug || ''
-            } : undefined}
-          />
+          {editingProduct && (
+            <ProductForm 
+              onSuccess={() => {
+                setIsFormOpen(false);
+                setEditingProduct(null);
+                toast.success('Cập nhật thành công (Demo)');
+              }}
+              initialData={{
+                name: editingProduct.name,
+                sku: editingProduct.sku,
+                brand: editingProduct.brand || '',
+                categoryId: editingProduct.categoryId,
+                isPublished: editingProduct.isPublished,
+                description: editingProduct.description || '',
+                variants: editingProduct.variants?.map(v => ({
+                  sku: v.sku,
+                  price: v.price,
+                  stock: v.stock,
+                  attributes: v.attributes || {}
+                })) || [{ sku: editingProduct.sku, price: editingProduct.price, stock: editingProduct.stock, attributes: {} }],
+                slug: editingProduct.slug || ''
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
 

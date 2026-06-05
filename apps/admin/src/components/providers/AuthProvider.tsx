@@ -5,6 +5,8 @@ import { useAuthStore } from '@/store/authStore';
 import { Loader2 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
+import { authApi } from '@/features/auth/api/auth.api';
+
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setAuth, clearAuth } = useAuthStore();
   const [isInitializing, setIsInitializing] = useState(true);
@@ -20,19 +22,18 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       }
 
       try {
-        const response = await fetch('/api/auth/refresh', { method: 'POST' });
-        const result = await response.json();
+        const result = await authApi.refresh();
 
-        if (response.ok && result.success) {
+        if (result.success) {
           const { id, accessToken, username, email, roles } = result.data;
           setAuth(accessToken, { id, username, email, roles });
-        } else if (response.status === 401) {
+        }
+      } catch (error: any) {
+        if (error.status === 401) {
           // Chỉ xóa auth nếu server xác nhận token không hợp lệ
           clearAuth();
         }
-      } catch (error) {
         console.error('AuthProvider init error:', error);
-        // Không xóa auth ở đây để tránh mất session do lỗi mạng tạm thời
       } finally {
         setIsInitializing(false);
       }

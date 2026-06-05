@@ -10,6 +10,7 @@ import {
   DataTable,
   DataCard,
   type ColumnDef,
+  Breadcrumbs,
 } from '@/components/common';
 import {
   SearchInput,
@@ -164,8 +165,13 @@ export default function SkusView({
     active ? "bg-slate-100 text-slate-900" : "hover:bg-slate-50 text-slate-500"
   );
 
+  const breadcrumbItems = [
+    { label: 'Danh sách SKU', icon: Layers },
+  ];
+
   return (
     <div className='space-y-6'>
+      <Breadcrumbs items={breadcrumbItems} />
       <PageHeader title='Quản lý SKUs' description='Xem và quản lý các đơn vị hàng hóa chi tiết (Stock Keeping Units).' actions={commonActions} />
 
       <DataCard

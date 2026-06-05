@@ -8,7 +8,9 @@ import {
   DataTable,
   type ColumnDef,
   DataCard,
+  Breadcrumbs,
 } from '@/components/common';
+import { Layers } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -45,6 +47,8 @@ import { categoryApi } from '../api/category.api';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { Skeleton } from '@/components/ui/skeleton';
 
+import { useRouter } from 'next/navigation';
+
 interface CategoriesViewProps {
   initialData: PageResponse<Category>;
   parentCategories: Category[];
@@ -54,6 +58,7 @@ export default function CategoriesView({
   initialData,
   parentCategories: serverParentCategories,
 }: CategoriesViewProps) {
+  const router = useRouter();
   const {
     page,
     size,
@@ -123,8 +128,7 @@ export default function CategoriesView({
   };
 
   const handleCreate = () => {
-    setEditingCategory(null);
-    setIsFormOpen(true);
+    router.push('/categories/create');
   };
 
   useHotkeys('+', handleCreate);
@@ -258,8 +262,13 @@ export default function CategoriesView({
         : "bg-transparent hover:bg-slate-50 text-slate-500",
     );
 
+  const breadcrumbItems = [
+    { label: 'Danh mục', icon: Layers },
+  ];
+
   return (
     <div className='space-y-6'>
+      <Breadcrumbs items={breadcrumbItems} />
       <PageHeader
         title='Quản lý danh mục'
         description='Quản lý các nhóm sản phẩm và phân loại hàng hóa.'
