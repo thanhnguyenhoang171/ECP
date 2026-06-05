@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductFilterRequest {
+    private String id;
     private String name;
     private String sku;
     private String categoryId;

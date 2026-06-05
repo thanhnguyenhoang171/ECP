@@ -7,7 +7,6 @@ import {
   Badge,
   NextPagination,
   PageHeader,
-  Button,
   DataTable,
   type ColumnDef,
   DataCard,
@@ -18,7 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   SearchInput,
@@ -42,6 +40,8 @@ import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { getSortOptions } from '@/types';
 import { cn } from '@/lib/utils';
+
+import ProductForm from './ProductForm';
 
 interface ProductViewProps {
   initialData: PageResponse<Product>;
@@ -261,15 +261,34 @@ export default function ProductView({
 
       {/* Dialogs */}
       <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setEditingProduct(null); }}>
-        <DialogContent className='sm:max-w-125'>
+        <DialogContent className='sm:max-w-4xl max-h-[90vh] overflow-y-auto custom-scrollbar'>
           <DialogHeader>
             <DialogTitle className='text-xl font-bold text-slate-900'>{editingProduct ? 'Cập nhật sản phẩm' : 'Tạo sản phẩm mới'}</DialogTitle>
             <DialogDescription>{editingProduct ? 'Chỉnh sửa thông tin sản phẩm và các biến thể.' : 'Nhập thông tin sản phẩm và các biến thể kho hàng.'}</DialogDescription>
           </DialogHeader>
-          <div className='py-4 text-center text-slate-500 italic text-sm'>Tính năng Form đang được cập nhật (Demo mode)</div>
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setIsFormOpen(false)}>Đóng</Button>
-          </DialogFooter>
+          
+          <ProductForm 
+            onSuccess={() => {
+              setIsFormOpen(false);
+              setEditingProduct(null);
+              toast.success(editingProduct ? 'Cập nhật thành công (Demo)' : 'Tạo mới thành công (Demo)');
+            }}
+            initialData={editingProduct ? {
+              name: editingProduct.name,
+              sku: editingProduct.sku,
+              brand: editingProduct.brand || '',
+              categoryId: editingProduct.categoryId,
+              isPublished: editingProduct.isPublished,
+              description: editingProduct.description || '',
+              variants: editingProduct.variants?.map(v => ({
+                sku: v.sku,
+                price: v.price,
+                stock: v.stock,
+                attributes: v.attributes || {}
+              })) || [{ sku: editingProduct.sku, price: editingProduct.price, stock: editingProduct.stock, attributes: {} }],
+              slug: editingProduct.slug || ''
+            } : undefined}
+          />
         </DialogContent>
       </Dialog>
 

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { User, Lock, Loader2, Package, Eye, EyeOff, UserPlus, Mail } from 'lucide-react';
@@ -84,7 +85,15 @@ export default function RegisterView() {
 
       <div className="relative z-10 w-full max-w-lg my-auto">
         <div className="flex flex-col items-center mb-8">
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tighter drop-shadow-lg text-center">ECP ADMIN</h1>
+          <div className="relative h-20 w-20 mb-4 overflow-hidden rounded-2xl border-2 border-white/20 shadow-2xl">
+            <Image 
+              src="/logo/z7862984783113_196fdab6026e07fc4a13a745f502233b.jpg" 
+              alt="Logo" 
+              fill
+              className="object-cover"
+            />
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tighter drop-shadow-lg text-center">CACAO ADMIN</h1>
         </div>
 
         <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-sm overflow-hidden">
@@ -256,7 +265,7 @@ export default function RegisterView() {
         </Card>
 
         <p className="text-center text-xs text-slate-300 mt-8">
-          &copy; 2024 ECP Enterprise. Bảo lưu mọi quyền.
+          &copy; 2024 Cacao Enterprise. Bảo lưu mọi quyền.
         </p>
       </div>
     </div>

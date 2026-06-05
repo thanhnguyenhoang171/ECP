@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AuditLogFilterRequest {
+    private String keyword;
     private String action;
     private String username;
 }

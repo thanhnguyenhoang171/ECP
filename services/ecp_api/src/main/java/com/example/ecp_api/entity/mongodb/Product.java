@@ -71,4 +71,12 @@ public class Product {
     @LastModifiedDate
     @Field("updated_at")
     private LocalDateTime updatedAt;
+
+    @CreatedBy
+    @Field("created_by")
+    private String createdBy;
+
+    @LastModifiedBy
+    @Field("updated_by")
+    private String updatedBy;
 }

@@ -11,6 +11,8 @@ import com.example.ecp_api.security.CustomUserDetailsService;
 import com.example.ecp_api.security.JwtTokenProvider;
 import com.example.ecp_api.service.TokenService;
 import com.example.ecp_api.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -33,6 +35,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
+@Tag(name = "Authentication", description = "Endpoints for user registration, login, and token management")
 public class AuthController {
 
         private final AuthenticationManager authenticationManager;
@@ -43,6 +46,7 @@ public class AuthController {
         private final CustomUserDetailsService customUserDetailsService;
 
         @PostMapping("/register")
+        @Operation(summary = "Register a new user", description = "Creates a new user account with default USER role.")
         public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody UserRequest userRequest) {
                 UserResponse response = userService.registerUserByUsername(userRequest);
                 ApiResponse<UserResponse> apiResponse = ApiResponse.<UserResponse>builder()
@@ -54,6 +58,7 @@ public class AuthController {
         }
 
         @PostMapping("/login")
+        @Operation(summary = "Login to the system", description = "Authenticates user and returns Access Token and Refresh Token (also set in HttpOnly cookie).")
         public ResponseEntity<ApiResponse<AuthResponse>> authenticateUser(
                         @Valid @RequestBody LoginRequest loginRequest,
                         HttpServletRequest request,
@@ -109,6 +114,9 @@ public class AuthController {
                         // Log success
                         auditLogService.log("LOGIN_SUCCESS", userDetails.getUsername(), "User logged in from " + request.getRemoteAddr());
 
+                        // Update last login in database
+                        userService.updateLastLogin(userDetails.getUsername());
+
                         return ResponseEntity.ok(apiResponse);
                 } catch (Exception e) {
                         // Log failure
@@ -118,6 +126,7 @@ public class AuthController {
         }
 
         @PostMapping("/refresh")
+        @Operation(summary = "Refresh Access Token", description = "Generates a new Access Token using a valid Refresh Token.")
         public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
                         @CookieValue(name = "refreshToken", required = false) String cookieRefreshToken,
                         @RequestBody(required = false) RefreshTokenRequest request) {
@@ -172,6 +181,7 @@ public class AuthController {
         }
 
         @PostMapping("/logout")
+        @Operation(summary = "Logout", description = "Invalidates tokens in Redis and clears the Refresh Token cookie.")
         public ResponseEntity<ApiResponse<Void>> logout(
                         @CookieValue(name = "refreshToken", required = false) String cookieRefreshToken,
                         @RequestBody(required = false) RefreshTokenRequest logoutRequest,
@@ -193,9 +203,12 @@ public class AuthController {
                 // Delete tokens from Redis
                 tokenService.deleteTokens(accessToken, refreshToken);
 
-                // Log logout
+                // Clear presence from Redis
                 Authentication auth = SecurityContextHolder.getContext().getAuthentication();
                 String username = (auth != null) ? auth.getName() : "UNKNOWN";
+                tokenService.clearUserPresence(username);
+
+                // Log logout
                 auditLogService.log("LOGOUT", username, "User logged out from " + request.getRemoteAddr());
 
                 // Xóa Refresh Token Cookie
@@ -211,6 +224,17 @@ public class AuthController {
                 return ResponseEntity.ok(ApiResponse.<Void>builder()
                                 .success(true)
                                 .message("Logout successful")
+                                .build());
+        }
+
+        @GetMapping("/status/{username}")
+        @Operation(summary = "Check user online status", description = "Checks if a user is currently active in the system (online) based on Redis presence.")
+        public ResponseEntity<ApiResponse<Boolean>> checkUserStatus(@PathVariable String username) {
+                boolean isOnline = tokenService.isUserOnline(username);
+                return ResponseEntity.ok(ApiResponse.<Boolean>builder()
+                                .success(true)
+                                .message("User status fetched successfully")
+                                .data(isOnline)
                                 .build());
         }
 }

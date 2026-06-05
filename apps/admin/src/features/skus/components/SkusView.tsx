@@ -5,9 +5,6 @@ import { Layers } from 'lucide-react';
 
 import {
   Badge,
-  Card,
-  CardContent,
-  CardHeader,
   NextPagination,
   PageHeader,
   DataTable,

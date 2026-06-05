@@ -10,7 +10,23 @@ export interface FetchOptions extends RequestInit {
 
 export const clientFetch = async (url: string, options: FetchOptions = {}) => {
   const { skipToast, ...fetchOptions } = options;
-  const { accessToken, setAuth, clearAuth } = useAuthStore.getState();
+  const { accessToken, setAuth, clearAuth, isBlocked, incrementErrorCount } = useAuthStore.getState();
+
+  // 1. Kiểm tra nếu đang bị block do lỗi server quá nhiều
+  if (isBlocked) {
+    console.log('Người dùng bị chặn do gặp quá nhiều lỗi server. Đang chuyển hướng về trang đăng nhập...');
+    if (typeof window !== 'undefined') {
+      // Clear cookies as well to prevent middleware from redirecting back
+      fetch('/api/auth/logout', { method: 'POST' }).finally(() => {
+        window.location.href = '/login';
+      });
+    }
+    return new Response(JSON.stringify({ error: 'Hệ thống tạm thời không khả dụng do gặp liên tiếp nhiều lỗi nội bộ.' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
   const headers = new Headers(fetchOptions.headers);
   
   if (accessToken) {
@@ -27,7 +43,14 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
     ? (url.startsWith('http') ? url : `${APP_URL}${url}`) 
     : `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
 
-  let response = await fetch(finalUrl, { ...fetchOptions, headers });
+  let response: Response;
+  try {
+    response = await fetch(finalUrl, { ...fetchOptions, headers });
+  } catch (error) {
+    // Xử lý lỗi kết nối mạng hoặc lỗi khác không có response
+    console.error('Fetch error:', error);
+    throw error;
+  }
 
   // Handle Access Token expiration (401)
   if (response.status === 401) {
@@ -60,6 +83,33 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
     }
   }
 
+  // 2. Kiểm tra lỗi 500 (Internal Server Error)
+  if (response.status >= 500) {
+    incrementErrorCount();
+    
+    // Kiểm tra lại sau khi increment xem đã đạt giới hạn chưa
+    const updatedState = useAuthStore.getState();
+    console.log(`Internal Server Error detected. Current error count: ${updatedState.errorCount}, isBlocked: ${updatedState.isBlocked}`);
+    
+    if (updatedState.isBlocked) {
+      clearAuth(); // Xóa auth state
+      if (typeof window !== 'undefined') {
+        toast.error(ErrorMessages["SYS_TOO_MANY_ERRORS"]);
+        
+        // Clear cookies as well to prevent middleware from redirecting back
+        fetch('/api/auth/logout', { method: 'POST' });
+
+        // Chờ một chút để toast hiển thị trước khi redirect
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      }
+    } else if (!skipToast) {
+      // Nếu chưa bị block thì toast lỗi server bình thường
+      toast.error(ErrorMessages["SYS_INTERNAL_ERROR"]);
+    }
+  }
+
   // Xử lý Global Business Error Code khi response không thành công
   if (!response.ok && response.status !== 401 && !skipToast) {
     try {
@@ -77,7 +127,7 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
         if (response.status === 403) {
           toast.error(ErrorMessages["AUTH_ACCESS_DENIED"]);
         } else if (response.status >= 500) {
-          toast.error(ErrorMessages["SYS_INTERNAL_ERROR"]);
+          // Đã xử lý toast ở trên rồi, không làm gì ở đây để tránh duplicate toast
         } else {
           toast.error(ErrorMessages["SYS_UNKNOWN_ERROR"]);
         }
@@ -86,6 +136,8 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
       // Nếu API trả về lỗi nhưng không phải JSON
       if (response.status === 403) {
         toast.error(ErrorMessages["AUTH_ACCESS_DENIED"]);
+      } else if (response.status >= 500) {
+        // Đã xử lý toast ở trên rồi
       } else {
         toast.error(ErrorMessages["SYS_UNKNOWN_ERROR"]);
       }

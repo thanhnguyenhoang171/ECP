@@ -67,6 +67,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                    // Update presence in Redis
+                    tokenService.updateUserPresence(username);
                 }
             }
         } catch (Exception e) {

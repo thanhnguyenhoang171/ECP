@@ -70,7 +70,7 @@ const SheetContent = React.forwardRef<
       </SheetPrimitive.Close>
       <SheetPrimitive.Title className="sr-only">Menu điều hướng</SheetPrimitive.Title>
       <SheetPrimitive.Description className="sr-only">
-        Bảng điều hướng các tính năng quản trị của hệ thống ECP
+        Bảng điều hướng các tính năng quản trị của hệ thống CACAO
       </SheetPrimitive.Description>
       {children}
     </SheetPrimitive.Content>

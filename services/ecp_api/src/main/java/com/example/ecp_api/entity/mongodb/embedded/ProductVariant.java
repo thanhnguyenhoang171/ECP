@@ -21,9 +21,6 @@ import java.util.Map;
 @Builder
 public class ProductVariant {
 
-    @Id
-    private String id; // Implicit ID for the embedded document
-
     @Field("product_id")
     private String productId;
 
@@ -36,7 +33,12 @@ public class ProductVariant {
     @Indexed(unique = true)
     private String barcode;
 
+    @Field("barcode_type")
+    private String barcodeType;
+
     private BigDecimal price;
+
+    private String image;
 
     // Attributes: { "Color": "Titan", "Storage": "256GB" }
     @Builder.Default

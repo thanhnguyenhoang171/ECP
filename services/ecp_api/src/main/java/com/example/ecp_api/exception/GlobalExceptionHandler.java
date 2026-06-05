@@ -93,7 +93,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.NOT_FOUND.value())
                 .error("Not Found")
-                .code("USER_NOT_FOUND") // Use USER_NOT_FOUND or generic NOT_FOUND
+                .code(ex.getCode())
                 .message(ex.getMessage())
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();

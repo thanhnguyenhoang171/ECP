@@ -11,7 +11,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CategoryFilterRequest {
     private String id;
+    private String keyword;
     private String name;
+    private String slug;
+
     private String parentId;
     private Integer level;
     private Boolean active;

@@ -1,6 +1,6 @@
 export const ErrorMessages: Record<string, string> = {
   // --- Auth Errors (AUTH_*) ---
-  "AUTH_INVALID_CREDENTIALS": "Đăng nhập bị lỗi. Vui lòng kiểm tra lại tài khoản hoặc mật khẩu.",
+  "AUTH_INVALID_CREDENTIALS": "Vui lòng kiểm tra lại tài khoản hoặc mật khẩu.",
   "AUTH_ACCESS_DENIED": "Tài khoản của bạn đã bị khóa hoặc vô hiệu hóa.",
   "AUTH_TOKEN_EXPIRED": "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.",
   
@@ -17,6 +17,7 @@ export const ErrorMessages: Record<string, string> = {
   "SYS_VALIDATION_FAILED": "Dữ liệu nhập vào không hợp lệ, vui lòng kiểm tra lại.",
   "SYS_INTERNAL_ERROR": "Hệ thống đang gặp sự cố. Vui lòng thử lại sau.",
   "SYS_NETWORK_ERROR": "Không thể kết nối đến máy chủ.",
+  "SYS_TOO_MANY_ERRORS": "Hệ thống gặp lỗi liên tục. Vui lòng đăng nhập lại sau.",
   
   // --- Default Fallback ---
   "SYS_UNKNOWN_ERROR": "Đã có lỗi xảy ra, vui lòng thử lại.",

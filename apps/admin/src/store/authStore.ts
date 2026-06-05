@@ -13,9 +13,13 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   hasHydrated: boolean;
+  errorCount: number;
+  isBlocked: boolean;
   setAuth: (token: string, user: User) => void;
   clearAuth: () => void;
   setHasHydrated: (val: boolean) => void;
+  incrementErrorCount: () => void;
+  resetErrorCount: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -25,10 +29,14 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       hasHydrated: false,
+      errorCount: 0,
+      isBlocked: false,
       setAuth: (token, user) => set({ 
         accessToken: token, 
         user, 
-        isAuthenticated: true 
+        isAuthenticated: true,
+        errorCount: 0,
+        isBlocked: false
       }),
       clearAuth: () => set({ 
         accessToken: null, 
@@ -36,13 +44,25 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: false 
       }),
       setHasHydrated: (val) => set({ hasHydrated: val }),
+      incrementErrorCount: () => {
+        set((state) => {
+          const newCount = state.errorCount + 1;
+          return { 
+            errorCount: newCount,
+            isBlocked: newCount >= 3
+          };
+        });
+      },
+      resetErrorCount: () => set({ errorCount: 0, isBlocked: false }),
     }),
     {
-      name: 'ecp-auth-storage',
+      name: 'cacao-auth-storage',
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
         hasHydrated: state.hasHydrated,
+        errorCount: state.errorCount,
+        isBlocked: state.isBlocked,
       }),
       onRehydrateStorage: (state) => {
         return () => state?.setHasHydrated(true);
@@ -50,5 +70,3 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
-
-
