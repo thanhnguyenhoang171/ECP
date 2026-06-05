@@ -60,10 +60,10 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
     if (refreshRes.ok) {
       const result = await refreshRes.json();
       if (result.success && result.data) {
-        const { accessToken: newAccessToken, username, email, roles } = result.data;
+        const { accessToken: newAccessToken, id, username, email, roles } = result.data;
         
         // Update new token in Zustand
-        setAuth(newAccessToken, { username, email, roles });
+        setAuth(newAccessToken, { id, username, email, roles });
         
         // Retry the original request with new token
         headers.set('Authorization', `Bearer ${newAccessToken}`);

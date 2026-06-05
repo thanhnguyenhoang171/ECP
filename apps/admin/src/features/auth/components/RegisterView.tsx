@@ -1,13 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { User, Lock, Loader2, Package, Eye, EyeOff, UserPlus, Mail } from 'lucide-react';
-import { toast } from "sonner";
+import { User, Lock, Loader2, Eye, EyeOff, UserPlus, Mail } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,11 +20,11 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { registerSchema, RegisterFormValues } from "@/features/auth/schemas/auth.schema";
+import { useRegister } from "../hooks/use-auth-mutation";
 
 export default function RegisterView() {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const registerMutation = useRegister();
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -41,37 +39,10 @@ export default function RegisterView() {
   });
 
   async function onSubmit(values: RegisterFormValues) {
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: values.username,
-          email: values.email,
-          firstName: values.firstName,
-          lastName: values.lastName,
-          password: values.password,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        toast.success('Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
-        router.push('/login');
-      } else {
-        toast.error(result.message || 'Đăng ký thất bại');
-      }
-    } catch (error) {
-      console.error('Register error:', error);
-      toast.error('Có lỗi xảy ra, vui lòng thử lại sau');
-    } finally {
-      setIsLoading(false);
-    }
+    registerMutation.mutate(values);
   }
+
+  const isLoading = registerMutation.isPending;
 
   return (
     <div className="relative flex flex-col items-center min-h-dvh py-10 px-4">
@@ -90,6 +61,7 @@ export default function RegisterView() {
               src="/logo/z7862984783113_196fdab6026e07fc4a13a745f502233b.jpg" 
               alt="Logo" 
               fill
+              sizes="80px"
               className="object-cover"
             />
           </div>

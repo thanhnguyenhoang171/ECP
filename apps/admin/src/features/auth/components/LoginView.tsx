@@ -1,13 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { User, Lock, Loader2, Package, Eye, EyeOff } from 'lucide-react';
-import { toast } from "sonner";
+import { User, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,14 +21,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { loginSchema, LoginFormValues } from "@/features/auth/schemas/auth.schema";
-import { useAuthStore } from "@/store/authStore";
-import { getErrorMessage } from "@/constants/errorMessages";
+import { useLogin } from "../hooks/use-auth-mutation";
 
 export default function LoginView() {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const setAuth = useAuthStore((state) => state.setAuth);
+  const loginMutation = useLogin();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -42,54 +37,10 @@ export default function LoginView() {
   });
 
   async function onSubmit(values: LoginFormValues) {
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: values.username,
-          password: values.password,
-          remember: values.remember,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        const { id, username, email, roles, accessToken } = result.data;
-        const user = { id, username, email, roles };
-        
-        // Chặn người dùng có role là USER truy cập vào admin
-        const isRestricted = roles.includes('ROLE_USER') && 
-                           !roles.includes('ROLE_SUPER_ADMIN') && 
-                           !roles.includes('ROLE_MANAGER');
-
-        if (isRestricted) {
-          toast.error('Tài khoản của bạn không có quyền truy cập hệ thống quản trị');
-          setIsLoading(false);
-          return;
-        }
-
-        setAuth(accessToken, user);
-        toast.success('Chào mừng bạn quay trở lại!');
-        // Dùng router.refresh() trước để force Next.js reload lại server state
-        // (middleware sẽ nhận cookie refreshToken mới), sau đó navigate sang dashboard.
-        // Điều này tránh race condition giữa Zustand hydration và client-side navigation.
-        router.refresh();
-        router.push('/dashboard');
-      } else {
-        toast.error(getErrorMessage(result.code));
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      toast.error('Có lỗi xảy ra, vui lòng thử lại sau');
-    } finally {
-      setIsLoading(false);
-    }
+    loginMutation.mutate(values);
   }
+
+  const isLoading = loginMutation.isPending;
 
   return (
     <div className="relative flex flex-col items-center min-h-dvh overflow-y-auto py-10 px-4">
@@ -108,6 +59,7 @@ export default function LoginView() {
               src="/logo/z7862984783113_196fdab6026e07fc4a13a745f502233b.jpg" 
               alt="Logo" 
               fill
+              sizes="80px"
               className="object-cover"
             />
           </div>

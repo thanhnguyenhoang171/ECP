@@ -25,6 +25,8 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { useCategories } from '@/features/categories/hooks/use-categories';
+import { useCreateProduct, useUpdateProduct } from '../hooks/use-product-mutation';
 import { productSchema, ProductFormValues } from '../schemas/product.schema';
 
 interface ProductFormProps {

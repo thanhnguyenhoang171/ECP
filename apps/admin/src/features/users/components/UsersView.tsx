@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Users, Wifi, WifiOff, Shield } from 'lucide-react';
-import { PageHeader, DataCard, DataTable, type ColumnDef, Badge, Card, CardContent, NextPagination } from '@/components/common';
+import { PageHeader, DataCard, DataTable, type ColumnDef, Badge, Card, CardContent, NextPagination, Breadcrumbs } from '@/components/common';
 import { SearchInput, AddNewButton, ImportButton, ExportButton, FilterPopover, SortPopover, EditActionButton, DeleteActionButton, DeleteConfirmDialog } from '@/components/common/view-control';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -167,8 +167,13 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
     { value: 'email,asc', label: 'Email (A-Z)' },
   ];
 
+  const breadcrumbItems = [
+    { label: 'Nhân viên', icon: Users },
+  ];
+
   return (
     <div className='space-y-6'>
+      <Breadcrumbs items={breadcrumbItems} />
       <PageHeader
         title='Quản lý người dùng'
         description='Cấp quyền và quản lý tài khoản người dùng trong hệ thống.'

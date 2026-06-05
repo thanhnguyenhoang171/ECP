@@ -28,4 +28,5 @@ export { EmptyState } from "./EmptyState";
 export { FileUpload } from "./FileUpload";
 export { DataTable, type ColumnDef } from "./DataTable";
 export { DataCard } from "./DataCard";
+export { Breadcrumbs, type BreadcrumbItem } from "./Breadcrumbs";
 export { default as Forbidden } from "./Forbidden";

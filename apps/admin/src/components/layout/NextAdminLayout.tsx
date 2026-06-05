@@ -36,6 +36,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import nprogress from 'nprogress';
 import { useAuthStore } from '@/store/authStore';
 
+import { useLogout } from '@/features/auth/hooks/use-auth-mutation';
+
 // Lazy load
 const Sheet = dynamic(() => import("@/components/ui/sheet").then(m => m.Sheet));
 const SheetContent = dynamic(() => import("@/components/ui/sheet").then(m => m.SheetContent));
@@ -255,23 +257,12 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
     };
   }, [pathname]);
 
-  const { clearAuth, accessToken, user } = useAuthStore();
+  const { user } = useAuthStore();
+  const logoutMutation = useLogout();
 
-  const handleLogout = useCallback(async () => {
-    try {
-      await fetch('/api/auth/logout', { 
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${accessToken}`
-        }
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      clearAuth();
-      router.push('/login');
-    }
-  }, [router, clearAuth, accessToken]);
+  const handleLogout = useCallback(() => {
+    logoutMutation.mutate();
+  }, [logoutMutation]);
 
   const handleNavigate = useCallback(() => {
     setIsSheetOpen(false);
@@ -301,6 +292,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
               src="/logo/z7862984783113_196fdab6026e07fc4a13a745f502233b.jpg" 
               alt="Logo" 
               fill
+              sizes="36px"
               className="object-cover"
             />
           </div>
