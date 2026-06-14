@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { warehouseSchema, WarehouseFormValues } from '../schemas/warehouse.schema';
+import { clientDb } from '@/lib/clientDb';
 
 interface WarehouseFormProps {
   onSuccess: () => void;
@@ -38,7 +39,10 @@ export default function WarehouseForm({ onSuccess, initialData }: WarehouseFormP
   const isLoading = false; // Demo mode
 
   async function onSubmit(values: WarehouseFormValues) {
-    console.log('Warehouse values:', values);
+    clientDb.saveWarehouse({
+      id: initialData?.id,
+      ...values,
+    });
     onSuccess();
   }
 

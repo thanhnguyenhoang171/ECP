@@ -8,4 +8,11 @@ export interface Category {
   active: boolean;
   createdAt?: string;
   updatedAt?: string;
+  description?: string;
+  displayOrder?: number;
+  thumbnail?: any;
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
 }
+

@@ -24,13 +24,11 @@ export default function CreateProductPage() {
         description="Điền thông tin chi tiết để tạo sản phẩm và các biến thể kho hàng."
       />
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-1">
-        <ProductForm onSuccess={() => {
-          toast.success('Tạo sản phẩm mới thành công');
-          router.push('/products');
-          router.refresh();
-        }} />
-      </div>
+      <ProductForm onSuccess={() => {
+        toast.success('Tạo sản phẩm mới thành công');
+        router.push('/products');
+        router.refresh();
+      }} />
     </div>
   );
 }

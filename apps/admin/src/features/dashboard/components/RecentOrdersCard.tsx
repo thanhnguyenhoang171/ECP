@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, DataTable, type ColumnDef, Badge } from '@/components/common';
 import { RecentOrder } from '@/features/dashboard/types/dashboard.interface';
 
@@ -52,9 +53,11 @@ export default function RecentOrdersCard({ recentOrders }: RecentOrdersCardProps
             Cập nhật 2 phút trước
           </CardDescription>
         </div>
-        <Button variant='outline' size='sm' className='h-8 text-xs font-semibold'>
-          Xem tất cả
-        </Button>
+        <Link href="/orders">
+          <Button variant='outline' size='sm' className='h-8 text-xs font-semibold'>
+            Xem tất cả
+          </Button>
+        </Link>
       </CardHeader>
       <CardContent className='p-0'>
         <DataTable

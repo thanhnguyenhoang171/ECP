@@ -13,6 +13,16 @@ export interface Product {
   createdAt?: string;
   updatedAt?: string;
   variants?: ProductVariant[];
+  thumbnail?: string;
+  images?: string[];
+  weight?: number;
+  length?: number;
+  width?: number;
+  height?: number;
+  tags?: string[];
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
 }
 
 export interface ProductVariant {
@@ -21,4 +31,11 @@ export interface ProductVariant {
   price: number;
   stock: number;
   attributes: Record<string, string>;
+  compareAtPrice?: number;
+  costPrice?: number;
+  barcode?: string;
+  barcodeType?: string;
+  image?: string;
+  isActive?: boolean;
 }
+

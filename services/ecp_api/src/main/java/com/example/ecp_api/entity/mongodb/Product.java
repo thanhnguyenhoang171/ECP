@@ -1,5 +1,6 @@
 package com.example.ecp_api.entity.mongodb;
 
+import com.example.ecp_api.entity.mongodb.embedded.ProductImage;
 import com.example.ecp_api.entity.mongodb.embedded.ProductVariant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -44,10 +45,10 @@ public class Product {
 
     private String description;
 
-    private String thumbnail;
+    private ProductImage thumbnail;
 
     @Builder.Default
-    private List<String> images = new ArrayList<>();
+    private List<ProductImage> images = new ArrayList<>();
 
     @Builder.Default
     private Map<String, Object> specifications = new HashMap<>();

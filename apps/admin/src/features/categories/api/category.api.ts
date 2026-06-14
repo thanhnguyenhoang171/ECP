@@ -44,12 +44,26 @@ export const categoryApi = {
     id: string,
     values: Partial<CategoryFormValues>,
   ): Promise<{ success: boolean; data: Category }> => {
+    let body: any;
+    const headers: Record<string, string> = {};
+
+    if (values.thumbnail instanceof File) {
+      const formData = new FormData();
+      Object.entries(values).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, value as any);
+        }
+      });
+      body = formData;
+    } else {
+      body = JSON.stringify(values);
+      headers['Content-Type'] = 'application/json';
+    }
+
     const res = await clientFetch(`v1/categories/${id}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(values),
+      headers,
+      body,
     });
     const result = await res.json();
     if (!res.ok) throw new Error(result.message || 'Failed to update category');
@@ -60,12 +74,26 @@ export const categoryApi = {
   create: async (
     values: CategoryFormValues,
   ): Promise<{ success: boolean; data: Category }> => {
+    let body: any;
+    const headers: Record<string, string> = {};
+
+    if (values.thumbnail instanceof File) {
+      const formData = new FormData();
+      Object.entries(values).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, value as any);
+        }
+      });
+      body = formData;
+    } else {
+      body = JSON.stringify(values);
+      headers['Content-Type'] = 'application/json';
+    }
+
     const res = await clientFetch('v1/categories', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(values),
+      headers,
+      body,
     });
     const result = await res.json();
     if (!res.ok) throw new Error(result.message || 'Failed to create category');

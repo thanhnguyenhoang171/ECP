@@ -155,7 +155,6 @@ export default function CategoryImportDialog({
                 setFile(f);
                 setImportError(null);
               }}
-              onPreview={handlePreview}
               isUploading={isImporting}
               progress={isImporting ? 50 : 0}
               accept={{
@@ -164,6 +163,20 @@ export default function CategoryImportDialog({
               }}
               description="Chỉ hỗ trợ file Excel (.xlsx, .xls)"
             />
+
+            {file && (
+              <div className="flex justify-end">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-xs font-semibold text-blue-600 border-blue-200 hover:bg-blue-50"
+                  onClick={() => setIsPreviewOpen(true)}
+                >
+                  Xem trước dữ liệu Excel
+                </Button>
+              </div>
+            )}
 
             {/* Guidelines */}
             <div className="space-y-2">

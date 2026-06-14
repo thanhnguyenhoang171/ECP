@@ -380,7 +380,7 @@ export default function CategoriesView({
           setIsFormOpen(open);
           if (!open) setEditingCategory(null);
         }}>
-        <DialogContent className='sm:max-w-125'>
+        <DialogContent className='sm:max-w-2xl'>
           <DialogHeader>
             <DialogTitle className='text-xl font-bold text-slate-900'>
               {editingCategory ? 'Cập nhật danh mục' : 'Tạo danh mục mới'}
@@ -400,6 +400,12 @@ export default function CategoriesView({
                     slug: editingCategory.slug,
                     parentId: editingCategory.parentId || 'none',
                     active: editingCategory.active,
+                    thumbnail: editingCategory.thumbnail,
+                    description: editingCategory.description || '',
+                    displayOrder: editingCategory.displayOrder || 0,
+                    metaTitle: editingCategory.metaTitle || '',
+                    metaDescription: editingCategory.metaDescription || '',
+                    metaKeywords: editingCategory.metaKeywords || '',
                   }
                 : undefined
             }

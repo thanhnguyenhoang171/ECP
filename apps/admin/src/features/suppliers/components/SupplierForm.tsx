@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { supplierSchema, SupplierFormValues } from '../../inventory/schemas/supplier.schema';
+import { clientDb } from '@/lib/clientDb';
 
 interface SupplierFormProps {
   onSuccess: () => void;
@@ -40,7 +41,10 @@ export default function SupplierForm({ onSuccess, initialData }: SupplierFormPro
   const isLoading = false;
 
   async function onSubmit(values: SupplierFormValues) {
-    console.log('Supplier values:', values);
+    clientDb.saveSupplier({
+      id: initialData?.id,
+      ...values,
+    });
     onSuccess();
   }
 

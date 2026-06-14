@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Users, MoreHorizontal, Edit2, Trash2, Phone, Mail, Building2 } from "lucide-react";
 import { PageHeader, DataTable, DataCard } from '@/components/common';
 import { Button } from '@/components/ui/button';
@@ -23,44 +23,19 @@ import {
 import { SearchInput, AddNewButton } from '@/components/common/view-control';
 import SupplierForm from './SupplierForm';
 import { toast } from 'sonner';
-
-// Mock data for UI only
-const mockSuppliers = [
-  { 
-    id: '1', 
-    name: 'Công ty TNHH Apple Việt Nam', 
-    contactName: 'Nguyễn Văn A', 
-    phone: '0901234567', 
-    email: 'contact@apple.vn',
-    address: 'Q1, TP.HCM',
-    isActive: true 
-  },
-  { 
-    id: '2', 
-    name: 'Samsung Electronics HCMC', 
-    contactName: 'Trần Thị B', 
-    phone: '0907654321', 
-    email: 'b.tran@samsung.com',
-    address: 'Khu công nghệ cao, Q9, TP.HCM',
-    isActive: true 
-  },
-  { 
-    id: '3', 
-    name: 'Nhà phân phối Digiworld', 
-    contactName: 'Lê Văn C', 
-    phone: '02812345678', 
-    email: 'info@digiworld.com.vn',
-    address: 'Quận 3, TP.HCM',
-    isActive: false 
-  },
-];
+import { clientDb, ClientSupplier } from '@/lib/clientDb';
 
 export default function SuppliersView() {
-  const [suppliers] = useState(mockSuppliers);
+  const [suppliers, setSuppliers] = useState<ClientSupplier[]>(() => clientDb.getSuppliers());
+  const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingSupplier, setEditingSupplier] = useState<typeof mockSuppliers[0] | null>(null);
+  const [editingSupplier, setEditingSupplier] = useState<ClientSupplier | null>(null);
 
-  const handleEdit = (supplier: typeof mockSuppliers[0]) => {
+  const refreshData = () => {
+    setSuppliers(clientDb.getSuppliers());
+  };
+
+  const handleEdit = (supplier: ClientSupplier) => {
     setEditingSupplier(supplier);
     setIsFormOpen(true);
   };
@@ -70,15 +45,35 @@ export default function SuppliersView() {
     setIsFormOpen(true);
   };
 
+  const handleDelete = (id: string) => {
+    if (clientDb.deleteSupplier(id)) {
+      toast.success('Xóa nhà cung cấp thành công');
+      refreshData();
+    } else {
+      toast.error('Không thể xóa nhà cung cấp');
+    }
+  };
+
+  const filteredSuppliers = useMemo(() => {
+    return suppliers.filter(
+      s =>
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.address.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [suppliers, searchTerm]);
+
   const columns = [
     {
       accessorKey: 'name',
       header: 'Nhà cung cấp',
-      cell: (item: typeof mockSuppliers[0]) => (
+      cell: (item: ClientSupplier) => (
         <div className="flex flex-col">
           <span className="text-sm font-bold text-slate-700">{item.name}</span>
           <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
-            <span className="flex items-center gap-1"><Building2 size={10} /> {item.address}</span>
+            <span className="flex items-center gap-1"><Building2 size={10} /> {item.address || 'Không có địa chỉ'}</span>
           </div>
         </div>
       )
@@ -86,12 +81,12 @@ export default function SuppliersView() {
     {
       accessorKey: 'contact',
       header: 'Liên hệ',
-      cell: (item: typeof mockSuppliers[0]) => (
+      cell: (item: ClientSupplier) => (
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-medium text-slate-600">{item.contactName}</span>
+          <span className="text-xs font-medium text-slate-600">{item.contactName || 'N/A'}</span>
           <div className="flex items-center gap-3 text-[10px] text-slate-400">
-            <span className="flex items-center gap-1"><Phone size={10} /> {item.phone}</span>
-            <span className="flex items-center gap-1"><Mail size={10} /> {item.email}</span>
+            <span className="flex items-center gap-1"><Phone size={10} /> {item.phone || 'N/A'}</span>
+            <span className="flex items-center gap-1"><Mail size={10} /> {item.email || 'N/A'}</span>
           </div>
         </div>
       )
@@ -100,7 +95,7 @@ export default function SuppliersView() {
       accessorKey: 'isActive',
       header: 'Trạng thái',
       align: 'center' as const,
-      cell: (item: typeof mockSuppliers[0]) => (
+      cell: (item: ClientSupplier) => (
         <Badge className={item.isActive ? "bg-blue-100 text-blue-700 border-none" : "bg-slate-100 text-slate-500 border-none"}>
           {item.isActive ? 'Đang hợp tác' : 'Tạm ngưng'}
         </Badge>
@@ -109,7 +104,7 @@ export default function SuppliersView() {
     {
       id: 'actions',
       align: 'right' as const,
-      cell: (item: typeof mockSuppliers[0]) => (
+      cell: (item: ClientSupplier) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -122,7 +117,7 @@ export default function SuppliersView() {
               <Edit2 className="mr-2 h-4 w-4" /> Chỉnh sửa
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+            <DropdownMenuItem onClick={() => handleDelete(item.id)} className="cursor-pointer text-destructive focus:text-destructive">
               <Trash2 className="mr-2 h-4 w-4" /> Xóa NCC
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -139,10 +134,10 @@ export default function SuppliersView() {
         actions={<AddNewButton onClick={handleCreate} label="Thêm NCC mới" />}
       />
 
-      <DataCard search={<SearchInput placeholder="Tìm tên NCC, SĐT..." value="" onChange={() => {}} />}>
+      <DataCard search={<SearchInput placeholder="Tìm tên NCC, SĐT..." value={searchTerm} onChange={setSearchTerm} />}>
         <DataTable 
           columns={columns as any} 
-          data={suppliers} 
+          data={filteredSuppliers} 
           isLoading={false}
           emptyState={{
             title: "Chưa có nhà cung cấp",
@@ -163,6 +158,7 @@ export default function SuppliersView() {
             onSuccess={() => {
               setIsFormOpen(false);
               toast.success(editingSupplier ? 'Cập nhật thành công' : 'Tạo mới thành công');
+              refreshData();
             }} 
             initialData={editingSupplier || undefined} 
           />

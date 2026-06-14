@@ -76,7 +76,7 @@ export default function GoodsReceiptForm() {
       <PageHeader 
         title="Tạo phiếu nhập kho"
         description="Điền thông tin hàng hóa nhập kho thực tế."
-        action={
+        actions={
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => router.back()} className="gap-2">
               <X size={18} />

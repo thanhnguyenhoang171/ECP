@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { PackagePlus, MoreHorizontal, Eye, Trash2 } from "lucide-react";
-import { PageHeader, DataTable, DataCard } from '@/components/common';
+import { PageHeader, DataTable, DataCard, Breadcrumbs } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -133,8 +133,13 @@ export default function GoodsReceiptView() {
     }
   ];
 
+  const breadcrumbItems = [
+    { label: 'Nhập kho', icon: PackagePlus },
+  ];
+
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={breadcrumbItems} />
       <PageHeader 
         title="Quản lý Nhập kho"
         description="Theo dõi và quản lý các phiếu nhập hàng vào kho thực tế."

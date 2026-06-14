@@ -9,7 +9,7 @@ export interface PaginationInfo {
 
 export interface PageResponse<T> {
   success: boolean;
-  message: string;
+  message?: string;
   data: T[];
   pagination: PaginationInfo;
 }
