@@ -38,4 +38,4 @@ build/
 docker-compose.override.yml
 
 
-application-local.propertiess
+application-local.properties
