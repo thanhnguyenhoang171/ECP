@@ -54,6 +54,7 @@ public class CategoryExcelHelper {
 
         // Cập nhật thông tin cơ bản
         category.setName(dto.getName());
+        category.setDescription(dto.getDescription());
         String slugToUse = StringUtils.hasText(dto.getSlug()) ? dto.getSlug() : SlugUtils.toSlug(dto.getName());
         
         // Kiểm tra trùng Slug nếu slug thay đổi hoặc là tạo mới
@@ -62,6 +63,7 @@ public class CategoryExcelHelper {
         }
         category.setSlug(slugToUse);
         category.setActive(dto.getStatus() != null ? dto.getStatus() : true);
+        category.setOrder(dto.getOrder());
         category.setDeleted(false);
 
         // 0.1 Xử lý Ngày tạo / Ngày sửa (nếu có trong file Excel)
@@ -99,27 +101,19 @@ public class CategoryExcelHelper {
                 }
                 category.setParentId(parent.getId());
                 category.setLevel(parent.getLevel() + 1);
-                category.setPath(parent.getPath() == null ? parent.getId() : parent.getPath() + "/" + parent.getId());
                 parentChanged = true;
             }
         } else {
             if (oldParentId != null || isNew) {
                 category.setParentId(null);
                 category.setLevel(1);
-                category.setPath(null);
                 parentChanged = true;
             }
         }
 
         Category saved = categoryRepository.save(category);
 
-        // Cập nhật Path cho root category nếu là tạo mới
-        if (isNew && !StringUtils.hasText(saved.getParentId())) {
-            saved.setPath(saved.getId());
-            saved = categoryRepository.save(saved);
-        }
-
-        // Nếu thay đổi cha, cập nhật lại path/level cho toàn bộ con cháu
+        // Nếu thay đổi cha, cập nhật lại level cho toàn bộ con cháu
         if (parentChanged && !isNew) {
             categoryHelper.updateDescendants(saved);
         }

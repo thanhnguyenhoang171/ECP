@@ -30,7 +30,7 @@ export default function DashboardView({ stats, recentOrders, topProducts }: Dash
 
   return (
     <div className='space-y-6'>
-      <Breadcrumbs items={[]} />
+      <Breadcrumbs items={breadcrumbItems} />
       <PageHeader
         title='Tổng quan'
         description='Chào mừng bạn quay trở lại! Dưới đây là tình hình kinh doanh hôm nay.'

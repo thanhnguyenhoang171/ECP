@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { History, ArrowUpRight, ArrowDownLeft } from "lucide-react";
-import { PageHeader, DataTable, DataCard } from '@/components/common';
+import { PageHeader, DataTable, DataCard, Breadcrumbs } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 import { SearchInput } from '@/components/common/view-control';
 import { cn } from '@/lib/utils';
@@ -106,8 +106,13 @@ export default function InventoryLedgerView() {
     }
   ];
 
+  const breadcrumbItems = [
+    { label: 'Sổ cái kho hàng', icon: History },
+  ];
+
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={breadcrumbItems} />
       <PageHeader 
         title="Sổ cái Kho hàng"
         description="Lịch sử chi tiết mọi biến động nhập xuất tồn kho."

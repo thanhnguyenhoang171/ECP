@@ -19,7 +19,16 @@ import {
   Settings,
   ChevronDown,
   FileClock,
+  ScanBarcode,
+  AlertTriangle,
+  CreditCard,
+  CheckCircle2,
+  Trash2,
+  Inbox,
 } from 'lucide-react';
+import { toast } from 'sonner';
+
+
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -32,9 +41,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import nprogress from 'nprogress';
 import { useAuthStore } from '@/store/authStore';
+import { useUIStore } from '@/store/uiStore';
 
 import { useLogout } from '@/features/auth/hooks/use-auth-mutation';
 
@@ -42,6 +53,23 @@ import { useLogout } from '@/features/auth/hooks/use-auth-mutation';
 const Sheet = dynamic(() => import("@/components/ui/sheet").then(m => m.Sheet));
 const SheetContent = dynamic(() => import("@/components/ui/sheet").then(m => m.SheetContent));
 const SheetTrigger = dynamic(() => import("@/components/ui/sheet").then(m => m.SheetTrigger));
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
+import BarcodeScanner from '@/features/inventory/components/BarcodeScanner';
+
+
 
 interface SubMenuItem {
   key: string;
@@ -66,6 +94,7 @@ const menuItems: MenuItem[] = [
       { key: '/products', label: 'Sản phẩm' },
       { key: '/skus', label: 'Danh sách SKU' },
       { key: '/categories', label: 'Danh mục' },
+      { key: '/brands', label: 'Thương hiệu' },
     ],
   },
   {
@@ -78,7 +107,6 @@ const menuItems: MenuItem[] = [
       { key: '/suppliers', label: 'Nhà cung cấp' },
       { key: '/warehouses', label: 'Kho bãi' },
       { key: '/inventory-ledger', label: 'Sổ cái kho' },
-      { key: '/barcode-scans', label: 'Quét mã vạch' },
     ],
   },
   {
@@ -89,14 +117,19 @@ const menuItems: MenuItem[] = [
       { key: '/orders', label: 'Đơn hàng' },
       { key: '/payments', label: 'Thanh toán' },
       { key: '/customers', label: 'Khách hàng' },
+      { key: '/promotions', label: 'Mã giảm giá' },
     ],
   },
   { key: '/users', icon: <UserCircle size={18} />, label: 'Nhân viên' },
-  { 
-    key: '/audit-logs', 
-    icon: <FileClock size={18} />, 
-    label: 'Nhật ký kiểm toán',
-    requiredRoles: ['ROLE_SUPER_ADMIN']
+  {
+    key: 'system-group',
+    icon: <Settings size={18} />,
+    label: 'Hệ thống',
+    children: [
+      { key: '/settings', label: 'Cấu hình chung' },
+      { key: '/settings/storefront', label: 'Giao diện Website' },
+      { key: '/audit-logs', label: 'Nhật ký kiểm toán' },
+    ],
   },
 ];
 
@@ -242,9 +275,100 @@ const SidebarItem = memo(({
 });
 SidebarItem.displayName = 'SidebarItem';
 
+interface NotificationItem {
+  id: string;
+  type: 'order' | 'stock' | 'payment' | 'system';
+  title: string;
+  description: string;
+  time: string;
+  isRead: boolean;
+  link?: string;
+}
+
+const initialNotifications: NotificationItem[] = [
+  {
+    id: 'n-1',
+    type: 'order',
+    title: 'Đơn hàng mới chờ duyệt',
+    description: 'Khách hàng Nguyễn Văn Nam vừa đặt đơn hàng #DH-8902 trị giá 34,990,000đ.',
+    time: '5 phút trước',
+    isRead: false,
+    link: '/orders',
+  },
+  {
+    id: 'n-2',
+    type: 'stock',
+    title: 'Cảnh báo tồn kho cực thấp',
+    description: 'Sản phẩm Samsung Galaxy S24 Ultra (Titanium Black / 512GB) đã hết hàng (0 cái).',
+    time: '25 phút trước',
+    isRead: false,
+    link: '/stock',
+  },
+  {
+    id: 'n-3',
+    type: 'payment',
+    title: 'Giao dịch Momo bị từ chối',
+    description: 'Thanh toán Momo đơn hàng #DH-8872 không thành công. Lý do: Người dùng hủy giao dịch.',
+    time: '1 giờ trước',
+    isRead: true,
+    link: '/payments',
+  },
+  {
+    id: 'n-4',
+    type: 'system',
+    title: 'Nhập kho thành công',
+    description: 'Lô hàng #NK-1092 chứa 50 chiếc AirPods Pro đã được nhập vào Kho Quận 1.',
+    time: '2 giờ trước',
+    isRead: true,
+    link: '/goods-receipt',
+  }
+];
+
+const notificationTypeIcons = {
+  order: ShoppingCart,
+  stock: AlertTriangle,
+  payment: CreditCard,
+  system: CheckCircle2,
+};
+
+const notificationTypeColors = {
+  order: 'bg-blue-50 text-blue-600 border border-blue-100',
+  stock: 'bg-rose-50 text-rose-600 border border-rose-100',
+  payment: 'bg-amber-50 text-amber-600 border border-amber-100',
+  system: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+};
+
+
 export default function NextAdminLayout({ children }: { children: React.ReactNode }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isSidebarCollapsed, toggleSidebar } = useUIStore();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isScanOpen, setIsScanOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
+  
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const handleMarkAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    toast.success('Đã đánh dấu đọc tất cả thông báo');
+  };
+
+  const handleNotificationClick = (notification: NotificationItem) => {
+    setNotifications(prev => 
+      prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
+    );
+    setIsNotificationsOpen(false);
+    if (notification.link) {
+      router.push(notification.link);
+    }
+  };
+
+  const handleDeleteNotification = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNotifications(prev => prev.filter(n => n.id !== id));
+    toast.success('Đã xóa thông báo');
+  };
+
   const router = useRouter();
   const pathname = usePathname();
 
@@ -285,7 +409,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
       <div className="flex flex-col h-full bg-slate-900">
         <div className={cn(
           "h-16 flex items-center px-6 border-b border-slate-800 shrink-0",
-          !isCollapsed || mobile ? "justify-start" : "justify-center"
+          !isSidebarCollapsed || mobile ? "justify-start" : "justify-center"
         )}>
           <div className="relative h-9 w-9 mr-3 shrink-0 overflow-hidden rounded-lg border border-slate-700">
             <Image 
@@ -296,7 +420,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
               className="object-cover"
             />
           </div>
-          {(!isCollapsed || mobile) && (
+          {(!isSidebarCollapsed || mobile) && (
             <span className="font-bold text-lg text-white tracking-tight">
               CACAO ADMIN
             </span>
@@ -307,7 +431,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
             <SidebarItem 
               key={item.key} 
               item={item} 
-              isCollapsed={isCollapsed} 
+              isCollapsed={isSidebarCollapsed} 
               pathname={pathname}
               isMobile={mobile}
               onNavigate={mobile ? handleNavigate : undefined}
@@ -319,7 +443,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
             variant="ghost" 
             className={cn(
               "w-full text-slate-400 hover:bg-red-500/10 hover:text-red-400 font-medium rounded-lg transition-all",
-              isCollapsed && !mobile ? "justify-center px-0" : "justify-start gap-3"
+              isSidebarCollapsed && !mobile ? "justify-center px-0" : "justify-start gap-3"
             )} 
             onClick={() => {
               handleLogout();
@@ -327,7 +451,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
             }}
           >
             <LogOut size={18} />
-            {(!isCollapsed || mobile) && <span>Đăng xuất</span>}
+            {(!isSidebarCollapsed || mobile) && <span>Đăng xuất</span>}
           </Button>
         </div>
       </div>
@@ -338,7 +462,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
     <div className="flex h-dvh overflow-hidden bg-slate-50">
       <aside className={cn(
         "hidden lg:block transition-all duration-300 ease-in-out z-30 shadow-xl",
-        isCollapsed ? "w-20" : "w-64"
+        isSidebarCollapsed ? "w-20" : "w-64"
       )}>
         {renderSidebarContent()}
       </aside>
@@ -357,7 +481,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
               </SheetContent>
             </Sheet>
             
-            <Button variant="ghost" size="icon" className="hidden lg:flex text-slate-400 hover:text-slate-600" onClick={() => setIsCollapsed(!isCollapsed)}>
+            <Button variant="ghost" size="icon" className="hidden lg:flex text-slate-400 hover:text-slate-600" onClick={toggleSidebar}>
               <MenuIcon size={20} />
             </Button>
 
@@ -368,15 +492,145 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
           </div>
           
           <div className="flex items-center gap-2 sm:gap-4">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative text-slate-400 hover:text-slate-600 hover:bg-slate-100">
-                  <Bell size={20} />
-                  <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border-2 border-white"></span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Thông báo</TooltipContent>
-            </Tooltip>
+            <Dialog open={isScanOpen} onOpenChange={setIsScanOpen}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+                      <ScanBarcode size={20} />
+                    </Button>
+                  </DialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Quét mã vạch</TooltipContent>
+              </Tooltip>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-slate-900">
+                    <ScanBarcode className="text-primary h-5 w-5" />
+                    Quét mã vạch & SKU
+                  </DialogTitle>
+                  <DialogDescription>
+                    Mô phỏng máy quét mã vạch trực tiếp bằng Camera hoặc nhập mã tay.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-2">
+                  <BarcodeScanner onClose={() => setIsScanOpen(false)} />
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="relative text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+                      <Bell size={20} />
+                      {unreadCount > 0 && (
+                        <span className="absolute top-1.5 right-1.5 h-4 w-4 bg-rose-500 rounded-full text-[9px] font-extrabold text-white flex items-center justify-center animate-pulse">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Thông báo ({unreadCount})</TooltipContent>
+              </Tooltip>
+              <PopoverContent className="w-80 sm:w-96 p-0 bg-white border border-slate-200 shadow-xl rounded-xl mr-2" align="end">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-bold text-slate-900 text-sm">Thông báo</h4>
+                    {unreadCount > 0 && (
+                      <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none font-semibold text-[10px]">
+                        {unreadCount} chưa đọc
+                      </Badge>
+                    )}
+                  </div>
+                  {unreadCount > 0 && (
+                    <button 
+                      onClick={handleMarkAllAsRead}
+                      className="text-xs font-bold text-primary hover:text-primary-hover transition-colors"
+                    >
+                      Đọc tất cả
+                    </button>
+                  )}
+                </div>
+
+                {/* List */}
+                <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-100 custom-scrollbar">
+                  {notifications.length > 0 ? (
+                    notifications.map((notification) => {
+                      const Icon = notificationTypeIcons[notification.type] || Bell;
+                      const iconColor = notificationTypeColors[notification.type] || 'bg-slate-100 text-slate-600';
+                      
+                      return (
+                        <div 
+                          key={notification.id}
+                          onClick={() => handleNotificationClick(notification)}
+                          className={cn(
+                            "flex items-start gap-3 p-3.5 hover:bg-slate-50/70 transition-all cursor-pointer relative group",
+                            !notification.isRead && "bg-blue-50/20"
+                          )}
+                        >
+                          {/* Unread indicator dot */}
+                          {!notification.isRead && (
+                            <span className="absolute right-3 top-4 h-2 w-2 bg-blue-500 rounded-full"></span>
+                          )}
+
+                          <div className={cn("p-2 rounded-lg shrink-0", iconColor)}>
+                            <Icon size={16} />
+                          </div>
+
+                          <div className="space-y-1 min-w-0 flex-1 text-left">
+                            <p className={cn(
+                              "text-xs leading-snug text-slate-950",
+                              !notification.isRead ? "font-bold" : "font-medium"
+                            )}>
+                              {notification.title}
+                            </p>
+                            <p className="text-[11px] text-slate-500 leading-normal line-clamp-2">
+                              {notification.description}
+                            </p>
+                            <p className="text-[10px] text-slate-400 font-medium">
+                              {notification.time}
+                            </p>
+                          </div>
+
+                          {/* Delete button */}
+                          <button
+                            onClick={(e) => handleDeleteNotification(notification.id, e)}
+                            className="text-slate-300 hover:text-rose-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                      <div className="p-3 bg-slate-50 text-slate-300 rounded-full mb-3">
+                        <Inbox size={28} />
+                      </div>
+                      <p className="text-xs font-bold text-slate-600">Không có thông báo mới</p>
+                      <p className="text-[10px] text-slate-400 mt-1 max-w-[200px]">Hệ thống vận hành của bạn hiện đang ở trạng thái tối ưu.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                {notifications.length > 0 && (
+                  <div className="p-3 bg-slate-50 border-t border-slate-100 text-center rounded-b-xl">
+                    <Link 
+                      href="/audit-logs" 
+                      onClick={() => setIsNotificationsOpen(false)}
+                      className="text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors inline-block w-full"
+                    >
+                      Xem tất cả nhật ký hệ thống
+                    </Link>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -403,7 +657,10 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
                 }} className="cursor-pointer py-2 px-3">
                   <UserCircle className="mr-2 h-4 w-4 opacity-70" /> <span className="text-sm font-medium">Hồ sơ cá nhân</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer py-2 px-3">
+                <DropdownMenuItem onClick={() => {
+                  router.push('/settings');
+                  handleNavigate();
+                }} className="cursor-pointer py-2 px-3">
                   <Settings className="mr-2 h-4 w-4 opacity-70" /> <span className="text-sm font-medium">Cài đặt hệ thống</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

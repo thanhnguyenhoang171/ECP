@@ -49,6 +49,9 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
   } catch (error) {
     // Xử lý lỗi kết nối mạng hoặc lỗi khác không có response
     console.error('Fetch error:', error);
+    if (!skipToast) {
+      toast.error("Không thể kết nối đến máy chủ. Vui lòng kiểm tra đường truyền hoặc máy chủ backend.");
+    }
     throw error;
   }
 
@@ -132,7 +135,7 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
           toast.error(ErrorMessages["SYS_UNKNOWN_ERROR"]);
         }
       }
-    } catch (e) {
+    } catch {
       // Nếu API trả về lỗi nhưng không phải JSON
       if (response.status === 403) {
         toast.error(ErrorMessages["AUTH_ACCESS_DENIED"]);

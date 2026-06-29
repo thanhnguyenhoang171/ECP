@@ -26,16 +26,14 @@ export default function CreateCategoryPage() {
         description="Nhập thông tin để thêm một danh mục sản phẩm vào hệ thống."
       />
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-2xl">
-        <CategoryForm 
-          parentCategories={parentCategories || []}
-          onSuccess={() => {
-            toast.success('Tạo danh mục mới thành công');
-            router.push('/categories');
-            router.refresh();
-          }} 
-        />
-      </div>
+      <CategoryForm 
+        parentCategories={parentCategories || []}
+        onSuccess={() => {
+          toast.success('Tạo danh mục mới thành công');
+          router.push('/categories');
+          router.refresh();
+        }} 
+      />
     </div>
   );
 }

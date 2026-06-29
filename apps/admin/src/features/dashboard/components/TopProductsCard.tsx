@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 import {
   Button,
   Card,
@@ -49,11 +50,13 @@ export default function TopProductsCard({ topProducts }: TopProductsCardProps) {
             </div>
           ))}
         </div>
-        <Button
-          variant='ghost'
-          className='w-full mt-6 text-xs font-bold gap-2 h-10 text-primary hover:bg-primary/5'>
-          Xem tất cả sản phẩm <ChevronRight size={14} />
-        </Button>
+        <Link href="/products" className="block w-full">
+          <Button
+            variant='ghost'
+            className='w-full mt-6 text-xs font-bold gap-2 h-10 text-primary hover:bg-primary/5'>
+            Xem tất cả sản phẩm <ChevronRight size={14} />
+          </Button>
+        </Link>
       </CardContent>
     </Card>
   );

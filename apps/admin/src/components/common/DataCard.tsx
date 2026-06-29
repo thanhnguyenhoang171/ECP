@@ -55,9 +55,9 @@ export function DataCard({
   contentClassName,
 }: DataCardProps) {
   return (
-    <Card className={cn('overflow-hidden shadow-sm border-slate-900', className)}>
+    <Card className={cn('overflow-hidden shadow-main border-border', className)}>
       {(search || extra) && (
-        <CardHeader className={cn('pb-4 bg-slate-50/50 border-b border-slate-900', headerClassName)}>
+        <CardHeader className={cn('pb-4 bg-slate-50/30 border-b border-border', headerClassName)}>
           <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
             <div className="flex-1 max-w-md">
               {search}
@@ -71,7 +71,7 @@ export function DataCard({
           <div className='absolute inset-0 bg-white/40 z-10 flex items-center justify-center backdrop-blur-[1px] transition-all' />
         )}
         {children}
-        {footer && <div className='border-t border-slate-900'>{footer}</div>}
+        {footer && <div className='border-t border-border'>{footer}</div>}
       </CardContent>
     </Card>
   );

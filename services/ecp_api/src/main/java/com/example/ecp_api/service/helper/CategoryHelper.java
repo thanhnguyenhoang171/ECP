@@ -52,22 +52,21 @@ public class CategoryHelper {
         }
 
         // Loop check: Parent must not be a descendant of the current category
-        if (categoryId != null && parent.getPath() != null && parent.getPath().contains(categoryId)) {
-            throw new AppException("CATEGORY_INVALID_PARENT", "Category cannot be a child of its own descendant", HttpStatus.BAD_REQUEST);
-        }
+        // With 2-level hierarchy constraint (parent must be level 1), this check is not needed
+        // as descendants would be level 2+ and cannot be parents
+        // Removed: if (categoryId != null && parent.getPath() != null && parent.getPath().contains(categoryId))
     }
 
     /**
      * Cập nhật thông tin phân cấp cho các category con trực tiếp của category cha.
      *
-     * Khi category cha thay đổi level hoặc path (ví dụ đổi parent hoặc thay đổi vị trí trong cây),
+     * Khi category cha thay đổi level hoặc position trong cây,
      * các category con cũng cần được đồng bộ lại để đảm bảo cấu trúc cây chính xác.
      *
      * Chức năng:
      * - Tìm tất cả category con trực tiếp của parent (theo parentId)
      * - Bỏ qua các category đã bị soft delete
      * - Cập nhật level của child = level của parent + 1
-     * - Cập nhật path để lưu chuỗi tổ tiên của category
      * - Lưu lại thay đổi vào database
      *
      * Lưu ý:
@@ -83,7 +82,6 @@ public class CategoryHelper {
 
         for (Category child : children) {
             child.setLevel(parent.getLevel() + 1);
-            child.setPath(parent.getPath() == null ? parent.getId() : parent.getPath() + "/" + parent.getId());
             categoryRepository.save(child);
         }
     }

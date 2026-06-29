@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   ArrowLeft,
   Mail,
@@ -29,8 +30,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
+import { Breadcrumbs } from "@/components/common";
+import { User as UserIcon } from "lucide-react";
 
 import { profileSchema, ProfileFormValues } from "@/features/profile/schemas/profile.schema";
+import { ImageUpload } from "@/components/common";
 
 interface ProfileViewProps {
   initialData: ProfileFormValues;
@@ -47,46 +51,50 @@ export default function ProfileView({ initialData }: ProfileViewProps) {
     toast.success("Cập nhật thông tin thành công!");
   }
 
+  const breadcrumbItems = [
+    { label: 'Hồ sơ cá nhân', icon: UserIcon },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className='flex items-center gap-4'>
-        <Button variant='outline' size='sm' className='h-9 gap-2' onClick={() => window.history.back()}>
-          <ArrowLeft size={16} />
-          Quay lại
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Hồ sơ cá nhân</h1>
-          <p className="text-muted-foreground">Quản lý thông tin cá nhân và bảo mật tài khoản của bạn.</p>
+      <Breadcrumbs items={breadcrumbItems} />
+      
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard">
+            <Button variant="outline" size="icon" className="h-9 w-9 rounded-lg text-slate-500 border-slate-200 hover:bg-slate-100 shrink-0">
+              <ArrowLeft size={16} />
+            </Button>
+          </Link>
+          <div className="text-left">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Hồ sơ cá nhân</h1>
+            <p className="text-slate-500 text-xs sm:text-sm">Quản lý thông tin cá nhân và bảo mật tài khoản của bạn.</p>
+          </div>
         </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-12">
         <div className="md:col-span-4 space-y-6">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="relative group">
-                  <Avatar className="h-32 w-32 border-4 border-background shadow-xl">
-                    <AvatarImage src="" />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-4xl font-bold italic">
-                      AD
-                    </AvatarFallback>
-                  </Avatar>
-                  <Button 
-                    size="icon" 
-                    variant="secondary" 
-                    className="absolute bottom-0 right-0 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Camera size={16} />
-                  </Button>
+          <Card className="border-slate-200 shadow-sm overflow-hidden">
+            <CardContent className="pt-8">
+              <div className="flex flex-col items-center text-center space-y-6">
+                <div className="w-32 h-32 relative">
+                  <ImageUpload 
+                    variant="circle"
+                    value=""
+                    onChange={(url) => toast.info('Tính năng cập nhật ảnh đại diện đang phát triển')}
+                    folder="avatars"
+                    description="Đổi ảnh"
+                    className="w-full h-full"
+                  />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold">{initialData.fullName}</h2>
-                  <p className="text-sm text-muted-foreground">{initialData.email}</p>
+                  <h2 className="text-xl font-bold text-slate-900">{initialData.fullName}</h2>
+                  <p className="text-sm text-slate-400">{initialData.email}</p>
                 </div>
                 <div className="flex gap-2">
-                  <Badge variant="secondary" className="px-3 py-1">{initialData.role}</Badge>
-                  <Badge className="bg-green-500 hover:bg-green-600 px-3 py-1">Active</Badge>
+                  <Badge variant="secondary" className="px-3 py-1 bg-slate-100 text-slate-600 border-none font-bold text-[10px] uppercase tracking-wider">{initialData.role}</Badge>
+                  <Badge className="bg-emerald-500 hover:bg-emerald-600 px-3 py-1 border-none font-bold text-[10px] uppercase tracking-wider">Hoạt động</Badge>
                 </div>
               </div>
               

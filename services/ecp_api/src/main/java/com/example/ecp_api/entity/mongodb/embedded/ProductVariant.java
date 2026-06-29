@@ -38,7 +38,7 @@ public class ProductVariant {
 
     private BigDecimal price;
 
-    private String image;
+    private ProductImage image;
 
     // Attributes: { "Color": "Titan", "Storage": "256GB" }
     @Builder.Default

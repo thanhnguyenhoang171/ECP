@@ -22,7 +22,8 @@ export function useCategories(
     queryKey: ['categories', params],
     queryFn: () => categoryApi.getPaged(params),
     placeholderData: initialData, // Sử dụng dữ liệu ban đầu làm placeholder
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 giây - cache ngắn hơn để dữ liệu mới hơn
+    refetchOnWindowFocus: true, // Refetch khi focus lại window
   });
 }
 
@@ -30,5 +31,17 @@ export function useParentCategories() {
   return useQuery({
     queryKey: ['categories', 'parents'],
     queryFn: () => categoryApi.getParents(),
+    staleTime: 30 * 1000, // 30 giây
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useCategory(id: string) {
+  return useQuery({
+    queryKey: ['category', id],
+    queryFn: () => categoryApi.getById(id),
+    enabled: !!id,
+    staleTime: 30 * 1000, // 30 giây
+    refetchOnWindowFocus: true,
   });
 }

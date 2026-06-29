@@ -41,7 +41,7 @@ export default function StatsGrid({ stats }: StatsGridProps) {
               {stat.title}
             </CardTitle>
             <div className='p-2 rounded-xl bg-slate-100 text-slate-600'>
-              {React.cloneElement(stat.icon as React.ReactElement, { size: 18 })}
+              {React.cloneElement(stat.icon as any, { size: 18 })}
             </div>
           </CardHeader>
           <CardContent>

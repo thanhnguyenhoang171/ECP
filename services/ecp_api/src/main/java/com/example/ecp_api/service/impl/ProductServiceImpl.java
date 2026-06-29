@@ -158,7 +158,7 @@ public class ProductServiceImpl implements ProductService {
             variant.setProductId(finalProductId);
             variant.setSku_id(skuEntity.getId().toString());
             variant.setBarcodeType(vReq.getBarcodeType());
-            variant.setImage(vReq.getImage());
+            variant.setImage(productMapper.toProductImage(vReq.getImage()));
             return variant;
         }).toList();
 

@@ -28,13 +28,14 @@ public class Category {
     @Field("name")
     private String name;
 
+    @Field("description")
+    private String description;
+
     @Indexed(unique = true)
     private String slug;
 
     @Field("parent_id")
     private String parentId;
-
-    private String path;
 
     @Builder.Default
     private int level = 1;
@@ -46,6 +47,15 @@ public class Category {
     @Field("is_deleted")
     @Builder.Default
     private boolean deleted = false;
+
+    @Field("image_url")
+    private String imageUrl;
+
+    @Field("image_public_id")
+    private String imagePublicId;
+
+    @Field("order")
+    private Integer order;
 
     @CreatedDate
     @Field("created_at")

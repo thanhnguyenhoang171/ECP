@@ -9,6 +9,7 @@ export interface BreadcrumbItem {
   label: string;
   href?: string;
   icon?: LucideIcon;
+  active?: boolean;
 }
 
 interface BreadcrumbsProps {

@@ -17,7 +17,6 @@ import java.util.List;
 public interface CategoryMapper {
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "path", ignore = true)
     @Mapping(target = "level", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
@@ -51,7 +50,6 @@ public interface CategoryMapper {
     }
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "path", ignore = true)
     @Mapping(target = "level", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "createdAt", ignore = true)

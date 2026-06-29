@@ -35,6 +35,13 @@ public class EcpApiApplication {
 		String hostAddress = InetAddress.getLocalHost().getHostAddress();
 		String serverPort = env.getProperty("server.port");
 		String contextPath = Optional.ofNullable(env.getProperty("server.servlet.context-path")).orElse("");
+		String[] profiles = env.getActiveProfiles();
+		String activeProfiles = profiles.length > 0 ? String.join(", ", profiles) : "default";
+		
+		StringBuilder configFiles = new StringBuilder("application.properties");
+		for (String profile : profiles) {
+			configFiles.append(", application-").append(profile).append(".properties");
+		}
 
 		log.info("""
 			
@@ -44,6 +51,9 @@ public class EcpApiApplication {
 			External: \t{}://{}:{}{}
 			Swagger UI: \t{}://localhost:{}{}/swagger-ui/index.html
 			
+			Active Profile(s): \t{}
+			Config File(s): \t{}
+			
 			Databases:
 			MySQL: \t\t{}
 			MongoDB: \t{}
@@ -52,6 +62,8 @@ public class EcpApiApplication {
 				protocol, serverPort, contextPath,
 				protocol, hostAddress, serverPort, contextPath,
 				protocol, serverPort, contextPath,
+				activeProfiles,
+				configFiles.toString(),
 				env.getProperty("spring.datasource.url"),
 				env.getProperty("spring.data.mongodb.uri"));
 	}

@@ -288,13 +288,29 @@ export default function ProductView({
                 categoryId: editingProduct.categoryId,
                 isPublished: editingProduct.isPublished,
                 description: editingProduct.description || '',
+                slug: editingProduct.slug || '',
+                images: (editingProduct as any).images || [],
+                specifications: (editingProduct as any).specifications || [],
+                weight: (editingProduct as any).weight || 0,
+                length: (editingProduct as any).length || 0,
+                width: (editingProduct as any).width || 0,
+                height: (editingProduct as any).height || 0,
+                tags: Array.isArray((editingProduct as any).tags) ? (editingProduct as any).tags.join(', ') : ((editingProduct as any).tags || ''),
+                metaTitle: (editingProduct as any).metaTitle || '',
+                metaDescription: (editingProduct as any).metaDescription || '',
+                metaKeywords: (editingProduct as any).metaKeywords || '',
                 variants: editingProduct.variants?.map(v => ({
                   sku: v.sku,
                   price: v.price,
                   stock: v.stock,
-                  attributes: v.attributes || {}
-                })) || [{ sku: editingProduct.sku, price: editingProduct.price, stock: editingProduct.stock, attributes: {} }],
-                slug: editingProduct.slug || ''
+                  compareAtPrice: (v as any).compareAtPrice || 0,
+                  costPrice: (v as any).costPrice || 0,
+                  barcode: (v as any).barcode || '',
+                  barcodeType: (v as any).barcodeType || 'EAN-13',
+                  image: (v as any).image || '',
+                  isActive: (v as any).isActive !== undefined ? (v as any).isActive : true,
+                  attributes: Object.entries(v.attributes || {}).map(([key, value]) => ({ key, value })) as any
+                })) || [{ sku: editingProduct.sku, price: editingProduct.price, stock: editingProduct.stock, compareAtPrice: 0, costPrice: 0, barcode: '', barcodeType: 'EAN-13', image: '', isActive: true, attributes: [] }],
               }}
             />
           )}
