@@ -1,0 +1,8 @@
+[
+  {
+    "collection": "categories",
+    "operation": "updateMany",
+    "filter": { "path": { "$exists": true } },
+    "update": { "$unset": { "path": "" } }
+  }
+]

@@ -64,3 +64,67 @@ export function syncPagination<T>(response: any): T {
   return response as T;
 }
 
+/**
+ * Chuyển đổi một chuỗi bất kỳ thành định dạng Slug URL (tên-khong-dau-viet-lien)
+ */
+export function convertToSlug(str: string): string {
+  if (!str) return "";
+  str = str.toLowerCase();
+  str = removeVietnameseTones(str);
+  str = str.replace(/[^a-z0-9 -]/g, ""); // remove invalid chars
+  str = str.replace(/\s+/g, "-"); // collapse whitespace and replace by -
+  str = str.replace(/-+/g, "-"); // collapse dashes
+  str = str.replace(/^-+/, ""); // trim - from start
+  str = str.replace(/-+$/, ""); // trim - from end
+  return str;
+}
+
+/**
+ * Trích xuất public_id từ URL hình ảnh Cloudinary
+ */
+export function getCloudinaryPublicId(url: string): string | null {
+  if (!url || !url.includes("res.cloudinary.com")) return null;
+  try {
+    const parts = url.split("/upload/");
+    if (parts.length < 2) return null;
+    
+    const pathPart = parts[1];
+    const pathSegments = pathPart.split("/");
+    
+    // Tìm index của version segment (ví dụ: "v1782188427")
+    const versionIndex = pathSegments.findIndex(segment => 
+      /^v\d+$/.test(segment)
+    );
+    
+    let publicIdSegments: string[];
+    
+    if (versionIndex !== -1) {
+      // Nếu có version, toàn bộ phần sau version chính là public_id
+      publicIdSegments = pathSegments.slice(versionIndex + 1);
+    } else {
+      // Nếu không tìm thấy version (fallback), loại bỏ các transformation segments
+      publicIdSegments = pathSegments.filter(segment => {
+        if (!segment) return false;
+        
+        // Cấu hình transformation chứa dấu phẩy ',' hoặc bắt đầu bằng phím cấu hình (w_, h_, c_...)
+        const isTransformation = segment.includes(",") || 
+          /^(w|h|c|q|f|r|g|e|b|o|l|u|p|dl|dpr|co|bg|cs|cm|fl|x|y|z|zoom|bo|a|v)_\w+/.test(segment);
+          
+        return !isTransformation;
+      });
+    }
+    
+    if (publicIdSegments.length === 0) return null;
+    
+    const remainingPath = publicIdSegments.join("/");
+    const dotIndex = remainingPath.lastIndexOf(".");
+    if (dotIndex !== -1) {
+      return remainingPath.substring(0, dotIndex);
+    }
+    return remainingPath;
+  } catch (error) {
+    console.error("Error parsing Cloudinary URL:", error);
+    return null;
+  }
+}
+

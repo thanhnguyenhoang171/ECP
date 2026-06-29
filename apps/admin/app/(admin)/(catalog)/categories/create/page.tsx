@@ -5,7 +5,6 @@ import { Layers } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import CategoryForm from '@/features/categories/components/CategoryForm';
 import { PageHeader, Breadcrumbs } from '@/components/common';
-import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { useParentCategories } from '@/features/categories/hooks/use-categories';
 
@@ -27,18 +26,14 @@ export default function CreateCategoryPage() {
         description="Nhập thông tin để thêm một danh mục sản phẩm vào hệ thống."
       />
 
-      <Card className="border-none shadow-xl shadow-slate-200/50 rounded-2xl overflow-hidden">
-        <CardContent className="p-8">
-          <CategoryForm 
-            parentCategories={parentCategories || []}
-            onSuccess={() => {
-              toast.success('Tạo danh mục mới thành công');
-              router.push('/categories');
-              router.refresh();
-            }} 
-          />
-        </CardContent>
-      </Card>
+      <CategoryForm 
+        parentCategories={parentCategories || []}
+        onSuccess={() => {
+          toast.success('Tạo danh mục mới thành công');
+          router.push('/categories');
+          router.refresh();
+        }} 
+      />
     </div>
   );
 }

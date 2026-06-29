@@ -43,7 +43,13 @@ export default function SupplierForm({ onSuccess, initialData }: SupplierFormPro
   async function onSubmit(values: SupplierFormValues) {
     clientDb.saveSupplier({
       id: initialData?.id,
-      ...values,
+      name: values.name,
+      isActive: values.isActive,
+      contactName: values.contactName || '',
+      phone: values.phone || '',
+      email: values.email || '',
+      address: values.address || '',
+      taxCode: values.taxCode || '',
     });
     onSuccess();
   }

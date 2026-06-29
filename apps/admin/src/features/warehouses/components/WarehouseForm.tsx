@@ -41,7 +41,10 @@ export default function WarehouseForm({ onSuccess, initialData }: WarehouseFormP
   async function onSubmit(values: WarehouseFormValues) {
     clientDb.saveWarehouse({
       id: initialData?.id,
-      ...values,
+      name: values.name,
+      isActive: values.isActive,
+      code: values.code || '',
+      address: values.address || '',
     });
     onSuccess();
   }

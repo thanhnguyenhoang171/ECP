@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export interface ColumnDef<T> {
+  id?: string;
   header: React.ReactNode;
   accessorKey?: keyof T;
   cell?: (item: T) => React.ReactNode;

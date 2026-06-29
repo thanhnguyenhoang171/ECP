@@ -19,6 +19,7 @@ import {
 import { 
   PageHeader, 
   DataTable, 
+  type ColumnDef,
   Badge,
   DataCard,
   StatsCard,
@@ -103,7 +104,7 @@ export default function PromotionsView() {
     }
   };
 
-  const columns = [
+  const columns: ColumnDef<Promotion>[] = [
     {
       header: 'Mã & Chương trình',
       accessorKey: 'code',

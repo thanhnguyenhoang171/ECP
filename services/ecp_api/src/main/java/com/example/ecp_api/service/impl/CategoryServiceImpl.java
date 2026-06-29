@@ -56,7 +56,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional
     public CategoryResponse createCategory(CategoryRequest request) {
-        // Auto generate Slug
+        // Auto generate Slug,
         String slugGenerated = StringUtils.hasText(request.getSlug())
                 ? request.getSlug()
                 : SlugUtils.toSlug(request.getName());
@@ -83,22 +83,14 @@ public class CategoryServiceImpl implements CategoryService {
                     .orElseThrow(() -> new ResourceNotFoundException("Parent Category not found with id: " + request.getParentId()));
 
             category.setLevel(parent.getLevel() + 1);
-            category.setPath(parent.getPath() == null ? parent.getId() : parent.getPath() + "/" + parent.getId());
         } else {
             category.setLevel(1);
-            category.setPath(null);
         }
 
         Category savedCategory = categoryRepository.save(category);
-        
-        // Update path now that we have an ID
-        if (!StringUtils.hasText(request.getParentId())) {
-            savedCategory.setPath(savedCategory.getId());
-            categoryRepository.save(savedCategory);
-        }
-        
+
         auditLogService.log("CREATE_CATEGORY", SecurityUtils.getCurrentUsername(), "Created category: " + savedCategory.getName());
-        
+
         return categoryMapper.toResponse(savedCategory);
     }
 
@@ -189,12 +181,10 @@ public class CategoryServiceImpl implements CategoryService {
                         .orElseThrow(() -> new ResourceNotFoundException("Parent Category not found with id: " + request.getParentId()));
 
                 category.setLevel(parent.getLevel() + 1);
-                category.setPath(parent.getPath() == null ? parent.getId() : parent.getPath() + "/" + parent.getId());
                 parentChanged = true;
             }
         } else if (oldParentId != null) {
             category.setLevel(1);
-            category.setPath(null);
             category.setParentId(null);
             parentChanged = true;
         }
@@ -241,7 +231,8 @@ public class CategoryServiceImpl implements CategoryService {
     // GET CATEGORY PARENTS
     @Override
     public List<CategoryResponse> getParentCategories() {
-        return categoryRepository.findByParentIdIsNullAndDeletedFalse().stream()
+        Sort sort = Sort.by(Sort.Order.asc("order"), Sort.Order.desc("createdAt"));
+        return categoryRepository.findByParentIdIsNullAndDeletedFalse(sort).stream()
                 .map(categoryMapper::toResponse)
                 .toList();
     }
@@ -268,9 +259,11 @@ public class CategoryServiceImpl implements CategoryService {
                                 .index(index.getAndIncrement())
                                 .id(cat.getId())
                                 .name(cat.getName())
+                                .description(cat.getDescription())
                                 .slug(cat.getSlug())
                                 .parentSlug(parentSlug)
                                 .level(cat.getLevel())
+                                .order(cat.getOrder())
                                 .status(cat.isActive())
                                 .createdAt(DateTimeUtils.format(cat.getCreatedAt()))
                                 .updatedAt(DateTimeUtils.format(cat.getUpdatedAt()))
@@ -293,9 +286,11 @@ public class CategoryServiceImpl implements CategoryService {
                         .index(1)
                         .id("") // Để trống để tạo mới
                         .name("Áo thun nam")
+                        .description("Các loại áo thun dành cho nam giới")
                         .slug("ao-thun-nam")
                         .parentSlug("")
                         .level(1)
+                        .order(1)
                         .status(true)
                         .createdAt("03/05/2026 19:15:01")
                         .updatedAt("03/05/2026 19:15:01")
@@ -304,9 +299,11 @@ public class CategoryServiceImpl implements CategoryService {
                         .index(2)
                         .id("") // Để trống để tạo mới
                         .name("Áo thun polo")
+                        .description("Áo thun polo nam có cổ lịch lãm")
                         .slug("ao-thun-polo")
                         .parentSlug("ao-thun-nam") // Dùng Slug của danh mục cha
                         .level(2)
+                        .order(2)
                         .status(true)
                         .createdAt("03/05/2026 19:15:01")
                         .updatedAt("03/05/2026 19:15:01")

@@ -17,6 +17,9 @@ public class CategoryRequest {
     @Schema(description = "Category name", example = "Electronics", requiredMode = Schema.RequiredMode.REQUIRED)
     private String name;
 
+    @Schema(description = "Category description", example = "Electronics items including gadgets and devices")
+    private String description;
+
     @Schema(description = "URL-friendly slug. Auto-generated from name if empty.", example = "electronics")
     private String slug;
 
@@ -25,4 +28,13 @@ public class CategoryRequest {
 
     @Schema(description = "Active status of the category", example = "true")
     private Boolean active;
+
+    @Schema(description = "Category image URL", example = "https://res.cloudinary.com/...")
+    private String imageUrl;
+
+    @Schema(description = "Category image public ID", example = "ecp_uploads/categories/abcxyz")
+    private String imagePublicId;
+
+    @Schema(description = "Order position for sorting", example = "1")
+    private Integer order;
 }

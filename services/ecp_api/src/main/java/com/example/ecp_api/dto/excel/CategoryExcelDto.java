@@ -54,6 +54,10 @@ public class CategoryExcelDto {
     @ColumnWidth(30)
     private String name;
 
+    @ExcelProperty("Mô tả")
+    @ColumnWidth(40)
+    private String description;
+
     @ExcelProperty("Slug")
     @ColumnWidth(25)
     private String slug;
@@ -65,6 +69,10 @@ public class CategoryExcelDto {
     @ExcelProperty("Cấp độ")
     @ColumnWidth(10)
     private Integer level;
+
+    @ExcelProperty("Thứ tự")
+    @ColumnWidth(12)
+    private Integer order;
 
     @ExcelProperty("Trạng thái (TRUE/FALSE)")
     @ColumnWidth(25)

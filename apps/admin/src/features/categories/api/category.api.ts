@@ -4,6 +4,26 @@ import { PageResponse } from '@/types/pagination';
 import { clientFetch } from '@/lib/clientFetch';
 import { toApiPage, syncPagination } from '@/lib/utils';
 
+// Helper to map category response to frontend model
+const mapCategory = (cat: any): Category => {
+  if (!cat) return cat;
+
+  // Extract parent ID safely
+  let parentId = null;
+  if (cat.parentId) {
+    parentId = typeof cat.parentId === 'object' ? cat.parentId.id?.toString() : cat.parentId.toString();
+  } else if (cat.parent) {
+    parentId = cat.parent.id?.toString();
+  }
+
+  return {
+    ...cat,
+    id: cat.id?.toString(),
+    parentId: parentId || null,
+    imageUrl: cat.imageUrl || cat.imageUrl,
+  };
+};
+
 export const categoryApi = {
   // Lấy danh sách danh mục có phân trang và lọc
   getPaged: async (params: {
@@ -36,6 +56,10 @@ export const categoryApi = {
     if (!res.ok) throw new Error('Failed to fetch categories');
     const result: PageResponse<Category> = await res.json();
     
+    if (result.data) {
+      result.data = result.data.map(mapCategory);
+    }
+    
     return syncPagination<PageResponse<Category>>(result);
   },
 
@@ -44,29 +68,25 @@ export const categoryApi = {
     id: string,
     values: Partial<CategoryFormValues>,
   ): Promise<{ success: boolean; data: Category }> => {
-    let body: any;
-    const headers: Record<string, string> = {};
-
-    if (values.thumbnail instanceof File) {
-      const formData = new FormData();
-      Object.entries(values).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formData.append(key, value as any);
-        }
-      });
-      body = formData;
-    } else {
-      body = JSON.stringify(values);
-      headers['Content-Type'] = 'application/json';
-    }
+    const { imageUrl, imagePublicId, ...rest } = values;
+    const payload = {
+      ...rest,
+      imageUrl: typeof imageUrl === 'string' ? imageUrl : undefined,
+      imagePublicId: imagePublicId || undefined,
+    };
 
     const res = await clientFetch(`v1/categories/${id}`, {
       method: 'PATCH',
-      headers,
-      body,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
     });
     const result = await res.json();
     if (!res.ok) throw new Error(result.message || 'Failed to update category');
+    if (result.data) {
+      result.data = mapCategory(result.data);
+    }
     return result;
   },
 
@@ -74,29 +94,25 @@ export const categoryApi = {
   create: async (
     values: CategoryFormValues,
   ): Promise<{ success: boolean; data: Category }> => {
-    let body: any;
-    const headers: Record<string, string> = {};
-
-    if (values.thumbnail instanceof File) {
-      const formData = new FormData();
-      Object.entries(values).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formData.append(key, value as any);
-        }
-      });
-      body = formData;
-    } else {
-      body = JSON.stringify(values);
-      headers['Content-Type'] = 'application/json';
-    }
+    const { imageUrl, imagePublicId, ...rest } = values;
+    const payload = {
+      ...rest,
+      imageUrl: typeof imageUrl === 'string' ? imageUrl : undefined,
+      imagePublicId: imagePublicId || undefined,
+    };
 
     const res = await clientFetch('v1/categories', {
       method: 'POST',
-      headers,
-      body,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
     });
     const result = await res.json();
     if (!res.ok) throw new Error(result.message || 'Failed to create category');
+    if (result.data) {
+      result.data = mapCategory(result.data);
+    }
     return result;
   },
 
@@ -112,6 +128,14 @@ export const categoryApi = {
     return { success: true };
   },
 
+  // Lấy chi tiết danh mục theo ID
+  getById: async (id: string): Promise<Category> => {
+    const res = await clientFetch(`v1/categories/${id}`);
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.message || "Failed to fetch category details");
+    return mapCategory(result.data);
+  },
+
   // Lấy danh sách danh mục cha
   getParents: async (): Promise<Category[]> => {
     const res = await clientFetch('v1/categories/parents', {
@@ -119,7 +143,7 @@ export const categoryApi = {
     });
     if (!res.ok) throw new Error('Failed to fetch parent categories');
     const result = await res.json();
-    return result.success ? result.data : [];
+    return result.success ? result.data.map(mapCategory) : [];
   },
 
   // Export file excel

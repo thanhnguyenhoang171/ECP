@@ -83,6 +83,7 @@ export default function ProfileView({ initialData }: ProfileViewProps) {
                     variant="circle"
                     value=""
                     onChange={(url) => toast.info('Tính năng cập nhật ảnh đại diện đang phát triển')}
+                    folder="avatars"
                     description="Đổi ảnh"
                     className="w-full h-full"
                   />

@@ -20,14 +20,14 @@ public class CategoryResponse {
     @Schema(description = "Category name", example = "Electronics")
     private String name;
 
+    @Schema(description = "Category description", example = "Electronics items including gadgets and devices")
+    private String description;
+
     @Schema(description = "URL-friendly slug", example = "electronics")
     private String slug;
 
     @Schema(description = "ID of the parent category", example = "65f1a2b3c4d5e6f7a8b9c0d1")
     private String parentId;
-
-    @Schema(description = "Full hierarchy path", example = "ParentID/ChildID")
-    private String path;
 
     @Schema(description = "Nesting level (1 for top-level)", example = "1")
     private int level;
@@ -40,4 +40,13 @@ public class CategoryResponse {
 
     @Schema(description = "Last update timestamp")
     private LocalDateTime updatedAt;
+
+    @Schema(description = "Category image URL", example = "https://res.cloudinary.com/...")
+    private String imageUrl;
+
+    @Schema(description = "Category image public ID", example = "ecp_uploads/categories/abcxyz")
+    private String imagePublicId;
+
+    @Schema(description = "Order position for sorting", example = "1")
+    private Integer order;
 }

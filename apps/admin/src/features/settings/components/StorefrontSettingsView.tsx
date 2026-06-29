@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { 
   Layout, 
   Image as ImageIcon, 
@@ -9,7 +10,6 @@ import {
   Save, 
   Plus, 
   Trash2, 
-  ExternalLink,
   Eye,
   Monitor,
   CheckCircle2
@@ -24,7 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ImageUpload } from '@/components/common';
+
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -77,8 +77,8 @@ export default function StorefrontSettingsView() {
                     <Monitor size={16} className="text-indigo-600" /> Logo Website
                   </h3>
                   <div className="flex items-start gap-6">
-                    <div className="w-32 h-32 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center bg-slate-50 overflow-hidden">
-                       <img src="/logo/z7862984783113_196fdab6026e07fc4a13a745f502233b.jpg" alt="Logo" className="w-full h-full object-cover" />
+                    <div className="w-32 h-32 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center bg-slate-50 overflow-hidden relative">
+                       <Image src="/logo/z7862984783113_196fdab6026e07fc4a13a745f502233b.jpg" alt="Logo" fill className="object-cover" />
                     </div>
                     <div className="flex-1 space-y-3">
                       <p className="text-xs text-slate-500">Kích thước khuyến nghị: 200x200px. Định dạng: PNG, SVG, JPG.</p>
@@ -138,9 +138,9 @@ export default function StorefrontSettingsView() {
              <div className="divide-y divide-slate-100">
                 {[1, 2].map((i) => (
                   <div key={i} className="p-6 flex items-start gap-6 group hover:bg-slate-50/50 transition-colors">
-                    <div className="w-48 h-28 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 shrink-0">
-                      <img src={`/background/${i === 1 ? 'abstract' : 'dark-space'}.jpg`} className="w-full h-full object-cover" />
-                    </div>
+                     <div className="w-48 h-28 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 shrink-0 relative">
+                       <Image src={`/background/${i === 1 ? 'abstract' : 'dark-space'}.jpg`} fill className="object-cover" alt="Banner" />
+                     </div>
                     <div className="flex-1 space-y-4">
                       <div className="flex items-center justify-between">
                         <Badge className={i === 1 ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400"}>
@@ -203,7 +203,7 @@ export default function StorefrontSettingsView() {
                  <div className="grid grid-cols-3 gap-3">
                     {['abstract.jpg', 'default.jpg', 'moutain.jpg'].map((img) => (
                       <div key={img} className="relative rounded-lg overflow-hidden h-20 border-2 border-transparent hover:border-indigo-600 cursor-pointer transition-all">
-                        <img src={`/background/${img}`} className="w-full h-full object-cover" />
+                        <Image src={`/background/${img}`} fill className="object-cover" alt="Background option" />
                         <div className="absolute inset-0 bg-black/20" />
                         {img === 'abstract.jpg' && <CheckCircle2 className="absolute top-1 right-1 text-white" size={14} />}
                       </div>

@@ -13,6 +13,7 @@ import {
 import { 
   PageHeader, 
   DataTable, 
+  type ColumnDef,
   Button,
   Forbidden,
   DataCard,
@@ -100,7 +101,7 @@ export default function AuditLogsView() {
     return <Forbidden />;
   }
 
-  const columns = [
+  const columns: ColumnDef<AuditLog>[] = [
     {
       header: 'Thời gian',
       accessorKey: 'timestamp',

@@ -9,10 +9,12 @@ export interface Category {
   createdAt?: string;
   updatedAt?: string;
   description?: string;
-  displayOrder?: number;
-  thumbnail?: any;
+  order?: number;
+  imageUrl?: any;
+  imagePublicId?: string;
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;
 }
+
 

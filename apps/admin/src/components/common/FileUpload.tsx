@@ -4,18 +4,11 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { useDropzone, FileRejection, Accept } from 'react-dropzone';
 import Image from 'next/image';
 import { 
-  Upload, 
   X, 
-  FileText, 
-  FileCode, 
-  Image as ImageIcon,
-  File as FileIcon,
   CheckCircle2, 
   Eye, 
   Loader2,
   AlertCircle,
-  FileArchive,
-  FileVideo,
   Plus
 } from 'lucide-react';
 import { Button, Card, CardContent } from './index';
@@ -159,16 +152,7 @@ export const FileUpload = ({
     if (onRemove) onRemove(removedFile);
   };
 
-  const getFileIcon = (type: string) => {
-    if (type.startsWith('image/')) return <ImageIcon className="h-5 w-5 text-blue-500" />;
-    if (type.includes('pdf')) return <FileText className="h-5 w-5 text-rose-500" />;
-    if (type.includes('spreadsheet') || type.includes('excel') || type.includes('csv')) 
-      return <FileCode className="h-5 w-5 text-emerald-600" />;
-    if (type.includes('zip') || type.includes('rar') || type.includes('7z'))
-      return <FileArchive className="h-5 w-5 text-amber-600" />;
-    if (type.startsWith('video/')) return <FileVideo className="h-5 w-5 text-purple-500" />;
-    return <FileIcon className="h-5 w-5 text-slate-400" />;
-  };
+
 
   const formatSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -184,12 +168,14 @@ export const FileUpload = ({
         <Card key={i} className="border-slate-100 shadow-sm overflow-hidden group/item animate-in slide-in-from-top-1 duration-200">
           <CardContent className="p-3">
             <div className="flex items-center gap-4">
-              {/* Preview or Icon */}
-              <div className="h-12 w-12 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 overflow-hidden relative">
+              {/* Preview or File Extension Text */}
+              <div className="h-11 w-11 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 overflow-hidden relative">
                 {file.url ? (
                   <Image src={file.url} alt="Preview" fill className="object-cover" unoptimized />
                 ) : (
-                  getFileIcon(file.type)
+                  <span className="font-extrabold text-[10px] tracking-wider text-slate-500 uppercase">
+                    {file.name.split('.').pop()?.substring(0, 4) || 'FILE'}
+                  </span>
                 )}
               </div>
 
@@ -292,43 +278,31 @@ export const FileUpload = ({
               ? "border-primary bg-primary/5 ring-4 ring-primary/10 scale-[0.99]" 
               : isDragReject 
                 ? "border-destructive bg-destructive/5"
-                : "border-slate-200 bg-slate-50/30 hover:border-primary hover:bg-white hover:shadow-xl hover:-translate-y-0.5",
+                : "border-slate-200 bg-slate-50/30 hover:border-primary hover:bg-white hover:shadow-lg hover:-translate-y-0.5",
             (disabled || isUploading) && "opacity-50 cursor-not-allowed grayscale pointer-events-none"
           )}
         >
-          <CardContent className="p-10 flex flex-col items-center justify-center w-full">
+          <CardContent className="p-6 md:p-8 flex flex-col items-center justify-center w-full min-h-[140px]">
             <input {...getInputProps()} />
             
-            {/* Decoration */}
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <FileIcon size={120} className="rotate-12" />
-            </div>
-
-            <div className={cn(
-              "h-16 w-16 rounded-[1.5rem] bg-white shadow-xl border border-slate-100 flex items-center justify-center mb-6 text-primary transition-all duration-500",
-              isDragActive ? "scale-110 rotate-12" : "group-hover/container:scale-110 group-hover/container:-rotate-6"
-            )}>
-              <Upload size={32} />
-            </div>
-            
-            <div className="space-y-2 relative z-10">
-              <p className="text-base font-black text-slate-700 tracking-tight">
-                {isDragActive ? "Thả ngay để bắt đầu" : "Tải tệp tin lên hệ thống"}
+            <div className="space-y-1.5 relative z-10 w-full px-2">
+              <p className="text-sm md:text-base font-bold text-slate-700 tracking-tight">
+                {isDragActive ? "Thả ngay để tải lên" : "Tải tệp tin lên hệ thống"}
               </p>
-              <p className="text-sm text-slate-400 font-medium max-w-[280px] mx-auto leading-relaxed">
-                {description} <br/>
-                <span className="text-[10px] opacity-60 uppercase tracking-widest mt-2 block font-bold">
-                  Dung lượng tối đa: {(maxSize / (1024 * 1024)).toFixed(0)}MB
-                </span>
+              <p className="text-xs md:text-sm text-slate-400 font-medium max-w-[280px] mx-auto leading-normal">
+                {description}
               </p>
+              <span className="inline-block text-[9px] font-bold text-slate-400 bg-slate-100 border border-slate-200/60 rounded px-1.5 py-0.5 mt-1 uppercase tracking-wider">
+                Tối đa {(maxSize / (1024 * 1024)).toFixed(0)}MB
+              </span>
             </div>
 
             {/* Drag rejection indicator */}
             {isDragReject && (
               <div className="absolute inset-0 bg-destructive/20 backdrop-blur-[2px] flex items-center justify-center animate-in fade-in">
-                <div className="bg-white p-4 rounded-2xl shadow-2xl flex items-center gap-3">
-                  <AlertCircle className="text-destructive h-6 w-6" />
-                  <p className="text-destructive font-black text-sm">Định dạng tệp không được hỗ trợ!</p>
+                <div className="bg-white p-3 rounded-xl shadow-xl flex items-center gap-2 max-w-[90%]">
+                  <AlertCircle className="text-destructive h-4 w-4 shrink-0" />
+                  <p className="text-destructive font-bold text-xs leading-tight">Định dạng tệp không được hỗ trợ!</p>
                 </div>
               </div>
             )}

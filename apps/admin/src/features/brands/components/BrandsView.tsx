@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { 
   Award, 
   Plus, 
@@ -14,6 +15,7 @@ import {
 import { 
   PageHeader, 
   DataTable, 
+  type ColumnDef,
   Badge,
   DataCard,
   NextPagination,
@@ -38,7 +40,7 @@ export default function BrandsView() {
     setSize
   } = useViewParams('createdAt,desc');
 
-  const { data: brandsResponse, isLoading, isFetching } = useBrands({
+  const { data: brandsResponse, isLoading } = useBrands({
     page,
     size,
     sort,
@@ -51,7 +53,7 @@ export default function BrandsView() {
   const stats = statsResponse?.data || { totalBrands: 0, activeBrands: 0, newBrandsThisMonth: 0 };
   const pagination = brandsResponse?.pagination;
 
-  const columns = [
+  const columns: ColumnDef<Brand>[] = [
     {
       header: 'Thương hiệu',
       accessorKey: 'name',
@@ -59,7 +61,13 @@ export default function BrandsView() {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded border bg-white flex items-center justify-center p-2">
             {brand.logoUrl ? (
-              <img src={brand.logoUrl} alt={brand.name} className="max-w-full max-h-full object-contain" />
+              <Image 
+                src={brand.logoUrl} 
+                alt={brand.name} 
+                className="max-w-full max-h-full object-contain" 
+                width={40} 
+                height={40} 
+              />
             ) : (
               <Award className="text-slate-400" size={20} />
             )}
@@ -179,6 +187,9 @@ export default function BrandsView() {
                 currentPage={pagination.currentPage}
                 totalPages={pagination.totalPages}
                 onPageChange={setPage}
+                itemsPerPage={size}
+                onItemsPerPageChange={setSize}
+                totalItems={pagination.totalElements}
               />
             </div>
           )
@@ -188,7 +199,6 @@ export default function BrandsView() {
           columns={columns} 
           data={brands} 
           isLoading={isLoading}
-          isFetching={isFetching}
         />
       </DataCard>
     </div>

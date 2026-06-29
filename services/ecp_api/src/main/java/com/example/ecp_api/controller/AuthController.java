@@ -11,6 +11,8 @@ import com.example.ecp_api.security.CustomUserDetailsService;
 import com.example.ecp_api.security.JwtTokenProvider;
 import com.example.ecp_api.service.TokenService;
 import com.example.ecp_api.service.UserService;
+import com.example.ecp_api.util.IpUtils;
+import com.example.ecp_api.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -112,7 +114,7 @@ public class AuthController {
                         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
                         // Log success
-                        auditLogService.log("LOGIN_SUCCESS", userDetails.getUsername(), "User logged in from " + request.getRemoteAddr());
+                        auditLogService.logAuth("LOGIN_SUCCESS", userDetails.getUsername(), "SUCCESS", IpUtils.getClientIp(request), request.getHeader("User-Agent"), "User logged in");
 
                         // Update last login in database
                         userService.updateLastLogin(userDetails.getUsername());
@@ -120,7 +122,7 @@ public class AuthController {
                         return ResponseEntity.ok(apiResponse);
                 } catch (Exception e) {
                         // Log failure
-                        auditLogService.log("LOGIN_FAILURE", loginRequest.getUsername(), "Failed login attempt from " + request.getRemoteAddr() + ": " + e.getMessage());
+                        auditLogService.logAuth("LOGIN_FAILURE", loginRequest.getUsername(), "FAILURE", IpUtils.getClientIp(request), request.getHeader("User-Agent"), "Failed login attempt: " + e.getMessage());
                         throw e;
                 }
         }
@@ -209,7 +211,7 @@ public class AuthController {
                 tokenService.clearUserPresence(username);
 
                 // Log logout
-                auditLogService.log("LOGOUT", username, "User logged out from " + request.getRemoteAddr());
+                auditLogService.logAuth("LOGOUT", username, "SUCCESS", IpUtils.getClientIp(request), request.getHeader("User-Agent"), "User logged out");
 
                 // Xóa Refresh Token Cookie
                 ResponseCookie cookie = ResponseCookie.from("refreshToken", "")

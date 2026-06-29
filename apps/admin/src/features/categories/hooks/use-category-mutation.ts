@@ -13,8 +13,9 @@ export function useCreateCategory() {
     onSuccess: (result) => {
       if (result.success) {
         toast.success('Tạo danh mục thành công');
-        // Làm mới danh sách categories
+        // Invalidate tất cả queries liên quan đến categories
         queryClient.invalidateQueries({ queryKey: ['categories'] });
+        queryClient.invalidateQueries({ queryKey: ['categories', 'parents'] });
       } else {
         // toast.error is handled globally by clientFetch
       }
@@ -30,13 +31,15 @@ export function useUpdateCategory() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, values }: { id: string; values: CategoryFormValues }) => 
+    mutationFn: ({ id, values }: { id: string; values: CategoryFormValues }) =>
       categoryApi.update(id, values),
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       if (result.success) {
         toast.success('Cập nhật danh mục thành công');
-        // Làm mới toàn bộ cache liên quan đến categories
+        // Invalidate tất cả queries liên quan đến categories
         queryClient.invalidateQueries({ queryKey: ['categories'] });
+        queryClient.invalidateQueries({ queryKey: ['category', variables.id] });
+        queryClient.invalidateQueries({ queryKey: ['categories', 'parents'] });
       } else {
         // toast.error is handled globally by clientFetch
       }
@@ -56,14 +59,15 @@ export function useDeleteCategory() {
     onSuccess: (result) => {
       if (result.success) {
         toast.success('Xóa danh mục thành công');
-        // Làm mới danh sách categories
+        // Invalidate tất cả queries liên quan đến categories
         queryClient.invalidateQueries({ queryKey: ['categories'] });
+        queryClient.invalidateQueries({ queryKey: ['categories', 'parents'] });
       } else {
         // toast.error is handled globally by clientFetch
       }
     },
     onError: (error) => {
-      console.error("Mutation error:", error);
+      console.error("Delete error:", error);
       // toast.error is handled globally by clientFetch
     },
   });

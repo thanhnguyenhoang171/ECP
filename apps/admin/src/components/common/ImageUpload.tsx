@@ -4,14 +4,13 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { useDropzone, FileRejection } from 'react-dropzone';
 import Image from 'next/image';
 import { 
-  Upload, 
   X, 
-  ImageIcon,
   Plus,
   Trash2,
   Maximize2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { Button, Card, CardContent } from './index';
 import { 
@@ -21,17 +20,22 @@ import {
   TooltipTrigger 
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, getCloudinaryPublicId } from '@/lib/utils';
+import { useUploadFile, useUploadMultipleFiles, useDeleteFile } from '@/features/files/hooks/use-file-upload';
+import { CloudinaryFile } from '@/features/files/api/file.api';
 
 interface ImageValue {
   file?: File;
   url: string;
+  publicId?: string;
 }
 
 interface ImageUploadProps {
   value?: string | File | (string | File)[]; // Can be URL string, File object, or array of either
   onChange: (value: any) => void;
   onRemove?: (url: string) => void;
+  onUploadComplete?: (file: CloudinaryFile | CloudinaryFile[]) => void;
+  folder?: string;
   multiple?: boolean;
   maxFiles?: number;
   maxSize?: number; // bytes
@@ -51,6 +55,8 @@ export const ImageUpload = ({
   value,
   onChange,
   onRemove,
+  onUploadComplete,
+  folder,
   multiple = false,
   maxFiles = 5,
   maxSize = 5 * 1024 * 1024, // 5MB default
@@ -61,6 +67,11 @@ export const ImageUpload = ({
   variant = 'default'
 }: ImageUploadProps) => {
   const [internalImages, setInternalImages] = useState<ImageValue[]>([]);
+
+  const { mutateAsync: uploadFile, isPending: isUploadingSingle } = useUploadFile();
+  const { mutateAsync: uploadMultiple, isPending: isUploadingMultiple } = useUploadMultipleFiles();
+  const { mutate: deleteFile } = useDeleteFile();
+  const isUploading = isUploadingSingle || isUploadingMultiple;
 
   // Cleanup object URLs when component unmounts or images change
   useEffect(() => {
@@ -81,7 +92,6 @@ export const ImageUpload = ({
       : [];
 
     // 2. Check if internal state is already in sync with external values
-    // We compare strings by value and Files by reference
     const isSync = externalValues.length === internalImages.length && 
       externalValues.every((ext, i) => {
         const int = internalImages[i];
@@ -97,7 +107,6 @@ export const ImageUpload = ({
       if (typeof ext === 'string') {
         return { url: ext };
       } else if (ext instanceof File) {
-        // Reuse existing URL if possible to avoid flickering
         const existing = internalImages.find(img => img.file === ext);
         if (existing) return existing;
         
@@ -112,22 +121,41 @@ export const ImageUpload = ({
     setInternalImages(newInternalImages);
   }, [value]); // Removed internalImages from dependencies to prevent infinite loops
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newImages = acceptedFiles.map(file => ({
-      file,
-      url: URL.createObjectURL(file)
-    }));
-    
-    if (multiple) {
-      const updatedImages = [...internalImages, ...newImages].slice(0, maxFiles);
-      setInternalImages(updatedImages);
-      onChange(updatedImages.map(img => img.file || img.url));
-    } else {
-      const singleImage = newImages[0];
-      setInternalImages([singleImage]);
-      onChange(singleImage.file || singleImage.url);
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+
+    try {
+      if (multiple) {
+        const res = await uploadMultiple({ files: acceptedFiles, folder });
+        if (res.success && res.data) {
+          const newImages = res.data.map(file => ({
+            url: file.secure_url,
+            publicId: file.public_id,
+          }));
+
+          const updatedImages = [...internalImages, ...newImages].slice(0, maxFiles);
+          setInternalImages(updatedImages);
+          onChange(updatedImages.map(img => img.url));
+          if (onUploadComplete) {
+            onUploadComplete(res.data);
+          }
+        }
+      } else {
+        const fileToUpload = acceptedFiles[0];
+        const res = await uploadFile({ file: fileToUpload, folder });
+        if (res.success && res.data) {
+          const secureUrl = res.data.secure_url;
+          setInternalImages([{ url: secureUrl, publicId: res.data.public_id }]);
+          onChange(secureUrl);
+          if (onUploadComplete) {
+            onUploadComplete(res.data);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Upload error in onDrop:", error);
     }
-  }, [multiple, maxFiles, internalImages, onChange]);
+  }, [multiple, maxFiles, internalImages, onChange, uploadFile, uploadMultiple, folder, onUploadComplete]);
 
   const onDropRejected = useCallback((fileRejections: FileRejection[]) => {
     fileRejections.forEach((rejection) => {
@@ -152,11 +180,20 @@ export const ImageUpload = ({
     maxFiles: multiple ? maxFiles - internalImages.length : 1,
     multiple: multiple,
     maxSize,
-    disabled: disabled || (!multiple && internalImages.length > 0) || (multiple && internalImages.length >= maxFiles)
+    disabled: disabled || isUploading || (!multiple && internalImages.length > 0) || (multiple && internalImages.length >= maxFiles)
   });
 
   const handleRemove = (url: string, e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // Lấy publicId đã được lưu trước đó từ response của upload API, hoặc trích xuất từ URL làm phương án dự phòng
+    const item = internalImages.find(img => img.url === url);
+    const publicId = item?.publicId || getCloudinaryPublicId(url);
+    
+    if (publicId) {
+      deleteFile(publicId);
+    }
+
     const updatedImages = internalImages.filter(img => img.url !== url);
     setInternalImages(updatedImages);
     
@@ -259,18 +296,22 @@ export const ImageUpload = ({
         <Card 
           {...getRootProps()}
           className={cn(
-            "aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all duration-300 shadow-none",
+            "aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all duration-300 shadow-none",
             isDragActive 
               ? "border-primary bg-primary/5 scale-[0.98]" 
-              : "border-slate-200 bg-slate-50/50 hover:border-primary hover:bg-white hover:shadow-inner"
+              : "border-slate-200 bg-slate-50/50 hover:border-primary hover:bg-white hover:shadow-inner",
+            (disabled || isUploading) && "opacity-50 cursor-not-allowed pointer-events-none"
           )}
         >
-          <CardContent className="p-0 flex flex-col items-center justify-center gap-2">
+          <CardContent className="p-2 flex flex-col items-center justify-center w-full h-full text-center">
             <input {...getInputProps()} />
-            <div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-primary border border-slate-100">
-              <Plus size={24} />
-            </div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Thêm ảnh</span>
+            {isUploading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-primary mb-1" />
+            ) : (
+              <span className="text-[11px] font-black text-primary uppercase tracking-wider">
+                + Thêm ảnh
+              </span>
+            )}
           </CardContent>
         </Card>
       )}
@@ -292,42 +333,39 @@ export const ImageUpload = ({
               ? "border-primary bg-primary/5 ring-4 ring-primary/10" 
               : isDragReject 
                 ? "border-destructive bg-destructive/5"
-                : "border-slate-200 bg-slate-50/30 hover:border-primary hover:bg-white hover:shadow-xl hover:-translate-y-0.5",
+                : "border-slate-200 bg-slate-50/30 hover:border-primary hover:bg-white hover:shadow-lg hover:-translate-y-0.5",
             disabled && "opacity-50 cursor-not-allowed grayscale",
-            aspectRatio === 'square' ? "aspect-square" : aspectRatio === 'video' ? "aspect-video" : "min-h-[180px]"
+            aspectRatio === 'square' ? "aspect-square" : aspectRatio === 'video' ? "aspect-video" : "min-h-[140px]"
           )}
         >
-          <CardContent className="p-8 flex flex-col items-center justify-center">
+          <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center w-full h-full">
             <input {...getInputProps()} />
             
-            {/* Animated Background Decoration */}
-            <div className="absolute top-0 left-0 w-full h-full opacity-[0.03] pointer-events-none">
-               <div className="absolute top-[-20%] left-[-20%] w-[140%] h-[140%] bg-[radial-gradient(circle,var(--color-primary)_0%,transparent_70%)] animate-pulse" />
-            </div>
-
-            <div className={cn(
-              "h-16 w-16 rounded-[1.5rem] bg-white shadow-xl border border-slate-100 flex items-center justify-center mb-6 text-primary transition-all duration-500",
-              isDragActive ? "scale-110 rotate-12" : "group-hover/container:scale-110 group-hover/container:-rotate-6"
-            )}>
-              <Upload size={32} />
-            </div>
-
-            <div className="space-y-2 relative z-10">
-              <p className="text-base font-black text-slate-700 tracking-tight">
-                {isDragActive ? "Thả ngay để tải lên" : "Tải ảnh lên hệ thống"}
-              </p>
-              <p className="text-sm text-slate-400 font-medium max-w-[220px] mx-auto leading-relaxed">
-                {description} <br/>
-                <span className="text-[10px] opacity-60 uppercase tracking-widest mt-2 block font-bold">JPG, PNG, WebP • Tối đa {(maxSize / (1024 * 1024)).toFixed(0)}MB</span>
-              </p>
-            </div>
+            {isUploading ? (
+              <div className="flex flex-col items-center justify-center space-y-2 p-2">
+                <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                <p className="text-xs font-bold text-slate-500">Đang tải...</p>
+              </div>
+            ) : (
+              <div className="space-y-1 md:space-y-1.5 relative z-10 w-full px-2">
+                <p className="text-xs md:text-sm font-bold text-slate-700 tracking-tight line-clamp-1">
+                  {isDragActive ? "Thả ngay để tải lên" : "Tải ảnh lên hệ thống"}
+                </p>
+                <p className="text-[10px] md:text-xs text-slate-400 font-medium max-w-[180px] mx-auto leading-normal line-clamp-2">
+                  {description}
+                </p>
+                <span className="inline-block text-[9px] font-bold text-slate-400 bg-slate-100 border border-slate-200/60 rounded px-1.5 py-0.5 mt-0.5 uppercase tracking-wider">
+                  Tối đa {(maxSize / (1024 * 1024)).toFixed(0)}MB
+                </span>
+              </div>
+            )}
 
             {/* Drag rejection indicator */}
             {isDragReject && (
               <div className="absolute inset-0 bg-destructive/20 backdrop-blur-[2px] flex items-center justify-center animate-in fade-in">
-                <div className="bg-white p-4 rounded-2xl shadow-2xl flex items-center gap-3">
-                  <AlertCircle className="text-destructive h-6 w-6" />
-                  <p className="text-destructive font-black text-sm">Định dạng ảnh không hỗ trợ!</p>
+                <div className="bg-white p-2.5 rounded-xl shadow-xl flex items-center gap-2 max-w-[90%]">
+                  <AlertCircle className="text-destructive h-4 w-4 shrink-0" />
+                  <p className="text-destructive font-bold text-[10px] leading-tight">Định dạng không hỗ trợ!</p>
                 </div>
               </div>
             )}
@@ -341,19 +379,27 @@ export const ImageUpload = ({
           {...getRootProps()}
           className="border-2 border-dashed border-slate-200 rounded-2xl transition-all duration-300 cursor-pointer group/empty shadow-none"
         >
-          <CardContent className="p-12 flex flex-col items-center justify-center bg-slate-50/50 hover:border-primary hover:bg-white hover:shadow-xl transition-all">
+          <CardContent className="p-6 md:p-8 flex flex-col items-center justify-center bg-slate-50/50 hover:border-primary hover:bg-white hover:shadow-lg transition-all w-full min-h-[140px]">
             <input {...getInputProps()} />
-            <div className="h-20 w-20 rounded-[2.5rem] bg-white shadow-xl flex items-center justify-center mb-6 text-slate-300 border border-slate-50 group-hover/empty:text-primary transition-colors duration-500">
-              <ImageIcon size={40} />
-            </div>
-            <p className="text-base font-bold text-slate-600 mb-2">Bộ sưu tập ảnh đang trống</p>
-            <p className="text-xs text-slate-400 font-medium">{description}</p>
-            <Button type="button" variant="outline" size="sm" className="mt-6 gap-2 border-slate-200 bg-white hover:bg-primary hover:text-white hover:border-primary transition-all rounded-xl px-6">
-              <Plus size={16} /> Chọn ảnh ngay
-            </Button>
+            
+            {isUploading ? (
+              <div className="flex flex-col items-center justify-center space-y-3">
+                <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                <p className="text-sm font-bold text-slate-500">Đang tải ảnh lên Cloudinary...</p>
+              </div>
+            ) : (
+              <div className="text-center space-y-2">
+                <p className="text-sm md:text-base font-bold text-slate-700">Bộ sưu tập ảnh đang trống</p>
+                <p className="text-xs text-slate-400 font-medium">{description}</p>
+                <Button type="button" variant="outline" size="sm" className="mt-4 gap-2 border-slate-200 bg-white hover:bg-primary hover:text-white hover:border-primary transition-all rounded-xl px-5 py-1.5 text-xs font-bold shadow-sm">
+                  Chọn ảnh ngay
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
     </div>
   );
 };
+

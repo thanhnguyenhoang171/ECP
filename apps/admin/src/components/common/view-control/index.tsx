@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Search, Loader2, Download, Filter, ArrowUpDown, Plus, Upload, Edit, Trash2 } from 'lucide-react';
+import { Search, Loader2, Download, Filter, ArrowUpDown, Plus, Upload, Edit, Trash2, Eye } from 'lucide-react';
 import { Button, Input } from '@/components/common';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -129,6 +129,19 @@ export const DeleteActionButton = ({ onClick, disabled }: { onClick: () => void;
         </Button>
       </TooltipTrigger>
       <TooltipContent className='bg-red-600 text-white'>Xoá</TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
+
+export const ViewActionButton = ({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) => (
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant='ghost' size='icon' onClick={onClick} className='h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50' disabled={disabled}>
+          <Eye className='h-4 w-4' />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent className='bg-blue-600 text-white'>Xem chi tiết</TooltipContent>
     </Tooltip>
   </TooltipProvider>
 );
