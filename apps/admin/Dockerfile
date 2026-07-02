@@ -6,8 +6,8 @@ FROM base AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Khai báo ARG để nhận biến từ GitHub Actions truyền vào
-ARG NEXT_PUBLIC_API_URL
+# Khai báo ARG để nhận biến từ GitHub Actions truyền vào, mặc định là placeholder {{NEXT_PUBLIC_API_URL}}
+ARG NEXT_PUBLIC_API_URL={{NEXT_PUBLIC_API_URL}}
 # Đặt ENV để Next.js nhìn thấy và nhúng vào mã nguồn lúc chạy lệnh build
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
@@ -34,7 +34,7 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy tệp thực thi từ stage builder
-COPY --from=builder /app/apps/admin/public ./apps/admin/public
+COPY --from=builder --chown=nextjs:nodejs /app/apps/admin/public ./apps/admin/public
 
 # Chế độ standalone tối ưu
 COPY --from=builder --chown=nextjs:nodejs /app/apps/admin/.next/standalone ./
@@ -44,4 +44,4 @@ USER nextjs
 
 EXPOSE 80
 
-CMD ["node", "apps/admin/server.js"]
+CMD ["sh", "-c", "find /app -type f \\( -name \"*.js\" -o -name \"*.html\" -o -name \"*.json\" \\) -exec sed -i \"s|{{NEXT_PUBLIC_API_URL}}|$NEXT_PUBLIC_API_URL|g\" {} + && node apps/admin/server.js"]
