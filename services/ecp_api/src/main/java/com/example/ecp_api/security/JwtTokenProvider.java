@@ -22,7 +22,17 @@ public class JwtTokenProvider {
     private final JwtProperties jwtProperties;
 
     private SecretKey key() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.getSecret()));
+        byte[] keyBytes;
+        try {
+            keyBytes = Decoders.BASE64.decode(jwtProperties.getSecret());
+        } catch (IllegalArgumentException e) {
+            try {
+                keyBytes = Decoders.BASE64URL.decode(jwtProperties.getSecret());
+            } catch (IllegalArgumentException ex) {
+                keyBytes = jwtProperties.getSecret().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            }
+        }
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generateAccessToken(Authentication authentication) {
