@@ -112,7 +112,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false # Quan trọng: Tắt cái này để sửa lỗi 'unknown blob'
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_API_URL={{NEXT_PUBLIC_API_URL}}
 
   # ==========================================
   # JOB 3: DEPLOY TRỰC TIẾP VỀ LAPTOP ASUS
@@ -150,6 +150,11 @@ jobs:
           # Secrets cho Redis
           SPRING_REDIS_HOST: ${{ secrets.SPRING_REDIS_HOST }}
           SPRING_REDIS_PORT: ${{ secrets.SPRING_REDIS_PORT }}
+          # Secrets cho JWT & Cloudinary
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
           # Secrets cho Frontend
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
@@ -188,6 +193,10 @@ jobs:
           echo "MONGO_ROOT_PASSWORD=$MONGO_ROOT_PASSWORD" >> .env
           echo "SPRING_REDIS_HOST=$SPRING_REDIS_HOST" >> .env
           echo "SPRING_REDIS_PORT=$SPRING_REDIS_PORT" >> .env
+          echo "JWT_SECRET=$JWT_SECRET" >> .env
+          echo "CLOUDINARY_CLOUD_NAME=$CLOUDINARY_CLOUD_NAME" >> .env
+          echo "CLOUDINARY_API_KEY=$CLOUDINARY_API_KEY" >> .env
+          echo "CLOUDINARY_API_SECRET=$CLOUDINARY_API_SECRET" >> .env
           echo "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" >> .env
 
           # Đăng nhập để có quyền kéo image private
