@@ -111,7 +111,6 @@ else
     fi
 
     if command -v "$MYSQLDUMP_CMD" &> /dev/null || [ -f "$MYSQLDUMP_CMD" ]; then
-        # Replace 'mysql' host with '127.0.0.1' if running outside container
         [ "${MYSQL_HOST}" = "mysql" ] && MYSQL_HOST="127.0.0.1"
         "$MYSQLDUMP_CMD" -h "${MYSQL_HOST}" -P "${MYSQL_PORT}" -u "${MYSQL_USER}" -p"${MYSQL_PASS}" --single-transaction --quick --lock-tables=false "${MYSQL_DB}" > "${MYSQL_OUT_FILE}" 2>/dev/null
     fi
@@ -127,6 +126,10 @@ fi
 log_info "2/3. Dumping MongoDB Database..."
 
 MONGO_OUT_DIR="${TEMP_WORK_DIR}/mongo_dump"
+
+# Mask password in MongoDB URI for log security (e.g. mongodb://user:pass@host -> mongodb://user:***@host)
+MASKED_MONGO_URI=$(echo "${CLEAN_MONGO_URI}" | sed -E 's/(mongodb(\+srv)?:\/\/[^:]+:)[^@]+(@.*)/\1***\3/')
+log_info "MongoDB URI: ${MASKED_MONGO_URI}"
 
 # Check if MongoDB is running inside a Docker container
 if command -v docker &>/dev/null && docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${MONGO_CONTAINER}$"; then
@@ -145,7 +148,6 @@ else
     fi
 
     if command -v "$MONGODUMP_CMD" &> /dev/null || [ -f "$MONGODUMP_CMD" ]; then
-        # Replace 'mongodb' host with '127.0.0.1' if running outside container
         CLEAN_MONGO_URI=$(echo "${CLEAN_MONGO_URI}" | sed -e 's/@mongodb:/@127.0.0.1:/' -e 's/\/\/mongodb:/\/\/127.0.0.1:/')
         "$MONGODUMP_CMD" --uri="${CLEAN_MONGO_URI}" --out="${MONGO_OUT_DIR}" > /dev/null 2>&1
     fi

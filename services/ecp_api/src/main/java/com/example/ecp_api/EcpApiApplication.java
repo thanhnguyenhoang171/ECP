@@ -64,8 +64,12 @@ public class EcpApiApplication {
 				protocol, hostAddress, serverPort, contextPath,
 				protocol, serverPort, contextPath,
 				activeProfiles,
-				configFiles.toString(),
-				env.getProperty("spring.datasource.url"),
-				env.getProperty("spring.data.mongodb.uri"));
+				maskUri(env.getProperty("spring.datasource.url")),
+				maskUri(env.getProperty("spring.data.mongodb.uri")));
+	}
+
+	private static String maskUri(String uri) {
+		if (uri == null) return "N/A";
+		return uri.replaceAll("(?i)(:[^/@:]+)@", ":***@");
 	}
 }
