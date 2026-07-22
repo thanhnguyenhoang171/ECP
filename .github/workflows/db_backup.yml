@@ -33,5 +33,5 @@ jobs:
           NEXTCLOUD_APP_PASS: ${{ secrets.NEXTCLOUD_APP_PASS }}
           NEXTCLOUD_TARGET_DIR: ${{ vars.NEXTCLOUD_TARGET_DIR || 'backups' }}
         run: |
-          chmod +x ./scripts/backup_db.sh
-          ./scripts/backup_db.sh
+          chmod +x ./services/ecp_api/scripts/backup_db.sh
+          ./services/ecp_api/scripts/backup_db.sh
