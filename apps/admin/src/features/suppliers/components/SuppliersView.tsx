@@ -130,7 +130,6 @@ export default function SuppliersView() {
         supplierId={selectedSupplierId}
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
-        onEdit={handleEdit}
       />
 
       <DeleteConfirmDialog

@@ -47,7 +47,7 @@ MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
 MYSQL_PORT="${MYSQL_PORT:-3306}"
 MYSQL_USER="${SPRING_DATASOURCE_USERNAME:-${MYSQL_USER:-root}}"
 MYSQL_PASS="${SPRING_DATASOURCE_PASSWORD:-${MYSQL_PASS:-}}"
-MYSQL_DB="${MYSQL_DB:-ecp_local}"
+MYSQL_DB="${MYSQL_DB:-ecp_db}"
 
 # --- 2. MONGODB CONFIGURATION ---
 RAW_MONGO_URI="${SPRING_MONGODB_URI:-${MONGO_URI:-mongodb://localhost:27017/ecp_mongo}}"
@@ -92,11 +92,12 @@ mkdir -p "${TEMP_WORK_DIR}"
 log_info "1/3. Dumping MySQL Database (${MYSQL_DB})..."
 
 MYSQL_OUT_FILE="${TEMP_WORK_DIR}/mysql_dump.sql"
+MYSQL_ERR_FILE="${TEMP_WORK_DIR}/mysql_err.log"
 
 # Check if MySQL is running inside a Docker container
 if command -v docker &>/dev/null && docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${MYSQL_CONTAINER}$"; then
     log_info "Detected Docker container '${MYSQL_CONTAINER}'. Executing mysqldump via Docker..."
-    docker exec "${MYSQL_CONTAINER}" mysqldump -u "${MYSQL_USER}" -p"${MYSQL_PASS}" --single-transaction --quick --lock-tables=false "${MYSQL_DB}" > "${MYSQL_OUT_FILE}" 2>/dev/null
+    docker exec "${MYSQL_CONTAINER}" mysqldump -u "${MYSQL_USER}" -p"${MYSQL_PASS}" --single-transaction --quick --lock-tables=false "${MYSQL_DB}" > "${MYSQL_OUT_FILE}" 2>"${MYSQL_ERR_FILE}"
 else
     # Fallback to local mysqldump
     MYSQLDUMP_CMD="mysqldump"
@@ -112,29 +113,30 @@ else
 
     if command -v "$MYSQLDUMP_CMD" &> /dev/null || [ -f "$MYSQLDUMP_CMD" ]; then
         [ "${MYSQL_HOST}" = "mysql" ] && MYSQL_HOST="127.0.0.1"
-        "$MYSQLDUMP_CMD" -h "${MYSQL_HOST}" -P "${MYSQL_PORT}" -u "${MYSQL_USER}" -p"${MYSQL_PASS}" --single-transaction --quick --lock-tables=false "${MYSQL_DB}" > "${MYSQL_OUT_FILE}" 2>/dev/null
+        "$MYSQLDUMP_CMD" -h "${MYSQL_HOST}" -P "${MYSQL_PORT}" -u "${MYSQL_USER}" -p"${MYSQL_PASS}" --single-transaction --quick --lock-tables=false "${MYSQL_DB}" > "${MYSQL_OUT_FILE}" 2>"${MYSQL_ERR_FILE}"
     fi
 fi
 
 if [ -s "${MYSQL_OUT_FILE}" ]; then
     log_success "MySQL database dumped successfully!"
 else
-    log_warn "MySQL dump failed or returned empty data."
+    ERR_MSG=$(cat "${MYSQL_ERR_FILE}" 2>/dev/null | tr '\n' ' ')
+    log_warn "MySQL dump failed or returned empty data. Error details: ${ERR_MSG:-'No error output'}"
 fi
 
 # --- STEP 4: DUMP MONGODB DATABASE ---
 log_info "2/3. Dumping MongoDB Database..."
 
 MONGO_OUT_DIR="${TEMP_WORK_DIR}/mongo_dump"
+MONGO_ERR_FILE="${TEMP_WORK_DIR}/mongo_err.log"
 
-# Mask password in MongoDB URI for log security (e.g. mongodb://user:pass@host -> mongodb://user:***@host)
 MASKED_MONGO_URI=$(echo "${CLEAN_MONGO_URI}" | sed -E 's/(mongodb(\+srv)?:\/\/[^:]+:)[^@]+(@.*)/\1***\3/')
 log_info "MongoDB URI: ${MASKED_MONGO_URI}"
 
 # Check if MongoDB is running inside a Docker container
 if command -v docker &>/dev/null && docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${MONGO_CONTAINER}$"; then
     log_info "Detected Docker container '${MONGO_CONTAINER}'. Executing mongodump via Docker..."
-    docker exec "${MONGO_CONTAINER}" mongodump --out=/tmp/mongo_dump >/dev/null 2>&1
+    docker exec "${MONGO_CONTAINER}" mongodump --out=/tmp/mongo_dump >"${MONGO_ERR_FILE}" 2>&1
     docker cp "${MONGO_CONTAINER}:/tmp/mongo_dump" "${TEMP_WORK_DIR}/" 2>/dev/null
     docker exec "${MONGO_CONTAINER}" rm -rf /tmp/mongo_dump 2>/dev/null
 else
@@ -149,14 +151,15 @@ else
 
     if command -v "$MONGODUMP_CMD" &> /dev/null || [ -f "$MONGODUMP_CMD" ]; then
         CLEAN_MONGO_URI=$(echo "${CLEAN_MONGO_URI}" | sed -e 's/@mongodb:/@127.0.0.1:/' -e 's/\/\/mongodb:/\/\/127.0.0.1:/')
-        "$MONGODUMP_CMD" --uri="${CLEAN_MONGO_URI}" --out="${MONGO_OUT_DIR}" > /dev/null 2>&1
+        "$MONGODUMP_CMD" --uri="${CLEAN_MONGO_URI}" --out="${MONGO_OUT_DIR}" >"${MONGO_ERR_FILE}" 2>&1
     fi
 fi
 
 if [ -d "${MONGO_OUT_DIR}" ] && [ "$(ls -A "${MONGO_OUT_DIR}")" ]; then
     log_success "MongoDB database dumped successfully!"
 else
-    log_warn "MongoDB dump empty or failed."
+    ERR_MSG=$(cat "${MONGO_ERR_FILE}" 2>/dev/null | tr '\n' ' ')
+    log_warn "MongoDB dump empty or failed. Error details: ${ERR_MSG:-'No error output'}"
 fi
 
 # --- STEP 5: COMPRESS ALL DUMP DATA INTO A SINGLE TAR.GZ ARCHIVE ---
@@ -177,7 +180,8 @@ log_success "Archive created successfully: ${TAR_FILENAME} (${FILE_SIZE})"
 WEBDAV_URL="https://${NEXTCLOUD_DOMAIN}/remote.php/dav/files/${NEXTCLOUD_USER}/${NEXTCLOUD_TARGET_DIR}/${TAR_FILENAME}"
 
 log_info "3/3. Uploading backup archive to Nextcloud WebDAV..."
-log_info "Target URL: https://${NEXTCLOUD_DOMAIN}/remote.php/dav/files/${NEXTCLOUD_USER}/${NEXTCLOUD_TARGET_DIR}/${TAR_FILENAME}"
+MASKED_TARGET_URL=$(echo "${WEBDAV_URL}" | sed -E 's/(https?:\/\/[^\/]+\/remote\.php\/dav\/files\/[^\/]+\/)[^\/]+/\1***/')
+log_info "Target URL: ${WEBDAV_URL}"
 
 HTTP_CODE=$(curl -s -o /tmp/webdav_curl_resp.txt -w "%{http_code}" \
     -u "${NEXTCLOUD_USER}:${NEXTCLOUD_APP_PASS}" \

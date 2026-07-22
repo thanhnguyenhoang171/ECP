@@ -7,4 +7,5 @@ import org.springframework.data.domain.Pageable;
 
 public interface SkuService {
     PageResponse<SkuResponse> getAllSkus(SkuFilterRequest filter, Pageable pageable);
+    SkuResponse getSkuById(String skuId);
 }

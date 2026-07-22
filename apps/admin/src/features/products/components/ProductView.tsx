@@ -30,8 +30,10 @@ import {
   SortPopover,
   EditActionButton,
   DeleteActionButton,
+  ViewActionButton,
   DeleteConfirmDialog,
 } from '@/components/common/view-control';
+import ProductDetailDialog from './ProductDetailDialog';
 
 import { Product } from '../types/product.interface';
 import { Category } from '@/features/categories/types/category.interface';
@@ -94,6 +96,13 @@ export default function ProductView({
   // States
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [selectedDetailProductId, setSelectedDetailProductId] = useState<string | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  const handleViewDetail = (product: Product) => {
+    setSelectedDetailProductId(product.id);
+    setIsDetailOpen(true);
+  };
 
   const { data: detailData, isFetching: isDetailFetching } = useProductDetail(editingProduct?.id);
   const activeProduct = detailData || editingProduct;
@@ -199,6 +208,7 @@ export default function ProductView({
       align: 'right',
       cell: (product) => (
         <div className='flex justify-end gap-1'>
+          <ViewActionButton onClick={() => handleViewDetail(product)} disabled={isExporting} />
           <EditActionButton onClick={() => handleEdit(product)} disabled={isExporting} />
           <DeleteActionButton onClick={() => setDeleteConfirmId(product.id)} disabled={isExporting} />
         </div>
@@ -350,6 +360,13 @@ export default function ProductView({
           )}
         </DialogContent>
       </Dialog>
+
+      <ProductDetailDialog 
+        productId={selectedDetailProductId}
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        categories={categoriesList}
+      />
 
       <DeleteConfirmDialog
         isOpen={!!deleteConfirmId}
