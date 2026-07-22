@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -52,4 +53,7 @@ public class PurchaseOrderResponse {
 
     @Schema(description = "Timestamp of the last update to the purchase order")
     private LocalDateTime updatedAt;
+
+    @Schema(description = "List of items in the purchase order")
+    private List<PurchaseOrderItemResponse> items;
 }

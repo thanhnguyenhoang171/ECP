@@ -26,23 +26,26 @@ public class PaginationUtils {
      */
     public static Sort buildSort(Sort originalSort, Sort.Order... stableOrders) {
         List<Sort.Order> orders = new ArrayList<>();
-        
-        // Collect names of mandatory fields to avoid duplicates
-        Set<String> stableProperties = Arrays.stream(stableOrders)
-                .map(Sort.Order::getProperty)
-                .collect(Collectors.toSet());
+        java.util.Set<String> addedProperties = new java.util.HashSet<>();
 
-        if (originalSort.isSorted()) {
+        if (originalSort != null && originalSort.isSorted()) {
             for (Sort.Order order : originalSort) {
-                // Defensive check: Only add if property name is not empty and not in the stable set
-                if (StringUtils.hasText(order.getProperty()) && !stableProperties.contains(order.getProperty())) {
+                if (StringUtils.hasText(order.getProperty())) {
                     orders.add(order);
+                    addedProperties.add(order.getProperty());
                 }
             }
         }
 
-        // Add mandatory stable tie-breakers
-        orders.addAll(Arrays.asList(stableOrders));
+        if (stableOrders != null) {
+            for (Sort.Order stableOrder : stableOrders) {
+                if (stableOrder != null && StringUtils.hasText(stableOrder.getProperty()) 
+                        && !addedProperties.contains(stableOrder.getProperty())) {
+                    orders.add(stableOrder);
+                    addedProperties.add(stableOrder.getProperty());
+                }
+            }
+        }
 
         return Sort.by(orders);
     }

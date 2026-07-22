@@ -34,13 +34,9 @@ import { useHotkeys } from '@/hooks/use-hotkeys';
 import { getSortOptions } from '@/types';
 import { cn } from '@/lib/utils';
 
-interface SkusViewProps {
-  initialData: PageResponse<Sku>;
-}
+import { useSkus } from '../hooks/use-skus';
 
-export default function SkusView({
-  initialData,
-}: SkusViewProps) {
+export default function SkusView() {
   const {
     sort,
     searchParams,
@@ -50,28 +46,25 @@ export default function SkusView({
     size,
     setPage,
     setSize,
-  } = useViewParams('sku,asc');
+  } = useViewParams('skuCode,asc');
 
   const skuParam = searchParams.get('sku') || '';
   const activeParam = searchParams.get('active');
 
-  // local state cho dữ liệu demo
-  const [skus, setSkus] = useState<Sku[]>(initialData.data);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  
-  // Sử dụng useMemo để tính toán filteredSkus thay vì useEffect + useState
-  const filteredSkus = React.useMemo(() => {
-    let result = [...skus];
-    if (skuParam) result = result.filter(s => s.sku.toLowerCase().includes(skuParam.toLowerCase()));
-    if (activeParam) {
-      const active = activeParam === 'true';
-      result = result.filter(s => s.active === active);
-    }
-    return result;
-  }, [skuParam, activeParam, skus]);
+  const { data: skusResponse, isFetching, refetch } = useSkus({
+    page,
+    size,
+    sort,
+    search: skuParam,
+    isActive: activeParam ? activeParam === 'true' : undefined,
+  });
 
-  const totalPages = Math.max(1, Math.ceil(filteredSkus.length / size));
-  const paginatedSkus = filteredSkus.slice((page - 1) * size, page * size);
+  const apiSkus = skusResponse?.data || [];
+  const pagination = skusResponse?.pagination;
+  const totalPages = pagination?.totalPages || 1;
+  const totalItems = pagination?.totalElements || 0;
+
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useDebounceSearch(skuParam, (val) => updateUrl({ sku: val, page: 1 }));
 
@@ -96,8 +89,17 @@ export default function SkusView({
   const columns: ColumnDef<Sku>[] = [
     {
       header: 'Mã SKU',
-      accessorKey: 'sku',
+      accessorKey: 'skuCode',
       className: 'font-mono text-[11px] font-bold text-blue-600',
+    },
+    {
+      header: 'Mã vạch',
+      cell: (sku) => (
+        <div className="flex flex-col gap-0.5">
+          <span className="text-sm font-medium">{sku.barcode || 'N/A'}</span>
+          {sku.barcodeType && <span className="text-[10px] text-slate-500">{sku.barcodeType}</span>}
+        </div>
+      )
     },
     {
       header: 'Sản phẩm',
@@ -105,31 +107,9 @@ export default function SkusView({
       className: 'text-sm font-medium',
     },
     {
-      header: 'Biến thể / Thuộc tính',
-      cell: (sku) => (
-        <div className='flex flex-wrap gap-1'>
-          {Object.entries(sku.attributes).map(([key, value]) => (
-            <Badge key={key} variant="outline" className="text-[10px] font-normal border-slate-200 text-slate-500">
-              {key}: {value}
-            </Badge>
-          ))}
-        </div>
-      ),
-    },
-    {
-      header: 'Giá bán',
-      align: 'right',
-      cell: (sku) => formatCurrency(sku.price),
-      className: 'text-sm font-bold',
-    },
-    {
-      header: 'Tồn kho',
-      align: 'center',
-      cell: (sku) => (
-        <Badge variant='secondary' className='text-[10px] py-0.5 px-2 bg-slate-100 text-slate-600 border-none whitespace-nowrap'>
-          {sku.stock}
-        </Badge>
-      ),
+      header: 'Biến thể',
+      accessorKey: 'variantName',
+      className: 'text-sm',
     },
     {
       header: 'Trạng thái',
@@ -203,11 +183,11 @@ export default function SkusView({
           </>
         }
         footer={
-          filteredSkus.length > 0 && (
+          totalItems > 0 && (
             <NextPagination 
               currentPage={page} 
               totalPages={totalPages} 
-              totalItems={filteredSkus.length} 
+              totalItems={totalItems} 
               itemsPerPage={size} 
               onItemsPerPageChange={setSize} 
               onPageChange={setPage} 
@@ -218,7 +198,8 @@ export default function SkusView({
       >
         <DataTable
           columns={columns}
-          data={paginatedSkus}
+          data={apiSkus}
+          isLoading={isFetching}
           emptyState={{
             title: 'Không tìm thấy mã SKU',
             description: 'Vui lòng cấu hình sản phẩm để hệ thống tự động sinh mã SKU.',
@@ -231,7 +212,7 @@ export default function SkusView({
       <DeleteConfirmDialog 
         isOpen={!!deleteConfirmId} 
         onClose={() => setDeleteConfirmId(null)} 
-        onConfirm={() => { setSkus(skus.filter(s => s.id !== deleteConfirmId)); setDeleteConfirmId(null); toast.success('Đã xóa SKU (Demo)'); }} 
+        onConfirm={() => { setDeleteConfirmId(null); toast.success('Tính năng xóa đang được phát triển (Demo)'); refetch(); }} 
         description="Bạn có chắc chắn muốn xóa mã SKU này? (Tính năng Demo)"
       />
     </div>

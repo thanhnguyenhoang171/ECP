@@ -19,6 +19,7 @@ public interface CategoryRepository extends MongoRepository<Category, String> {
     boolean existsByParentIdAndDeletedFalse(String parentId);
     Page<Category> findByDeletedFalse(Pageable pageable);
     List<Category> findByParentIdIsNullAndDeletedFalse(Sort sort);
+    List<Category> findByParentIdIsNullAndActiveTrueAndDeletedFalse(Sort sort);
     
     @org.springframework.data.mongodb.repository.Query("{ 'is_deleted' : false }")
     Stream<Category> findAllByDeletedFalse();

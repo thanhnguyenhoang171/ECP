@@ -1,5 +1,7 @@
 package com.example.ecp_api.entity.mongodb;
 
+import com.example.ecp_api.entity.mongodb.embedded.ProductImage;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -48,11 +50,7 @@ public class Category {
     @Builder.Default
     private boolean deleted = false;
 
-    @Field("image_url")
-    private String imageUrl;
-
-    @Field("image_public_id")
-    private String imagePublicId;
+    private ProductImage image;
 
     @Field("order")
     private Integer order;

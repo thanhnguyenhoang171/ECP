@@ -13,4 +13,6 @@ public class AuditLogFilterRequest {
     private String keyword;
     private String action;
     private String username;
+    private String logType;
+    private String module;
 }

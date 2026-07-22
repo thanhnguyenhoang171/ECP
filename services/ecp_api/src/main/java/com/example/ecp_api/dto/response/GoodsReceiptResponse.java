@@ -46,4 +46,7 @@ public class GoodsReceiptResponse {
 
     @Schema(description = "Receiving date")
     private LocalDateTime receivedAt;
+
+    @Schema(description = "List of items in the goods receipt")
+    private java.util.List<GoodsReceiptItemResponse> items;
 }

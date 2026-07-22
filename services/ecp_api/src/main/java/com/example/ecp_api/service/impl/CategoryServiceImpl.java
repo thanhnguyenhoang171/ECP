@@ -232,7 +232,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public List<CategoryResponse> getParentCategories() {
         Sort sort = Sort.by(Sort.Order.asc("order"), Sort.Order.desc("createdAt"));
-        return categoryRepository.findByParentIdIsNullAndDeletedFalse(sort).stream()
+        return categoryRepository.findByParentIdIsNullAndActiveTrueAndDeletedFalse(sort).stream()
                 .map(categoryMapper::toResponse)
                 .toList();
     }
@@ -249,29 +249,38 @@ public class CategoryServiceImpl implements CategoryService {
                     .collect(java.util.stream.Collectors.toMap(Category::getId, Category::getSlug));
 
             AtomicInteger index = new AtomicInteger(1);
-            List<CategoryExcelDto> excelDtos = allCategories.stream()
+            List<com.example.ecp_api.dto.excel.CategoryExportExcelDto> excelDtos = allCategories.stream()
                     .map(cat -> {
                         String parentSlug = "";
                         if (StringUtils.hasText(cat.getParentId())) {
                             parentSlug = idToSlugMap.getOrDefault(cat.getParentId(), "");
                         }
-                        return CategoryExcelDto.builder()
+                        java.net.URL parsedImageUrl = null;
+                        try {
+                            if (cat.getImage() != null && StringUtils.hasText(cat.getImage().getUrl())) {
+                                parsedImageUrl = new java.net.URL(cat.getImage().getUrl());
+                            }
+                        } catch (Exception ignored) {
+                        }
+
+                        return com.example.ecp_api.dto.excel.CategoryExportExcelDto.builder()
                                 .index(index.getAndIncrement())
                                 .id(cat.getId())
                                 .name(cat.getName())
                                 .description(cat.getDescription())
+                                .imageUrl(parsedImageUrl)
                                 .slug(cat.getSlug())
                                 .parentSlug(parentSlug)
                                 .level(cat.getLevel())
                                 .order(cat.getOrder())
-                                .status(cat.isActive())
+                                .status(cat.isActive() ? "Hoạt động" : "Khóa")
                                 .createdAt(DateTimeUtils.format(cat.getCreatedAt()))
                                 .updatedAt(DateTimeUtils.format(cat.getUpdatedAt()))
                                 .build();
                     })
                     .toList();
 
-            EasyExcel.write(outputStream, CategoryExcelDto.class)
+            EasyExcel.write(outputStream, com.example.ecp_api.dto.excel.CategoryExportExcelDto.class)
                     .sheet("Danh sách loại hàng hoá")
                     .doWrite(excelDtos);
         }
@@ -291,9 +300,6 @@ public class CategoryServiceImpl implements CategoryService {
                         .parentSlug("")
                         .level(1)
                         .order(1)
-                        .status(true)
-                        .createdAt("03/05/2026 19:15:01")
-                        .updatedAt("03/05/2026 19:15:01")
                         .build(),
                 CategoryExcelDto.builder()
                         .index(2)
@@ -304,9 +310,6 @@ public class CategoryServiceImpl implements CategoryService {
                         .parentSlug("ao-thun-nam") // Dùng Slug của danh mục cha
                         .level(2)
                         .order(2)
-                        .status(true)
-                        .createdAt("03/05/2026 19:15:01")
-                        .updatedAt("03/05/2026 19:15:01")
                         .build()
         );
 

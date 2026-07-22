@@ -3,14 +3,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { ProductFormValues } from '../schemas/product.schema';
+import { productApi } from '../api/product.api';
 
 export function useCreateProduct() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (values: ProductFormValues) => {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      return { ...values, id: crypto.randomUUID() };
+      return productApi.create(values);
     },
     onSuccess: () => {
       toast.success('Tạo sản phẩm thành công');
@@ -27,8 +27,7 @@ export function useUpdateProduct() {
 
   return useMutation({
     mutationFn: async ({ id, values }: { id: string; values: ProductFormValues }) => {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      return { ...values, id };
+      return productApi.update(id, values);
     },
     onSuccess: () => {
       toast.success('Cập nhật sản phẩm thành công');

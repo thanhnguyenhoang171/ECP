@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotBlank;
 
 @Data
 @NoArgsConstructor
@@ -26,4 +27,33 @@ public class GoodsReceiptRequest {
 
     @Schema(description = "Note or description for the receipt", example = "Nhập kho đợt 1 cho đơn hàng iPhone 15")
     private String note;
+
+    @jakarta.validation.Valid
+    @jakarta.validation.constraints.NotEmpty(message = "Phải có ít nhất 1 sản phẩm")
+    @Schema(description = "Danh sách sản phẩm nhập kho")
+    private java.util.List<GoodsReceiptItemDto> items;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Schema(description = "Chi tiết sản phẩm nhập kho")
+    public static class GoodsReceiptItemDto {
+        @NotBlank(message = "SKU ID is required")
+        private String skuId;
+
+        @Schema(description = "Batch code for tracking")
+        private String batchCode;
+
+        private java.time.LocalDateTime manufactureDate;
+        private java.time.LocalDateTime expiryDate;
+
+        @jakarta.validation.constraints.NotNull(message = "Quantity is required")
+        @jakarta.validation.constraints.Min(value = 1)
+        private Integer quantity;
+
+        @jakarta.validation.constraints.NotNull(message = "Unit cost is required")
+        @jakarta.validation.constraints.DecimalMin(value = "0.0", inclusive = true)
+        private java.math.BigDecimal unitCost;
+    }
 }

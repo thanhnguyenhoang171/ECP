@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import com.example.ecp_api.entity.mongodb.embedded.ProductImage;
 import java.util.List;
 import java.util.Map;
 
@@ -39,11 +40,11 @@ public class ProductRequest {
     @Schema(description = "Detailed product description", example = "The latest iPhone with Titan frame...")
     private String description;
 
-    @Schema(description = "Main product image URL", example = "https://example.com/thumb.jpg")
-    private String thumbnail;
+    @Schema(description = "Main product image")
+    private ProductImage thumbnail;
 
-    @Schema(description = "List of product gallery image URLs")
-    private List<String> images;
+    @Schema(description = "List of product gallery images")
+    private List<ProductImage> images;
 
     @Schema(description = "Dynamic specifications (Map of Key-Value pairs)", example = "{\"RAM\": \"12GB\", \"Chip\": \"A17 Pro\"}")
     private Map<String, Object> specifications;
@@ -74,11 +75,17 @@ public class ProductRequest {
         @Schema(description = "Price of this variant", example = "32990000", requiredMode = Schema.RequiredMode.REQUIRED)
         private BigDecimal price;
 
+        @Schema(description = "Cost price of this variant", example = "25000000")
+        private BigDecimal costPrice;
+
+        @Schema(description = "Compare at price (original price before discount)", example = "35000000")
+        private BigDecimal compareAtPrice;
+
         @Schema(description = "Variant specific attributes (Color, Size, etc.)", example = "{\"Color\": \"Titanium Grey\", \"Storage\": \"256GB\"}")
         private Map<String, Object> attributes;
 
-        @Schema(description = "Variant specific image URL", example = "https://example.com/variant-grey.jpg")
-        private String image;
+        @Schema(description = "Variant specific image")
+        private ProductImage image;
 
         @Schema(description = "Active status of this variant", example = "true")
         private Boolean isActive;

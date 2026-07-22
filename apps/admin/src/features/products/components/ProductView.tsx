@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Package } from 'lucide-react';
+import { Package, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import {
@@ -42,6 +42,8 @@ import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { getSortOptions } from '@/types';
 import { cn } from '@/lib/utils';
+import { useProducts, useProductDetail } from '../hooks/use-products';
+import { useCategories } from '@/features/categories/hooks/use-categories';
 
 import ProductForm from './ProductForm';
 
@@ -70,29 +72,30 @@ export default function ProductView({
   const categoryIdParam = searchParams.get('categoryId') || '';
   const isPublishedParam = searchParams.get('isPublished');
 
-  // local state cho dữ liệu demo
-  const [products, setProducts] = useState<Product[]>(initialData.data);
-  
+  const { data: queryData, isFetching } = useProducts({
+    page,
+    size,
+    sort,
+    search: name,
+    categoryId: categoryIdParam,
+  });
+
+  const { data: categoriesData } = useCategories({ page: 0, size: 100 });
+  const categoriesList = categoriesData?.data || categories;
+
+  const pageData = queryData || initialData;
+  const paginatedProducts = pageData.data || [];
+  const totalPages = pageData.pagination?.totalPages || 1;
+  const totalElements = pageData.pagination?.totalElements || 0;
+
   const [searchTerm, setSearchTerm] = useDebounceSearch(name, (val) => updateUrl({ name: val, page: 1 }));
-
-  // Sử dụng useMemo để tính toán filteredProducts thay vì useEffect + useState
-  const filteredProducts = React.useMemo(() => {
-    let result = [...products];
-    if (name) result = result.filter(p => p.name.toLowerCase().includes(name.toLowerCase()));
-    if (categoryIdParam) result = result.filter(p => p.categoryId === categoryIdParam);
-    if (isPublishedParam) {
-      const isPublished = isPublishedParam === 'true';
-      result = result.filter(p => p.isPublished === isPublished);
-    }
-    return result;
-  }, [name, categoryIdParam, isPublishedParam, products]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / size));
-  const paginatedProducts = filteredProducts.slice((page - 1) * size, page * size);
 
   // States
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  const { data: detailData, isFetching: isDetailFetching } = useProductDetail(editingProduct?.id);
+  const activeProduct = detailData || editingProduct;
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -119,49 +122,76 @@ export default function ProductView({
 
   const columns: ColumnDef<Product>[] = [
     {
-      header: 'Mã SKU',
-      accessorKey: 'sku',
-      className: 'font-mono text-[11px] font-bold text-slate-400',
-      headerClassName: 'w-20',
-    },
-    {
-      header: 'Tên sản phẩm',
-      cell: (product) => (
-        <div className='flex flex-col'>
-          <span className='text-sm font-bold'>{product.name}</span>
-          <span className='text-[11px] opacity-60'>{product.brand}</span>
-        </div>
-      ),
+      header: 'Sản phẩm',
+      cell: (product) => {
+        const thumbObj = product.thumbnail as any;
+        const thumbUrl = typeof thumbObj === 'string' ? thumbObj : thumbObj?.url;
+
+        return (
+          <div className='flex items-center gap-3'>
+            <div className='h-12 w-12 rounded-lg border border-slate-200 overflow-hidden flex-shrink-0 bg-slate-50 flex items-center justify-center'>
+              {thumbUrl ? (
+                <img src={thumbUrl} alt={product.name} className='w-full h-full object-cover' />
+              ) : (
+                <Package className='w-5 h-5 text-slate-400' />
+              )}
+            </div>
+            <div className='flex flex-col'>
+              <span className='text-sm font-bold text-slate-900 line-clamp-1' title={product.name}>{product.name}</span>
+              <div className='flex items-center gap-2 mt-0.5'>
+                <span className='font-mono text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded'>{product.sku}</span>
+                {product.brand && <span className='text-[11px] text-slate-500'>• {product.brand}</span>}
+              </div>
+            </div>
+          </div>
+        );
+      },
     },
     {
       header: 'Danh mục',
-      accessorKey: 'categoryName',
       className: 'text-sm hidden md:table-cell',
       headerClassName: 'hidden md:table-cell',
+      cell: (product) => {
+        const cat = categoriesList.find(c => c.id === product.categoryId);
+        return <span className='text-slate-600 font-medium'>{cat ? cat.name : (product.categoryName || '---')}</span>;
+      }
     },
     {
-      header: 'Giá',
+      header: 'Giá bán',
       align: 'right',
-      cell: (product) => formatCurrency(product.price),
-      className: 'text-sm font-bold text-blue-600',
-    },
-    {
-      header: 'Tồn kho',
-      align: 'center',
-      cell: (product) => (
-        <Badge variant='secondary' className='text-[10px] py-0.5 px-2 bg-slate-100 text-slate-600 border-none whitespace-nowrap'>
-          {product.stock}
-        </Badge>
-      ),
+      cell: (product) => {
+        const variants = product.variants || [];
+        const minPrice = variants.length > 0
+          ? Math.min(...variants.map(v => v.price))
+          : (product.price || 0); // fallback to 0 if neither variants nor price exists
+
+        return (
+          <div className='flex flex-col items-end'>
+            <span className='text-sm font-bold text-blue-600'>{formatCurrency(minPrice)}</span>
+            {variants.length > 1 && (
+              <span className='text-[10px] text-slate-400 mt-0.5'>{variants.length} phân loại</span>
+            )}
+          </div>
+        );
+      },
     },
     {
       header: 'Trạng thái',
       align: 'center',
-      cell: (product) => (
-        <Badge variant={product.isPublished ? 'default' : 'secondary'} className='text-[10px] py-0.5 px-2 border-none whitespace-nowrap'>
-          {product.isPublished ? 'Đang bán' : 'Ngừng bán'}
-        </Badge>
-      ),
+      cell: (product) => {
+        const isPublished = product.isPublished ?? (product as any).published;
+        return (
+          <Badge
+            variant={isPublished ? 'default' : 'secondary'}
+            className={cn(
+              'text-[11px] py-0.5 px-2 whitespace-nowrap border-none',
+              isPublished ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-100 text-slate-600'
+            )}
+          >
+            {isPublished ? 'Đang bán' : 'Ngừng bán'}
+          </Badge>
+        );
+      },
     },
     {
       header: 'Thao tác',
@@ -197,11 +227,11 @@ export default function ProductView({
       <Breadcrumbs items={breadcrumbItems} />
       <PageHeader title='Quản lý sản phẩm' description='Xem và quản lý danh mục sản phẩm của bạn.' actions={commonActions} />
 
-      <DataCard 
+      <DataCard
         search={<SearchInput value={searchTerm} onChange={setSearchTerm} placeholder='Tìm tên sản phẩm...' />}
         extra={
           <>
-            <FilterPopover 
+            <FilterPopover
               activeCount={(categoryIdParam ? 1 : 0) + (isPublishedParam ? 1 : 0)}
               onClear={() => updateUrl({ categoryId: '', isPublished: '', page: 1 })}
             >
@@ -212,7 +242,7 @@ export default function ProductView({
                     <button className={filterBtnClass(!categoryIdParam)} onClick={() => updateUrl({ categoryId: '', page: 1 })}>
                       Tất cả danh mục
                     </button>
-                    {categories.map((cat) => (
+                    {categoriesList.map((cat) => (
                       <button key={cat.id} className={filterBtnClass(categoryIdParam === cat.id)} onClick={() => updateUrl({ categoryId: cat.id, page: 1 })}>
                         {cat.name}
                       </button>
@@ -241,15 +271,15 @@ export default function ProductView({
           </>
         }
         footer={
-          filteredProducts.length > 0 && (
-            <NextPagination 
-              currentPage={page} 
-              totalPages={totalPages} 
-              totalItems={filteredProducts.length} 
-              itemsPerPage={size} 
-              onItemsPerPageChange={setSize} 
-              onPageChange={setPage} 
-              className='bg-slate-50/20' 
+          totalElements > 0 && (
+            <NextPagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={totalElements}
+              itemsPerPage={size}
+              onItemsPerPageChange={setSize}
+              onPageChange={setPage}
+              className='bg-slate-50/20'
             />
           )
         }
@@ -257,6 +287,7 @@ export default function ProductView({
         <DataTable
           columns={columns}
           data={paginatedProducts}
+          isLoading={isFetching}
           emptyState={{
             title: 'Không tìm thấy sản phẩm',
             description: 'Thử thay đổi bộ lọc hoặc thêm sản phẩm mới.',
@@ -268,59 +299,61 @@ export default function ProductView({
 
       {/* Dialogs */}
       <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setEditingProduct(null); }}>
-        <DialogContent className='sm:max-w-4xl max-h-[90vh] overflow-y-auto custom-scrollbar'>
-          <DialogHeader>
+        <DialogContent className='sm:max-w-6xl w-[95vw] max-h-[90vh] flex flex-col p-0 overflow-hidden !pb-0'>
+          <DialogHeader className="px-6 pt-6 pb-2">
             <DialogTitle className='text-xl font-bold text-slate-900'>Cập nhật sản phẩm</DialogTitle>
             <DialogDescription>Chỉnh sửa thông tin sản phẩm và các biến thể.</DialogDescription>
           </DialogHeader>
-          
+
           {editingProduct && (
-            <ProductForm 
-              onSuccess={() => {
-                setIsFormOpen(false);
-                setEditingProduct(null);
-                toast.success('Cập nhật thành công (Demo)');
-              }}
-              initialData={{
-                name: editingProduct.name,
-                sku: editingProduct.sku,
-                brand: editingProduct.brand || '',
-                categoryId: editingProduct.categoryId,
-                isPublished: editingProduct.isPublished,
-                description: editingProduct.description || '',
-                slug: editingProduct.slug || '',
-                images: (editingProduct as any).images || [],
-                specifications: (editingProduct as any).specifications || [],
-                weight: (editingProduct as any).weight || 0,
-                length: (editingProduct as any).length || 0,
-                width: (editingProduct as any).width || 0,
-                height: (editingProduct as any).height || 0,
-                tags: Array.isArray((editingProduct as any).tags) ? (editingProduct as any).tags.join(', ') : ((editingProduct as any).tags || ''),
-                metaTitle: (editingProduct as any).metaTitle || '',
-                metaDescription: (editingProduct as any).metaDescription || '',
-                metaKeywords: (editingProduct as any).metaKeywords || '',
-                variants: editingProduct.variants?.map(v => ({
-                  sku: v.sku,
-                  price: v.price,
-                  stock: v.stock,
-                  compareAtPrice: (v as any).compareAtPrice || 0,
-                  costPrice: (v as any).costPrice || 0,
-                  barcode: (v as any).barcode || '',
-                  barcodeType: (v as any).barcodeType || 'EAN-13',
-                  image: (v as any).image || '',
-                  isActive: (v as any).isActive !== undefined ? (v as any).isActive : true,
-                  attributes: Object.entries(v.attributes || {}).map(([key, value]) => ({ key, value })) as any
-                })) || [{ sku: editingProduct.sku, price: editingProduct.price, stock: editingProduct.stock, compareAtPrice: 0, costPrice: 0, barcode: '', barcodeType: 'EAN-13', image: '', isActive: true, attributes: [] }],
-              }}
-            />
+            isDetailFetching ? (
+              <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+              </div>
+            ) : (
+              <ProductForm
+                onSuccess={() => {
+                  setIsFormOpen(false);
+                  setEditingProduct(null);
+                  toast.success('Cập nhật thành công (Demo)');
+                }}
+                initialData={{
+                  name: activeProduct!.name,
+                  sku: activeProduct!.sku,
+                  brand: activeProduct!.brand || '',
+                  categoryId: activeProduct!.categoryId,
+                  isPublished: activeProduct!.isPublished ?? (activeProduct as any).published,
+                  description: activeProduct!.description || '',
+                  slug: activeProduct!.slug || '',
+                  images: (activeProduct as any).images || [],
+                  specifications: (activeProduct as any).specifications || [],
+
+                  metaTitle: (activeProduct as any).metaTitle || '',
+                  metaDescription: (activeProduct as any).metaDescription || '',
+                  metaKeywords: (activeProduct as any).metaKeywords || '',
+                  variants: activeProduct!.variants?.map(v => ({
+                    sku: v.sku,
+                    price: v.price,
+                    compareAtPrice: (v as any).compareAtPrice || 0,
+                    costPrice: (v as any).costPrice || 0,
+                    barcode: (v as any).barcode || '',
+                    barcodeType: (v as any).barcodeType || 'EAN-13',
+                    image: (v as any).image || '',
+                    isActive: (v as any).isActive !== undefined ? (v as any).isActive : true,
+                    attributes: Object.entries(v.attributes || {}).map(([key, value]) => ({ key, value })) as any
+                  })) || [{ sku: activeProduct!.sku, price: activeProduct!.price, compareAtPrice: 0, costPrice: 0, barcode: '', barcodeType: 'EAN-13', image: '', isActive: true, attributes: [] }],
+                }}
+                isDialog={true}
+              />
+            )
           )}
         </DialogContent>
       </Dialog>
 
-      <DeleteConfirmDialog 
-        isOpen={!!deleteConfirmId} 
-        onClose={() => setDeleteConfirmId(null)} 
-        onConfirm={() => { setProducts(products.filter(p => p.id !== deleteConfirmId)); setDeleteConfirmId(null); toast.success('Đã xóa (Demo)'); }} 
+      <DeleteConfirmDialog
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => { setDeleteConfirmId(null); toast.success('Tính năng xóa đang được phát triển (API chưa sẵn sàng)'); }}
         description="Bạn có chắc chắn muốn xóa sản phẩm này? (Tính năng Demo)"
       />
     </div>

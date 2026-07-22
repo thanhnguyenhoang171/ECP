@@ -62,26 +62,9 @@ public class CategoryExcelHelper {
             throw new AppException("CATEGORY_SLUG_EXISTS", "Cột 'Slug': '" + slugToUse + "' đã tồn tại hệ thống", HttpStatus.BAD_REQUEST);
         }
         category.setSlug(slugToUse);
-        category.setActive(dto.getStatus() != null ? dto.getStatus() : true);
-        category.setOrder(dto.getOrder());
+        category.setActive(true);
+        category.setOrder(dto.getOrder() != null ? dto.getOrder() : 1);
         category.setDeleted(false);
-
-        // 0.1 Xử lý Ngày tạo / Ngày sửa (nếu có trong file Excel)
-        if (StringUtils.hasText(dto.getCreatedAt())) {
-            java.time.LocalDateTime createdAt = com.example.ecp_api.util.DateTimeUtils.parse(dto.getCreatedAt());
-            if (createdAt == null) {
-                throw new AppException("INVALID_DATE_FORMAT", "Cột 'Ngày tạo': Định dạng ngày không hợp lệ (Yêu cầu: dd/MM/yyyy HH:mm:ss)", HttpStatus.BAD_REQUEST);
-            }
-            category.setCreatedAt(createdAt);
-        }
-
-        if (StringUtils.hasText(dto.getUpdatedAt())) {
-            java.time.LocalDateTime updatedAt = com.example.ecp_api.util.DateTimeUtils.parse(dto.getUpdatedAt());
-            if (updatedAt == null) {
-                throw new AppException("INVALID_DATE_FORMAT", "Cột 'Ngày sửa': Định dạng ngày không hợp lệ (Yêu cầu: dd/MM/yyyy HH:mm:ss)", HttpStatus.BAD_REQUEST);
-            }
-            category.setUpdatedAt(updatedAt);
-        }
 
         // Xử lý phân cấp (Parent)
         String oldParentId = category.getParentId();

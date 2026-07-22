@@ -1,12 +1,14 @@
 export interface Sku {
   id: string;
-  sku: string;
+  skuCode: string;
+  barcode: string;
+  barcodeType: string;
   productId: string;
   productName: string;
-  price: number;
-  stock: number;
-  attributes: Record<string, string>;
+  variantName: string;
   active: boolean;
   createdAt?: string;
   updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
 }

@@ -41,12 +41,10 @@ public class SystemServiceImpl implements SystemService {
         dataInitializer.initializeDefaults();
 
         // Log the high-impact action
-        auditLogService.logAction(
+        auditLogService.log(
                 "PURGE_ALL_DATA",
                 currentUsername,
-                "SYSTEM",
-                "ALL",
-                "Permanently purged all system data and re-initialized default accounts."
+                "[SYSTEM ID: ALL] Permanently purged all system data and re-initialized default accounts."
         );
 
         log.info("SYSTEM PURGE COMPLETED SUCCESSFULLY.");

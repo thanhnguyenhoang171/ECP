@@ -44,6 +44,12 @@ public class GoodsReceipt {
     @Column(columnDefinition = "TEXT")
     private String note;
 
+    @OneToMany(mappedBy = "goodsReceipt", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private java.util.List<GoodsReceiptItem> items = new java.util.ArrayList<>();
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

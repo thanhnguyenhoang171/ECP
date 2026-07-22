@@ -30,6 +30,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -43,13 +45,13 @@ public class ProductServiceImpl implements ProductService {
     private final MongoTemplate mongoTemplate;
     private final CategoryRepository categoryRepository;
     private final SkuRepository skuRepository;
+    private final com.example.ecp_api.repository.jpa.InventoryRepository inventoryRepository;
     private final AuditLogService auditLogService;
-
 
     @Override
     public PageResponse<ProductResponse> getAllProducts(ProductFilterRequest filter, Pageable pageable) {
-        Pageable finalPageable = PaginationUtils.applyStableSort(pageable, 
-                Sort.Order.desc("createdAt"), 
+        Pageable finalPageable = PaginationUtils.applyStableSort(pageable,
+                Sort.Order.desc("createdAt"),
                 Sort.Order.asc("id"));
 
         Query query = new Query().with(finalPageable);
@@ -83,14 +85,14 @@ public class ProductServiceImpl implements ProductService {
         return productMapper.toPageResponse(productPage);
     }
 
-//    TODO: Implement API create a new product
+    // TODO: Implement API create a new product
     @Override
     @Transactional
     public ProductResponse createProduct(ProductRequest request) {
         // Validate Category
         if (StringUtils.hasText(request.getCategoryId())) {
             categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category Not Found", "CATEGORY_NOT_FOUND"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Category Not Found", "CATEGORY_NOT_FOUND"));
         }
 
         // Handle SKU (Auto-generate if empty)
@@ -109,7 +111,7 @@ public class ProductServiceImpl implements ProductService {
         if (productRepository.existsBySku(finalSku) || skuRepository.existsBySkuCode(finalSku)) {
             throw new AppException("SKU_EXISTS", "Mã SKU sản phẩm đã tồn tại: " + finalSku, HttpStatus.BAD_REQUEST);
         }
-        
+
         // Map and save Product Master (MongoDB)
         Product product = productMapper.toEntity(request);
         product.setSku(finalSku);
@@ -132,10 +134,11 @@ public class ProductServiceImpl implements ProductService {
 
             // Check SKU of Variant
             if (skuRepository.existsBySkuCode(vSku)) {
-                throw new AppException("VARIANT_SKU_EXIST", "Mã SKU biến thể đã tồn tại: " + vSku, HttpStatus.BAD_REQUEST);
+                throw new AppException("VARIANT_SKU_EXIST", "Mã SKU biến thể đã tồn tại: " + vSku,
+                        HttpStatus.BAD_REQUEST);
             }
             // Create Sku Entity (MySQL)
-            String vName = vReq.getAttributes() != null 
+            String vName = vReq.getAttributes() != null
                     ? String.join(" / ", vReq.getAttributes().values().stream().map(Object::toString).toList())
                     : "";
 
@@ -158,7 +161,7 @@ public class ProductServiceImpl implements ProductService {
             variant.setProductId(finalProductId);
             variant.setSku_id(skuEntity.getId().toString());
             variant.setBarcodeType(vReq.getBarcodeType());
-            variant.setImage(productMapper.toProductImage(vReq.getImage()));
+            variant.setImage(vReq.getImage());
             return variant;
         }).toList();
 
@@ -166,8 +169,65 @@ public class ProductServiceImpl implements ProductService {
         product.setVariants(variants);
         product = productRepository.save(product);
 
-        auditLogService.log("CREATE_PRODUCT", SecurityUtils.getCurrentUsername(), "Created product: " + product.getName());
+        auditLogService.log("CREATE_PRODUCT", SecurityUtils.getCurrentUsername(),
+                "Created product: " + product.getName());
 
         return productMapper.toResponse(product);
+    }
+
+    @Override
+    public ProductResponse getProductById(String id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
+        return productMapper.toResponse(product);
+    }
+
+    @Override
+    @Transactional
+    public void updateVariantCostPriceMAC(String skuId, int addedQuantity, BigDecimal newUnitCost) {
+        Sku sku = skuRepository.findById(UUID.fromString(skuId))
+                .orElseThrow(() -> new ResourceNotFoundException("Sku Not Found", "SKU_NOT_FOUND"));
+
+        Product product = productRepository.findById(sku.getProductId())
+                .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
+
+        // Get total quantity currently in stock across all warehouses
+        Integer currentTotalQuantity = inventoryRepository.sumQuantityOnHandBySkuId(sku.getId());
+        if (currentTotalQuantity == null) {
+            currentTotalQuantity = 0;
+        }
+        
+        // Since the receipt might have already adjusted inventory, the currentTotalQuantity INCLUDES addedQuantity?
+        // Wait! If this is called AFTER inventoryService.adjustInventory(), then currentTotalQuantity ALREADY includes addedQuantity.
+        // So previous quantity = currentTotalQuantity - addedQuantity.
+        int previousQuantity = currentTotalQuantity - addedQuantity;
+        if (previousQuantity < 0) {
+            previousQuantity = 0; // fallback in case of negative stock anomalies
+        }
+
+        boolean updated = false;
+        for (ProductVariant variant : product.getVariants()) {
+            if (variant.getSku_id() != null && variant.getSku_id().equals(skuId)) {
+                BigDecimal currentCostPrice = variant.getCostPrice() != null ? variant.getCostPrice() : BigDecimal.ZERO;
+                
+                // Formula: ((previousQuantity * currentCostPrice) + (addedQuantity * newUnitCost)) / currentTotalQuantity
+                BigDecimal totalPreviousValue = currentCostPrice.multiply(new BigDecimal(previousQuantity));
+                BigDecimal totalAddedValue = newUnitCost.multiply(new BigDecimal(addedQuantity));
+                BigDecimal newTotalValue = totalPreviousValue.add(totalAddedValue);
+                
+                BigDecimal newMac = BigDecimal.ZERO;
+                if (currentTotalQuantity > 0) {
+                    newMac = newTotalValue.divide(new BigDecimal(currentTotalQuantity), 2, RoundingMode.HALF_UP);
+                }
+                
+                variant.setCostPrice(newMac);
+                updated = true;
+                break;
+            }
+        }
+
+        if (updated) {
+            productRepository.save(product);
+        }
     }
 }

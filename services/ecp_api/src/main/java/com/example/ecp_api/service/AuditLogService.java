@@ -10,8 +10,7 @@ import java.util.List;
 
 public interface AuditLogService {
     void log(String action, String username, String details);
-    void logAuth(String action, String username, String status, String ip, String userAgent, String details);
-    void logAction(String action, String username, String resourceType, String resourceId, String details);
+    void log(String action, String username, String details, String status);
     PageResponse<AuditLogResponse> getAllLogs(AuditLogFilterRequest filter, Pageable pageable);
     List<AuditLogResponse> getLogsByUsername(String username);
 }

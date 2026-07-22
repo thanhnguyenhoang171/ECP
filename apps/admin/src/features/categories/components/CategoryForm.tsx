@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Globe, Info } from 'lucide-react';
 
@@ -30,12 +30,15 @@ import {
   useCreateCategory,
   useUpdateCategory,
 } from '../hooks/use-category-mutation';
+import { useUploadFile } from '@/features/files/hooks/use-file-upload';
+import { toast } from 'sonner';
 
 import { 
   ImageUpload, 
   FormSection, 
   FormGrid, 
-  AdminFormLabel 
+  AdminFormLabel,
+  FormActionsBar
 } from '@/components/common';
 import { cn, convertToSlug } from '@/lib/utils';
 import { useUIStore } from '@/store/uiStore';
@@ -59,6 +62,7 @@ export default function CategoryForm({
 }: CategoryFormProps) {
   const createMutation = useCreateCategory();
   const updateMutation = useUpdateCategory();
+  const uploadFileMutation = useUploadFile();
   const isSlugEdited = useRef(false);
 
   const form = useForm<CategoryFormValues>({
@@ -78,11 +82,11 @@ export default function CategoryForm({
     },
   });
 
-  const nameValue = form.watch('name');
-  const slugValue = form.watch('slug');
-  const metaTitleValue = form.watch('metaTitle');
-  const metaDescriptionValue = form.watch('metaDescription');
-  const descriptionValue = form.watch('description');
+  const nameValue = useWatch({ control: form.control, name: 'name' });
+  const slugValue = useWatch({ control: form.control, name: 'slug' });
+  const metaTitleValue = useWatch({ control: form.control, name: 'metaTitle' });
+  const metaDescriptionValue = useWatch({ control: form.control, name: 'metaDescription' });
+  const descriptionValue = useWatch({ control: form.control, name: 'description' });
 
   // Reset form when initialData changes
   useEffect(() => {
@@ -125,8 +129,27 @@ export default function CategoryForm({
   }, [nameValue, form, id]);
 
   async function onSubmit(values: CategoryFormValues) {
+    let uploadedImageUrl = values.imageUrl;
+    let uploadedPublicId = values.imagePublicId;
+
+    // Handle deferred file upload if the user selected a new local file
+    if (values.imageUrl instanceof File) {
+       try {
+         const res = await uploadFileMutation.mutateAsync({ file: values.imageUrl, folder: 'categories' });
+         if (res.success && res.data) {
+           uploadedImageUrl = res.data.secure_url;
+           uploadedPublicId = res.data.public_id;
+         }
+       } catch (err) {
+         toast.error("Lỗi khi tải ảnh lên máy chủ, vui lòng thử lại.");
+         return; // Stop submission on failure
+       }
+    }
+
     const payload = {
       ...values,
+      imageUrl: typeof uploadedImageUrl === 'string' ? uploadedImageUrl : undefined,
+      imagePublicId: uploadedPublicId || undefined,
       parentId: (values.parentId === '' || values.parentId === 'none') ? null : values.parentId
     };
 
@@ -156,7 +179,7 @@ export default function CategoryForm({
     }
   }
 
-  const isSubmitting = createMutation.isPending || updateMutation.isPending;
+  const isSubmitting = createMutation.isPending || updateMutation.isPending || uploadFileMutation.isPending;
 
   // Filter out current category from parent categories to avoid circular references
   const filteredParentCategories = parentCategories.filter(
@@ -167,11 +190,9 @@ export default function CategoryForm({
 
   const tabs = [
     { id: 'general', label: 'Thông tin chung', icon: Info },
-    { id: 'seo', label: 'Tối ưu SEO', icon: Globe },
+    // { id: 'seo', label: 'Tối ưu SEO', icon: Globe },
   ];
 
-
-  console.log('Form values:', form.watch()); // Debug: Log form values on each render
 
   return (
     <Form {...form}>
@@ -379,18 +400,17 @@ export default function CategoryForm({
                         <ImageUpload
                           value={field.value}
                           onChange={field.onChange}
-                          onUploadComplete={(file) => {
-                            if (!Array.isArray(file)) {
-                              form.setValue('imagePublicId', file.public_id, { shouldValidate: true });
-                            }
-                          }}
                           folder="categories"
                           description="Ảnh danh mục"
+                          className="w-32 h-32 mx-auto"
+                          reqWidth={128}
+                          reqHeight={128}
+                          deferUpload={true}
                         />
                       </FormControl>
                       <FormMessage />
                       <p className="text-[10px] text-slate-400 mt-4 text-center leading-relaxed">
-                        Sử dụng định dạng JPG, PNG hoặc WebP. Khuyến nghị tỷ lệ 1:1.
+                        Kích thước ảnh sẽ được <span className="font-bold text-slate-600">tự động cắt về 128 × 128px</span>. Sử dụng định dạng JPG, PNG hoặc WebP.
                       </p>
                     </FormItem>
                   )}
@@ -491,50 +511,13 @@ export default function CategoryForm({
         )}
 
         {/* Actions Bar */}
-        {!isDialog ? (
-          <div className={cn(
-            "fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-slate-200 p-3.5 z-50 shadow-lg transition-all duration-200",
-            isSidebarCollapsed ? "lg:left-20" : "lg:left-64"
-          )}>
-            <div className="max-w-[1600px] mx-auto flex items-center justify-between px-6">
-              <div className="hidden md:flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Trang thiết lập: {tabs.find(t => t.id === activeTab)?.label}
-                </p>
-              </div>
-              <div className="flex gap-3 w-full md:w-auto justify-end">
-                <Button type="button" variant="ghost" onClick={onSuccess} className="font-bold text-xs uppercase tracking-wider text-slate-500 hover:bg-slate-100" disabled={isSubmitting}>
-                  Hủy bỏ
-                </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700 px-10 font-bold text-xs uppercase tracking-wider shadow-lg shadow-blue-200" disabled={isSubmitting}>
-                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  {id ? 'Cập nhật danh mục' : 'Tạo danh mục'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className='flex justify-end gap-3 pt-6 border-t border-slate-100 mt-6'>
-            <Button
-              type='button'
-              variant='ghost'
-              onClick={onSuccess}
-              className="text-slate-500 font-bold text-xs uppercase tracking-widest hover:bg-slate-100"
-              disabled={isSubmitting}>
-              Hủy bỏ
-            </Button>
-            <Button
-              type='submit'
-              className='bg-blue-600 hover:bg-blue-700 min-w-36 shadow-lg shadow-blue-200 h-11 font-bold text-xs uppercase tracking-widest'
-              disabled={isSubmitting}>
-              {isSubmitting ? (
-                <Loader2 className='h-4 w-4 animate-spin mr-2' />
-              ) : null}
-              {id ? 'Cập nhật danh mục' : 'Tạo danh mục'}
-            </Button>
-          </div>
-        )}
+        <FormActionsBar
+          onCancel={onSuccess}
+          isSubmitting={isSubmitting}
+          submitText={id ? 'Cập nhật danh mục' : 'Tạo danh mục'}
+          activeTabLabel={tabs.find(t => t.id === activeTab)?.label}
+          isDialog={isDialog}
+        />
       </form>
     </Form>
   );
