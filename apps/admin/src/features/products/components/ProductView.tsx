@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Package, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 import {
   Badge,
@@ -131,7 +132,7 @@ export default function ProductView({
           <div className='flex items-center gap-3'>
             <div className='h-12 w-12 rounded-lg border border-slate-200 overflow-hidden flex-shrink-0 bg-slate-50 flex items-center justify-center'>
               {thumbUrl ? (
-                <img src={thumbUrl} alt={product.name} className='w-full h-full object-cover' />
+                <Image src={thumbUrl} alt={product.name} width={48} height={48} className='w-full h-full object-cover' />
               ) : (
                 <Package className='w-5 h-5 text-slate-400' />
               )}

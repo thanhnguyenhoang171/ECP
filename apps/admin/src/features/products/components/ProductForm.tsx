@@ -49,7 +49,7 @@ export default function ProductForm({ onSuccess, initialData, isDialog = false }
   const updateMutation = useUpdateProduct();
 
   const [activeTab, setActiveTab] = useState<'general' | 'logistics' | 'variants' | 'seo'>('general');
-  const isSlugEdited = useRef(false);
+  const isSlugEditedRef = useRef(false);
 
   // Chuyển đổi an toàn attributes từ Object Record -> Array
   const transformAttributesToArray = (attrs: Record<string, string> | any[] | undefined) => {
@@ -122,7 +122,7 @@ export default function ProductForm({ onSuccess, initialData, isDialog = false }
 
   // Auto-slug generator
   useEffect(() => {
-    if (nameValue && !isSlugEdited.current && !initialData?.id) {
+    if (nameValue && !isSlugEditedRef.current && !initialData?.id) {
       form.setValue('slug', convertToSlug(nameValue), { shouldValidate: true });
     }
   }, [nameValue, form, initialData]);
@@ -211,7 +211,7 @@ export default function ProductForm({ onSuccess, initialData, isDialog = false }
             <ProductGeneralTab 
               form={form} 
               categories={categories} 
-              isSlugEdited={isSlugEdited} 
+              isSlugEditedRef={isSlugEditedRef} 
               nameValue={nameValue} 
             />
           )}
