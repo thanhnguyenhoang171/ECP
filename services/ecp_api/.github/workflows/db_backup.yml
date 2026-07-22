@@ -2,8 +2,8 @@ name: Scheduled Dual Database Backup (MySQL & MongoDB) to Nextcloud
 
 on:
   schedule:
-    # 07:30 UTC tương đương với đúng 02:30 PM (14:30) chiều giờ Việt Nam (UTC+7) mỗi ngày
-    - cron: '30 7 * * *'
+    # 07:50 UTC tương đương với đúng 02:50 PM (14:50) chiều giờ Việt Nam (UTC+7) mỗi ngày
+    - cron: '50 7 * * *'
   # Cho phép kích hoạt chạy thủ công từ giao diện GitHub (Actions -> Run workflow)
   workflow_dispatch:
 
