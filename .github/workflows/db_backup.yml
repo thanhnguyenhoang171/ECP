@@ -2,8 +2,8 @@ name: Scheduled Dual Database Backup (MySQL & MongoDB) to Nextcloud
 
 on:
   schedule:
-    # 07:50 UTC tương đương với đúng 02:50 PM (14:50) chiều giờ Việt Nam (UTC+7) mỗi ngày
-    - cron: '50 7 * * *'
+    # 08:00 UTC tương đương với đúng 03:00 PM (15:00) chiều giờ Việt Nam (UTC+7) mỗi ngày
+    - cron: '0 8 * * *'
   # Cho phép kích hoạt chạy thủ công từ giao diện GitHub (Actions -> Run workflow)
   workflow_dispatch:
 
@@ -15,10 +15,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install Client Tools (MySQL, MongoDB Tools & Curl)
+      - name: Install Client Tools (MySQL Client, MongoDB Tools & Curl)
         run: |
           sudo apt-get update
-          sudo apt-get install -y mysql-client mongodb-tools curl gzip tar
+          sudo apt-get install -y mysql-client curl gzip tar wget
+          wget -q https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.9.4.deb
+          sudo dpkg -i mongodb-database-tools-ubuntu2204-x86_64-100.9.4.deb || sudo apt-get install -f -y
+          rm -f mongodb-database-tools-ubuntu2204-x86_64-100.9.4.deb
 
       - name: Run Dual Database Backup Script
         env:
