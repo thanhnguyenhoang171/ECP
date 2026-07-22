@@ -9,8 +9,8 @@ export const COMMON_SORT_OPTIONS: Record<string, SortOption[]> = {
     { label: 'Tên (Z-A)', value: 'name,desc' },
   ],
   SKU: [
-    { label: 'Mã SKU (A-Z)', value: 'sku,asc' },
-    { label: 'Mã SKU (Z-A)', value: 'sku,desc' },
+    { label: 'Mã SKU (A-Z)', value: 'skuCode,asc' },
+    { label: 'Mã SKU (Z-A)', value: 'skuCode,desc' },
   ],
   DATE: [
     { label: 'Mới nhất', value: 'createdAt,desc' },

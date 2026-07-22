@@ -8,11 +8,13 @@ import { ApiResponse } from '@/types/api.interface';
 export interface UploadFileParams {
   file: File;
   folder?: string;
+  skipToast?: boolean;
 }
 
 export interface UploadMultipleFilesParams {
   files: File[];
   folder?: string;
+  skipToast?: boolean;
 }
 
 /**
@@ -21,8 +23,8 @@ export interface UploadMultipleFilesParams {
 export function useUploadFile() {
   return useMutation<ApiResponse<CloudinaryFile>, Error, UploadFileParams>({
     mutationFn: ({ file, folder }) => fileApi.uploadFile(file, folder),
-    onSuccess: (response) => {
-      if (response.success) {
+    onSuccess: (response, variables) => {
+      if (response.success && !variables.skipToast) {
         toast.success('Tải lên tập tin thành công');
       }
     },
@@ -39,8 +41,8 @@ export function useUploadFile() {
 export function useUploadMultipleFiles() {
   return useMutation<ApiResponse<CloudinaryFile[]>, Error, UploadMultipleFilesParams>({
     mutationFn: ({ files, folder }) => fileApi.uploadMultipleFiles(files, folder),
-    onSuccess: (response) => {
-      if (response.success) {
+    onSuccess: (response, variables) => {
+      if (response.success && !variables.skipToast) {
         toast.success(`Tải lên ${response.data.length} tập tin thành công`);
       }
     },

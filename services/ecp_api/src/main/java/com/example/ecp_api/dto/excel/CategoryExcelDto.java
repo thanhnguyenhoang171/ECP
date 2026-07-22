@@ -73,16 +73,4 @@ public class CategoryExcelDto {
     @ExcelProperty("Thứ tự")
     @ColumnWidth(12)
     private Integer order;
-
-    @ExcelProperty("Trạng thái (TRUE/FALSE)")
-    @ColumnWidth(25)
-    private Boolean status;
-
-    @ExcelProperty("Ngày tạo")
-    @ColumnWidth(20)
-    private String createdAt;
-
-    @ExcelProperty("Ngày sửa")
-    @ColumnWidth(20)
-    private String updatedAt;
 }

@@ -44,6 +44,9 @@ interface ImageUploadProps {
   disabled?: boolean;
   aspectRatio?: 'square' | 'video' | 'auto';
   variant?: 'default' | 'circle' | 'compact';
+  reqWidth?: number;
+  reqHeight?: number;
+  deferUpload?: boolean;
 }
 
 /**
@@ -64,7 +67,10 @@ export const ImageUpload = ({
   className,
   disabled = false,
   aspectRatio = 'square',
-  variant = 'default'
+  variant = 'default',
+  reqWidth,
+  reqHeight,
+  deferUpload = false
 }: ImageUploadProps) => {
   const [internalImages, setInternalImages] = useState<ImageValue[]>([]);
 
@@ -86,43 +92,112 @@ export const ImageUpload = ({
 
   // Effect to sync internal state with external 'value' prop
   useEffect(() => {
-    // 1. Normalize external value to an array
-    const externalValues = value 
-      ? (Array.isArray(value) ? value : [value])
-      : [];
+    setInternalImages(prevImages => {
+      // 1. Normalize external value to an array
+      const externalValues = value 
+        ? (Array.isArray(value) ? value : [value])
+        : [];
 
-    // 2. Check if internal state is already in sync with external values
-    const isSync = externalValues.length === internalImages.length && 
-      externalValues.every((ext, i) => {
-        const int = internalImages[i];
-        if (typeof ext === 'string') return ext === int.url;
-        if (ext instanceof File) return ext === int.file;
-        return false;
-      });
+      // 2. Check if internal state is already in sync with external values
+      const isSync = externalValues.length === prevImages.length && 
+        externalValues.every((ext, i) => {
+          const int = prevImages[i];
+          if (typeof ext === 'string') return ext === int.url;
+          if (ext instanceof File) return ext === int.file;
+          return false;
+        });
 
-    if (isSync) return;
+      if (isSync) return prevImages;
 
-    // 3. Only if not in sync, create new internal state
-    const newInternalImages: ImageValue[] = externalValues.map(ext => {
-      if (typeof ext === 'string') {
-        return { url: ext };
-      } else if (ext instanceof File) {
-        const existing = internalImages.find(img => img.file === ext);
-        if (existing) return existing;
+      // 3. Only if not in sync, create new internal state
+      const newInternalImages: ImageValue[] = externalValues.map(ext => {
+        if (typeof ext === 'string') {
+          return { url: ext };
+        } else if (ext instanceof File) {
+          const existing = prevImages.find(img => img.file === ext);
+          if (existing) return existing;
+          
+          return {
+            file: ext,
+            url: URL.createObjectURL(ext)
+          };
+        }
+        return { url: '' };
+      }).filter(img => img.url !== '');
+
+      return newInternalImages;
+    });
+  }, [value]);
+
+  const autoCropImage = (file: File, targetWidth: number, targetHeight: number): Promise<File> => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
         
-        return {
-          file: ext,
-          url: URL.createObjectURL(ext)
-        };
-      }
-      return { url: '' };
-    }).filter(img => img.url !== '');
-
-    setInternalImages(newInternalImages);
-  }, [value]); // Removed internalImages from dependencies to prevent infinite loops
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          return resolve(file); // Fallback
+        }
+        
+        // Cover logic: scale and center crop
+        const scale = Math.max(targetWidth / img.width, targetHeight / img.height);
+        const scaledWidth = img.width * scale;
+        const scaledHeight = img.height * scale;
+        const dx = (targetWidth - scaledWidth) / 2;
+        const dy = (targetHeight - scaledHeight) / 2;
+        
+        ctx.drawImage(img, dx, dy, scaledWidth, scaledHeight);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const croppedFile = new File([blob], file.name, {
+              type: file.type || 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(croppedFile);
+          } else {
+            resolve(file); // Fallback
+          }
+        }, file.type || 'image/jpeg', 0.95);
+      };
+      img.onerror = () => resolve(file);
+      img.src = url;
+    });
+  };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
+
+    if (reqWidth && reqHeight) {
+      const croppedFiles = [];
+      for (const file of acceptedFiles) {
+        const cropped = await autoCropImage(file, reqWidth, reqHeight);
+        croppedFiles.push(cropped);
+      }
+      acceptedFiles = croppedFiles;
+    }
+
+    if (deferUpload) {
+      if (multiple) {
+        const newImages = acceptedFiles.map(file => ({
+          file,
+          url: URL.createObjectURL(file)
+        }));
+        const updatedImages = [...internalImages, ...newImages].slice(0, maxFiles);
+        setInternalImages(updatedImages);
+        onChange(updatedImages.map(img => img.file || img.url));
+      } else {
+        const fileToUpload = acceptedFiles[0];
+        setInternalImages([{ file: fileToUpload, url: URL.createObjectURL(fileToUpload) }]);
+        onChange(fileToUpload);
+      }
+      return;
+    }
 
     try {
       if (multiple) {
@@ -155,7 +230,7 @@ export const ImageUpload = ({
     } catch (error) {
       console.error("Upload error in onDrop:", error);
     }
-  }, [multiple, maxFiles, internalImages, onChange, uploadFile, uploadMultiple, folder, onUploadComplete]);
+  }, [multiple, maxFiles, internalImages, onChange, uploadFile, uploadMultiple, folder, onUploadComplete, reqWidth, reqHeight, deferUpload]);
 
   const onDropRejected = useCallback((fileRejections: FileRejection[]) => {
     fileRejections.forEach((rejection) => {
@@ -294,7 +369,7 @@ export const ImageUpload = ({
       
       {internalImages.length < maxFiles && (
         <Card 
-          {...getRootProps()}
+          {...(getRootProps() as unknown as React.HTMLAttributes<HTMLDivElement>)}
           className={cn(
             "aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all duration-300 shadow-none",
             isDragActive 
@@ -324,9 +399,9 @@ export const ImageUpload = ({
         renderSinglePreview()
       ) : multiple && internalImages.length > 0 ? (
         renderMultiPreview()
-      ) : (
+      ) : !multiple ? (
         <Card 
-          {...getRootProps()}
+          {...(getRootProps() as unknown as React.HTMLAttributes<HTMLDivElement>)}
           className={cn(
             "relative border-2 border-dashed rounded-2xl transition-all duration-300 cursor-pointer flex flex-col items-center justify-center p-0 text-center overflow-hidden shadow-none",
             isDragActive 
@@ -338,24 +413,26 @@ export const ImageUpload = ({
             aspectRatio === 'square' ? "aspect-square" : aspectRatio === 'video' ? "aspect-video" : "min-h-[140px]"
           )}
         >
-          <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center w-full h-full">
+          <CardContent className="p-2 sm:p-4 md:p-6 flex flex-col items-center justify-center w-full h-full">
             <input {...getInputProps()} />
             
             {isUploading ? (
               <div className="flex flex-col items-center justify-center space-y-2 p-2">
-                <Loader2 className="h-6 w-6 text-primary animate-spin" />
-                <p className="text-xs font-bold text-slate-500">Đang tải...</p>
+                <Loader2 className="h-5 w-5 md:h-6 md:w-6 text-primary animate-spin" />
+                <p className="text-[10px] md:text-xs font-bold text-slate-500">Đang tải...</p>
               </div>
             ) : (
-              <div className="space-y-1 md:space-y-1.5 relative z-10 w-full px-2">
-                <p className="text-xs md:text-sm font-bold text-slate-700 tracking-tight line-clamp-1">
-                  {isDragActive ? "Thả ngay để tải lên" : "Tải ảnh lên hệ thống"}
+              <div className="flex flex-col items-center justify-center w-full px-1 gap-1 relative z-10">
+                <p className="text-[11px] sm:text-xs md:text-sm font-bold text-slate-700 tracking-tight text-center leading-tight">
+                  {isDragActive ? "Thả tải lên" : "Tải ảnh lên"}
                 </p>
-                <p className="text-[10px] md:text-xs text-slate-400 font-medium max-w-[180px] mx-auto leading-normal line-clamp-2">
-                  {description}
-                </p>
-                <span className="inline-block text-[9px] font-bold text-slate-400 bg-slate-100 border border-slate-200/60 rounded px-1.5 py-0.5 mt-0.5 uppercase tracking-wider">
-                  Tối đa {(maxSize / (1024 * 1024)).toFixed(0)}MB
+                {description && (
+                  <p className="text-[9px] sm:text-[10px] md:text-xs text-slate-400 font-medium text-center leading-tight line-clamp-2">
+                    {description}
+                  </p>
+                )}
+                <span className="inline-block text-[8px] sm:text-[9px] font-bold text-slate-400 bg-slate-100 border border-slate-200/60 rounded px-1.5 py-0.5 uppercase tracking-wider">
+                  Max {(maxSize / (1024 * 1024)).toFixed(0)}MB
                 </span>
               </div>
             )}
@@ -371,13 +448,16 @@ export const ImageUpload = ({
             )}
           </CardContent>
         </Card>
-      )}
+      ) : null}
       
       {/* Empty State for Multiple Mode (when no images yet) */}
-      {multiple && internalImages.length === 0 && !isDragActive && (
+      {multiple && internalImages.length === 0 && (
         <Card 
-          {...getRootProps()}
-          className="border-2 border-dashed border-slate-200 rounded-2xl transition-all duration-300 cursor-pointer group/empty shadow-none"
+          {...(getRootProps() as unknown as React.HTMLAttributes<HTMLDivElement>)}
+          className={cn(
+            "border-2 border-dashed rounded-2xl transition-all duration-300 cursor-pointer group/empty shadow-none",
+            isDragActive ? "border-primary bg-primary/5" : "border-slate-200"
+          )}
         >
           <CardContent className="p-6 md:p-8 flex flex-col items-center justify-center bg-slate-50/50 hover:border-primary hover:bg-white hover:shadow-lg transition-all w-full min-h-[140px]">
             <input {...getInputProps()} />

@@ -25,6 +25,7 @@ public class EcpApiApplication {
 	}
 
 	public static void main(String[] args) throws UnknownHostException {
+		System.setProperty("io.netty.noUnsafe", "true");
 		SpringApplication app = new SpringApplication(EcpApiApplication.class);
 
 		app.setDefaultProperties(Collections.singletonMap("server.port", "9090"));

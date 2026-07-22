@@ -5,7 +5,7 @@ import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.PaginationResponse;
 import com.example.ecp_api.dto.response.ProductResponse;
 import com.example.ecp_api.entity.mongodb.Product;
-import com.example.ecp_api.entity.mongodb.embedded.ProductImage;
+// removed ProductImage import
 import com.example.ecp_api.entity.mongodb.embedded.ProductVariant;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -80,15 +80,5 @@ public interface ProductMapper {
     @Mapping(target = "updatedAt", ignore = true)
     void updateVariantFromRequest(ProductRequest.ProductVariantRequest request, @MappingTarget ProductVariant variant);
 
-    // --- Helper Mappings for ProductImage ---
-
-    default ProductImage toProductImage(String url) {
-        if (url == null || url.isBlank()) return null;
-        return ProductImage.builder().url(url).build();
-    }
-
-    default String fromProductImage(ProductImage productImage) {
-        if (productImage == null) return null;
-        return productImage.getUrl();
-    }
+    // removed ProductImage helpers
 }

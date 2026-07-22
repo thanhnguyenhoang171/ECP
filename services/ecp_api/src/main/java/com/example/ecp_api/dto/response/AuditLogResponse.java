@@ -31,13 +31,13 @@ public class AuditLogResponse {
     @Schema(description = "Time when the action was performed")
     private LocalDateTime timestamp;
 
-    // Authentication fields
+    @Schema(description = "Type of log: SYSTEM, ADMIN, MANAGER, or USER")
+    private String logType;
+
+    @Schema(description = "Module: SYSTEM (Auth, Users) or MANAGEMENT (Products, Orders)")
+    private String module;
+
     private String ipAddress;
     private String userAgent;
     private String status;
-
-    // Action specific fields
-    private String resourceType;
-    private String resourceId;
-    private String changeDetails;
 }

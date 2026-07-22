@@ -10,11 +10,12 @@ import org.springframework.data.domain.Page;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+@Mapper(componentModel = "spring", uses = {GoodsReceiptItemMapper.class}, nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface GoodsReceiptMapper {
 
     @Mapping(target = "purchaseOrder", ignore = true)
     @Mapping(target = "warehouse", ignore = true)
+    @Mapping(target = "items", ignore = true)
     @Mapping(target = "status", constant = "DRAFT")
     GoodsReceipt toEntity(GoodsReceiptRequest request);
 
@@ -28,6 +29,7 @@ public interface GoodsReceiptMapper {
 
     @Mapping(target = "purchaseOrder", ignore = true)
     @Mapping(target = "warehouse", ignore = true)
+    @Mapping(target = "items", ignore = true)
     void updateEntityFromRequest(GoodsReceiptRequest request, @MappingTarget GoodsReceipt entity);
 
     default PageResponse<GoodsReceiptResponse> toPageResponse(Page<GoodsReceipt> page) {

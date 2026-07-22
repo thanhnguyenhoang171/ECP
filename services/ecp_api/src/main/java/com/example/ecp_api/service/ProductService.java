@@ -8,5 +8,10 @@ import org.springframework.data.domain.Pageable;
 
 public interface ProductService {
     ProductResponse createProduct(ProductRequest request);
+
     PageResponse<ProductResponse> getAllProducts(ProductFilterRequest filter, Pageable pageable);
+
+    ProductResponse getProductById(String id);
+
+    void updateVariantCostPriceMAC(String skuId, int addedQuantity, java.math.BigDecimal newUnitCost);
 }

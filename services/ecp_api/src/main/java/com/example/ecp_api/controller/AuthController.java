@@ -114,7 +114,7 @@ public class AuthController {
                         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
                         // Log success
-                        auditLogService.logAuth("LOGIN_SUCCESS", userDetails.getUsername(), "SUCCESS", IpUtils.getClientIp(request), request.getHeader("User-Agent"), "User logged in");
+                        auditLogService.log("LOGIN_SUCCESS", userDetails.getUsername(), "User logged in", "SUCCESS");
 
                         // Update last login in database
                         userService.updateLastLogin(userDetails.getUsername());
@@ -122,7 +122,7 @@ public class AuthController {
                         return ResponseEntity.ok(apiResponse);
                 } catch (Exception e) {
                         // Log failure
-                        auditLogService.logAuth("LOGIN_FAILURE", loginRequest.getUsername(), "FAILURE", IpUtils.getClientIp(request), request.getHeader("User-Agent"), "Failed login attempt: " + e.getMessage());
+                        auditLogService.log("LOGIN_FAILURE", loginRequest.getUsername(), "Failed login attempt: " + e.getMessage(), "FAILURE");
                         throw e;
                 }
         }
@@ -211,7 +211,7 @@ public class AuthController {
                 tokenService.clearUserPresence(username);
 
                 // Log logout
-                auditLogService.logAuth("LOGOUT", username, "SUCCESS", IpUtils.getClientIp(request), request.getHeader("User-Agent"), "User logged out");
+                auditLogService.log("LOGOUT", username, "User logged out", "SUCCESS");
 
                 // Xóa Refresh Token Cookie
                 ResponseCookie cookie = ResponseCookie.from("refreshToken", "")

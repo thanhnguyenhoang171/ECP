@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2, Save, X, Package, Calculator, Calendar } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -67,8 +67,13 @@ export default function GoodsReceiptForm() {
     router.push('/goods-receipt');
   }
 
+  const items = useWatch({
+    control: form.control,
+    name: 'items'
+  });
+
   const calculateTotal = () => {
-    return form.watch('items').reduce((acc, item) => acc + (item.quantity * item.unitCost), 0);
+    return (items || []).reduce((acc, item) => acc + ((item?.quantity || 0) * (item?.unitCost || 0)), 0);
   };
 
   return (

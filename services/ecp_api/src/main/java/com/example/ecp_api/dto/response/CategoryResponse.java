@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import com.example.ecp_api.entity.mongodb.embedded.ProductImage;
 
 @Data
 @NoArgsConstructor
@@ -41,11 +42,8 @@ public class CategoryResponse {
     @Schema(description = "Last update timestamp")
     private LocalDateTime updatedAt;
 
-    @Schema(description = "Category image URL", example = "https://res.cloudinary.com/...")
-    private String imageUrl;
-
-    @Schema(description = "Category image public ID", example = "ecp_uploads/categories/abcxyz")
-    private String imagePublicId;
+    @Schema(description = "Category image")
+    private ProductImage image;
 
     @Schema(description = "Order position for sorting", example = "1")
     private Integer order;

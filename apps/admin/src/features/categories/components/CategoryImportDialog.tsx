@@ -22,6 +22,7 @@ import ExcelPreviewDialog from './ExcelPreviewDialog';
 import { toast } from 'sonner';
 import { categoryApi } from '../api/category.api';
 import { useImportCategory } from '../hooks/use-category-mutation';
+import { formatDateTimeForFilename } from '@/lib/formatters';
 
 interface CategoryImportDialogProps {
   isOpen: boolean;
@@ -78,7 +79,8 @@ export default function CategoryImportDialog({
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'mau_nhap_danh_muc.xlsx');
+      const dateStr = formatDateTimeForFilename();
+      link.setAttribute('download', `mau_nhap_danh_muc_${dateStr}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();

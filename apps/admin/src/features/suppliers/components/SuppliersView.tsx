@@ -1,57 +1,42 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Users, MoreHorizontal, Edit2, Trash2, Phone, Mail, Building2 } from "lucide-react";
-import { PageHeader, DataTable, DataCard } from '@/components/common';
-import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import { Users, Phone, Mail, Building2 } from "lucide-react";
+import { PageHeader, DataTable, DataCard, Breadcrumbs } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { SearchInput, AddNewButton } from '@/components/common/view-control';
-import SupplierForm from './SupplierForm';
-import { toast } from 'sonner';
-import { clientDb, ClientSupplier } from '@/lib/clientDb';
+  SearchInput, 
+  AddNewButton, 
+  ViewActionButton, 
+  EditActionButton, 
+  DeleteActionButton, 
+  DeleteConfirmDialog 
+} from '@/components/common/view-control';
+import { ClientSupplier } from '@/lib/clientDb';
+import { useSuppliers, useDeleteSupplier } from '../hooks/use-suppliers';
+import SupplierDetailDialog from './SupplierDetailDialog';
 
 export default function SuppliersView() {
-  const [suppliers, setSuppliers] = useState<ClientSupplier[]>(() => clientDb.getSuppliers());
+  const router = useRouter();
+  const { data: suppliers = [], isLoading } = useSuppliers();
+  const deleteMutation = useDeleteSupplier();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingSupplier, setEditingSupplier] = useState<ClientSupplier | null>(null);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  const refreshData = () => {
-    setSuppliers(clientDb.getSuppliers());
+  const handleViewDetail = (item: ClientSupplier) => {
+    setSelectedSupplierId(item.id);
+    setIsDetailOpen(true);
   };
 
-  const handleEdit = (supplier: ClientSupplier) => {
-    setEditingSupplier(supplier);
-    setIsFormOpen(true);
+  const handleEdit = (item: ClientSupplier) => {
+    router.push(`/suppliers/${item.id}`);
   };
 
   const handleCreate = () => {
-    setEditingSupplier(null);
-    setIsFormOpen(true);
-  };
-
-  const handleDelete = (id: string) => {
-    if (clientDb.deleteSupplier(id)) {
-      toast.success('Xóa nhà cung cấp thành công');
-      refreshData();
-    } else {
-      toast.error('Không thể xóa nhà cung cấp');
-    }
+    router.push('/suppliers/create');
   };
 
   const filteredSuppliers = useMemo(() => {
@@ -102,32 +87,25 @@ export default function SuppliersView() {
       )
     },
     {
-      id: 'actions',
+      header: 'Thao tác',
       align: 'right' as const,
       cell: (item: ClientSupplier) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel className="text-[10px] uppercase font-bold text-slate-400">Tùy chọn</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => handleEdit(item)} className="cursor-pointer">
-              <Edit2 className="mr-2 h-4 w-4" /> Chỉnh sửa
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleDelete(item.id)} className="cursor-pointer text-destructive focus:text-destructive">
-              <Trash2 className="mr-2 h-4 w-4" /> Xóa NCC
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex justify-end gap-1">
+          <ViewActionButton onClick={() => handleViewDetail(item)} disabled={isLoading} />
+          <EditActionButton onClick={() => handleEdit(item)} disabled={isLoading} />
+          <DeleteActionButton onClick={() => setDeleteConfirmId(item.id)} disabled={isLoading} />
+        </div>
       )
     }
   ];
 
+  const breadcrumbItems = [
+    { label: 'Nhà cung cấp', icon: Users },
+  ];
+
   return (
     <div className="space-y-6">
+      <Breadcrumbs items={breadcrumbItems} />
       <PageHeader 
         title="Nhà cung cấp"
         description="Quản lý thông tin đối tác và các nhà cung cấp hàng hóa."
@@ -138,7 +116,7 @@ export default function SuppliersView() {
         <DataTable 
           columns={columns as any} 
           data={filteredSuppliers} 
-          isLoading={false}
+          isLoading={isLoading}
           emptyState={{
             title: "Chưa có nhà cung cấp",
             description: "Thêm thông tin đối tác đầu tiên để thực hiện nhập kho.",
@@ -148,22 +126,26 @@ export default function SuppliersView() {
         />
       </DataCard>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editingSupplier ? 'Chỉnh sửa nhà cung cấp' : 'Thêm nhà cung cấp mới'}</DialogTitle>
-            <DialogDescription>Nhập thông tin liên hệ và pháp lý của nhà cung cấp.</DialogDescription>
-          </DialogHeader>
-          <SupplierForm 
-            onSuccess={() => {
-              setIsFormOpen(false);
-              toast.success(editingSupplier ? 'Cập nhật thành công' : 'Tạo mới thành công');
-              refreshData();
-            }} 
-            initialData={editingSupplier || undefined} 
-          />
-        </DialogContent>
-      </Dialog>
+      <SupplierDetailDialog 
+        supplierId={selectedSupplierId}
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        onEdit={handleEdit}
+      />
+
+      <DeleteConfirmDialog
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        isLoading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deleteConfirmId) {
+            deleteMutation.mutate(deleteConfirmId, {
+              onSuccess: () => setDeleteConfirmId(null),
+            });
+          }
+        }}
+        description="Bạn có chắc chắn muốn xóa nhà cung cấp này? Hành động này không thể hoàn tác."
+      />
     </div>
   );
 }

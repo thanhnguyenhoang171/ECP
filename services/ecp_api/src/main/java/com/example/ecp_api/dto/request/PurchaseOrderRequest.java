@@ -7,6 +7,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.Valid;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -32,4 +40,27 @@ public class PurchaseOrderRequest {
 
     @Schema(description = "Optional notes or comments about the purchase order", example = "Giao hàng vào giờ hành chính")
     private String note;
+
+    @Valid
+    @NotEmpty(message = "Phải có ít nhất 1 sản phẩm")
+    @Schema(description = "Danh sách sản phẩm trong đơn mua hàng")
+    private List<PurchaseOrderItemDto> items;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Schema(description = "Chi tiết sản phẩm trong đơn mua hàng")
+    public static class PurchaseOrderItemDto {
+        @NotBlank(message = "SKU ID is required")
+        private String skuId;
+
+        @NotNull(message = "Unit price is required")
+        @DecimalMin(value = "0.0", inclusive = true)
+        private BigDecimal unitPrice;
+
+        @NotNull(message = "Order quantity is required")
+        @Min(value = 1)
+        private Integer orderQuantity;
+    }
 }

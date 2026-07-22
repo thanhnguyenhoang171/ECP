@@ -38,6 +38,12 @@ public class ProductVariant {
 
     private BigDecimal price;
 
+    @Field("cost_price")
+    private BigDecimal costPrice;
+
+    @Field("compare_at_price")
+    private BigDecimal compareAtPrice;
+
     private ProductImage image;
 
     // Attributes: { "Color": "Titan", "Storage": "256GB" }

@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import com.example.ecp_api.entity.mongodb.embedded.ProductImage;
 import java.util.List;
 import java.util.Map;
 
@@ -39,11 +40,11 @@ public class ProductResponse {
     @Schema(description = "Detailed product description")
     private String description;
 
-    @Schema(description = "Main product image URL")
-    private String thumbnail;
+    @Schema(description = "Main product image")
+    private ProductImage thumbnail;
 
-    @Schema(description = "List of product gallery image URLs")
-    private List<String> images;
+    @Schema(description = "List of product gallery images")
+    private List<ProductImage> images;
 
     @Schema(description = "Dynamic specifications")
     private Map<String, Object> specifications;
@@ -81,8 +82,14 @@ public class ProductResponse {
         @Schema(description = "Price of this variant")
         private BigDecimal price;
 
-        @Schema(description = "Variant specific image URL")
-        private String image;
+        @Schema(description = "Cost price of this variant")
+        private BigDecimal costPrice;
+
+        @Schema(description = "Compare at price (original price before discount)")
+        private BigDecimal compareAtPrice;
+
+        @Schema(description = "Variant specific image")
+        private ProductImage image;
 
         @Schema(description = "Variant specific attributes")
         private Map<String, Object> attributes;

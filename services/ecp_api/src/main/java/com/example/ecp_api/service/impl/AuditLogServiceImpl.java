@@ -3,11 +3,11 @@ package com.example.ecp_api.service.impl;
 import com.example.ecp_api.dto.request.AuditLogFilterRequest;
 import com.example.ecp_api.dto.response.AuditLogResponse;
 import com.example.ecp_api.dto.response.PageResponse;
-import com.example.ecp_api.entity.mongodb.ActionAuditLog;
 import com.example.ecp_api.entity.mongodb.AuditLog;
-import com.example.ecp_api.entity.mongodb.AuthAuditLog;
 import com.example.ecp_api.mapper.AuditLogMapper;
 import com.example.ecp_api.repository.mongodb.AuditLogRepository;
+import com.example.ecp_api.repository.jpa.UserRepository;
+import com.example.ecp_api.enums.users.UserRole;
 import com.example.ecp_api.service.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +19,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import com.example.ecp_api.util.IpUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,57 +34,69 @@ public class AuditLogServiceImpl implements AuditLogService {
     private final AuditLogRepository auditLogRepository;
     private final MongoTemplate mongoTemplate;
     private final AuditLogMapper auditLogMapper;
+    private final UserRepository userRepository;
+
+    private String determineLogType(String username) {
+        if (!StringUtils.hasText(username) || "SYSTEM".equalsIgnoreCase(username)) {
+            return "SYSTEM";
+        }
+        return userRepository.findByUsername(username)
+                .map(user -> {
+                    if (user.getRole() == UserRole.SUPER_ADMIN) {
+                        return "ADMIN";
+                    } else if (user.getRole() == UserRole.MANAGER) {
+                        return "MANAGER";
+                    }
+                    return "USER";
+                })
+                .orElse("SYSTEM");
+    }
+
+    private String determineModule(String action) {
+        if (!StringUtils.hasText(action)) return "SYSTEM";
+        String upperAction = action.toUpperCase();
+        if (upperAction.contains("LOGIN") || upperAction.contains("LOGOUT") || upperAction.contains("AUTH") || upperAction.contains("USER") || upperAction.contains("ACCOUNT") || upperAction.contains("REGISTER")) {
+            return "SYSTEM";
+        }
+        return "MANAGEMENT";
+    }
+
+    private String getCurrentIpAddress() {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes != null) {
+            return IpUtils.getClientIp(attributes.getRequest());
+        }
+        return "SYSTEM";
+    }
+
+    private String getCurrentUserAgent() {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes != null) {
+            return attributes.getRequest().getHeader("User-Agent");
+        }
+        return "SYSTEM";
+    }
 
     @Override
     public void log(String action, String username, String details) {
-        String upperAction = action != null ? action.toUpperCase() : "";
-        AuditLog auditLog;
+        log(action, username, details, "SUCCESS");
+    }
 
-        if (upperAction.contains("LOGIN") || upperAction.contains("LOGOUT") || upperAction.contains("AUTH")) {
-            auditLog = AuthAuditLog.builder()
-                    .action(action)
-                    .username(username)
-                    .details(details)
-                    .timestamp(LocalDateTime.now())
-                    .status("SUCCESS") // Default for generic log call
-                    .build();
-        } else {
-            auditLog = ActionAuditLog.builder()
-                    .action(action)
-                    .username(username)
-                    .details(details)
-                    .timestamp(LocalDateTime.now())
-                    .build();
-        }
+    @Override
+    public void log(String action, String username, String details, String status) {
+        AuditLog auditLog = AuditLog.builder()
+                .action(action)
+                .username(username)
+                .details(details)
+                .timestamp(LocalDateTime.now())
+                .status(status)
+                .logType(determineLogType(username))
+                .module(determineModule(action))
+                .ipAddress(getCurrentIpAddress())
+                .userAgent(getCurrentUserAgent())
+                .build();
         
         auditLogRepository.save(auditLog);
-    }
-
-    @Override
-    public void logAuth(String action, String username, String status, String ip, String userAgent, String details) {
-        AuthAuditLog authLog = AuthAuditLog.builder()
-                .action(action)
-                .username(username)
-                .status(status)
-                .ipAddress(ip)
-                .userAgent(userAgent)
-                .details(details)
-                .timestamp(LocalDateTime.now())
-                .build();
-        auditLogRepository.save(authLog);
-    }
-
-    @Override
-    public void logAction(String action, String username, String resourceType, String resourceId, String details) {
-        ActionAuditLog actionLog = ActionAuditLog.builder()
-                .action(action)
-                .username(username)
-                .resourceType(resourceType)
-                .resourceId(resourceId)
-                .details(details)
-                .timestamp(LocalDateTime.now())
-                .build();
-        auditLogRepository.save(actionLog);
     }
 
     /**
@@ -120,6 +135,14 @@ public class AuditLogServiceImpl implements AuditLogService {
 
         if (StringUtils.hasText(filter.getUsername())) {
             query.addCriteria(Criteria.where("username").regex(filter.getUsername(), "i"));
+        }
+
+        if (StringUtils.hasText(filter.getLogType())) {
+            query.addCriteria(Criteria.where("logType").is(filter.getLogType()));
+        }
+
+        if (StringUtils.hasText(filter.getModule())) {
+            query.addCriteria(Criteria.where("module").is(filter.getModule()));
         }
 
         long count = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), AuditLog.class);

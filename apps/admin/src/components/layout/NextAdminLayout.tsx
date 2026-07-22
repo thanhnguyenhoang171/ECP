@@ -94,8 +94,7 @@ const menuItems: MenuItem[] = [
       { key: '/products', label: 'Sản phẩm' },
       { key: '/skus', label: 'Danh sách SKU' },
       { key: '/categories', label: 'Danh mục' },
-      { key: '/brands', label: 'Thương hiệu' },
-    ],
+          ],
   },
   {
     key: 'inventory-group',
@@ -120,7 +119,7 @@ const menuItems: MenuItem[] = [
       { key: '/promotions', label: 'Mã giảm giá' },
     ],
   },
-  { key: '/users', icon: <UserCircle size={18} />, label: 'Nhân viên' },
+  { key: '/users', icon: <UserCircle size={18} />, label: 'Nhân viên', requiredRoles: ['ROLE_SUPER_ADMIN'] },
   {
     key: 'system-group',
     icon: <Settings size={18} />,

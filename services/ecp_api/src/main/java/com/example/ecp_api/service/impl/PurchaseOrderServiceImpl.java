@@ -16,6 +16,7 @@ import com.example.ecp_api.repository.jpa.SupplierRepository;
 import com.example.ecp_api.repository.jpa.WarehouseRepository;
 import com.example.ecp_api.service.AuditLogService;
 import com.example.ecp_api.service.PurchaseOrderService;
+import com.example.ecp_api.service.helper.PurchaseOrderHelper;
 import com.example.ecp_api.util.PaginationUtils;
 import com.example.ecp_api.util.SecurityUtils;
 import jakarta.persistence.criteria.Predicate;
@@ -40,6 +41,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final WarehouseRepository warehouseRepository;
     private final SupplierRepository supplierRepository;
+    private final PurchaseOrderHelper purchaseOrderHelper;
     private final PurchaseOrderMapper purchaseOrderMapper;
     private final AuditLogService auditLogService;
 
@@ -59,6 +61,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         PurchaseOrder purchaseOrder = purchaseOrderMapper.toEntity(request);
         purchaseOrder.setWarehouse(warehouse);
         purchaseOrder.setSupplier(supplier);
+
+        purchaseOrderHelper.processPurchaseOrderItems(request, purchaseOrder);
 
         if (request.getStatus() == null) {
             purchaseOrder.setStatus(PurchaseOrderStatus.DRAFT);
@@ -91,6 +95,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         purchaseOrderMapper.updatePurchaseOrderFromRequest(request, purchaseOrder);
         purchaseOrder.setWarehouse(warehouse);
         purchaseOrder.setSupplier(supplier);
+
+        purchaseOrderHelper.processPurchaseOrderItems(request, purchaseOrder);
 
         if (request.getStatus() != null) {
             purchaseOrder.setStatus(request.getStatus());

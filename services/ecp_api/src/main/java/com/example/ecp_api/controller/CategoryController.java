@@ -156,8 +156,9 @@ public class CategoryController {
    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
    @Operation(summary = "Download Excel template", description = "Downloads the Excel template for importing categories.")
    public ResponseEntity<StreamingResponseBody> downloadTemplate() {
-       String fileName = "Template_Import_Category.xlsx";
-       String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+       String dateStr = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("ddMMyyyy"));
+       String fileName = "Template_Import_Category_" + dateStr + ".xlsx";
+       String encodedFileName = java.net.URLEncoder.encode(fileName, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20");
 
        StreamingResponseBody responseBody = outputStream -> {
            try {

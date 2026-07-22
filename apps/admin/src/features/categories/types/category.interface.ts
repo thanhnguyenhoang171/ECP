@@ -3,7 +3,6 @@ export interface Category {
   name: string;
   slug: string;
   parentId: string | null;
-  path: string | null;
   level: number;
   active: boolean;
   createdAt?: string;

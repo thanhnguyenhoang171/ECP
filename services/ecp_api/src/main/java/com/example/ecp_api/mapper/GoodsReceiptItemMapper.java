@@ -1,6 +1,5 @@
 package com.example.ecp_api.mapper;
 
-import com.example.ecp_api.dto.request.GoodsReceiptItemRequest;
 import com.example.ecp_api.dto.response.GoodsReceiptItemResponse;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.PaginationResponse;
@@ -14,10 +13,6 @@ import java.util.List;
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface GoodsReceiptItemMapper {
 
-    @Mapping(target = "goodsReceipt", ignore = true)
-    @Mapping(target = "sku", ignore = true)
-    GoodsReceiptItem toEntity(GoodsReceiptItemRequest request);
-
     @Mapping(source = "goodsReceipt.id", target = "receiptId")
     @Mapping(source = "sku.id", target = "skuId")
     @Mapping(source = "sku.skuCode", target = "skuCode")
@@ -26,10 +21,6 @@ public interface GoodsReceiptItemMapper {
     GoodsReceiptItemResponse toResponse(GoodsReceiptItem entity);
 
     List<GoodsReceiptItemResponse> toResponseList(List<GoodsReceiptItem> entities);
-
-    @Mapping(target = "goodsReceipt", ignore = true)
-    @Mapping(target = "sku", ignore = true)
-    void updateEntityFromRequest(GoodsReceiptItemRequest request, @MappingTarget GoodsReceiptItem entity);
 
     default BigDecimal calculateTotalCost(GoodsReceiptItem entity) {
         if (entity == null || entity.getUnitCost() == null || entity.getQuantity() == null) {

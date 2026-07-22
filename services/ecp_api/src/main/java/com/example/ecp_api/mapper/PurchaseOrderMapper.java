@@ -15,12 +15,13 @@ import org.springframework.data.domain.Page;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+@Mapper(componentModel = "spring", uses = {PurchaseOrderItemMapper.class}, nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface PurchaseOrderMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "warehouse", ignore = true)
     @Mapping(target = "supplier", ignore = true)
+    @Mapping(target = "items", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
@@ -46,6 +47,7 @@ public interface PurchaseOrderMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "warehouse", ignore = true)
     @Mapping(target = "supplier", ignore = true)
+    @Mapping(target = "items", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)

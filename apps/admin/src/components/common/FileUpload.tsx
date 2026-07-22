@@ -78,31 +78,30 @@ export const FileUpload = ({
 
   // Sync internal state with external 'value' prop
   useEffect(() => {
-    if (!value) {
-      if (internalFiles.length > 0) {
-        setInternalFiles([]);
+    setInternalFiles(prevInternalFiles => {
+      if (!value) {
+        return prevInternalFiles.length > 0 ? [] : prevInternalFiles;
       }
-      return;
-    }
 
-    const values = Array.isArray(value) ? value : [value];
-    
-    // Only sync if these are new File objects we haven't processed yet
-    const currentFiles = internalFiles.map(f => f.file).filter(Boolean);
-    const hasChanged = values.length !== currentFiles.length || 
-                      values.some((v, i) => v !== currentFiles[i]);
+      const values = Array.isArray(value) ? value : [value];
+      
+      const currentFiles = prevInternalFiles.map(f => f.file).filter(Boolean);
+      const hasChanged = values.length !== currentFiles.length || 
+                        values.some((v, i) => v !== currentFiles[i]);
 
-    if (hasChanged) {
-      const processed = values.map(f => ({
-        file: f,
-        name: f.name,
-        size: f.size,
-        type: f.type,
-        url: f.type.startsWith('image/') ? URL.createObjectURL(f) : ''
-      }));
-      setInternalFiles(processed);
-    }
-  }, [value]); // Removed internalFiles from dependencies to prevent loops
+      if (hasChanged) {
+        return values.map(f => ({
+          file: f,
+          name: f.name,
+          size: f.size,
+          type: f.type,
+          url: f.type.startsWith('image/') ? URL.createObjectURL(f) : ''
+        }));
+      }
+      
+      return prevInternalFiles;
+    });
+  }, [value]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (multiple) {
@@ -256,7 +255,7 @@ export const FileUpload = ({
           type="button" 
           variant="outline" 
           className="w-full h-12 border-dashed border-2 border-slate-200 text-slate-500 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all rounded-xl gap-2 font-bold text-xs"
-          {...getRootProps()}
+          {...(getRootProps() as unknown as React.ButtonHTMLAttributes<HTMLButtonElement>)}
         >
           <input {...getInputProps()} />
           <Plus size={16} /> Thêm tệp tin khác ({internalFiles.length}/{maxFiles})
@@ -271,7 +270,7 @@ export const FileUpload = ({
         renderFileList()
       ) : (
         <Card 
-          {...getRootProps()}
+          {...(getRootProps() as unknown as React.HTMLAttributes<HTMLDivElement>)}
           className={cn(
             "relative border-2 border-dashed rounded-2xl transition-all duration-300 cursor-pointer flex flex-col items-center justify-center p-0 text-center overflow-hidden shadow-none outline-none",
             isDragActive 

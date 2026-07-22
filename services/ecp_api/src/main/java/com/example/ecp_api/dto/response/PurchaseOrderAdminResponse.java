@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -58,4 +59,7 @@ public class PurchaseOrderAdminResponse {
 
     @Schema(description = "Username of the last updater")
     private String updatedBy;
+
+    @Schema(description = "List of items in the purchase order")
+    private List<PurchaseOrderItemAdminResponse> items;
 }
