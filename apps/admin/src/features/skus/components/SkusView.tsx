@@ -21,8 +21,10 @@ import {
   SortPopover,
   EditActionButton,
   DeleteActionButton,
+  ViewActionButton,
   DeleteConfirmDialog,
 } from '@/components/common/view-control';
+import SkuDetailDialog from './SkuDetailDialog';
 
 import { Sku } from '../types/sku.interface';
 import { PageResponse } from '@/types/pagination';
@@ -65,6 +67,13 @@ export default function SkusView() {
   const totalItems = pagination?.totalElements || 0;
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [selectedSku, setSelectedSku] = useState<Sku | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  const handleViewDetail = (sku: Sku) => {
+    setSelectedSku(sku);
+    setIsDetailOpen(true);
+  };
 
   const [searchTerm, setSearchTerm] = useDebounceSearch(skuParam, (val) => updateUrl({ sku: val, page: 1 }));
 
@@ -125,6 +134,7 @@ export default function SkusView() {
       align: 'right',
       cell: (sku) => (
         <div className='flex justify-end gap-1'>
+          <ViewActionButton onClick={() => handleViewDetail(sku)} disabled={isExporting} />
           <EditActionButton onClick={() => toast.info('Tính năng Chỉnh sửa đang được phát triển (Demo)')} disabled={isExporting} />
           <DeleteActionButton onClick={() => setDeleteConfirmId(sku.id)} disabled={isExporting} />
         </div>
@@ -208,6 +218,12 @@ export default function SkusView() {
           }}
         />
       </DataCard>
+
+      <SkuDetailDialog 
+        sku={selectedSku}
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+      />
 
       <DeleteConfirmDialog 
         isOpen={!!deleteConfirmId} 

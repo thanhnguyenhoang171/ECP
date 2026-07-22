@@ -33,3 +33,4 @@ export { ImageUpload } from "./ImageUpload";
 export * from "./view-control/FormLayout";
 export { default as Forbidden } from "./Forbidden";
 export { FormActionsBar } from "./FormActionsBar";
+export { DetailDialog, type DetailDialogProps, type DetailSection, type DetailItem } from "./DetailDialog";

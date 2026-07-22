@@ -4,6 +4,8 @@ import com.example.ecp_api.dto.request.SkuFilterRequest;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.SkuResponse;
 import com.example.ecp_api.entity.jpa.Sku;
+import com.example.ecp_api.entity.mongodb.Product;
+import com.example.ecp_api.exception.ResourceNotFoundException;
 import com.example.ecp_api.mapper.SkuMapper;
 import com.example.ecp_api.repository.jpa.SkuRepository;
 import com.example.ecp_api.service.SkuService;
@@ -19,6 +21,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -57,5 +60,18 @@ public class SkuServiceImpl implements SkuService {
 
         Page<Sku> skuPage = skuRepository.findAll(spec, finalPageable);
         return skuMapper.toPageResponse(skuPage);
+    }
+
+    @Override
+    public SkuResponse getSkuById(String skuId) {
+        UUID uuid;
+        try {
+            uuid = UUID.fromString(skuId);
+        } catch (IllegalArgumentException e) {
+            throw new ResourceNotFoundException("SKU not found with ID: " + skuId, "SKU_NOT_FOUND");
+        }
+        Sku sku = skuRepository.findById(uuid)
+                .orElseThrow(() -> new ResourceNotFoundException("SKU not found with ID: " + skuId, "SKU_NOT_FOUND"));
+        return skuMapper.toResponse(sku);
     }
 }
