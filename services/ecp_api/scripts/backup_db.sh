@@ -2,6 +2,7 @@
 
 # ==============================================================================
 # AUTOMATED DUAL DATABASE BACKUP SCRIPT: MYSQL & MONGODB
+# SUPPORTS DIRECT DOCKER CONTAINER EXECUTION & DIRECT HOST EXECUTION
 # UPLOAD TO NEXTCLOUD VIA WEBDAV (PUT)
 # ==============================================================================
 
@@ -20,6 +21,10 @@ elif [ -f ".env" ]; then
     eval $(grep -v '^#' .env | grep -v '^[[:space:]]*$' | sed -e 's/=\(.*\)/="\1"/' -e 's/=""\([^"]*\)""/="\1"/') 2>/dev/null || source .env
     set +o allexport
 fi
+
+# --- DOCKER CONTAINER NAMES ---
+MYSQL_CONTAINER="${MYSQL_CONTAINER:-ecp-mysql}"
+MONGO_CONTAINER="${MONGO_CONTAINER:-ecp-mongodb}"
 
 # --- 1. PARSE MYSQL CONFIGURATION FROM SPRING_DATASOURCE_URL IF PRESENT ---
 if [ -n "${SPRING_DATASOURCE_URL}" ]; then
@@ -44,25 +49,9 @@ MYSQL_USER="${SPRING_DATASOURCE_USERNAME:-${MYSQL_USER:-root}}"
 MYSQL_PASS="${SPRING_DATASOURCE_PASSWORD:-${MYSQL_PASS:-}}"
 MYSQL_DB="${MYSQL_DB:-ecp_local}"
 
-# Fallback Docker service host 'mysql' -> '127.0.0.1' when running outside container
-if [ "${MYSQL_HOST}" = "mysql" ]; then
-    if ! ping -c 1 mysql &>/dev/null && ! grep -q "mysql" /etc/hosts 2>/dev/null; then
-        echo "[INFO] Auto-replacing Docker MySQL host 'mysql' with '127.0.0.1' when running outside container..."
-        MYSQL_HOST="127.0.0.1"
-    fi
-fi
-
-# --- 2. MONGODB CONFIGURATION & DOCKER HOST REPLACEMENT ---
+# --- 2. MONGODB CONFIGURATION ---
 RAW_MONGO_URI="${SPRING_MONGODB_URI:-${MONGO_URI:-mongodb://localhost:27017/ecp_mongo}}"
 CLEAN_MONGO_URI=$(echo "${RAW_MONGO_URI}" | tr -d '"' | tr -d "'")
-
-# Fallback Docker service host 'mongodb' -> '127.0.0.1' when running outside container
-if [[ "$CLEAN_MONGO_URI" == *"@mongodb:"* ]] || [[ "$CLEAN_MONGO_URI" == *"//mongodb:"* ]]; then
-    if ! ping -c 1 mongodb &>/dev/null && ! grep -q "mongodb" /etc/hosts 2>/dev/null; then
-        echo "[INFO] Auto-replacing Docker Mongo host 'mongodb' with '127.0.0.1' when running outside container..."
-        CLEAN_MONGO_URI=$(echo "${CLEAN_MONGO_URI}" | sed -e 's/@mongodb:/@127.0.0.1:/' -e 's/\/\/mongodb:/\/\/127.0.0.1:/')
-    fi
-fi
 
 # --- 3. NEXTCLOUD WEBDAV CONFIGURATION ---
 NEXTCLOUD_DOMAIN="${NEXTCLOUD_DOMAIN:-cloud.example.com}"
@@ -91,33 +80,6 @@ if [ -z "${NEXTCLOUD_APP_PASS}" ]; then
     exit 1
 fi
 
-# --- AUTO-DETECT TOOLS PATH ON WINDOWS IF NOT IN PATH ---
-MYSQLDUMP_CMD="mysqldump"
-if ! command -v mysqldump &> /dev/null; then
-    for path in "/c/Program Files/MySQL/MySQL Server 8.0/bin/mysqldump.exe" \
-                "/c/Program Files/MySQL/MySQL Server 8.1/bin/mysqldump.exe" \
-                "/c/Program Files/MySQL/MySQL Server 8.4/bin/mysqldump.exe" \
-                "/c/Program Files/MySQL/MySQL Server 9.0/bin/mysqldump.exe" \
-                "/c/xampp/mysql/bin/mysqldump.exe" \
-                "/c/wamp64/bin/mysql/mysql*/bin/mysqldump.exe"; do
-        if [ -f "$path" ]; then
-            MYSQLDUMP_CMD="$path"
-            break
-        fi
-    done
-fi
-
-MONGODUMP_CMD="mongodump"
-if ! command -v mongodump &> /dev/null; then
-    for path in "/c/Program Files/MongoDB/Tools/100/bin/mongodump.exe" \
-                "/c/Program Files/MongoDB/Server/*/bin/mongodump.exe"; do
-        if [ -f "$path" ]; then
-            MONGODUMP_CMD="$path"
-            break
-        fi
-    done
-fi
-
 # --- STEP 2: INITIALIZE TEMPORARY BACKUP DIRECTORY ---
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 TEMP_WORK_DIR="${LOCAL_BACKUP_DIR}/backup_${TIMESTAMP}"
@@ -127,44 +89,72 @@ FINAL_TAR_PATH="${LOCAL_BACKUP_DIR}/${TAR_FILENAME}"
 mkdir -p "${TEMP_WORK_DIR}"
 
 # --- STEP 3: DUMP MYSQL DATABASE ---
-log_info "1/3. Dumping MySQL Database (${MYSQL_DB}) at Host ${MYSQL_HOST}:${MYSQL_PORT}..."
+log_info "1/3. Dumping MySQL Database (${MYSQL_DB})..."
 
-if command -v "$MYSQLDUMP_CMD" &> /dev/null || [ -f "$MYSQLDUMP_CMD" ]; then
-    MYSQL_OUT_FILE="${TEMP_WORK_DIR}/mysql_dump.sql"
-    
-    if [ -n "${MYSQL_PASS}" ]; then
-        DUMP_ERR=$("$MYSQLDUMP_CMD" -h "${MYSQL_HOST}" -P "${MYSQL_PORT}" -u "${MYSQL_USER}" -p"${MYSQL_PASS}" \
-                  --single-transaction --quick --lock-tables=false "${MYSQL_DB}" > "${MYSQL_OUT_FILE}" 2>&1)
-    else
-        DUMP_ERR=$("$MYSQLDUMP_CMD" -h "${MYSQL_HOST}" -P "${MYSQL_PORT}" -u "${MYSQL_USER}" \
-                  --single-transaction --quick --lock-tables=false "${MYSQL_DB}" > "${MYSQL_OUT_FILE}" 2>&1)
-    fi
+MYSQL_OUT_FILE="${TEMP_WORK_DIR}/mysql_dump.sql"
 
-    if [ -s "${MYSQL_OUT_FILE}" ]; then
-        log_success "MySQL database dumped successfully!"
-    else
-        log_warn "MySQL dump failed! Error details: ${DUMP_ERR}"
-    fi
+# Check if MySQL is running inside a Docker container
+if command -v docker &>/dev/null && docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${MYSQL_CONTAINER}$"; then
+    log_info "Detected Docker container '${MYSQL_CONTAINER}'. Executing mysqldump via Docker..."
+    docker exec "${MYSQL_CONTAINER}" mysqldump -u "${MYSQL_USER}" -p"${MYSQL_PASS}" --single-transaction --quick --lock-tables=false "${MYSQL_DB}" > "${MYSQL_OUT_FILE}" 2>/dev/null
 else
-    log_warn "mysqldump command not found. Skipping MySQL backup."
+    # Fallback to local mysqldump
+    MYSQLDUMP_CMD="mysqldump"
+    if ! command -v mysqldump &> /dev/null; then
+        for path in "/c/Program Files/MySQL/MySQL Server 8.0/bin/mysqldump.exe" \
+                    "/c/Program Files/MySQL/MySQL Server 8.1/bin/mysqldump.exe" \
+                    "/c/Program Files/MySQL/MySQL Server 8.4/bin/mysqldump.exe" \
+                    "/c/Program Files/MySQL/MySQL Server 9.0/bin/mysqldump.exe" \
+                    "/c/xampp/mysql/bin/mysqldump.exe"; do
+            if [ -f "$path" ]; then MYSQLDUMP_CMD="$path"; break; fi
+        done
+    fi
+
+    if command -v "$MYSQLDUMP_CMD" &> /dev/null || [ -f "$MYSQLDUMP_CMD" ]; then
+        # Replace 'mysql' host with '127.0.0.1' if running outside container
+        [ "${MYSQL_HOST}" = "mysql" ] && MYSQL_HOST="127.0.0.1"
+        "$MYSQLDUMP_CMD" -h "${MYSQL_HOST}" -P "${MYSQL_PORT}" -u "${MYSQL_USER}" -p"${MYSQL_PASS}" --single-transaction --quick --lock-tables=false "${MYSQL_DB}" > "${MYSQL_OUT_FILE}" 2>/dev/null
+    fi
+fi
+
+if [ -s "${MYSQL_OUT_FILE}" ]; then
+    log_success "MySQL database dumped successfully!"
+else
+    log_warn "MySQL dump failed or returned empty data."
 fi
 
 # --- STEP 4: DUMP MONGODB DATABASE ---
 log_info "2/3. Dumping MongoDB Database..."
 
-if command -v "$MONGODUMP_CMD" &> /dev/null || [ -f "$MONGODUMP_CMD" ]; then
-    MONGO_OUT_DIR="${TEMP_WORK_DIR}/mongo_dump"
-    log_info "MongoDB URI: ${CLEAN_MONGO_URI}"
-    
-    MONGO_ERR=$("$MONGODUMP_CMD" --uri="${CLEAN_MONGO_URI}" --out="${MONGO_OUT_DIR}" 2>&1)
-    
-    if [ -d "${MONGO_OUT_DIR}" ] && [ "$(ls -A "${MONGO_OUT_DIR}")" ]; then
-        log_success "MongoDB database dumped successfully!"
-    else
-        log_warn "MongoDB dump empty or failed. Details: ${MONGO_ERR}"
-    fi
+MONGO_OUT_DIR="${TEMP_WORK_DIR}/mongo_dump"
+
+# Check if MongoDB is running inside a Docker container
+if command -v docker &>/dev/null && docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${MONGO_CONTAINER}$"; then
+    log_info "Detected Docker container '${MONGO_CONTAINER}'. Executing mongodump via Docker..."
+    docker exec "${MONGO_CONTAINER}" mongodump --out=/tmp/mongo_dump >/dev/null 2>&1
+    docker cp "${MONGO_CONTAINER}:/tmp/mongo_dump" "${TEMP_WORK_DIR}/" 2>/dev/null
+    docker exec "${MONGO_CONTAINER}" rm -rf /tmp/mongo_dump 2>/dev/null
 else
-    log_warn "mongodump command not found. Skipping MongoDB backup."
+    # Fallback to local mongodump
+    MONGODUMP_CMD="mongodump"
+    if ! command -v mongodump &> /dev/null; then
+        for path in "/c/Program Files/MongoDB/Tools/100/bin/mongodump.exe" \
+                    "/c/Program Files/MongoDB/Server/*/bin/mongodump.exe"; do
+            if [ -f "$path" ]; then MONGODUMP_CMD="$path"; break; fi
+        done
+    fi
+
+    if command -v "$MONGODUMP_CMD" &> /dev/null || [ -f "$MONGODUMP_CMD" ]; then
+        # Replace 'mongodb' host with '127.0.0.1' if running outside container
+        CLEAN_MONGO_URI=$(echo "${CLEAN_MONGO_URI}" | sed -e 's/@mongodb:/@127.0.0.1:/' -e 's/\/\/mongodb:/\/\/127.0.0.1:/')
+        "$MONGODUMP_CMD" --uri="${CLEAN_MONGO_URI}" --out="${MONGO_OUT_DIR}" > /dev/null 2>&1
+    fi
+fi
+
+if [ -d "${MONGO_OUT_DIR}" ] && [ "$(ls -A "${MONGO_OUT_DIR}")" ]; then
+    log_success "MongoDB database dumped successfully!"
+else
+    log_warn "MongoDB dump empty or failed."
 fi
 
 # --- STEP 5: COMPRESS ALL DUMP DATA INTO A SINGLE TAR.GZ ARCHIVE ---
