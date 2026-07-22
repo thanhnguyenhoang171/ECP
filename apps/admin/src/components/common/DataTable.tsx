@@ -54,6 +54,8 @@ export function DataTable<T>({
   tableClassName,
   headerClassName,
 }: DataTableProps<T>) {
+  const safeData = Array.isArray(data) ? data : [];
+
   const getAlignmentClass = (align?: 'left' | 'center' | 'right') => {
     switch (align) {
       case 'center':
@@ -65,7 +67,7 @@ export function DataTable<T>({
     }
   };
 
-  if (!isLoading && data.length === 0) {
+  if (!isLoading && safeData.length === 0) {
     return (
       <div className='py-20'>
         <EmptyState
@@ -118,7 +120,7 @@ export function DataTable<T>({
                   ))}
                 </TableRow>
               ))
-            : data.map((item, index) => (
+            : safeData.map((item, index) => (
                 <TableRow
                   key={rowKey(item) || index}
                   className={cn(

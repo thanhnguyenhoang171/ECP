@@ -10,7 +10,12 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-if [ -f "${PROJECT_ROOT}/.env" ]; then
+if [ -f "${SCRIPT_DIR}/.env" ]; then
+    echo "[INFO] Loading environment variables from: ${SCRIPT_DIR}/.env"
+    set -o allexport
+    eval $(grep -v '^#' "${SCRIPT_DIR}/.env" | grep -v '^[[:space:]]*$' | sed -e 's/=\(.*\)/="\1"/' -e 's/=""\([^"]*\)""/="\1"/') 2>/dev/null || source "${SCRIPT_DIR}/.env"
+    set +o allexport
+elif [ -f "${PROJECT_ROOT}/.env" ]; then
     echo "[INFO] Loading environment variables from: ${PROJECT_ROOT}/.env"
     set -o allexport
     eval $(grep -v '^#' "${PROJECT_ROOT}/.env" | grep -v '^[[:space:]]*$' | sed -e 's/=\(.*\)/="\1"/' -e 's/=""\([^"]*\)""/="\1"/') 2>/dev/null || source "${PROJECT_ROOT}/.env"
@@ -22,9 +27,26 @@ elif [ -f ".env" ]; then
     set +o allexport
 fi
 
-# --- DOCKER CONTAINER NAMES ---
-MYSQL_CONTAINER="${MYSQL_CONTAINER:-ecp-mysql}"
-MONGO_CONTAINER="${MONGO_CONTAINER:-ecp-mongodb}"
+# --- AUTO-DETECT RUNNING DOCKER CONTAINER NAMES ---
+REAL_MYSQL_CONTAINER=""
+if command -v docker &>/dev/null; then
+    for name in "${MYSQL_CONTAINER:-ecp_mysql}" "ecp_mysql" "ecp-mysql"; do
+        if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${name}$"; then
+            REAL_MYSQL_CONTAINER="$name"
+            break
+        fi
+    done
+fi
+
+REAL_MONGO_CONTAINER=""
+if command -v docker &>/dev/null; then
+    for name in "${MONGO_CONTAINER:-ecp_mongodb}" "ecp_mongodb" "ecp-mongodb"; do
+        if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${name}$"; then
+            REAL_MONGO_CONTAINER="$name"
+            break
+        fi
+    done
+fi
 
 # --- 1. PARSE MYSQL CONFIGURATION FROM SPRING_DATASOURCE_URL IF PRESENT ---
 if [ -n "${SPRING_DATASOURCE_URL}" ]; then
@@ -95,9 +117,9 @@ MYSQL_OUT_FILE="${TEMP_WORK_DIR}/mysql_dump.sql"
 MYSQL_ERR_FILE="${TEMP_WORK_DIR}/mysql_err.log"
 
 # Check if MySQL is running inside a Docker container
-if command -v docker &>/dev/null && docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${MYSQL_CONTAINER}$"; then
-    log_info "Detected Docker container '${MYSQL_CONTAINER}'. Executing mysqldump via Docker..."
-    docker exec "${MYSQL_CONTAINER}" mysqldump -u "${MYSQL_USER}" -p"${MYSQL_PASS}" --single-transaction --quick --lock-tables=false "${MYSQL_DB}" > "${MYSQL_OUT_FILE}" 2>"${MYSQL_ERR_FILE}"
+if [ -n "${REAL_MYSQL_CONTAINER}" ]; then
+    log_info "Detected Docker container '${REAL_MYSQL_CONTAINER}'. Executing mysqldump via Docker..."
+    docker exec "${REAL_MYSQL_CONTAINER}" mysqldump -u "${MYSQL_USER}" -p"${MYSQL_PASS}" --single-transaction --quick --lock-tables=false "${MYSQL_DB}" > "${MYSQL_OUT_FILE}" 2>"${MYSQL_ERR_FILE}"
 else
     # Fallback to local mysqldump
     MYSQLDUMP_CMD="mysqldump"
@@ -133,12 +155,15 @@ MONGO_ERR_FILE="${TEMP_WORK_DIR}/mongo_err.log"
 MASKED_MONGO_URI=$(echo "${CLEAN_MONGO_URI}" | sed -E 's/(mongodb(\+srv)?:\/\/[^:]+:)[^@]+(@.*)/\1***\3/')
 log_info "MongoDB URI: ${MASKED_MONGO_URI}"
 
+# Convert hostname inside container to 127.0.0.1 if URI contains @mongodb: or //mongodb:
+DOCKER_MONGO_URI=$(echo "${CLEAN_MONGO_URI}" | sed -e 's/@mongodb:/@127.0.0.1:/' -e 's/\/\/mongodb:/\/\/127.0.0.1:/')
+
 # Check if MongoDB is running inside a Docker container
-if command -v docker &>/dev/null && docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${MONGO_CONTAINER}$"; then
-    log_info "Detected Docker container '${MONGO_CONTAINER}'. Executing mongodump via Docker..."
-    docker exec "${MONGO_CONTAINER}" mongodump --out=/tmp/mongo_dump >"${MONGO_ERR_FILE}" 2>&1
-    docker cp "${MONGO_CONTAINER}:/tmp/mongo_dump" "${TEMP_WORK_DIR}/" 2>/dev/null
-    docker exec "${MONGO_CONTAINER}" rm -rf /tmp/mongo_dump 2>/dev/null
+if [ -n "${REAL_MONGO_CONTAINER}" ]; then
+    log_info "Detected Docker container '${REAL_MONGO_CONTAINER}'. Executing mongodump via Docker..."
+    docker exec "${REAL_MONGO_CONTAINER}" mongodump --uri="${DOCKER_MONGO_URI}" --out=/tmp/mongo_dump >"${MONGO_ERR_FILE}" 2>&1
+    docker cp "${REAL_MONGO_CONTAINER}:/tmp/mongo_dump" "${TEMP_WORK_DIR}/" 2>/dev/null
+    docker exec "${REAL_MONGO_CONTAINER}" rm -rf /tmp/mongo_dump 2>/dev/null
 else
     # Fallback to local mongodump
     MONGODUMP_CMD="mongodump"
@@ -180,7 +205,6 @@ log_success "Archive created successfully: ${TAR_FILENAME} (${FILE_SIZE})"
 WEBDAV_URL="https://${NEXTCLOUD_DOMAIN}/remote.php/dav/files/${NEXTCLOUD_USER}/${NEXTCLOUD_TARGET_DIR}/${TAR_FILENAME}"
 
 log_info "3/3. Uploading backup archive to Nextcloud WebDAV..."
-MASKED_TARGET_URL=$(echo "${WEBDAV_URL}" | sed -E 's/(https?:\/\/[^\/]+\/remote\.php\/dav\/files\/[^\/]+\/)[^\/]+/\1***/')
 log_info "Target URL: ${WEBDAV_URL}"
 
 HTTP_CODE=$(curl -s -o /tmp/webdav_curl_resp.txt -w "%{http_code}" \

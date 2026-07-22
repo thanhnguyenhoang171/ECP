@@ -33,8 +33,7 @@ export const skuApi = {
           totalElements: 0,
           pageSize: params.size,
           last: true,
-          first: true,
-          empty: true
+          first: true
         }
       };
     }

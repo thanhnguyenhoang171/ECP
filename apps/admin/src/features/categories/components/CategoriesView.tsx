@@ -166,8 +166,12 @@ export default function CategoriesView({
  };
 
  const categoriesData = data || initialData;
- const categories = categoriesData.data || [];
- const pagination = categoriesData.pagination;
+ const categories = Array.isArray(categoriesData?.data)
+  ? categoriesData.data
+  : Array.isArray(categoriesData)
+   ? categoriesData
+   : [];
+ const pagination = categoriesData?.pagination || { currentPage: 1, totalPages: 1, totalElements: categories.length, pageSize: 10 };
 
  const sortOptions = getSortOptions(['NAME', 'DATE']);
 

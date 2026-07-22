@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
-import { DetailDialog } from '@/components/common';
+import { DetailDialog, DetailSection } from '@/components/common';
 import { Category } from '../types/category.interface';
 import { 
   Layers, 
@@ -34,7 +34,7 @@ export function CategoryDetailDialog({
 
   const parentCategory = parentCategories.find(c => c.id === category.parentId);
 
-  const sections = [
+  const sections: DetailSection[] = [
     {
       title: "Thông tin cơ bản",
       cols: 2,
