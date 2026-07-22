@@ -32,11 +32,11 @@ import { convertToSlug } from '@/lib/utils';
 interface ProductGeneralTabProps {
   form: UseFormReturn<ProductFormValues>;
   categories: Category[];
-  isSlugEdited: React.MutableRefObject<boolean>;
+  isSlugEditedRef: React.MutableRefObject<boolean>;
   nameValue: string;
 }
 
-export const ProductGeneralTab = ({ form, categories, isSlugEdited, nameValue }: ProductGeneralTabProps) => {
+export const ProductGeneralTab = ({ form, categories, isSlugEditedRef, nameValue }: ProductGeneralTabProps) => {
   const { fields: specFields, append: appendSpec, remove: removeSpec } = useFieldArray({
     control: form.control,
     name: "specifications",
@@ -90,7 +90,7 @@ export const ProductGeneralTab = ({ form, categories, isSlugEdited, nameValue }:
                       variant="ghost"
                       className="h-auto p-0 text-[10px] text-blue-600 font-bold"
                       onClick={() => {
-                        isSlugEdited.current = false;
+                        isSlugEditedRef.current = false;
                         form.setValue('slug', convertToSlug(nameValue), { shouldValidate: true });
                       }}
                     >
@@ -104,12 +104,12 @@ export const ProductGeneralTab = ({ form, categories, isSlugEdited, nameValue }:
                         {...field} 
                         className="h-11 bg-slate-50/50 font-mono text-xs pr-16 border-slate-200" 
                         onChange={(e) => {
-                          isSlugEdited.current = true;
+                          isSlugEditedRef.current = true;
                           field.onChange(e);
                         }}
                       />
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded tracking-wider">
-                        {isSlugEdited.current ? 'CUSTOM' : 'AUTO'}
+                        {isSlugEditedRef.current ? 'CUSTOM' : 'AUTO'}
                       </div>
                     </div>
                   </FormControl>
