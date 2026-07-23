@@ -1,4 +1,4 @@
-# 🛒 ECP — Enterprise Commerce Platform
+# ECP - Enterprise Commerce Platform
 
 <div align="center">
 
@@ -13,66 +13,66 @@
 
 An enterprise-grade, scalable **Headless E-Commerce Platform** built as a monorepo featuring Event-Driven Architecture, Polyglot Persistence (MySQL, MongoDB, Redis), and modern SSR/SSG frontends powered by Next.js 16 & React 19.
 
-[Explore Features](#-key-features) • [Architecture](#-system-architecture) • [Quick Start](#-quick-start) • [API Docs](#-api-documentation)
+[Features](#key-features) • [Architecture](#system-architecture) • [Quick Start](#quick-start) • [API Documentation](#api-documentation)
 
 </div>
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [Overview](#-overview)
-- [Key Features](#-key-features)
-- [System Architecture](#-system-architecture)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [Quick Start](#-quick-start)
-- [Environment Variables](#-environment-variables)
-- [Available Scripts](#-available-scripts)
-- [Automated Database Backup](#-automated-database-backup)
-- [Production Deployment](#-production-deployment)
-- [API Documentation](#-api-documentation)
-- [Contributing](#-contributing)
-- [License](#-license)
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [System Architecture](#system-architecture)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Quick Start](#quick-start)
+- [Environment Variables](#environment-variables)
+- [Available Scripts](#available-scripts)
+- [Automated Database Backup](#automated-database-backup)
+- [Production Deployment](#production-deployment)
+- [API Documentation](#api-documentation)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-## 🚀 Overview
+## Overview
 
 **ECP (Enterprise Commerce Platform)** is engineered to meet high-concurrency, enterprise-level retail and commerce needs. By decoupling the core business domain logic from frontend presentation layers (Headless architecture), ECP delivers seamless scalability across omni-channel touchpoints.
 
 ---
 
-## ⚡ Key Features
+## Key Features
 
-### 📦 Catalog & Product Operations
+### Catalog & Product Operations
 - **Complex Catalog Management**: Hierarchical categories, dynamic product variants, and SKU management.
 - **Promotional Engine**: Custom discounts, voucher codes, and automated rule evaluation.
 - **Bulk Data Interchange**: High-performance Excel import/export powered by `EasyExcel` & `ExcelJS`.
 
-### 🏭 Multi-Warehouse & Inventory Ledger
+### Multi-Warehouse & Inventory Ledger
 - **Stock Tracking & Warehousing**: Multi-warehouse stock management with real-time availability updates.
 - **Goods Receipt & Purchase Orders**: Complete inbound logistics and supplier tracking.
 - **Barcode Operations**: Integrated barcode generation and scanning support.
 - **Audit Ledger**: Complete inventory movement audit trails.
 
-### 🛍️ Sales & Checkout Pipeline
+### Sales & Checkout Pipeline
 - **Order Management System (OMS)**: Full lifecycle tracking (Pending, Processing, Shipped, Delivered, Cancelled).
 - **Customer CRM**: Customer profiles, order histories, and delivery address management.
 - **Payment Gateway Ready**: Flexible abstraction for payment integrations.
 
-### 🔒 Security & RBAC
+### Security & RBAC
 - **Stateless Auth Flow**: JWT (Access + Refresh Tokens) with Spring Security 6 integration.
 - **Role-Based Access Control (RBAC)**: Fine-grained permissions across Admin operations.
 
-### 🛠️ Infrastructure & Maintenance
+### Infrastructure & Maintenance
 - **Automated Cloud Backup**: Daily automated database snapshots uploaded directly to Nextcloud via WebDAV.
 - **Media Asset Storage**: Cloudinary integration for scalable, CDN-backed image asset delivery.
 - **Monorepo DX**: Unified development workspace powered by Turborepo and pnpm.
 
 ---
 
-## 📐 System Architecture
+## System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -103,7 +103,7 @@ An enterprise-grade, scalable **Headless E-Commerce Platform** built as a monore
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Domain | Technology | Key Modules / Libraries |
 |---|---|---|
@@ -117,7 +117,7 @@ An enterprise-grade, scalable **Headless E-Commerce Platform** built as a monore
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 ecp/
@@ -148,7 +148,7 @@ ecp/
 
 ---
 
-## 🏁 Quick Start
+## Quick Start
 
 ### Prerequisites
 - **Node.js** >= 22.x
@@ -190,9 +190,10 @@ pnpm dev --filter storefront   # Customer Store -> http://localhost:3002
 
 ---
 
-## 🔑 Environment Variables
+## Environment Variables
 
 ### Backend Service (`services/ecp_api/.env`)
+
 | Variable | Description | Default / Example |
 |---|---|---|
 | `SPRING_DATASOURCE_URL` | MySQL JDBC Connection URL | `jdbc:mysql://mysql:3306/ecp_db` |
@@ -206,18 +207,20 @@ pnpm dev --filter storefront   # Customer Store -> http://localhost:3002
 | `CLOUDINARY_API_SECRET` | Cloudinary API Secret | *(Required)* |
 
 ### Admin Dashboard (`apps/admin/.env.development`)
+
 | Variable | Description | Default |
 |---|---|---|
 | `NEXT_PUBLIC_API_URL` | Backend Gateway API URL | `http://localhost:9091/api` |
 
 ### Customer Storefront (`apps/storefront/.env.development`)
+
 | Variable | Description | Default |
 |---|---|---|
 | `NEXT_PUBLIC_API_URL` | Backend Gateway API URL | `http://localhost:9091/api` |
 
 ---
 
-## 📜 Available Scripts
+## Available Scripts
 
 | Scope | Command | Description |
 |---|---|---|
@@ -233,7 +236,7 @@ pnpm dev --filter storefront   # Customer Store -> http://localhost:3002
 
 ---
 
-## 💾 Automated Database Backup
+## Automated Database Backup
 
 ECP features an automated database backup mechanism that compresses MySQL and MongoDB dumps and securely transmits them to **Nextcloud** via WebDAV.
 
@@ -252,7 +255,7 @@ To schedule nightly automated backups at 02:00 AM:
 
 ---
 
-## 🐳 Production Deployment
+## Production Deployment
 
 Pre-built Docker images are published to the **GitHub Container Registry (GHCR)**:
 
@@ -266,6 +269,7 @@ docker-compose up -d
 ```
 
 ### Service Network Mapping
+
 | Container Service | Exposed Port | Container Image |
 |---|---|---|
 | **MySQL** | `3307` | `mysql:8.0` |
@@ -277,7 +281,7 @@ docker-compose up -d
 
 ---
 
-## 📖 API Documentation
+## API Documentation
 
 Interactive API documentation powered by OpenAPI 3.0 is built into the backend service:
 
@@ -286,7 +290,7 @@ Interactive API documentation powered by OpenAPI 3.0 is built into the backend s
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -298,6 +302,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
 
-## 📄 License
+## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
