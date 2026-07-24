@@ -103,6 +103,7 @@ const menuItems: MenuItem[] = [
     children: [
       { key: '/stock', label: 'Tồn kho' },
       { key: '/goods-receipt', label: 'Nhập kho' },
+      { key: '/purchase-orders', label: 'Đơn mua hàng' },
       { key: '/suppliers', label: 'Nhà cung cấp' },
       { key: '/warehouses', label: 'Kho bãi' },
       { key: '/inventory-ledger', label: 'Sổ cái kho' },
@@ -458,7 +459,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-slate-50">
+    <div className="flex h-dvh overflow-hidden bg-transparent">
       <aside className={cn(
         "hidden lg:block transition-all duration-300 ease-in-out z-30 shadow-xl",
         isSidebarCollapsed ? "w-20" : "w-64"

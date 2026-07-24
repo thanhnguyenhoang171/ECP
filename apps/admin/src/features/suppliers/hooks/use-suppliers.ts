@@ -34,7 +34,6 @@ export function useDeleteSupplier() {
     },
     onError: (error: any) => {
       console.error('Delete supplier error:', error);
-      toast.error(error.message || 'Không thể xóa nhà cung cấp');
     },
   });
 }

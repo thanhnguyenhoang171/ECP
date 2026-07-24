@@ -9,6 +9,8 @@ export const categorySchema = z.object({
   imagePublicId: z.string().optional(),
   description: z.string().optional().or(z.literal("")),
   order: z.coerce.number().min(0, "Thứ tự hiển thị không thể âm").default(0),
+  sortOrder: z.coerce.number().min(0, "Thứ tự sắp xếp không thể âm").default(0),
+  isFeatured: z.boolean().default(false),
   metaTitle: z.string().optional().or(z.literal("")),
   metaDescription: z.string().optional().or(z.literal("")),
   metaKeywords: z.string().optional().or(z.literal("")),

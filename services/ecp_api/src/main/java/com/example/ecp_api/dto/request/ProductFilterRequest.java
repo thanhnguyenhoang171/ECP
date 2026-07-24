@@ -16,4 +16,7 @@ public class ProductFilterRequest {
     private String categoryId;
     private String brand;
     private Boolean isPublished;
+    private Boolean isFeatured;
+    private Boolean isNew;
+    private Boolean isBestSeller;
 }

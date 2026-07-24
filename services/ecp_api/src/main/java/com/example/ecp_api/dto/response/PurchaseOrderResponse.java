@@ -48,6 +48,9 @@ public class PurchaseOrderResponse {
     @Schema(description = "Notes or comments about the purchase order", example = "Giao hàng vào giờ hành chính")
     private String note;
 
+    @Schema(description = "Expected delivery date of the purchase order")
+    private LocalDateTime expectedDeliveryDate;
+
     @Schema(description = "Timestamp when the purchase order was created")
     private LocalDateTime createdAt;
 

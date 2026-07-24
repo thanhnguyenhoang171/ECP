@@ -120,18 +120,21 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
       const clonedResponse = response.clone();
       const data = await clonedResponse.json();
       
-      // Hỗ trợ nhiều định dạng code phổ biến (tùy BE cấu hình)
+      // Hỗ trợ nhiều định dạng code & message phổ biến từ BE
       const businessCode = data?.error?.code || data?.errorCode || data?.code;
+      const serverMessage = data?.message || data?.error?.message || data?.error;
 
-      if (businessCode) {
-        toast.error(getErrorMessage(businessCode));
+      if (businessCode || serverMessage) {
+        const errorMsg = getErrorMessage(
+          businessCode, 
+          typeof serverMessage === 'string' ? serverMessage : undefined
+        );
+        toast.error(errorMsg);
       } else {
         // Fallback xử lý theo HTTP Status nếu không có mã code từ BE
         if (response.status === 403) {
           toast.error(ErrorMessages["AUTH_ACCESS_DENIED"]);
-        } else if (response.status >= 500) {
-          // Đã xử lý toast ở trên rồi, không làm gì ở đây để tránh duplicate toast
-        } else {
+        } else if (response.status < 500) {
           toast.error(ErrorMessages["SYS_UNKNOWN_ERROR"]);
         }
       }
@@ -139,9 +142,7 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
       // Nếu API trả về lỗi nhưng không phải JSON
       if (response.status === 403) {
         toast.error(ErrorMessages["AUTH_ACCESS_DENIED"]);
-      } else if (response.status >= 500) {
-        // Đã xử lý toast ở trên rồi
-      } else {
+      } else if (response.status < 500) {
         toast.error(ErrorMessages["SYS_UNKNOWN_ERROR"]);
       }
     }

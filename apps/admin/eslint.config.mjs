@@ -22,7 +22,8 @@ const eslintConfig = defineConfig([
           "caughtErrorsIgnorePattern": "^_"
         }
       ],
-      "react/display-name": "off"
+      "react/display-name": "off",
+      "react-hooks/incompatible-library": "off"
     },
   },
 ]);

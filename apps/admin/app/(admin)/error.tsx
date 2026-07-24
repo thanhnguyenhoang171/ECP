@@ -25,13 +25,13 @@ export default function AdminError({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 w-full max-w-7xl mx-auto">
       <div className="bg-destructive/10 p-6 rounded-full mb-6">
         <AlertCircle className="h-16 w-16 text-destructive" />
       </div>
       
       <h1 className="text-2xl font-bold tracking-tight mb-2">Đã xảy ra lỗi!</h1>
-      <p className="text-muted-foreground mb-8 max-w-md">
+      <p className="text-muted-foreground mb-8 max-w-4xl">
         Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại hoặc liên hệ kỹ thuật nếu vấn đề tiếp diễn.
       </p>
       
@@ -46,7 +46,7 @@ export default function AdminError({
       </div>
       
       {process.env.NODE_ENV === 'development' && (
-        <div className="mt-8 p-4 bg-muted rounded-lg text-left overflow-auto max-w-2xl w-full">
+        <div className="mt-8 p-4 bg-muted rounded-lg text-left overflow-auto w-full">
           <p className="font-mono text-sm text-destructive">{error.message}</p>
           <pre className="mt-2 text-xs opacity-50">{error.stack}</pre>
         </div>
@@ -54,3 +54,5 @@ export default function AdminError({
     </div>
   );
 }
+
+

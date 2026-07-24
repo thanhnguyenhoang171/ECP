@@ -55,6 +55,27 @@ public class ProductResponse {
     @Schema(description = "Visibility status")
     private boolean isPublished;
 
+    @Schema(description = "Featured product status")
+    private boolean isFeatured;
+
+    @Schema(description = "New product status")
+    private boolean isNew;
+
+    @Schema(description = "Best seller product status")
+    private boolean isBestSeller;
+
+    @Schema(description = "Total view count")
+    private int viewCount;
+
+    @Schema(description = "Total sold count")
+    private int soldCount;
+
+    @Schema(description = "Average rating")
+    private BigDecimal ratingAvg;
+
+    @Schema(description = "Total rating count")
+    private int ratingCount;
+
     @Schema(description = "Creation timestamp")
     private LocalDateTime createdAt;
 

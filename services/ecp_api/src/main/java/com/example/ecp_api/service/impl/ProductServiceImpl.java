@@ -74,6 +74,15 @@ public class ProductServiceImpl implements ProductService {
         if (filter.getIsPublished() != null) {
             query.addCriteria(Criteria.where("is_published").is(filter.getIsPublished()));
         }
+        if (filter.getIsFeatured() != null) {
+            query.addCriteria(Criteria.where("is_featured").is(filter.getIsFeatured()));
+        }
+        if (filter.getIsNew() != null) {
+            query.addCriteria(Criteria.where("is_new").is(filter.getIsNew()));
+        }
+        if (filter.getIsBestSeller() != null) {
+            query.addCriteria(Criteria.where("is_best_seller").is(filter.getIsBestSeller()));
+        }
 
         // Loại bỏ các sản phẩm đã xóa (Soft Delete)
         query.addCriteria(Criteria.where("is_deleted").is(false));

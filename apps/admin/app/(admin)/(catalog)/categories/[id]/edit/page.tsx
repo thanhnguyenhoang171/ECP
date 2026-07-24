@@ -55,6 +55,8 @@ export default function EditCategoryPage({ params }: EditCategoryPageProps) {
             imagePublicId: category.imagePublicId,
             description: category.description || '',
             order: category.order || 0,
+            sortOrder: category.sortOrder ?? category.order ?? 0,
+            isFeatured: category.isFeatured ?? false,
             metaTitle: category.metaTitle || '',
             metaDescription: category.metaDescription || '',
             metaKeywords: category.metaKeywords || '',

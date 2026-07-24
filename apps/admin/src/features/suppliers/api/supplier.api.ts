@@ -111,12 +111,19 @@ export const supplierApi = {
       if (res.ok) {
         clientDb.deleteSupplier(id); // Giữ đồng bộ mock data nếu ứng dụng load lại từ mock
         return { success: true };
+      } else {
+        const body = await res.json().catch(() => ({}));
+        const msg = body?.message || 'Không thể xóa nhà cung cấp';
+        throw new Error(msg);
       }
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.message && e.message !== 'Failed to fetch') {
+        throw e;
+      }
       console.warn('Backend delete supplier failed, using mock fallback', e);
     }
     
-    // Fallback logic
+    // Fallback logic khi không có kết nối backend
     const success = clientDb.deleteSupplier(id);
     if (!success) throw new Error('Không thể xóa nhà cung cấp');
     return { success: true };

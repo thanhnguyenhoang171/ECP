@@ -55,6 +55,14 @@ public class Category {
     @Field("order")
     private Integer order;
 
+    @Field("sort_order")
+    @Builder.Default
+    private int sortOrder = 0;
+
+    @Field("is_featured")
+    @Builder.Default
+    private boolean isFeatured = false;
+
     @CreatedDate
     @Field("created_at")
     private LocalDateTime createdAt;

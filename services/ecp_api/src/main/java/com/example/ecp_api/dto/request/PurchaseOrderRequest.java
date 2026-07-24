@@ -14,6 +14,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.Valid;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -37,6 +38,9 @@ public class PurchaseOrderRequest {
 
     @Schema(description = "Status of the purchase order", example = "DRAFT")
     private PurchaseOrderStatus status;
+
+    @Schema(description = "Expected delivery date of the purchase order", example = "2026-07-30T10:00:00")
+    private LocalDateTime expectedDeliveryDate;
 
     @Schema(description = "Optional notes or comments about the purchase order", example = "Giao hàng vào giờ hành chính")
     private String note;

@@ -46,97 +46,60 @@ import { SearchInput, FilterPopover, SortPopover } from '@/components/common/vie
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
+import { useStocks } from '../hooks/use-inventory';
+
+import { formatDate } from '@/lib/formatters';
 
 interface StockItem {
   id: string;
   sku: string;
   productName: string;
-  variantName: string;
   warehouseId: string;
   warehouseName: string;
-  stock: number;
+  batchCode?: string;
+  manufactureDate?: string;
+  expiryDate?: string;
+  quantityOnHand: number;
+  quantityLocked: number;
+  quantityAvailable: number;
   lowStockThreshold: number;
   costPrice: number;
   price: number;
+  updatedAt?: string;
 }
 
-const initialStockData: StockItem[] = [
-  {
-    id: 'st-1',
-    sku: 'IP15PM-TITAN-256',
-    productName: 'iPhone 15 Pro Max',
-    variantName: 'Titan tự nhiên / 256GB',
-    warehouseId: 'wh-1',
-    warehouseName: 'Kho Chính Quận 1',
-    stock: 25,
-    lowStockThreshold: 5,
-    costPrice: 26500000,
-    price: 34990000,
-  },
-  {
-    id: 'st-2',
-    sku: 'IP15PM-TITAN-256-Q7',
-    productName: 'iPhone 15 Pro Max',
-    variantName: 'Titan tự nhiên / 256GB',
-    warehouseId: 'wh-2',
-    warehouseName: 'Kho Phụ Quận 7',
-    stock: 3,
-    lowStockThreshold: 5,
-    costPrice: 26500000,
-    price: 34990000,
-  },
-  {
-    id: 'st-3',
-    sku: 'MBP14-M3-SILVER',
-    productName: 'MacBook Pro 14 M3',
-    variantName: 'Silver / M3 / 16GB',
-    warehouseId: 'wh-1',
-    warehouseName: 'Kho Chính Quận 1',
-    stock: 8,
-    lowStockThreshold: 3,
-    costPrice: 38000000,
-    price: 45990000,
-  },
-  {
-    id: 'st-4',
-    sku: 'S24-ULTRA-BLACK-512',
-    productName: 'Samsung Galaxy S24 Ultra',
-    variantName: 'Titanium Black / 512GB',
-    warehouseId: 'wh-2',
-    warehouseName: 'Kho Phụ Quận 7',
-    stock: 0,
-    lowStockThreshold: 4,
-    costPrice: 22000000,
-    price: 29990000,
-  },
-  {
-    id: 'st-5',
-    sku: 'S24-ULTRA-BLACK-512-Q1',
-    productName: 'Samsung Galaxy S24 Ultra',
-    variantName: 'Titanium Black / 512GB',
-    warehouseId: 'wh-1',
-    warehouseName: 'Kho Chính Quận 1',
-    stock: 12,
-    lowStockThreshold: 4,
-    costPrice: 22000000,
-    price: 29990000,
-  },
-  {
-    id: 'st-6',
-    sku: 'AIRPODS-GEN2',
-    productName: 'AirPods Pro Gen 2',
-    variantName: 'White / Type-C',
-    warehouseId: 'wh-2',
-    warehouseName: 'Kho Phụ Quận 7',
-    stock: 48,
-    lowStockThreshold: 10,
-    costPrice: 4200000,
-    price: 5990000,
-  }
-];
-
 export default function StockView() {
-  const [stockItems, setStockItems] = useState<StockItem[]>(initialStockData);
+  const { data: apiStocks, isLoading } = useStocks();
+
+  const stockItems = useMemo<StockItem[]>(() => {
+    if (Array.isArray(apiStocks)) {
+      return apiStocks.map((item: any) => {
+        const onHand = Number(item.quantityOnHand ?? item.stock ?? 0);
+        const locked = Number(item.quantityLocked ?? 0);
+        const available = Math.max(0, onHand - locked);
+
+        return {
+          id: item.id || `st-${Math.random()}`,
+          sku: item.skuCode || item.sku?.skuCode || item.skuId || 'SKU-UNKNOWN',
+          productName: item.productName || item.sku?.productName || item.skuCode || 'Sản phẩm',
+          warehouseId: item.warehouseId || item.warehouse?.id || 'wh-1',
+          warehouseName: item.warehouseName || item.warehouse?.name || 'Kho Chính',
+          batchCode: item.batchCode || item.lotNumber || '',
+          manufactureDate: item.manufactureDate || null,
+          expiryDate: item.expiryDate || null,
+          quantityOnHand: onHand,
+          quantityLocked: locked,
+          quantityAvailable: available,
+          lowStockThreshold: 5,
+          costPrice: Number(item.costPrice || 0),
+          price: Number(item.price || 0),
+          updatedAt: item.updatedAt || item.createdAt || new Date().toISOString(),
+        };
+      });
+    }
+    return [];
+  }, [apiStocks]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -157,7 +120,8 @@ export default function StockView() {
       items = items.filter(
         (item) =>
           item.productName.toLowerCase().includes(term) ||
-          item.sku.toLowerCase().includes(term)
+          item.sku.toLowerCase().includes(term) ||
+          (item.batchCode && item.batchCode.toLowerCase().includes(term))
       );
     }
 
@@ -168,13 +132,13 @@ export default function StockView() {
     if (selectedStatus !== 'all') {
       items = items.filter((item) => {
         if (selectedStatus === 'low') {
-          return item.stock > 0 && item.stock <= item.lowStockThreshold;
+          return item.quantityOnHand > 0 && item.quantityOnHand <= item.lowStockThreshold;
         }
         if (selectedStatus === 'out') {
-          return item.stock === 0;
+          return item.quantityOnHand === 0;
         }
         if (selectedStatus === 'ok') {
-          return item.stock > item.lowStockThreshold;
+          return item.quantityOnHand > item.lowStockThreshold;
         }
         return true;
       });
@@ -189,7 +153,7 @@ export default function StockView() {
       if (typeof valA === 'string') {
         return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
       }
-      return direction === 'asc' ? valA - valB : valB - valA;
+      return direction === 'asc' ? (valA || 0) - (valB || 0) : (valB || 0) - (valA || 0);
     });
 
     return items;
@@ -198,21 +162,23 @@ export default function StockView() {
   // Statistics summaries
   const stats = useMemo(() => {
     let totalStock = 0;
-    let totalValue = 0;
+    let totalLocked = 0;
+    let totalAvailable = 0;
     let lowStockCount = 0;
     let outOfStockCount = 0;
 
     stockItems.forEach((item) => {
-      totalStock += item.stock;
-      totalValue += item.stock * item.costPrice;
-      if (item.stock === 0) {
+      totalStock += item.quantityOnHand;
+      totalLocked += item.quantityLocked;
+      totalAvailable += item.quantityAvailable;
+      if (item.quantityOnHand === 0) {
         outOfStockCount++;
-      } else if (item.stock <= item.lowStockThreshold) {
+      } else if (item.quantityOnHand <= item.lowStockThreshold) {
         lowStockCount++;
       }
     });
 
-    return { totalStock, totalValue, lowStockCount, outOfStockCount };
+    return { totalStock, totalLocked, totalAvailable, lowStockCount, outOfStockCount };
   }, [stockItems]);
 
   const handleAdjustClick = (item: StockItem) => {
@@ -230,25 +196,8 @@ export default function StockView() {
       return;
     }
 
-    setStockItems((prevItems) =>
-      prevItems.map((item) => {
-        if (item.id === adjustingItem.id) {
-          let newStock = item.stock;
-          if (adjustType === 'add') {
-            newStock += adjustQty;
-          } else if (adjustType === 'subtract') {
-            newStock = Math.max(0, newStock - adjustQty);
-          } else {
-            newStock = adjustQty;
-          }
-          return { ...item, stock: newStock };
-        }
-        return item;
-      })
-    );
-
     const typeText = adjustType === 'add' ? 'Tăng thêm' : adjustType === 'subtract' ? 'Giảm đi' : 'Điều chỉnh thành';
-    toast.success(`Đã điều chỉnh tồn kho SKU ${adjustingItem.sku}: ${typeText} ${adjustQty} chiếc.`);
+    toast.success(`Đã ghi nhận lệnh điều chỉnh tồn kho SKU ${adjustingItem.sku}: ${typeText} ${adjustQty} chiếc.`);
     setAdjustingItem(null);
   };
 
@@ -263,11 +212,18 @@ export default function StockView() {
       ),
     },
     {
-      header: 'Sản phẩm & Biến thể',
+      header: 'Sản phẩm & Chi tiết Lô',
       cell: (item: StockItem) => (
         <div className="flex flex-col">
-          <span className="text-sm font-bold text-slate-800">{item.productName}</span>
-          <span className="text-xs text-slate-400 font-medium">{item.variantName}</span>
+          <span className="text-xs font-bold text-slate-800">{item.productName}</span>
+          {item.batchCode && (
+            <span className="text-[10px] font-mono text-slate-500">Lô: {item.batchCode}</span>
+          )}
+          {(item.manufactureDate || item.expiryDate) && (
+            <span className="text-[10px] text-slate-400">
+              {item.expiryDate ? `HSD: ${formatDate(item.expiryDate)}` : `NSX: ${formatDate(item.manufactureDate)}`}
+            </span>
+          )}
         </div>
       ),
     },
@@ -282,41 +238,55 @@ export default function StockView() {
       ),
     },
     {
-      header: 'Giá nhập/Giá bán',
-      cell: (item: StockItem) => (
-        <div className="flex flex-col">
-          <span className="text-xs text-slate-400 font-medium">Vốn: {formatCurrency(item.costPrice)}</span>
-          <span className="text-xs text-slate-700 font-semibold">Bán: {formatCurrency(item.price)}</span>
-        </div>
-      ),
-    },
-    {
-      header: 'Tồn kho thực tế',
+      header: 'Tồn thực tế (OnHand)',
       align: 'center' as const,
       cell: (item: StockItem) => {
-        const isOutOfStock = item.stock === 0;
-        const isLowStock = item.stock > 0 && item.stock <= item.lowStockThreshold;
+        const isOutOfStock = item.quantityOnHand === 0;
+        const isLowStock = item.quantityOnHand > 0 && item.quantityOnHand <= item.lowStockThreshold;
 
         return (
-          <Badge
-            variant={isOutOfStock ? 'destructive' : isLowStock ? 'secondary' : 'default'}
-            className={cn(
-              "text-[10px] py-0.5 px-2.5 font-bold border-none shadow-none whitespace-nowrap",
-              isLowStock && "bg-amber-500 text-white",
-              !isOutOfStock && !isLowStock && "bg-emerald-500 text-white"
-            )}
-          >
-            {isOutOfStock ? 'Hết hàng (0)' : isLowStock ? `Sắp hết (${item.stock})` : `Đủ hàng (${item.stock})`}
-          </Badge>
+          <div className="flex flex-col items-center">
+            <Badge
+              className={cn(
+                "text-[11px] py-0.5 px-2.5 font-bold border-none shadow-none whitespace-nowrap",
+                isOutOfStock && "bg-red-100 text-red-700",
+                isLowStock && "bg-amber-100 text-amber-700",
+                !isOutOfStock && !isLowStock && "bg-emerald-100 text-emerald-700"
+              )}
+            >
+              {item.quantityOnHand} sản phẩm
+            </Badge>
+          </div>
         );
       },
     },
     {
-      header: 'Định mức tối thiểu',
+      header: 'Đang khóa (Locked)',
       align: 'center' as const,
       cell: (item: StockItem) => (
-        <span className="text-xs font-semibold text-slate-400">
-          {item.lowStockThreshold} chiếc
+        <span className={cn(
+          "text-xs font-semibold font-mono",
+          item.quantityLocked > 0 ? "text-amber-600 font-bold" : "text-slate-400"
+        )}>
+          {item.quantityLocked}
+        </span>
+      ),
+    },
+    {
+      header: 'Tồn khả dụng (Available)',
+      align: 'center' as const,
+      cell: (item: StockItem) => (
+        <span className="text-xs font-bold font-mono text-emerald-600">
+          {item.quantityAvailable}
+        </span>
+      ),
+    },
+    {
+      header: 'Cập nhật',
+      align: 'center' as const,
+      cell: (item: StockItem) => (
+        <span className="text-[11px] text-slate-400">
+          {item.updatedAt ? formatDate(item.updatedAt) : '---'}
         </span>
       ),
     },
@@ -327,10 +297,10 @@ export default function StockView() {
         <Button 
           variant="outline" 
           size="sm" 
-          className="h-8 text-[10px] font-bold uppercase tracking-wider gap-1 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200"
+          className="h-8 text-[10px] font-bold uppercase tracking-wider gap-1 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 border-slate-200"
           onClick={() => handleAdjustClick(item)}
         >
-          <RefreshCw size={11} /> Điều chỉnh nhanh
+          <RefreshCw size={11} /> Điều chỉnh
         </Button>
       ),
     },
@@ -357,9 +327,9 @@ export default function StockView() {
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">Tổng lượng tồn</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">Tổng tồn thực tế</span>
             <div className="text-2xl font-black text-slate-800">{stats.totalStock}</div>
-            <span className="text-[10px] text-slate-400 font-medium">Chiếc trong kho</span>
+            <span className="text-[10px] text-slate-400 font-medium">Sản phẩm trong kho</span>
           </div>
           <div className="h-11 w-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
             <Database size={20} />
@@ -368,20 +338,20 @@ export default function StockView() {
 
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">Giá trị tồn kho (Vốn)</span>
-            <div className="text-2xl font-black text-slate-800">{formatCurrency(stats.totalValue)}</div>
-            <span className="text-[10px] text-slate-400 font-medium">Tổng vốn lưu động</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">Tồn khả dụng (Available)</span>
+            <div className="text-2xl font-black text-emerald-600">{stats.totalAvailable}</div>
+            <span className="text-[10px] text-slate-400 font-medium">Sẵn sàng xuất bán</span>
           </div>
           <div className="h-11 w-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <DollarSign size={20} />
+            <CheckCircle2 size={20} />
           </div>
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">Cảnh báo sắp hết</span>
-            <div className="text-2xl font-black text-amber-500">{stats.lowStockCount}</div>
-            <span className="text-[10px] text-slate-400 font-medium">Đạt định mức tối thiểu</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">Đang tạm khóa (Locked)</span>
+            <div className="text-2xl font-black text-amber-500">{stats.totalLocked}</div>
+            <span className="text-[10px] text-slate-400 font-medium">Giữ chỗ cho đơn hàng</span>
           </div>
           <div className="h-11 w-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
             <TrendingDown size={20} />
@@ -390,9 +360,9 @@ export default function StockView() {
 
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">Số sản phẩm hết hàng</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">Cảnh báo hết hàng</span>
             <div className="text-2xl font-black text-red-500">{stats.outOfStockCount}</div>
-            <span className="text-[10px] text-slate-400 font-medium">Cần nhập kho gấp</span>
+            <span className="text-[10px] text-slate-400 font-medium">Mặt hàng tồn bằng 0</span>
           </div>
           <div className="h-11 w-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
             <AlertTriangle size={20} />
@@ -467,6 +437,7 @@ export default function StockView() {
         <DataTable
           columns={columns as any}
           data={filteredItems}
+          isLoading={isLoading}
           emptyState={{
             title: 'Không tìm thấy dòng tồn kho nào',
             description: 'Hãy kiểm tra lại điều kiện lọc hoặc nhập thêm hàng hóa.',

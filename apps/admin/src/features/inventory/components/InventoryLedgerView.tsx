@@ -7,41 +7,29 @@ import { Badge } from '@/components/ui/badge';
 import { SearchInput } from '@/components/common/view-control';
 import { cn } from '@/lib/utils';
 
-// Mock data for Ledger
-const mockLedger = [
-  {
-    id: '1',
-    skuName: 'iPhone 15 Pro Max - Titan',
-    warehouseName: 'Kho Chính Quận 1',
-    type: 'INBOUND',
-    quantityChange: 50,
-    balanceAfter: 150,
-    referenceCode: 'GR-20260601-001',
-    createdAt: '2026-06-01T10:30:00Z'
-  },
-  {
-    id: '2',
-    skuName: 'Samsung Galaxy S24 Ultra',
-    warehouseName: 'Kho Chính Quận 1',
-    type: 'OUTBOUND',
-    quantityChange: -10,
-    balanceAfter: 90,
-    referenceCode: 'ORD-20260531-12',
-    createdAt: '2026-05-31T15:20:00Z'
-  },
-  {
-    id: '3',
-    skuName: 'AirPods Pro Gen 2',
-    warehouseName: 'Kho Phụ Quận 7',
-    type: 'ADJUSTMENT',
-    quantityChange: -2,
-    balanceAfter: 48,
-    referenceCode: 'ADJ-20260530-05',
-    createdAt: '2026-05-30T09:00:00Z'
-  }
-];
+import { useInventoryLedgers } from '../hooks/use-inventory';
 
 export default function InventoryLedgerView() {
+  const { data: ledgerData, isLoading } = useInventoryLedgers();
+
+  const ledgerList = React.useMemo(() => {
+    if (Array.isArray(ledgerData)) {
+      return ledgerData.map((item: any, idx: number) => {
+        const qtyChange = Number(item.quantityChanged ?? item.quantityChange ?? 0);
+        return {
+          id: item.id || `leg-${idx}`,
+          skuName: item.productName || item.skuName || item.skuCode || item.sku?.productName || 'Sản phẩm',
+          warehouseName: item.warehouseName || item.warehouse?.name || 'Kho Chính',
+          type: item.transactionType || item.type || (qtyChange >= 0 ? 'INBOUND' : 'OUTBOUND'),
+          quantityChange: qtyChange,
+          balanceAfter: Number(item.quantityAfter ?? item.balanceAfter ?? 0),
+          referenceCode: item.referenceId || item.referenceCode || 'REF-N/A',
+          createdAt: item.createdAt || new Date().toISOString()
+        };
+      });
+    }
+    return [];
+  }, [ledgerData]);
   const columns = [
     {
       accessorKey: 'createdAt',
@@ -121,8 +109,8 @@ export default function InventoryLedgerView() {
       <DataCard search={<SearchInput placeholder="Tìm theo sản phẩm, mã chứng từ..." value="" onChange={() => {}} />}>
         <DataTable 
           columns={columns as any} 
-          data={mockLedger} 
-          isLoading={false}
+          data={ledgerList} 
+          isLoading={isLoading}
           emptyState={{
             title: "Nhật ký kho trống",
             description: "Chưa có bất kỳ giao dịch nào được thực hiện.",

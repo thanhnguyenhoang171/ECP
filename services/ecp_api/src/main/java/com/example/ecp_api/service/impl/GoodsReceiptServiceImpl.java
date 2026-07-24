@@ -176,6 +176,8 @@ public class GoodsReceiptServiceImpl implements GoodsReceiptService {
                     .warehouseId(receipt.getWarehouse().getId().toString())
                     .skuId(item.getSku().getId().toString())
                     .batchCode(item.getBatchCode())
+                    .manufactureDate(item.getManufactureDate())
+                    .expiryDate(item.getExpiryDate())
                     .quantityChange(item.getQuantity())
                     .note("Receive goods from receipt: " + receipt.getReceiptCode())
                     .build();

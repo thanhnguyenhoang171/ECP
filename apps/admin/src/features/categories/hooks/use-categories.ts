@@ -15,6 +15,7 @@ export function useCategories(
     parentId?: string;
     level?: number;
     active?: boolean;
+    isFeatured?: boolean;
   },
   initialData?: PageResponse<Category>,
 ) {

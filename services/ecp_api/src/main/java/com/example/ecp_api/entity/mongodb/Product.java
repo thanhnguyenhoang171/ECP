@@ -65,6 +65,34 @@ public class Product {
     @Builder.Default
     private boolean deleted = false;
 
+    @Field("is_featured")
+    @Builder.Default
+    private boolean isFeatured = false;
+
+    @Field("is_new")
+    @Builder.Default
+    private boolean isNew = false;
+
+    @Field("is_best_seller")
+    @Builder.Default
+    private boolean isBestSeller = false;
+
+    @Field("view_count")
+    @Builder.Default
+    private int viewCount = 0;
+
+    @Field("sold_count")
+    @Builder.Default
+    private int soldCount = 0;
+
+    @Field("rating_avg")
+    @Builder.Default
+    private BigDecimal ratingAvg = BigDecimal.ZERO;
+
+    @Field("rating_count")
+    @Builder.Default
+    private int ratingCount = 0;
+
     @CreatedDate
     @Field("created_at")
     private LocalDateTime createdAt;
