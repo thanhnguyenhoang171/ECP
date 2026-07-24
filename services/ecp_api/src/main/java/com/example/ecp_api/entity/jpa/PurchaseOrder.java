@@ -47,6 +47,9 @@ public class PurchaseOrder {
     @Column(columnDefinition = "TEXT")
     private String note;
 
+    @Column(name = "expected_delivery_date")
+    private LocalDateTime expectedDeliveryDate;
+
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     @ToString.Exclude

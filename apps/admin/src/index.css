@@ -167,12 +167,17 @@ body {
   animation: fadeIn 0.3s ease-out forwards;
 }
 
-/* Base styles for modern clean UI */
+/* Base styles for modern clean UI with subtle gray & dot pattern */
 body {
-  background-color: #f8fafc;
+  background-color: #f1f5f9;
+  background-image: radial-gradient(rgba(100, 116, 139, 0.35) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+  background-attachment: fixed;
   color: hsl(var(--foreground));
 }
 
 .dark body {
   background-color: hsl(var(--background));
+  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
 }

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -25,5 +26,8 @@ public class InventoryResponse {
     private LocalDateTime expiryDate;
     private Integer quantityOnHand;
     private Integer quantityLocked;
+    private BigDecimal costPrice;
+    private BigDecimal sellingPrice;
+    private BigDecimal price;
     private LocalDateTime updatedAt;
 }

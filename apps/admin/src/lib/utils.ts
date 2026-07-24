@@ -128,3 +128,29 @@ export function getCloudinaryPublicId(url: string): string | null {
   }
 }
 
+/**
+ * Chuyển đổi tên sản phẩm thành mã SKU tự động
+ */
+export function convertToSku(str: string): string {
+  if (!str || !str.trim()) {
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    return `PROD-${randomSuffix}`;
+  }
+  const cleanName = removeVietnameseTones(str)
+    .replace(/[^a-zA-Z0-9\s]/g, '')
+    .trim()
+    .toUpperCase();
+  const words = cleanName.split(/\s+/).filter(Boolean);
+  let prefix = '';
+  if (words.length >= 2) {
+    prefix = words.slice(0, 4).map(w => w.slice(0, 3)).join('');
+  } else if (words.length === 1) {
+    prefix = words[0].slice(0, 6);
+  } else {
+    prefix = 'PROD';
+  }
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  return `${prefix}-${randomSuffix}`;
+}
+
+

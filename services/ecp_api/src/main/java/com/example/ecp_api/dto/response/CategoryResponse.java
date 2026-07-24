@@ -47,4 +47,10 @@ public class CategoryResponse {
 
     @Schema(description = "Order position for sorting", example = "1")
     private Integer order;
+
+    @Schema(description = "Sort order position", example = "1")
+    private Integer sortOrder;
+
+    @Schema(description = "Featured category status for homepage display", example = "true")
+    private Boolean isFeatured;
 }

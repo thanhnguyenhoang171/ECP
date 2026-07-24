@@ -9,11 +9,15 @@ export function useAuditLogs(params: {
   sort?: string;
   action?: string;
   username?: string;
+  enabled?: boolean;
 }) {
+  const { enabled = true, ...queryParams } = params;
+
   return useQuery({
-    queryKey: ['audit-logs', params],
-    queryFn: () => auditLogsApi.getPaged(params),
-    staleTime: 0, // Audit logs change frequently, don't cache
+    queryKey: ['audit-logs', queryParams],
+    queryFn: () => auditLogsApi.getPaged(queryParams),
+    enabled,
+    staleTime: 0,
     refetchOnWindowFocus: true,
   });
 }

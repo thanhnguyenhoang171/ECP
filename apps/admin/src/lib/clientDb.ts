@@ -51,6 +51,7 @@ export interface ClientGoodsReceipt {
   warehouseId: string;
   warehouseName: string;
   purchaseOrderId?: string | null;
+  purchaseOrderCode?: string | null;
   totalItems: number;
   status: 'PENDING' | 'COMPLETED' | 'CANCELLED';
   createdAt: string;
@@ -68,6 +69,32 @@ export interface ClientLedgerEntry {
   balanceAfter: number;
   referenceCode: string;
   createdAt: string;
+}
+
+export interface ClientPurchaseOrderItem {
+  skuId: string;
+  skuName?: string;
+  orderedQuantity: number;
+  unitPrice: number;
+  note?: string;
+}
+
+export interface ClientPurchaseOrder {
+  id: string;
+  code: string;
+  supplierId: string;
+  supplierName?: string;
+  warehouseId: string;
+  warehouseName?: string;
+  expectedDeliveryDate?: string;
+  note?: string;
+  totalItems: number;
+  totalQuantity: number;
+  totalAmount: number;
+  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'COMPLETED' | 'CANCELLED';
+  createdAt: string;
+  createdBy: string;
+  items: ClientPurchaseOrderItem[];
 }
 
 // Initial Mock Datasets
@@ -575,5 +602,51 @@ export const clientDb = {
 
     saveToStorage('stocks', stocks);
     return true;
+  },
+
+  // Purchase Orders
+  getPurchaseOrders(): ClientPurchaseOrder[] {
+    return loadFromStorage('purchase_orders', []);
+  },
+
+  savePurchaseOrder(
+    po: Omit<ClientPurchaseOrder, 'id' | 'createdAt' | 'status' | 'totalItems' | 'totalQuantity' | 'totalAmount'> & {
+      id?: string;
+    }
+  ): ClientPurchaseOrder {
+    const orders = this.getPurchaseOrders();
+    const suppliers = this.getSuppliers();
+    const warehouses = this.getWarehouses();
+
+    const sup = suppliers.find(s => s.id === po.supplierId);
+    const wh = warehouses.find(w => w.id === po.warehouseId);
+
+    const totalQuantity = po.items.reduce((acc, it) => acc + (it.orderedQuantity || 0), 0);
+    const totalAmount = po.items.reduce((acc, it) => acc + ((it.orderedQuantity || 0) * (it.unitPrice || 0)), 0);
+
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const randomCode = `PO-${dateStr}-${Math.floor(100 + Math.random() * 900)}`;
+
+    const savedOrder: ClientPurchaseOrder = {
+      id: po.id || `po-${Math.random().toString(36).substring(2, 9)}`,
+      code: po.code || randomCode,
+      supplierId: po.supplierId,
+      supplierName: sup ? sup.name : (po.supplierName || 'Nhà cung cấp'),
+      warehouseId: po.warehouseId,
+      warehouseName: wh ? wh.name : (po.warehouseName || 'Kho nhận'),
+      expectedDeliveryDate: po.expectedDeliveryDate || '',
+      note: po.note || '',
+      totalItems: po.items.length,
+      totalQuantity,
+      totalAmount,
+      status: 'APPROVED',
+      createdAt: new Date().toISOString(),
+      createdBy: po.createdBy || 'Admin',
+      items: po.items
+    };
+
+    orders.unshift(savedOrder);
+    saveToStorage('purchase_orders', orders);
+    return savedOrder;
   }
 };

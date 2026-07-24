@@ -56,6 +56,27 @@ public class ProductRequest {
     @Schema(description = "Visibility status of the product", example = "true")
     private Boolean isPublished;
 
+    @Schema(description = "Featured product flag", example = "true")
+    private Boolean isFeatured;
+
+    @Schema(description = "New product flag", example = "true")
+    private Boolean isNew;
+
+    @Schema(description = "Best seller product flag", example = "true")
+    private Boolean isBestSeller;
+
+    @Schema(description = "View count", example = "100")
+    private Integer viewCount;
+
+    @Schema(description = "Sold count", example = "50")
+    private Integer soldCount;
+
+    @Schema(description = "Average rating", example = "4.5")
+    private BigDecimal ratingAvg;
+
+    @Schema(description = "Rating count", example = "10")
+    private Integer ratingCount;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

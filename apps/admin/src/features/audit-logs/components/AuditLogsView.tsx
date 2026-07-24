@@ -8,7 +8,8 @@ import {
   ShieldCheck, 
   Search,
   Settings,
-  ShoppingBag
+  ShoppingBag,
+  RefreshCw
 } from 'lucide-react';
 import { 
   PageHeader, 
@@ -17,17 +18,18 @@ import {
   Button,
   Forbidden,
   DataCard,
-  StatsCard
+  StatsCard,
+  NextPagination
 } from '@/components/common';
 import { useAuthStore } from '@/store/authStore';
 import { AuditLog, AuditLogType } from '../types/audit-logs.interface';
 import { getActionBadge } from '../utils/audit-log-formatters';
+import { useAuditLogs } from '../hooks/use-audit-logs';
 import { formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const mockLogs: AuditLog[] = [
-  // MANAGEMENT LOGS
   {
     id: 'm-1',
     type: 'MANAGEMENT',
@@ -55,47 +57,58 @@ const mockLogs: AuditLog[] = [
     target: 'Nokia',
     timestamp: new Date(Date.now() - 86400000).toISOString(),
   },
-  // SYSTEM LOGS
-  {
-    id: 's-1',
-    type: 'SYSTEM',
-    action: 'LOGIN',
-    username: 'admin_thanh',
-    details: 'Đăng nhập thành công từ địa chỉ IP 1.2.3.4',
-    ipAddress: '1.2.3.4',
-    timestamp: new Date().toISOString(),
-  },
-  {
-    id: 's-2',
-    type: 'SYSTEM',
-    action: 'UPDATE_SETTINGS',
-    username: 'system_root',
-    details: 'Thay đổi cấu hình SMTP Mail Server',
-    timestamp: new Date(Date.now() - 1800000).toISOString(),
-  },
-  {
-    id: 's-3',
-    type: 'SYSTEM',
-    action: 'EXPORT_DATABASE',
-    username: 'super_admin',
-    details: 'Sao lưu dữ liệu hệ thống định kỳ',
-    timestamp: new Date(Date.now() - 7200000).toISOString(),
-  },
 ];
 
 export default function AuditLogsView() {
   const { user } = useAuthStore();
   const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN');
-  const [activeTab, setActiveTab] = useState<AuditLogType>('MANAGEMENT');
+  const [activeTab, setActiveTab] = useState<AuditLogType>('SYSTEM');
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(20);
 
-  const filteredLogs = useMemo(() => {
+  // Fetch API /v1/audit-logs khi chon Tab 'SYSTEM'
+  const { 
+    data: apiResponse, 
+    isFetching: isApiLoading,
+    refetch 
+  } = useAuditLogs({
+    page,
+    size,
+    username: searchTerm || undefined,
+    enabled: activeTab === 'SYSTEM',
+  });
+
+  const displayData = useMemo(() => {
+    if (activeTab === 'SYSTEM') {
+      return Array.isArray(apiResponse?.data) ? apiResponse.data : [];
+    }
     return mockLogs.filter(log => 
-      log.type === activeTab && 
-      (log.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
-       log.details.toLowerCase().includes(searchTerm.toLowerCase()))
+      log.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      log.details.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [activeTab, searchTerm]);
+  }, [activeTab, apiResponse, searchTerm]);
+
+  const totalItems = useMemo(() => {
+    if (activeTab === 'SYSTEM') {
+      return apiResponse?.pagination?.totalElements || displayData.length;
+    }
+    return displayData.length;
+  }, [activeTab, apiResponse, displayData]);
+
+  const totalPages = useMemo(() => {
+    if (activeTab === 'SYSTEM') {
+      return apiResponse?.pagination?.totalPages || Math.ceil(totalItems / size) || 1;
+    }
+    return Math.ceil(displayData.length / size) || 1;
+  }, [activeTab, apiResponse, totalItems, size, displayData]);
+
+  const handleRefresh = () => {
+    if (activeTab === 'SYSTEM') {
+      refetch();
+    }
+    toast.success('Đã làm mới dữ liệu nhật ký');
+  };
 
   if (!isSuperAdmin) {
     return <Forbidden />;
@@ -108,7 +121,7 @@ export default function AuditLogsView() {
       cell: (log: AuditLog) => (
         <div className="flex items-center gap-2 text-slate-500">
           <Clock size={14} />
-          <span className="text-xs">{formatDate(log.timestamp)}</span>
+          <span className="text-xs font-medium">{formatDate(log.timestamp)}</span>
         </div>
       )
     },
@@ -117,10 +130,10 @@ export default function AuditLogsView() {
       accessorKey: 'username',
       cell: (log: AuditLog) => (
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
-            <User size={12} className="text-slate-500" />
+          <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-[10px]">
+            {log.username ? log.username.substring(0, 2).toUpperCase() : <User size={12} />}
           </div>
-          <span className="text-sm font-medium text-slate-700">{log.username}</span>
+          <span className="text-sm font-semibold text-slate-800">{log.username || 'System'}</span>
         </div>
       )
     },
@@ -134,10 +147,10 @@ export default function AuditLogsView() {
       accessorKey: 'details',
       cell: (log: AuditLog) => (
         <div className="max-w-md">
-          <p className="text-sm text-slate-600 line-clamp-1">{log.details}</p>
+          <p className="text-sm text-slate-700 line-clamp-1">{log.details || (log as any).description || 'Thực hiện thao tác hệ thống'}</p>
           {log.target && (
-            <span className="text-[10px] bg-slate-50 text-slate-400 px-1.5 py-0.5 rounded border border-slate-100 mt-1 inline-block">
-              Đối tượng: {log.target}
+            <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 mt-1 inline-block font-mono">
+              Target: {log.target}
             </span>
           )}
         </div>
@@ -147,8 +160,8 @@ export default function AuditLogsView() {
       header: 'IP / Metadata',
       accessorKey: 'ipAddress',
       cell: (log: AuditLog) => (
-        <span className="text-xs font-mono text-slate-400">
-          {log.ipAddress || '---'}
+        <span className="text-xs font-mono text-slate-500 bg-slate-50 px-2 py-1 rounded border border-slate-100">
+          {log.ipAddress || (log as any).ip || '---'}
         </span>
       )
     }
@@ -163,7 +176,8 @@ export default function AuditLogsView() {
           { label: 'Nhật ký', active: true }
         ]}
         action={
-          <Button variant="outline" size="sm" onClick={() => toast.success('Đã làm mới dữ liệu')}>
+          <Button variant="outline" size="sm" onClick={handleRefresh} className="gap-2">
+            <RefreshCw className={cn("w-3.5 h-3.5", isApiLoading && "animate-spin")} />
             Làm mới
           </Button>
         }
@@ -171,18 +185,18 @@ export default function AuditLogsView() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <StatsCard
-          title="Nhật ký Quản lý"
-          value={mockLogs.filter(l => l.type === 'MANAGEMENT').length}
-          icon={<ShoppingBag />}
-          color="bg-indigo-50 text-indigo-600 border-indigo-100"
-          description="Sản phẩm, Đơn hàng, Thương hiệu..."
+          title="Nhật ký Hệ thống (Real-time API)"
+          value={activeTab === 'SYSTEM' ? totalItems : (apiResponse?.pagination?.totalElements || 0)}
+          icon={<Settings />}
+          color="bg-blue-50 text-blue-600 border-blue-100"
+          description="Đăng nhập, Thao tác API, Cấu hình..."
         />
         <StatsCard
-          title="Nhật ký Hệ thống"
-          value={mockLogs.filter(l => l.type === 'SYSTEM').length}
-          icon={<Settings />}
+          title="Nhật ký Quản lý"
+          value={mockLogs.length}
+          icon={<ShoppingBag />}
           color="bg-slate-50 text-slate-600 border-slate-100"
-          description="Cài đặt, Đăng nhập, Sao lưu..."
+          description="Sản phẩm, Đơn hàng, Thương hiệu..."
         />
       </div>
 
@@ -194,16 +208,37 @@ export default function AuditLogsView() {
             <input
               type="text"
               placeholder="Tìm theo người dùng, nội dung..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-100/50 border-none rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-10 pr-4 py-2 bg-slate-100/50 border-none rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1);
+              }}
             />
           </div>
         }
         extra={
           <div className="flex border border-slate-200 p-1 bg-white rounded-lg">
             <button
-              onClick={() => setActiveTab('MANAGEMENT')}
+              onClick={() => {
+                setActiveTab('SYSTEM');
+                setPage(1);
+              }}
+              className={cn(
+                "flex items-center gap-2 px-4 py-1.5 text-[11px] font-bold transition-all rounded-md",
+                activeTab === 'SYSTEM' 
+                  ? "bg-slate-900 text-white shadow-sm" 
+                  : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              <ShieldCheck size={14} />
+              Hệ thống (API)
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('MANAGEMENT');
+                setPage(1);
+              }}
               className={cn(
                 "flex items-center gap-2 px-4 py-1.5 text-[11px] font-bold transition-all rounded-md",
                 activeTab === 'MANAGEMENT' 
@@ -214,24 +249,32 @@ export default function AuditLogsView() {
               <Activity size={14} />
               Quản lý
             </button>
-            <button
-              onClick={() => setActiveTab('SYSTEM')}
-              className={cn(
-                "flex items-center gap-2 px-4 py-1.5 text-[11px] font-bold transition-all rounded-md",
-                activeTab === 'SYSTEM' 
-                  ? "bg-slate-900 text-white shadow-sm" 
-                  : "text-slate-500 hover:text-slate-700"
-              )}
-            >
-              <ShieldCheck size={14} />
-              Hệ thống
-            </button>
           </div>
+        }
+        footer={
+          totalItems > 0 && (
+            <NextPagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={size}
+              onItemsPerPageChange={setSize}
+              onPageChange={setPage}
+              className="bg-slate-50/20"
+            />
+          )
         }
       >
         <DataTable 
           columns={columns} 
-          data={filteredLogs} 
+          data={displayData} 
+          isLoading={activeTab === 'SYSTEM' && isApiLoading}
+          emptyState={{
+            title: "Chưa có nhật ký hoạt động",
+            description: "Hiện chưa ghi nhận nhật ký hoạt động nào trong hệ thống.",
+            icon: <ShieldCheck className="h-10 w-10 text-blue-500 opacity-80" />,
+            iconColor: "bg-blue-50"
+          }}
         />
       </DataCard>
     </div>

@@ -1,105 +1,150 @@
 'use client';
 
-import React from 'react';
-import { PackagePlus, MoreHorizontal, Eye, Trash2 } from "lucide-react";
+import React, { useState } from 'react';
+import { PackagePlus } from "lucide-react";
 import { PageHeader, DataTable, DataCard, Breadcrumbs } from '@/components/common';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { useGoodsReceipts, useConfirmGoodsReceipt, useUpdateGoodsReceiptStatus } from '../hooks/use-goods-receipt-mutation';
+import { CheckCircle2, XCircle, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { SearchInput, AddNewButton, FilterPopover } from '@/components/common/view-control';
-
-// Mock data for UI only
-const mockReceipts = [
-  {
-    id: '1',
-    receiptCode: 'GR-20260601-001',
-    warehouseName: 'Kho Chính Quận 1',
-    purchaseOrderCode: 'PO-20260520-05',
-    totalItems: 5,
-    status: 'COMPLETED',
-    createdAt: '2026-06-01T10:30:00Z',
-    createdBy: 'Thanh Nguyen'
-  },
-  {
-    id: '2',
-    receiptCode: 'GR-20260528-003',
-    warehouseName: 'Kho Phụ Quận 7',
-    purchaseOrderCode: null,
-    totalItems: 12,
-    status: 'PENDING',
-    createdAt: '2026-05-28T14:20:00Z',
-    createdBy: 'Admin User'
-  }
-];
+import { 
+  SearchInput, 
+  AddNewButton, 
+  FilterPopover, 
+  ViewActionButton, 
+  DeleteActionButton, 
+  DeleteConfirmDialog 
+} from '@/components/common/view-control';
+import { toast } from 'sonner';
 
 export default function GoodsReceiptView() {
   const router = useRouter();
+  const { data: receiptsData, isLoading } = useGoodsReceipts();
+  const confirmMutation = useConfirmGoodsReceipt();
+  const updateStatusMutation = useUpdateGoodsReceiptStatus();
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const receiptsList = React.useMemo(() => {
+    if (Array.isArray(receiptsData)) {
+      return receiptsData.map((item: any) => ({
+        id: item.id || item._id,
+        receiptCode: item.receiptCode || item.code || `GR-${item.id}`,
+        warehouseName: item.warehouseName || item.warehouse?.name || 'Kho Chính',
+        purchaseOrderCode: item.purchaseOrderCode || item.purchaseOrder?.code || null,
+        totalItems: Array.isArray(item.items) ? item.items.length : item.totalItems || 1,
+        status: item.status || 'RECEIVED',
+        createdAt: item.createdAt || new Date().toISOString(),
+        createdBy: item.createdBy || 'Thủ kho'
+      }));
+    }
+    return [];
+  }, [receiptsData]);
+
+  const renderStatusDropdown = (item: any) => {
+    const status = item.status;
+    const isDraft = status === 'DRAFT';
+    const isReceived = status === 'RECEIVED' || status === 'COMPLETED';
+    const isCancelled = status === 'CANCELLED';
+
+    let badgeClass = "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200";
+    let label = "Bản nháp";
+
+    if (isReceived) {
+      badgeClass = "bg-emerald-100 text-emerald-700 border-emerald-200";
+      label = "Đã nhập kho";
+    } else if (isCancelled) {
+      badgeClass = "bg-red-100 text-red-700 border-red-200";
+      label = "Đã hủy";
+    }
+
+    if (isReceived || isCancelled) {
+      return <Badge className={`text-xs border ${badgeClass}`}>{label}</Badge>;
+    }
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer shadow-xs ${badgeClass}`}>
+            <span>{label}</span>
+            <ChevronDown size={12} className="opacity-70" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="center" className="w-48 p-1">
+          <DropdownMenuItem 
+            onClick={() => confirmMutation.mutate(item.id)}
+            disabled={confirmMutation.isPending}
+            className="text-xs gap-2 font-medium text-emerald-700 hover:bg-emerald-50 cursor-pointer"
+          >
+            <CheckCircle2 size={14} /> Xác nhận nhập kho
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={() => updateStatusMutation.mutate({ id: item.id, status: 'CANCELLED' })}
+            disabled={updateStatusMutation.isPending}
+            className="text-xs gap-2 font-medium text-red-600 hover:bg-red-50 cursor-pointer"
+          >
+            <XCircle size={14} /> Hủy phiếu nhập
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
 
   const columns = [
     {
       accessorKey: 'receiptCode',
       header: 'Mã nhập kho',
-      cell: (item: typeof mockReceipts[0]) => (
-        <span className="font-mono font-bold text-xs text-primary">{item.receiptCode}</span>
+      cell: (item: any) => (
+        <span 
+          onClick={() => router.push(`/goods-receipt/${item.id}`)}
+          className="font-mono font-bold text-xs text-blue-600 hover:underline cursor-pointer"
+        >
+          {item.receiptCode}
+        </span>
       )
     },
     {
       accessorKey: 'warehouseName',
-      header: 'Kho nhập',
-      className: 'text-sm font-medium text-slate-600'
+      header: 'Kho thực nhận',
+      cell: (item: any) => (
+        <span className="text-xs font-semibold text-slate-800">{item.warehouseName}</span>
+      )
     },
     {
       accessorKey: 'purchaseOrderCode',
-      header: 'Đơn mua hàng',
-      cell: (item: typeof mockReceipts[0]) => item.purchaseOrderCode ? (
-        <Badge variant="outline" className="text-[10px] font-mono border-slate-200">
-          {item.purchaseOrderCode}
-        </Badge>
-      ) : (
-        <span className="text-slate-400 italic text-xs">N/A</span>
+      header: 'Đơn mua (PO)',
+      cell: (item: any) => (
+        <span className="text-xs font-mono text-slate-600">
+          {item.purchaseOrderCode || '---'}
+        </span>
       )
     },
     {
       accessorKey: 'totalItems',
-      header: 'Số lượng mặt hàng',
+      header: 'Số SKU nhập',
       align: 'center' as const,
-      cell: (item: typeof mockReceipts[0]) => (
-        <span className="text-sm font-bold text-slate-700">{item.totalItems}</span>
+      cell: (item: any) => (
+        <span className="text-xs font-bold text-slate-700">{item.totalItems} sản phẩm</span>
       )
     },
     {
       accessorKey: 'status',
-      header: 'Trạng thái',
+      header: 'Trạng thái (Đổi nhanh)',
       align: 'center' as const,
-      cell: (item: typeof mockReceipts[0]) => {
-        const status = item.status;
-        return (
-          <Badge 
-            className={cn(
-              "text-[10px] border-none px-2 py-0.5 whitespace-nowrap",
-              status === 'COMPLETED' ? "bg-emerald-100 text-emerald-700" : 
-              status === 'PENDING' ? "bg-amber-100 text-amber-700" : 
-              "bg-slate-100 text-slate-700"
-            )}
-          >
-            {status === 'COMPLETED' ? 'Hoàn thành' : status === 'PENDING' ? 'Đang xử lý' : status}
-          </Badge>
-        );
-      }
+      cell: (item: any) => renderStatusDropdown(item)
     },
     {
       accessorKey: 'createdAt',
       header: 'Ngày nhập',
-      cell: (item: typeof mockReceipts[0]) => (
+      cell: (item: any) => (
         <div className="flex flex-col">
           <span className="text-xs font-medium text-slate-600">
             {new Date(item.createdAt).toLocaleDateString('vi-VN')}
@@ -109,26 +154,19 @@ export default function GoodsReceiptView() {
       )
     },
     {
-      id: 'actions',
+      header: 'Thao tác',
       align: 'right' as const,
-      cell: () => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuLabel className="text-[10px] font-bold uppercase text-slate-400">Tùy chọn</DropdownMenuLabel>
-            <DropdownMenuItem className="cursor-pointer text-sm">
-              <Eye className="mr-2 h-4 w-4 opacity-70" /> Xem chi tiết
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-sm text-destructive focus:text-destructive">
-              <Trash2 className="mr-2 h-4 w-4 opacity-70" /> Hủy phiếu
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      cell: (item: any) => (
+        <div className="flex justify-end gap-1">
+          <ViewActionButton 
+            onClick={() => router.push(`/goods-receipt/${item.id}`)} 
+            disabled={isLoading} 
+          />
+          <DeleteActionButton 
+            onClick={() => setDeleteConfirmId(item.id)} 
+            disabled={isLoading} 
+          />
+        </div>
       )
     }
   ];
@@ -161,16 +199,28 @@ export default function GoodsReceiptView() {
       >
         <DataTable 
           columns={columns as any} 
-          data={mockReceipts} 
-          isLoading={false}
+          data={receiptsList} 
+          isLoading={isLoading}
           emptyState={{
             title: "Chưa có phiếu nhập kho",
             description: "Bắt đầu tạo phiếu nhập kho đầu tiên để quản lý hàng tồn.",
-            icon: <PackagePlus className="h-10 w-10 text-indigo-500 opacity-80" />,
-            iconColor: "bg-indigo-50"
+            icon: <PackagePlus className="h-10 w-10 text-blue-500 opacity-80" />,
+            iconColor: "bg-blue-50"
           }}
         />
       </DataCard>
+
+      <DeleteConfirmDialog
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        isLoading={false}
+        onConfirm={() => {
+          toast.success('Đã hủy/xóa phiếu nhập kho thành công');
+          setDeleteConfirmId(null);
+        }}
+        description="Bạn có chắc chắn muốn hủy/xóa phiếu nhập kho này? Hành động này không thể hoàn tác."
+      />
     </div>
   );
 }
+

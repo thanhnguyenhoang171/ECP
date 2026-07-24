@@ -127,6 +127,9 @@ public class CategoryServiceImpl implements CategoryService {
         if (filter.getActive() != null) {
             query.addCriteria(Criteria.where("is_active").is(filter.getActive()));
         }
+        if (filter.getIsFeatured() != null) {
+            query.addCriteria(Criteria.where("is_featured").is(filter.getIsFeatured()));
+        }
 
         // Exclude deleted items
         query.addCriteria(Criteria.where("is_deleted").is(false));

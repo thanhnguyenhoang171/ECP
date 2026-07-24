@@ -105,6 +105,19 @@ export default function ProductDetailDialog({
     });
   }
 
+  sections.push({
+    title: "Chỉ số & Nhãn sản phẩm",
+    cols: 2,
+    items: [
+      { label: "Sản phẩm nổi bật", value: product?.isFeatured ? 'Có' : 'Không', icon: Tag },
+      { label: "Sản phẩm mới", value: product?.isNew ? 'Có' : 'Không', icon: Tag },
+      { label: "Bán chạy nhất", value: product?.isBestSeller ? 'Có' : 'Không', icon: Tag },
+      { label: "Lượt xem", value: product?.viewCount ?? 0, icon: Hash },
+      { label: "Số lượng đã bán", value: product?.soldCount ?? 0, icon: ShoppingBag },
+      { label: "Đánh giá trung bình", value: `${product?.ratingAvg ?? 0} ⭐ (${product?.ratingCount ?? 0} lượt)`, icon: Tag },
+    ]
+  });
+
   return (
     <DetailDialog
       open={open}
@@ -119,23 +132,28 @@ export default function ProductDetailDialog({
         title: product?.name,
         subtitle: `SKU: ${product?.sku || 'N/A'} • Brand: ${product?.brand || 'N/A'}`,
         badge: product ? (
-          <Badge 
-            className={
-              isPublished 
-                ? "bg-emerald-100 text-emerald-700 border-none shrink-0 px-3 py-1 text-xs font-semibold" 
-                : "bg-slate-100 text-slate-500 border-none shrink-0 px-3 py-1 text-xs font-semibold"
-            }
-          >
-            {isPublished ? (
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Đang bán
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5">
-                <XCircle className="w-3.5 h-3.5" /> Ngừng bán
-              </span>
-            )}
-          </Badge>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Badge 
+              className={
+                isPublished 
+                  ? "bg-emerald-100 text-emerald-700 border-none shrink-0 px-3 py-1 text-xs font-semibold" 
+                  : "bg-slate-100 text-slate-500 border-none shrink-0 px-3 py-1 text-xs font-semibold"
+              }
+            >
+              {isPublished ? (
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Đang bán
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5">
+                  <XCircle className="w-3.5 h-3.5" /> Ngừng bán
+                </span>
+              )}
+            </Badge>
+            {product.isFeatured && <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs px-2.5 py-0.5 font-semibold">Nổi bật</Badge>}
+            {product.isNew && <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs px-2.5 py-0.5 font-semibold">Mới</Badge>}
+            {product.isBestSeller && <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs px-2.5 py-0.5 font-semibold">Bán chạy</Badge>}
+          </div>
         ) : null
       }}
       sections={sections}

@@ -9,6 +9,9 @@ export interface Category {
   updatedAt?: string;
   description?: string;
   order?: number;
+  sortOrder?: number;
+  isFeatured?: boolean;
+  image?: any;
   imageUrl?: any;
   imagePublicId?: string;
   metaTitle?: string;

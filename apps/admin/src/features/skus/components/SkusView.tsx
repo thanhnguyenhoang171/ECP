@@ -61,10 +61,15 @@ export default function SkusView() {
     isActive: activeParam ? activeParam === 'true' : undefined,
   });
 
-  const apiSkus = skusResponse?.data || [];
-  const pagination = skusResponse?.pagination;
+  const rawData = skusResponse?.data;
+  const apiSkus = Array.isArray(rawData)
+    ? rawData
+    : Array.isArray((rawData as any)?.data)
+      ? (rawData as any).data
+      : [];
+  const pagination = skusResponse?.pagination || (rawData as any)?.pagination;
   const totalPages = pagination?.totalPages || 1;
-  const totalItems = pagination?.totalElements || 0;
+  const totalItems = pagination?.totalElements || apiSkus.length;
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [selectedSku, setSelectedSku] = useState<Sku | null>(null);

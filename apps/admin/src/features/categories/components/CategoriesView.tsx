@@ -67,6 +67,7 @@ export default function CategoriesView({
 
  const activeParam = searchParams.get('active');
  const levelParam = searchParams.get('level');
+ const isFeaturedParam = searchParams.get('isFeatured');
  const idParam = searchParams.get('id') || '';
 
  // TanStack Query
@@ -81,6 +82,12 @@ export default function CategoriesView({
     activeParam === 'true'
      ? true
      : activeParam === 'false'
+      ? false
+      : undefined,
+   isFeatured:
+    isFeaturedParam === 'true'
+     ? true
+     : isFeaturedParam === 'false'
       ? false
       : undefined,
    level: levelParam ? Number(levelParam) : undefined,
@@ -114,6 +121,13 @@ export default function CategoriesView({
   updateMutation.mutate({
    id: category.id,
    values: { active: !category.active } as any,
+  });
+ };
+
+ const handleToggleFeatured = (category: Category) => {
+  updateMutation.mutate({
+   id: category.id,
+   values: { isFeatured: !category.isFeatured } as any,
   });
  };
 
@@ -230,6 +244,26 @@ export default function CategoriesView({
    ),
   },
   {
+   header: 'Nổi bật',
+   align: 'center',
+   skeleton: <Skeleton className='h-5 w-16 mx-auto rounded-full' />,
+   cell: (category) => (
+    <div className="flex justify-center items-center gap-1.5">
+      <Switch 
+        checked={!!category.isFeatured}
+        onCheckedChange={() => handleToggleFeatured(category)}
+        disabled={updateMutation.isPending && updateMutation.variables?.id === category.id}
+        className="scale-75 data-[state=checked]:bg-amber-500"
+      />
+      {category.isFeatured && (
+        <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] font-bold px-1.5 py-0">
+          Nổi bật
+        </Badge>
+      )}
+    </div>
+   ),
+  },
+  {
    header: 'Ngày tạo',
    align: 'center',
    skeleton: <Skeleton className='h-4 w-24 mx-auto' />,
@@ -305,8 +339,8 @@ export default function CategoriesView({
     extra={
      <>
       <FilterPopover
-       activeCount={(activeParam ? 1 : 0) + (levelParam ? 1 : 0)}
-       onClear={() => updateUrl({ active: '', level: '', page: 1 })}
+       activeCount={(activeParam ? 1 : 0) + (levelParam ? 1 : 0) + (isFeaturedParam ? 1 : 0)}
+       onClear={() => updateUrl({ active: '', level: '', isFeatured: '', page: 1 })}
       >
        <div className='space-y-4 p-1'>
         <div className='space-y-2'>
@@ -324,6 +358,25 @@ export default function CategoriesView({
           <button className={filterBtnClass(activeParam === 'false')} onClick={() => updateUrl({ active: 'false', page: 1 })}>
            <div className='mr-2 h-2 w-2 rounded-full bg-red-500' />{' '}
            Ẩn
+          </button>
+         </div>
+        </div>
+
+        <div className='space-y-2 pt-2 border-t border-slate-100'>
+         <h4 className='font-bold text-[10px] uppercase tracking-wider text-slate-400 px-3'>
+          Danh mục nổi bật
+         </h4>
+         <div className='flex flex-col gap-0.5'>
+          <button className={filterBtnClass(!isFeaturedParam)} onClick={() => updateUrl({ isFeatured: '', page: 1 })}>
+           Tất cả
+          </button>
+          <button className={filterBtnClass(isFeaturedParam === 'true')} onClick={() => updateUrl({ isFeatured: 'true', page: 1 })}>
+           <div className='mr-2 h-2 w-2 rounded-full bg-amber-500' />{' '}
+           Danh mục nổi bật (Home)
+          </button>
+          <button className={filterBtnClass(isFeaturedParam === 'false')} onClick={() => updateUrl({ isFeatured: 'false', page: 1 })}>
+           <div className='mr-2 h-2 w-2 rounded-full bg-slate-300' />{' '}
+           Danh mục thường
           </button>
          </div>
         </div>

@@ -43,6 +43,8 @@ export function CategoryDetailDialog({
         { label: "Đường dẫn (Slug)", value: category.slug, icon: FileText, fontMono: true },
         { label: "Cấp độ", value: `Cấp ${category.level}`, icon: FolderTree },
         { label: "Thứ tự hiển thị", value: category.order ?? 0, icon: ListOrdered },
+        { label: "Thứ tự sắp xếp", value: category.sortOrder ?? 0, icon: ListOrdered },
+        { label: "Danh mục nổi bật", value: category.isFeatured ? "Có (Hiển thị ở trang chủ)" : "Không", icon: Tag },
         { 
           label: "Danh mục cha", 
           value: parentCategory ? parentCategory.name : 'Không có (Danh mục gốc)', 

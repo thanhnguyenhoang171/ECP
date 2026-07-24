@@ -147,7 +147,18 @@ export default function ProductView({
               )}
             </div>
             <div className='flex flex-col'>
-              <span className='text-sm font-bold text-slate-900 line-clamp-1' title={product.name}>{product.name}</span>
+              <div className='flex items-center gap-1.5 flex-wrap'>
+                <span className='text-sm font-bold text-slate-900 line-clamp-1' title={product.name}>{product.name}</span>
+                {product.isFeatured && (
+                  <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[9px] font-bold px-1 py-0">Nổi bật</Badge>
+                )}
+                {product.isNew && (
+                  <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[9px] font-bold px-1 py-0">Mới</Badge>
+                )}
+                {product.isBestSeller && (
+                  <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[9px] font-bold px-1 py-0">Bán chạy</Badge>
+                )}
+              </div>
               <div className='flex items-center gap-2 mt-0.5'>
                 <span className='font-mono text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded'>{product.sku}</span>
                 {product.brand && <span className='text-[11px] text-slate-500'>• {product.brand}</span>}
@@ -334,6 +345,13 @@ export default function ProductView({
                   brand: activeProduct!.brand || '',
                   categoryId: activeProduct!.categoryId,
                   isPublished: activeProduct!.isPublished ?? (activeProduct as any).published,
+                  isFeatured: activeProduct!.isFeatured ?? (activeProduct as any).featured,
+                  isNew: activeProduct!.isNew ?? (activeProduct as any).new,
+                  isBestSeller: activeProduct!.isBestSeller ?? (activeProduct as any).bestSeller,
+                  viewCount: activeProduct!.viewCount || 0,
+                  soldCount: activeProduct!.soldCount || 0,
+                  ratingAvg: activeProduct!.ratingAvg || 0,
+                  ratingCount: activeProduct!.ratingCount || 0,
                   description: activeProduct!.description || '',
                   slug: activeProduct!.slug || '',
                   images: (activeProduct as any).images || [],

@@ -9,6 +9,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -23,6 +25,10 @@ public class InventoryAdjustmentRequest {
     private String skuId;
 
     private String batchCode;
+
+    private LocalDateTime manufactureDate;
+
+    private LocalDateTime expiryDate;
 
     @NotNull(message = "Adjustment quantity is required")
     @Schema(description = "Positive to increase, negative to decrease stock")

@@ -35,6 +35,7 @@ export const categoryApi = {
     parentId?: string;
     level?: number;
     active?: boolean;
+    isFeatured?: boolean;
   }): Promise<PageResponse<Category>> => {
     const query = new URLSearchParams();
 
@@ -51,6 +52,8 @@ export const categoryApi = {
       query.append('level', params.level.toString());
     if (params.active !== undefined)
       query.append('active', params.active.toString());
+    if (params.isFeatured !== undefined)
+      query.append('isFeatured', params.isFeatured.toString());
 
     const res = await clientFetch(`v1/categories?${query.toString()}`);
     if (!res.ok) throw new Error('Failed to fetch categories');

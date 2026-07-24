@@ -111,6 +111,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PurchaseOrderResponse getPurchaseOrderById(String id) {
         PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("PURCHASE_ORDER_NOT_FOUND", "Không tìm thấy đơn mua hàng với ID: " + id, HttpStatus.NOT_FOUND));
@@ -119,6 +120,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PurchaseOrderAdminResponse getPurchaseOrderByIdAdmin(String id) {
         PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("PURCHASE_ORDER_NOT_FOUND", "Không tìm thấy đơn mua hàng với ID: " + id, HttpStatus.NOT_FOUND));
@@ -127,6 +129,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<PurchaseOrderResponse> getAllPurchaseOrders(PurchaseOrderFilterRequest filter, Pageable pageable) {
         Pageable finalPageable = PaginationUtils.applyStableSort(pageable, 
                 Sort.Order.desc("createdAt"), 
@@ -139,6 +142,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<PurchaseOrderAdminResponse> getAllPurchaseOrdersAdmin(PurchaseOrderFilterRequest filter, Pageable pageable) {
         Pageable finalPageable = PaginationUtils.applyStableSort(pageable, 
                 Sort.Order.desc("createdAt"), 

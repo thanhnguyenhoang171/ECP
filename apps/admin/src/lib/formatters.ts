@@ -20,26 +20,42 @@ export const formatDate = (dateString?: string | Date) => {
 };
 
 /**
- * Formats a number into a currency string (VND)
- * @param amount The amount to format
- * @returns Formatted currency string
+ * Formats a number with thousand separators using dot (.) and decimal separator using comma (,)
+ * @param value The value to format
+ * @param decimals Number of decimal digits (default 0)
+ * @returns Formatted number string (e.g. 1.234.567 or 1.234.567,50)
  */
-export const formatCurrency = (amount?: number) => {
-  if (amount === undefined || amount === null) return '0 ₫';
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-  }).format(amount);
+export const formatNumber = (value?: number | string, decimals: number = 0) => {
+  if (value === undefined || value === null || value === '') return '0';
+  const num = Number(value);
+  if (isNaN(num)) return '0';
+
+  const parts = num.toFixed(decimals).split('.');
+  const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const decimalPart = parts[1] ? `,${parts[1]}` : '';
+
+  return `${integerPart}${decimalPart}`;
 };
 
 /**
- * Formats a number with thousand separators
- * @param value The value to format
- * @returns Formatted number string
+ * Formats a number into a Vietnamese currency string (VND)
+ * Uses dots (.) for thousands and comma (,) for decimals (e.g. 1.234.567 ₫)
+ * @param amount The amount to format
+ * @param showSymbol Whether to append the '₫' symbol (default true)
+ * @returns Formatted currency string
  */
-export const formatNumber = (value?: number) => {
-  if (value === undefined || value === null) return '0';
-  return new Intl.NumberFormat('vi-VN').format(value);
+export const formatCurrency = (amount?: number | string, showSymbol: boolean = true) => {
+  if (amount === undefined || amount === null || amount === '') {
+    return showSymbol ? '0 ₫' : '0';
+  }
+  const num = Number(amount);
+  if (isNaN(num)) return showSymbol ? '0 ₫' : '0';
+
+  // Check if amount has decimals
+  const hasDecimals = num % 1 !== 0;
+  const formatted = formatNumber(num, hasDecimals ? 2 : 0);
+
+  return showSymbol ? `${formatted} ₫` : formatted;
 };
 
 /**

@@ -27,7 +27,7 @@ import {
 } from '@/components/common';
 import { ProductFormValues } from '../../schemas/product.schema';
 import { Category } from '@/features/categories/types/category.interface';
-import { convertToSlug } from '@/lib/utils';
+import { convertToSlug, convertToSku } from '@/lib/utils';
 
 interface ProductGeneralTabProps {
   form: UseFormReturn<ProductFormValues>;
@@ -123,9 +123,26 @@ export const ProductGeneralTab = ({ form, categories, isSlugEditedRef, nameValue
               name="sku"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <AdminFormLabel required>Mã SKU chính của sản phẩm (Parent SKU)</AdminFormLabel>
+                  <div className="flex items-center justify-between">
+                    <AdminFormLabel>Mã SKU chính của sản phẩm (Parent SKU)</AdminFormLabel>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-auto p-0 text-[10px] text-blue-600 font-bold"
+                      onClick={() => {
+                        const generatedSku = convertToSku(nameValue);
+                        form.setValue('sku', generatedSku, { shouldValidate: true });
+                      }}
+                    >
+                      Sinh tự động
+                    </Button>
+                  </div>
                   <FormControl>
-                    <Input placeholder="Vd: IP15PM-PARENT" {...field} className="h-11 font-mono uppercase" />
+                    <Input 
+                      placeholder="Tự động tạo (Ví dụ: IP15PM-8392) hoặc nhập tùy chỉnh" 
+                      {...field} 
+                      className="h-11 font-mono uppercase border-slate-200 focus:border-blue-500" 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -284,14 +301,14 @@ export const ProductGeneralTab = ({ form, categories, isSlugEditedRef, nameValue
         </FormSection>
 
         <FormSection title="Trạng thái & Gắn thẻ">
-          <div className="space-y-5">
+          <div className="space-y-4">
             <FormField
               control={form.control}
               name="isPublished"
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-xl border border-slate-200 p-4 bg-slate-50/50">
                   <div className="flex flex-col gap-0.5">
-                    <AdminFormLabel className="mb-0">Trạng thái bán</AdminFormLabel>
+                    <AdminFormLabel className="mb-0 cursor-pointer">Trạng thái bán</AdminFormLabel>
                     <span className="text-[10px] text-slate-400">Hiển thị sản phẩm lên cửa hàng.</span>
                   </div>
                   <FormControl>
@@ -301,6 +318,126 @@ export const ProductGeneralTab = ({ form, categories, isSlugEditedRef, nameValue
                       className="scale-90 data-[state=checked]:bg-blue-600"
                     />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isFeatured"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-xl border border-amber-200/60 p-4 bg-amber-50/40">
+                  <div className="flex flex-col gap-0.5">
+                    <AdminFormLabel className="mb-0 cursor-pointer text-amber-900 font-bold">Sản phẩm nổi bật (Featured)</AdminFormLabel>
+                    <span className="text-[10px] text-amber-700/80">Hiển thị tại khu vực Sản phẩm nổi bật.</span>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      className="scale-90 data-[state=checked]:bg-amber-500"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isNew"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-xl border border-emerald-200/60 p-4 bg-emerald-50/40">
+                  <div className="flex flex-col gap-0.5">
+                    <AdminFormLabel className="mb-0 cursor-pointer text-emerald-900 font-bold">Sản phẩm mới (New Arrival)</AdminFormLabel>
+                    <span className="text-[10px] text-emerald-700/80">Gắn nhãn Hàng mới về.</span>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      className="scale-90 data-[state=checked]:bg-emerald-500"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isBestSeller"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-xl border border-purple-200/60 p-4 bg-purple-50/40">
+                  <div className="flex flex-col gap-0.5">
+                    <AdminFormLabel className="mb-0 cursor-pointer text-purple-900 font-bold">Sản phẩm bán chạy (Best Seller)</AdminFormLabel>
+                    <span className="text-[10px] text-purple-700/80">Gắn nhãn Bán chạy nhất.</span>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      className="scale-90 data-[state=checked]:bg-purple-600"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+        </FormSection>
+
+        <FormSection title="Chỉ số thống kê">
+          <div className="grid grid-cols-2 gap-3">
+            <FormField
+              control={form.control}
+              name="viewCount"
+              render={({ field }) => (
+                <FormItem>
+                  <AdminFormLabel>Lượt xem (View count)</AdminFormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} onChange={(e) => field.onChange(Number(e.target.value))} className="h-10 border-slate-200 text-xs" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="soldCount"
+              render={({ field }) => (
+                <FormItem>
+                  <AdminFormLabel>Đã bán (Sold count)</AdminFormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} onChange={(e) => field.onChange(Number(e.target.value))} className="h-10 border-slate-200 text-xs" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="ratingAvg"
+              render={({ field }) => (
+                <FormItem>
+                  <AdminFormLabel>Đánh giá TB (Rating avg)</AdminFormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.1" min="0" max="5" {...field} onChange={(e) => field.onChange(Number(e.target.value))} className="h-10 border-slate-200 text-xs" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="ratingCount"
+              render={({ field }) => (
+                <FormItem>
+                  <AdminFormLabel>Số lượt ĐG (Rating count)</AdminFormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} onChange={(e) => field.onChange(Number(e.target.value))} className="h-10 border-slate-200 text-xs" />
+                  </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />

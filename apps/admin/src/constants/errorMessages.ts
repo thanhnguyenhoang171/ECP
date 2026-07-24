@@ -12,6 +12,11 @@ export const ErrorMessages: Record<string, string> = {
   "CATEGORY_SLUG_EXISTS": "Đường dẫn (slug) của danh mục đã tồn tại.",
   "CATEGORY_HAS_CHILDREN": "Không thể thực hiện vì danh mục này đang chứa danh mục con.",
   "CATEGORY_INVALID_PARENT": "Danh mục cha không hợp lệ (có thể là chính nó hoặc là danh mục con của nó).",
+
+  // --- Supplier Errors (SUPPLIER_*) ---
+  "SUPPLIER_NOT_FOUND": "Không tìm thấy thông tin nhà cung cấp này.",
+  "SUPPLIER_HAS_TRANSACTIONS": "Không thể xóa nhà cung cấp đã có đơn mua hàng.",
+  "SUPPLIER_CODE_EXISTS": "Mã nhà cung cấp đã tồn tại trong hệ thống.",
   
   // --- System/Global Errors (SYS_*) ---
   "SYS_VALIDATION_FAILED": "Dữ liệu nhập vào không hợp lệ, vui lòng kiểm tra lại.",
@@ -24,11 +29,17 @@ export const ErrorMessages: Record<string, string> = {
 };
 
 /**
- * Hàm tiện ích để lấy câu thông báo lỗi dựa vào business code.
+ * Hàm tiện ích để lấy câu thông báo lỗi dựa vào business code hoặc serverMessage.
  * @param code Mã lỗi trả về từ Backend
+ * @param serverMessage Thông điệp lỗi chi tiết trả về từ Backend (trường message)
  * @returns Câu thông báo lỗi bằng Tiếng Việt
  */
-export const getErrorMessage = (code: string | null | undefined): string => {
-  if (!code) return ErrorMessages["SYS_UNKNOWN_ERROR"];
-  return ErrorMessages[code] || ErrorMessages["SYS_UNKNOWN_ERROR"];
+export const getErrorMessage = (code?: string | null, serverMessage?: string | null): string => {
+  if (code && ErrorMessages[code]) {
+    return ErrorMessages[code];
+  }
+  if (serverMessage && typeof serverMessage === 'string' && serverMessage.trim() !== '') {
+    return serverMessage;
+  }
+  return ErrorMessages["SYS_UNKNOWN_ERROR"];
 };

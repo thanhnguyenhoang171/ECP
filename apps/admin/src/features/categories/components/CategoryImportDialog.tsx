@@ -37,6 +37,7 @@ export default function CategoryImportDialog({
 }: CategoryImportDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -47,16 +48,34 @@ export default function CategoryImportDialog({
 
     setIsImporting(true);
     setImportError(null);
+    setImportProgress(10);
+
+    const progressTimer = setInterval(() => {
+      setImportProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(progressTimer);
+          return 90;
+        }
+        return prev + Math.floor(Math.random() * 8 + 5);
+      });
+    }, 200);
     
     importMutation.mutate(file, {
       onSuccess: () => {
-        setIsImporting(false);
-        onOpenChange(false);
-        setFile(null);
-        onSuccess?.();
+        clearInterval(progressTimer);
+        setImportProgress(100);
+        setTimeout(() => {
+          setIsImporting(false);
+          setImportProgress(0);
+          onOpenChange(false);
+          setFile(null);
+          onSuccess?.();
+        }, 400);
       },
       onError: (error: any) => {
+        clearInterval(progressTimer);
         setIsImporting(false);
+        setImportProgress(0);
         // Hiển thị lỗi chi tiết từ server nếu có
         const message = error?.message || error?.error || 'Đã có lỗi xảy ra khi nhập dữ liệu';
         setImportError(message);
@@ -158,7 +177,7 @@ export default function CategoryImportDialog({
                 setImportError(null);
               }}
               isUploading={isImporting}
-              progress={isImporting ? 50 : 0}
+              progress={importProgress}
               accept={{
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
                 'application/vnd.ms-excel': ['.xls']

@@ -18,4 +18,5 @@ public class CategoryFilterRequest {
     private String parentId;
     private Integer level;
     private Boolean active;
+    private Boolean isFeatured;
 }

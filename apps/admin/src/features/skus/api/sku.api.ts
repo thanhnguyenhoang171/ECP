@@ -38,6 +38,32 @@ export const skuApi = {
       };
     }
     
-    return await res.json();
+    const body = await res.json();
+
+    // Unwrap 2-level response structure if backend returns wrapper object
+    const inner = body?.data?.data ? body.data : body;
+    const items = Array.isArray(inner?.data) 
+      ? inner.data 
+      : Array.isArray(body?.data) 
+        ? body.data 
+        : Array.isArray(body) 
+          ? body 
+          : [];
+
+    const pagination = inner?.pagination || body?.pagination || {
+      currentPage: params.page,
+      totalPages: 1,
+      totalElements: items.length,
+      pageSize: params.size,
+      first: true,
+      last: true
+    };
+
+    return {
+      success: body?.success ?? true,
+      message: body?.message || inner?.message,
+      data: items,
+      pagination
+    };
   }
 };

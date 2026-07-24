@@ -24,7 +24,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import com.example.ecp_api.entity.mongodb.Product;
+import com.example.ecp_api.entity.mongodb.embedded.ProductVariant;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -36,6 +45,7 @@ public class InventoryServiceImpl implements InventoryService {
     private final WarehouseRepository warehouseRepository;
     private final SkuRepository skuRepository;
     private final InventoryMapper inventoryMapper;
+    private final MongoTemplate mongoTemplate;
     private final com.example.ecp_api.service.AuditLogService auditLogService;
 
     @Override
@@ -59,6 +69,13 @@ public class InventoryServiceImpl implements InventoryService {
                         .quantityOnHand(0)
                         .quantityLocked(0)
                         .build());
+
+        if (request.getManufactureDate() != null) {
+            inventory.setManufactureDate(request.getManufactureDate());
+        }
+        if (request.getExpiryDate() != null) {
+            inventory.setExpiryDate(request.getExpiryDate());
+        }
 
         int oldBalance = inventory.getQuantityOnHand();
         int newBalance = oldBalance + request.getQuantityChange();
@@ -88,17 +105,23 @@ public class InventoryServiceImpl implements InventoryService {
         auditLogService.log("INVENTORY_ADJUST", com.example.ecp_api.util.SecurityUtils.getCurrentUsername(), 
                 "Adjusted stock in warehouse " + warehouse.getName() + ": SKU " + sku.getSkuCode() + " change: " + request.getQuantityChange());
 
-        return inventoryMapper.toResponse(inventory);
+        InventoryResponse response = inventoryMapper.toResponse(inventory);
+        enrichInventoryResponses(List.of(response));
+        return response;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public InventoryResponse getInventoryById(String id) {
         Inventory inventory = inventoryRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("INVENTORY_NOT_FOUND", "Không tìm thấy thông tin tồn kho.", HttpStatus.NOT_FOUND));
-        return inventoryMapper.toResponse(inventory);
+        InventoryResponse response = inventoryMapper.toResponse(inventory);
+        enrichInventoryResponses(List.of(response));
+        return response;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<InventoryResponse> getAllInventory(com.example.ecp_api.dto.request.InventoryFilterRequest filter, Pageable pageable) {
         org.springframework.data.jpa.domain.Specification<Inventory> spec = (root, query, cb) -> {
             java.util.List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
@@ -123,7 +146,56 @@ public class InventoryServiceImpl implements InventoryService {
         };
 
         Page<Inventory> page = inventoryRepository.findAll(spec, pageable);
-        return inventoryMapper.toPageResponse(page);
+        PageResponse<InventoryResponse> pageResponse = inventoryMapper.toPageResponse(page);
+        if (pageResponse.getData() != null) {
+            enrichInventoryResponses(pageResponse.getData());
+        }
+        return pageResponse;
+    }
+
+    private void enrichInventoryResponses(List<InventoryResponse> responses) {
+        if (responses == null || responses.isEmpty()) {
+            return;
+        }
+
+        List<String> skuIds = responses.stream()
+                .map(r -> r.getSkuId() != null ? r.getSkuId().toString() : null)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        if (skuIds.isEmpty()) {
+            return;
+        }
+
+        try {
+            Query query = new Query(Criteria.where("variants.sku_id").in(skuIds));
+            List<Product> products = mongoTemplate.find(query, Product.class);
+
+            Map<String, ProductVariant> variantMap = new HashMap<>();
+            for (Product p : products) {
+                if (p.getVariants() != null) {
+                    for (ProductVariant v : p.getVariants()) {
+                        if (v.getSku_id() != null) {
+                            variantMap.put(v.getSku_id(), v);
+                        }
+                    }
+                }
+            }
+
+            for (InventoryResponse response : responses) {
+                if (response.getSkuId() != null) {
+                    ProductVariant v = variantMap.get(response.getSkuId().toString());
+                    if (v != null) {
+                        response.setCostPrice(v.getCostPrice());
+                        response.setSellingPrice(v.getPrice());
+                        response.setPrice(v.getPrice());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Logging failure gracefully without crashing
+        }
     }
 
     @Override
@@ -143,6 +215,7 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public InventoryLedgerResponse getLedgerById(String id) {
         InventoryLedger ledger = inventoryLedgerRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("LEDGER_NOT_FOUND", "Không tìm thấy nhật ký kho.", HttpStatus.NOT_FOUND));
@@ -150,6 +223,7 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<InventoryLedgerResponse> getAllLedgers(com.example.ecp_api.dto.request.InventoryLedgerFilterRequest filter, Pageable pageable) {
         org.springframework.data.jpa.domain.Specification<InventoryLedger> spec = (root, query, cb) -> {
             java.util.List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
@@ -197,6 +271,7 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<InventoryLedgerResponse> getHistory(String warehouseId, String skuId, String batchCode) {
         List<InventoryLedger> ledgers = inventoryLedgerRepository.findByWarehouseIdAndSkuIdAndBatchCodeOrderByCreatedAtDesc(
                 UUID.fromString(warehouseId), UUID.fromString(skuId), batchCode);

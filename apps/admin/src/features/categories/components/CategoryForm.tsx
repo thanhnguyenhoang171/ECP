@@ -72,10 +72,12 @@ export default function CategoryForm({
       slug: '',
       parentId: '',
       active: true,
+      isFeatured: false,
       imageUrl: undefined,
       imagePublicId: undefined,
       description: '',
       order: 0,
+      sortOrder: 0,
       metaTitle: '',
       metaDescription: '',
       metaKeywords: '',
@@ -98,6 +100,8 @@ export default function CategoryForm({
         imagePublicId: initialData.imagePublicId,
         description: initialData.description || '',
         order: initialData.order || 0,
+        sortOrder: initialData.sortOrder ?? initialData.order ?? 0,
+        isFeatured: initialData.isFeatured ?? false,
         metaTitle: initialData.metaTitle || '',
         metaDescription: initialData.metaDescription || '',
         metaKeywords: initialData.metaKeywords || '',
@@ -109,10 +113,12 @@ export default function CategoryForm({
         slug: '',
         parentId: '',
         active: true,
+        isFeatured: false,
         imageUrl: undefined,
         imagePublicId: undefined,
         description: '',
         order: 0,
+        sortOrder: 0,
         metaTitle: '',
         metaDescription: '',
         metaKeywords: '',
@@ -364,6 +370,26 @@ export default function CategoryForm({
 
                   <FormField
                     control={form.control}
+                    name='sortOrder'
+                    render={({ field }) => (
+                      <FormItem>
+                        <AdminFormLabel>Thứ tự sắp xếp (Sort Order)</AdminFormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Vd: 0, 1, 2..."
+                            className="h-11 border-slate-200"
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name='active'
                     render={({ field }) => (
                       <FormItem className='flex flex-row items-center justify-between rounded-xl border border-slate-200/60 p-4 bg-slate-50/50 h-14'>
@@ -374,6 +400,26 @@ export default function CategoryForm({
                         <FormControl>
                           <Switch
                             className='mb-0 scale-90 data-[state=checked]:bg-blue-600'
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name='isFeatured'
+                    render={({ field }) => (
+                      <FormItem className='flex flex-row items-center justify-between rounded-xl border border-slate-200/60 p-4 bg-amber-50/40 h-14'>
+                        <div className="flex flex-col gap-0.5">
+                          <AdminFormLabel className="mb-0 cursor-pointer text-amber-900 font-bold">Danh mục nổi bật</AdminFormLabel>
+                          <span className="text-[10px] text-amber-700/80">Đánh dấu is_featured để Home hiển thị &quot;Danh mục nổi bật&quot;.</span>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            className='mb-0 scale-90 data-[state=checked]:bg-amber-500'
                             checked={field.value}
                             onCheckedChange={field.onChange}
                           />

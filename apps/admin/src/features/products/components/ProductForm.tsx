@@ -22,7 +22,7 @@ import {
   productSchema, 
   ProductFormValues, 
 } from '../schemas/product.schema';
-import { cn, convertToSlug, getCloudinaryPublicId } from '@/lib/utils';
+import { cn, convertToSlug, convertToSku, getCloudinaryPublicId } from '@/lib/utils';
 import { toast } from 'sonner';
 
 import { ProductGeneralTab } from './product-form/ProductGeneralTab';
@@ -86,6 +86,13 @@ export default function ProductForm({ onSuccess, initialData, isDialog = false }
         ? transformSpecificationsToArray(initialData.specifications) 
         : [],
       isPublished: initialData?.isPublished ?? (initialData as any)?.published ?? true,
+      isFeatured: initialData?.isFeatured ?? (initialData as any)?.featured ?? false,
+      isNew: initialData?.isNew ?? (initialData as any)?.new ?? false,
+      isBestSeller: initialData?.isBestSeller ?? (initialData as any)?.bestSeller ?? false,
+      viewCount: initialData?.viewCount ?? 0,
+      soldCount: initialData?.soldCount ?? 0,
+      ratingAvg: initialData?.ratingAvg ?? 0,
+      ratingCount: initialData?.ratingCount ?? 0,
       metaTitle: (initialData as any)?.metaTitle || '',
       metaDescription: (initialData as any)?.metaDescription || '',
       metaKeywords: (initialData as any)?.metaKeywords || '',
@@ -140,8 +147,11 @@ export default function ProductForm({ onSuccess, initialData, isDialog = false }
       return { url, publicId: getCloudinaryPublicId(url) || '' };
     };
 
+    const finalParentSku = values.sku?.trim() || convertToSku(values.name);
+
     const payload = {
       ...values,
+      sku: finalParentSku,
       thumbnail: values.thumbnail ? mapImage(values.thumbnail) : null,
       images: values.images?.map(mapImage).filter(Boolean) || [],
       specifications: transformToMap(values.specifications as any),

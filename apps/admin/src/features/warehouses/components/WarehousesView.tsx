@@ -1,61 +1,59 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Warehouse, MoreHorizontal, Edit2, Trash2, MapPin } from "lucide-react";
+import { useRouter } from 'next/navigation';
+import { Warehouse, MapPin } from "lucide-react";
 import { PageHeader, DataTable, DataCard, Breadcrumbs } from '@/components/common';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { SearchInput, AddNewButton } from '@/components/common/view-control';
-import WarehouseForm from './WarehouseForm';
-import { toast } from 'sonner';
-import { clientDb, ClientWarehouse } from '@/lib/clientDb';
+  SearchInput, 
+  AddNewButton,
+  ViewActionButton,
+  EditActionButton,
+  DeleteActionButton,
+  DeleteConfirmDialog,
+} from '@/components/common/view-control';
+import WarehouseDetailDialog from './WarehouseDetailDialog';
+import { useWarehouses, useDeleteWarehouse } from '../hooks/use-warehouses';
+import { ClientWarehouse } from '@/lib/clientDb';
 
 export default function WarehousesView() {
-  const [warehouses, setWarehouses] = useState<ClientWarehouse[]>(() => clientDb.getWarehouses());
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingWarehouse, setEditingWarehouse] = useState<ClientWarehouse | null>(null);
+  const router = useRouter();
+  const { data: warehouses = [], isLoading } = useWarehouses();
+  const deleteMutation = useDeleteWarehouse();
 
-  const refreshData = () => {
-    setWarehouses(clientDb.getWarehouses());
-  };
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Detail Dialog State
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // Delete Confirm State
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const handleEdit = (warehouse: ClientWarehouse) => {
-    setEditingWarehouse(warehouse);
-    setIsFormOpen(true);
+    router.push(`/warehouses/${warehouse.id}`);
   };
 
   const handleCreate = () => {
-    setEditingWarehouse(null);
-    setIsFormOpen(true);
+    router.push('/warehouses/create');
   };
 
-  const handleDelete = (id: string) => {
-    if (clientDb.deleteWarehouse(id)) {
-      toast.success('Xóa kho bãi thành công');
-      refreshData();
-    } else {
-      toast.error('Không thể xóa kho bãi');
-    }
+  const handleViewDetail = (warehouse: ClientWarehouse) => {
+    setSelectedWarehouseId(warehouse.id);
+    setIsDetailOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteConfirmId) return;
+    deleteMutation.mutate(deleteConfirmId, {
+      onSuccess: () => setDeleteConfirmId(null),
+    });
   };
 
   const filteredWarehouses = useMemo(() => {
-    return warehouses.filter(
+    const safeList = Array.isArray(warehouses) ? warehouses : [];
+    return safeList.filter(
       w =>
         w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         w.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -94,25 +92,14 @@ export default function WarehousesView() {
     },
     {
       id: 'actions',
+      header: 'Thao tác',
       align: 'right' as const,
       cell: (item: ClientWarehouse) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel className="text-[10px] uppercase font-bold text-slate-400">Tùy chọn</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => handleEdit(item)} className="cursor-pointer">
-              <Edit2 className="mr-2 h-4 w-4" /> Chỉnh sửa
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleDelete(item.id)} className="cursor-pointer text-destructive focus:text-destructive">
-              <Trash2 className="mr-2 h-4 w-4" /> Xóa kho
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center justify-end gap-1">
+          <ViewActionButton onClick={() => handleViewDetail(item)} />
+          <EditActionButton onClick={() => handleEdit(item)} />
+          <DeleteActionButton onClick={() => setDeleteConfirmId(item.id)} />
+        </div>
       )
     }
   ];
@@ -134,7 +121,7 @@ export default function WarehousesView() {
         <DataTable 
           columns={columns as any} 
           data={filteredWarehouses} 
-          isLoading={false}
+          isLoading={isLoading}
           emptyState={{
             title: "Chưa có dữ liệu kho bãi",
             description: "Thêm kho hàng đầu tiên để bắt đầu quản lý tồn kho.",
@@ -144,22 +131,21 @@ export default function WarehousesView() {
         />
       </DataCard>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editingWarehouse ? 'Chỉnh sửa kho hàng' : 'Thêm kho hàng mới'}</DialogTitle>
-            <DialogDescription>Nhập thông tin chi tiết về địa điểm kho bãi.</DialogDescription>
-          </DialogHeader>
-          <WarehouseForm 
-            onSuccess={() => {
-              setIsFormOpen(false);
-              toast.success(editingWarehouse ? 'Cập nhật thành công' : 'Tạo mới thành công');
-              refreshData();
-            }} 
-            initialData={editingWarehouse || undefined} 
-          />
-        </DialogContent>
-      </Dialog>
+      {/* Modal Xem chi tiết */}
+      <WarehouseDetailDialog 
+        warehouseId={selectedWarehouseId}
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+      />
+
+      {/* Hộp thoại Xác nhận Xóa */}
+      <DeleteConfirmDialog
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        isLoading={deleteMutation.isPending}
+        onConfirm={handleDeleteConfirm}
+        description="Bạn có chắc chắn muốn xóa địa điểm kho bãi này khỏi hệ thống?"
+      />
     </div>
   );
 }
