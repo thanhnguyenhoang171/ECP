@@ -26,7 +26,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/v1/brands")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
 @Tag(name = "Brand Management", description = "APIs for managing product brands")
 public class BrandController {
 

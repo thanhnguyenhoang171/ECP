@@ -4,6 +4,9 @@ import com.example.ecp_api.entity.jpa.*;
 import com.example.ecp_api.entity.mongodb.*;
 import com.example.ecp_api.entity.mongodb.embedded.ProductImage;
 import com.example.ecp_api.entity.mongodb.embedded.ProductVariant;
+import com.example.ecp_api.enums.common.PurchaseOrderStatus;
+import com.example.ecp_api.enums.common.ReceiptStatus;
+import com.example.ecp_api.enums.common.TransactionType;
 import com.example.ecp_api.enums.users.AuthProvider;
 import com.example.ecp_api.enums.users.MembershipTier;
 import com.example.ecp_api.enums.users.UserRole;
@@ -26,6 +29,7 @@ import java.util.*;
 public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
+    private final AddressRepository addressRepository;
     private final PasswordEncoder passwordEncoder;
     private final SupplierRepository supplierRepository;
     private final WarehouseRepository warehouseRepository;
@@ -34,24 +38,31 @@ public class DataInitializer implements CommandLineRunner {
     private final BrandRepository brandRepository;
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
+    private final PurchaseOrderRepository purchaseOrderRepository;
+    private final GoodsReceiptRepository goodsReceiptRepository;
+    private final InventoryLedgerRepository inventoryLedgerRepository;
 
     @Override
     @Transactional
     public void run(String... args) throws Exception {
         log.info("Starting system data initialization...");
         initializeUsers();
+        initializeAddresses();
         initializeSuppliers();
         initializeWarehouses();
         initializeBrandsAndCategoriesAndProducts();
+        initializePurchaseOrdersAndGoodsReceiptsAndLedgers();
         log.info("System data initialization completed successfully!");
     }
 
     public void initializeDefaults() {
         try {
             initializeUsers();
+            initializeAddresses();
             initializeSuppliers();
             initializeWarehouses();
             initializeBrandsAndCategoriesAndProducts();
+            initializePurchaseOrdersAndGoodsReceiptsAndLedgers();
         } catch (Exception e) {
             log.error("Error during manual data initialization", e);
         }
@@ -223,8 +234,10 @@ public class DataInitializer implements CommandLineRunner {
                     .active(true)
                     .build());
         } else {
-            List<Brand> brands = brandRepository.findAll();
-            if (!brands.isEmpty()) bVinacacao = brands.get(0);
+            bVinacacao = brandRepository.findBySlugAndDeletedFalse("vinacacao").orElse(null);
+            bMarou = brandRepository.findBySlugAndDeletedFalse("marou-chocolate").orElse(null);
+            bAlluvia = brandRepository.findBySlugAndDeletedFalse("alluvia-chocolate").orElse(null);
+            bBelvie = brandRepository.findBySlugAndDeletedFalse("belvie-chocolate").orElse(null);
         }
 
         // Seed Categories if empty
@@ -271,8 +284,10 @@ public class DataInitializer implements CommandLineRunner {
                     .active(true)
                     .build());
         } else {
-            List<Category> categories = categoryRepository.findAll();
-            if (!categories.isEmpty()) cPure = categories.get(0);
+            cPure = categoryRepository.findBySlug("bot-cacao-nguyen-chat").orElse(null);
+            cMilk = categoryRepository.findBySlug("cacao-sua-hoa-tan").orElse(null);
+            cCraft = categoryRepository.findBySlug("socola-thanh-craft").orElse(null);
+            cBarista = categoryRepository.findBySlug("nguyen-lieu-pha-che").orElse(null);
         }
 
         // Seed Products & SKUs & Inventory if products empty
@@ -391,4 +406,162 @@ public class DataInitializer implements CommandLineRunner {
             }
         }
     }
+
+    private void initializeAddresses() {
+        if (addressRepository.count() == 0) {
+            log.info("Seeding Addresses...");
+            User regularUser = userRepository.findByEmail("user@ecp.com").orElse(null);
+            User adminUser = userRepository.findByEmail("admin@ecp.com").orElse(null);
+
+            List<Address> addresses = new ArrayList<>();
+            if (regularUser != null) {
+                addresses.add(Address.builder()
+                        .user(regularUser)
+                        .recipientName("Khách Hàng Thân Thiết")
+                        .phone("0905123456")
+                        .province("TP. Hồ Chí Minh")
+                        .district("Quận 1")
+                        .ward("Phường Bến Nghé")
+                        .streetDetail("123 Đường Lê Lợi")
+                        .isDefault(true)
+                        .build());
+                addresses.add(Address.builder()
+                        .user(regularUser)
+                        .recipientName("Khách Hàng (Nhà riêng)")
+                        .phone("0905123456")
+                        .province("TP. Hồ Chí Minh")
+                        .district("Quận 7")
+                        .ward("Phường Tân Phong")
+                        .streetDetail("456 Đường Nguyễn Hữu Thọ")
+                        .isDefault(false)
+                        .build());
+            }
+
+            if (adminUser != null) {
+                addresses.add(Address.builder()
+                        .user(adminUser)
+                        .recipientName("Quản trị Viên")
+                        .phone("0912345678")
+                        .province("Hà Nội")
+                        .district("Quận Cầu Giấy")
+                        .ward("Phường Dịch Vọng")
+                        .streetDetail("Tòa nhà ECP, Đường Duy Tân")
+                        .isDefault(true)
+                        .build());
+            }
+
+            if (!addresses.isEmpty()) {
+                addressRepository.saveAll(addresses);
+            }
+        }
+    }
+
+    private void initializePurchaseOrdersAndGoodsReceiptsAndLedgers() {
+        if (purchaseOrderRepository.count() == 0) {
+            log.info("Seeding Purchase Orders, Goods Receipts, and Inventory Ledgers...");
+
+            Warehouse hcmWarehouse = warehouseRepository.findAll().stream().findFirst().orElse(null);
+            Supplier bentreSupplier = supplierRepository.findAll().stream().findFirst().orElse(null);
+
+            if (hcmWarehouse != null && bentreSupplier != null) {
+                Sku sku1 = skuRepository.findBySkuCode("ALLUVIA-PURE-500").orElse(null);
+                Sku sku2 = skuRepository.findBySkuCode("MAROU-DARK-70").orElse(null);
+
+                if (sku1 != null && sku2 != null) {
+                    // 1. Seed Purchase Order
+                    PurchaseOrder po = PurchaseOrder.builder()
+                            .poCode("PO-2026-001")
+                            .warehouse(hcmWarehouse)
+                            .supplier(bentreSupplier)
+                            .status(PurchaseOrderStatus.COMPLETED)
+                            .note("Đơn nhập hàng nguyên liệu cacao đầu năm 2026")
+                            .expectedDeliveryDate(LocalDateTime.now().minusDays(10))
+                            .createdBy("admin@ecp.com")
+                            .build();
+
+                    PurchaseOrderItem item1 = PurchaseOrderItem.builder()
+                            .purchaseOrder(po)
+                            .sku(sku1)
+                            .unitPrice(new BigDecimal("150000"))
+                            .orderQuantity(150)
+                            .receivedQuantity(150)
+                            .createdBy("admin@ecp.com")
+                            .build();
+
+                    PurchaseOrderItem item2 = PurchaseOrderItem.builder()
+                            .purchaseOrder(po)
+                            .sku(sku2)
+                            .unitPrice(new BigDecimal("100000"))
+                            .orderQuantity(200)
+                            .receivedQuantity(200)
+                            .createdBy("admin@ecp.com")
+                            .build();
+
+                    po.setItems(Arrays.asList(item1, item2));
+                    PurchaseOrder savedPo = purchaseOrderRepository.save(po);
+
+                    // 2. Seed Goods Receipt
+                    GoodsReceipt gr = GoodsReceipt.builder()
+                            .receiptCode("GR-2026-001")
+                            .purchaseOrder(savedPo)
+                            .warehouse(hcmWarehouse)
+                            .status(ReceiptStatus.RECEIVED)
+                            .note("Nhập kho thành công 100% theo đơn PO-2026-001")
+                            .receivedAt(LocalDateTime.now().minusDays(9))
+                            .build();
+
+                    GoodsReceiptItem grItem1 = GoodsReceiptItem.builder()
+                            .goodsReceipt(gr)
+                            .sku(sku1)
+                            .batchCode("BATCH-2026-001")
+                            .manufactureDate(LocalDateTime.now().minusDays(30))
+                            .expiryDate(LocalDateTime.now().plusYears(1))
+                            .quantity(150)
+                            .unitCost(new BigDecimal("150000"))
+                            .build();
+
+                    GoodsReceiptItem grItem2 = GoodsReceiptItem.builder()
+                            .goodsReceipt(gr)
+                            .sku(sku2)
+                            .batchCode("BATCH-2026-002")
+                            .manufactureDate(LocalDateTime.now().minusDays(15))
+                            .expiryDate(LocalDateTime.now().plusYears(2))
+                            .quantity(200)
+                            .unitCost(new BigDecimal("100000"))
+                            .build();
+
+                    gr.setItems(Arrays.asList(grItem1, grItem2));
+                    GoodsReceipt savedGr = goodsReceiptRepository.save(gr);
+
+                    // 3. Seed Inventory Ledgers
+                    InventoryLedger ledger1 = InventoryLedger.builder()
+                            .warehouse(hcmWarehouse)
+                            .sku(sku1)
+                            .batchCode("BATCH-2026-001")
+                            .transactionType(TransactionType.PURCHASE_RECEIPT)
+                            .quantityChange(150)
+                            .balanceAfter(150)
+                            .referenceId(savedGr.getId().toString())
+                            .referenceType("GOODS_RECEIPT")
+                            .note("Nhập kho từ phiếu nhập " + savedGr.getReceiptCode())
+                            .build();
+
+                    InventoryLedger ledger2 = InventoryLedger.builder()
+                            .warehouse(hcmWarehouse)
+                            .sku(sku2)
+                            .batchCode("BATCH-2026-002")
+                            .transactionType(TransactionType.PURCHASE_RECEIPT)
+                            .quantityChange(200)
+                            .balanceAfter(200)
+                            .referenceId(savedGr.getId().toString())
+                            .referenceType("GOODS_RECEIPT")
+                            .note("Nhập kho từ phiếu nhập " + savedGr.getReceiptCode())
+                            .build();
+
+                    inventoryLedgerRepository.saveAll(Arrays.asList(ledger1, ledger2));
+                }
+            }
+        }
+    }
 }
+

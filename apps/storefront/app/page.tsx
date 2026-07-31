@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Tag } from 'lucide-react';
 import Banner from '@/components/home/Banner';
@@ -8,11 +8,23 @@ import CategoryGrid from '@/components/home/CategoryGrid';
 import TodaySuggestions from '@/components/home/TodaySuggestions';
 import ProductCard from '@/components/product/ProductCard';
 import ProductSkeleton from '@/components/product/ProductSkeleton';
-import { mockProducts } from '@/data/mockProducts';
+import { getProductsServer } from '@/services/product.service';
+import { Product } from '@/types/product';
 
 export default function Home() {
-  const isLoading = false;
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    getProductsServer()
+      .then((data) => {
+        if (data && data.length > 0) {
+          setProducts(data);
+        }
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
 
   return (
     <div className="space-y-12 pb-16">
@@ -23,15 +35,15 @@ export default function Home() {
       {/* Featured Categories Grid */}
       <CategoryGrid />
 
-      {/* SECTION: Snack & Đồ uống bán chạy (Horizontal Scroll Slider) */}
+      {/* SECTION: Sản phẩm bán chạy nhất */}
       <section className="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12">
         <div className="flex items-center justify-between mb-6">
           <div>
             <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block mb-1">
-              Gợi ý ăn vặt chuẩn vị
+              Gợi ý Cacao & Socola nguyên chất
             </span>
             <h2 className="text-xl font-bold text-zinc-900 tracking-tight">
-              Snack & Đồ uống bán chạy nhất tuần này
+              Sản phẩm nổi bật bán chạy nhất
             </h2>
           </div>
 
@@ -54,7 +66,7 @@ export default function Home() {
                   <ProductSkeleton />
                 </div>
               ))
-            : mockProducts.map((product) => (
+            : products.map((product) => (
                 <div key={product.id} className="w-[280px] sm:w-[320px] shrink-0 snap-start">
                   <ProductCard product={product} />
                 </div>

@@ -58,7 +58,7 @@ export const inventoryApi = {
       console.warn('Backend getStocks failed, using mock fallback', e);
     }
 
-    return clientDb.getStocks() as any;
+    return clientDb.getStockItems() as any;
   },
 
   // Thao tác điều chỉnh tồn kho thủ công
@@ -77,7 +77,14 @@ export const inventoryApi = {
       console.warn('Backend adjustStock failed, using clientDb fallback', e);
     }
 
-    return clientDb.adjustStock(data);
+    return clientDb.addLedgerEntry({
+      skuName: 'Điều chỉnh tồn kho',
+      warehouseName: 'Kho hàng',
+      type: 'ADJUSTMENT',
+      quantityChange: data.quantityDelta,
+      balanceAfter: 0,
+      referenceCode: 'ADJ-' + Date.now()
+    });
   },
 
   // Lấy sổ nhật ký biến động kho (Ledger)
@@ -98,6 +105,6 @@ export const inventoryApi = {
       console.warn('Backend getLedgers failed, using mock fallback', e);
     }
 
-    return clientDb.getLedgers() as any;
+    return clientDb.getLedger() as any;
   }
 };

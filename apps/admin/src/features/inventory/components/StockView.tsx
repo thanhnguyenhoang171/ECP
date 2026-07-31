@@ -465,14 +465,14 @@ export default function StockView() {
               <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-1">
                 <div className="text-xs font-bold font-mono text-blue-600">{adjustingItem.sku}</div>
                 <div className="text-sm font-semibold text-slate-800">{adjustingItem.productName}</div>
-                <div className="text-xs text-slate-400 font-medium">{adjustingItem.variantName}</div>
+                {adjustingItem.batchCode && <div className="text-xs text-slate-400 font-medium">Lô: {adjustingItem.batchCode}</div>}
                 <div className="text-xs text-slate-500 font-medium mt-1">
                   Kho hàng: <span className="font-bold">{adjustingItem.warehouseName}</span>
                 </div>
                 <div className="text-xs text-slate-600 mt-1.5 flex items-center gap-1.5">
                   Tồn kho hiện tại: 
                   <Badge className="bg-slate-200 text-slate-700 font-bold border-none px-2 py-0">
-                    {adjustingItem.stock} chiếc
+                    {adjustingItem.quantityOnHand} chiếc
                   </Badge>
                 </div>
               </div>
@@ -534,8 +534,8 @@ export default function StockView() {
                 <span>
                   Số lượng tồn sau điều chỉnh: 
                   <strong className="ml-1 font-bold">
-                    {adjustType === 'add' ? adjustingItem.stock + adjustQty : 
-                     adjustType === 'subtract' ? Math.max(0, adjustingItem.stock - adjustQty) : 
+                    {adjustType === 'add' ? adjustingItem.quantityOnHand + adjustQty : 
+                     adjustType === 'subtract' ? Math.max(0, adjustingItem.quantityOnHand - adjustQty) : 
                      adjustQty} chiếc
                   </strong>
                 </span>

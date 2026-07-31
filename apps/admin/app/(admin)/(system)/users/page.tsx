@@ -68,7 +68,7 @@ async function getStatistics(): Promise<UserStatistics> {
     if (!res.ok) throw new Error('Failed to fetch user statistics');
 
     const result = await res.json();
-    return result.success ? result.data : { totalUsers: 0, onlineUsers: 0, offlineUsers: 0, managementUsers: 0 };
+    return result.success ? result.data : { totalUsers: 0, onlineUsers: 0, offlineUsers: 0, managementUsers: 0, customerUsers: 0 };
   } catch (error) {
     console.error('Server fetch statistics error:', error);
     return {
@@ -76,6 +76,7 @@ async function getStatistics(): Promise<UserStatistics> {
       onlineUsers: 0,
       offlineUsers: 0,
       managementUsers: 0,
+      customerUsers: 0,
     };
   }
 }

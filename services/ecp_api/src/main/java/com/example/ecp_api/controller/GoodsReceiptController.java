@@ -48,6 +48,15 @@ public class GoodsReceiptController {
         return ResponseEntity.ok(goodsReceiptService.getAllGoodsReceipts(filter, pageable));
     }
 
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Get all goods receipts with full audit info (Admin)")
+    public ResponseEntity<PageResponse<com.example.ecp_api.dto.response.GoodsReceiptAdminResponse>> getAllAdmin(
+            @Valid com.example.ecp_api.dto.request.GoodsReceiptFilterRequest filter,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(goodsReceiptService.getAllGoodsReceiptsAdmin(filter, pageable));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     @Operation(summary = "Get goods receipt by ID")
@@ -56,6 +65,18 @@ public class GoodsReceiptController {
                 ApiResponse.<GoodsReceiptResponse>builder()
                         .success(true)
                         .data(goodsReceiptService.getGoodsReceiptById(id))
+                        .build()
+        );
+    }
+
+    @GetMapping("/admin/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Get goods receipt by ID with full audit info (Admin)")
+    public ResponseEntity<ApiResponse<com.example.ecp_api.dto.response.GoodsReceiptAdminResponse>> getByIdAdmin(@PathVariable String id) {
+        return ResponseEntity.ok(
+                ApiResponse.<com.example.ecp_api.dto.response.GoodsReceiptAdminResponse>builder()
+                        .success(true)
+                        .data(goodsReceiptService.getGoodsReceiptByIdAdmin(id))
                         .build()
         );
     }

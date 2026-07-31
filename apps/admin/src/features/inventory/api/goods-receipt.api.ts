@@ -1,11 +1,15 @@
 import { clientFetch } from '@/lib/clientFetch';
 import { clientDb, ClientGoodsReceipt } from '@/lib/clientDb';
+import { useAuthStore } from '@/store/authStore';
 
 export const goodsReceiptApi = {
   // Lấy danh sách phiếu nhập kho
   getAll: async (): Promise<ClientGoodsReceipt[]> => {
     try {
-      const res = await clientFetch('v1/goods-receipts');
+      const user = useAuthStore.getState().user;
+      const isSuperAdmin = user?.roles?.includes('SUPER_ADMIN') || user?.role === 'SUPER_ADMIN';
+      const endpoint = isSuperAdmin ? 'v1/goods-receipts/admin' : 'v1/goods-receipts';
+      const res = await clientFetch(endpoint);
       if (res.ok) {
         const result = await res.json();
         if (Array.isArray(result.data)) {
@@ -26,7 +30,10 @@ export const goodsReceiptApi = {
   // Lấy chi tiết phiếu nhập kho
   getById: async (id: string): Promise<ClientGoodsReceipt | null> => {
     try {
-      const res = await clientFetch(`v1/goods-receipts/${id}`);
+      const user = useAuthStore.getState().user;
+      const isSuperAdmin = user?.roles?.includes('SUPER_ADMIN') || user?.role === 'SUPER_ADMIN';
+      const endpoint = isSuperAdmin ? `v1/goods-receipts/admin/${id}` : `v1/goods-receipts/${id}`;
+      const res = await clientFetch(endpoint);
       if (res.ok) {
         const result = await res.json();
         return result.data || result;
@@ -109,7 +116,7 @@ export const goodsReceiptApi = {
     } catch (e) {
       console.warn('Backend confirm goods-receipt failed', e);
     }
-    return clientDb.saveGoodsReceipt({ id, status: 'RECEIVED' });
+    return clientDb.saveGoodsReceipt({ id, status: 'RECEIVED' } as any);
   },
 
   // Cập nhật trạng thái phiếu nhập kho
@@ -127,6 +134,6 @@ export const goodsReceiptApi = {
     } catch (e) {
       console.warn('Backend updateStatus goods-receipt failed', e);
     }
-    return clientDb.saveGoodsReceipt({ id, status });
+    return clientDb.saveGoodsReceipt({ id, status } as any);
   },
 };
