@@ -17,6 +17,8 @@ import {
 } from '@/components/common';
 import { useCategories } from '@/features/categories/hooks/use-categories';
 import { Category } from '@/features/categories/types/category.interface';
+import { useActiveBrands } from '@/features/brands/hooks/use-brands';
+import { Brand } from '@/features/brands/types/brand.interface';
 import { useCreateProduct, useUpdateProduct } from '../hooks/use-product-mutation';
 import { 
   productSchema, 
@@ -37,12 +39,15 @@ interface ProductFormProps {
 export default function ProductForm({ onSuccess, initialData, isDialog = false }: ProductFormProps) {
   const { data: categoriesData } = useCategories({ page: 0, size: 100 });
   const fetchedCategories = categoriesData?.data || [];
-  
+
+  const { data: activeBrands } = useActiveBrands();
+  const brands = activeBrands || [];
+
   // Sử dụng mock data nếu API không trả về danh mục nào để test UI
   const categories = fetchedCategories.length > 0 ? fetchedCategories : [
-    { id: 'c1', name: 'Điện thoại di động', slug: 'dien-thoai', level: 1 },
-    { id: 'c2', name: 'Laptop & Máy tính', slug: 'laptop', level: 1 },
-    { id: 'c3', name: 'Phụ kiện công nghệ', slug: 'phu-kien', level: 1 },
+    { id: 'c1', name: 'Snack & Bánh kẹo Thái', slug: 'snack-banh-keo', level: 1 },
+    { id: 'c2', name: 'Nước giải khát & Trà sữa', slug: 'nuoc-giai-khat', level: 1 },
+    { id: 'c3', name: 'Gia vị & Đồ đóng hộp Thái', slug: 'gia-vi-do-dong-hop', level: 1 },
   ] as Category[];
 
   const createMutation = useCreateProduct();
@@ -50,6 +55,7 @@ export default function ProductForm({ onSuccess, initialData, isDialog = false }
 
   const [activeTab, setActiveTab] = useState<'general' | 'logistics' | 'variants' | 'seo'>('general');
   const isSlugEditedRef = useRef(false);
+  const [isImageUploading, setIsImageUploading] = useState(false);
 
   // Chuyển đổi an toàn attributes từ Object Record -> Array
   const transformAttributesToArray = (attrs: Record<string, string> | any[] | undefined) => {
@@ -78,6 +84,7 @@ export default function ProductForm({ onSuccess, initialData, isDialog = false }
       name: initialData?.name || '',
       slug: initialData?.slug || '',
       brand: initialData?.brand || '',
+      brandId: (initialData as any)?.brandId || '',
       categoryId: initialData?.categoryId || '',
       description: initialData?.description || '',
       thumbnail: initialData?.thumbnail || '',
@@ -135,6 +142,11 @@ export default function ProductForm({ onSuccess, initialData, isDialog = false }
   }, [nameValue, form, initialData]);
 
   async function onSubmit(values: ProductFormValues) {
+    if (isImageUploading) {
+      toast.warning('Ảnh đang được tải lên cloud, vui lòng chờ trong giây lát!');
+      return;
+    }
+
     const transformToMap = (arr: {key: string, value: any}[]) => {
       return arr.reduce((acc, curr) => {
         if (curr.key) acc[curr.key] = curr.value;
@@ -172,28 +184,24 @@ export default function ProductForm({ onSuccess, initialData, isDialog = false }
 
   const onErrors = (errors: any) => {
     toast.error('Vui lòng kiểm tra lại các thông tin bắt buộc');
-    // Auto-switch to the tab with errors
-    if (errors.name || errors.brand || errors.categoryId || errors.description || errors.sku || errors.isPublished) {
-      setActiveTab('general');
-    } else if (errors.variants) {
-      setActiveTab('variants');
-    }
   };
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
   const tabs = [
     { id: 'general', label: 'Thông tin chung', icon: Info },
-    { id: 'variants', label: 'Biến thể sản phẩm', icon: Settings2 },
-    // { id: 'seo', label: '', icon: Globe },
+    { id: 'variants', label: 'Biến thể & Giá', icon: Settings2 },
   ];
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit, onErrors)} className={cn(isDialog ? "flex flex-col flex-1 overflow-hidden" : "space-y-6 pb-24")}>
-        <div className={cn("space-y-6", isDialog ? "flex-1 overflow-y-auto custom-scrollbar px-6 pb-6 pt-2" : "")}>
-          {/* Navigation Tabs */}
-          <div className="flex border-b border-slate-200 gap-1 overflow-x-auto pb-px scrollbar-none bg-slate-50/50 p-1.5 rounded-xl">
+      <form 
+        onSubmit={form.handleSubmit(onSubmit, onErrors)} 
+        className={cn(isDialog ? "flex flex-col flex-1 overflow-hidden" : "space-y-6 pb-24")}
+      >
+        <div className={cn("space-y-6", isDialog && "flex-1 overflow-y-auto p-6")}>
+          {/* Custom Tabs Bar */}
+          <div className="flex border-b border-slate-200 gap-6">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -203,13 +211,13 @@ export default function ProductForm({ onSuccess, initialData, isDialog = false }
                   type="button"
                   onClick={() => setActiveTab(tab.id as any)}
                   className={cn(
-                    "flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all whitespace-nowrap",
-                    isActive
-                      ? "bg-white text-blue-600 shadow-sm border border-slate-200/50"
-                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/60"
+                    "flex items-center gap-2 pb-3 text-xs font-bold transition-all border-b-2 -mb-px",
+                    isActive 
+                      ? "border-blue-600 text-blue-600" 
+                      : "border-transparent text-slate-400 hover:text-slate-600"
                   )}
                 >
-                  <Icon size={14} className={isActive ? "text-blue-600" : "text-slate-400"} />
+                  <Icon className="h-4 w-4" />
                   {tab.label}
                 </button>
               );
@@ -221,8 +229,10 @@ export default function ProductForm({ onSuccess, initialData, isDialog = false }
             <ProductGeneralTab 
               form={form} 
               categories={categories} 
+              brands={brands}
               isSlugEditedRef={isSlugEditedRef} 
               nameValue={nameValue} 
+              onUploadingChange={setIsImageUploading}
             />
           )}
 
@@ -230,6 +240,7 @@ export default function ProductForm({ onSuccess, initialData, isDialog = false }
           {activeTab === 'variants' && (
             <ProductVariantsTab 
               form={form} 
+              onUploadingChange={setIsImageUploading}
             />
           )}
         </div>
@@ -237,8 +248,8 @@ export default function ProductForm({ onSuccess, initialData, isDialog = false }
         {/* Sticky Actions Bar */}
         <FormActionsBar
           onCancel={onSuccess}
-          isSubmitting={isLoading}
-          submitText={initialData?.id ? 'Cập nhật sản phẩm' : 'Lưu sản phẩm'}
+          isSubmitting={isLoading || isImageUploading}
+          submitText={isImageUploading ? 'Đang tải ảnh lên...' : (initialData?.id ? 'Cập nhật sản phẩm' : 'Lưu sản phẩm')}
           activeTabLabel={tabs.find(t => t.id === activeTab)?.label}
           isDialog={isDialog}
         />

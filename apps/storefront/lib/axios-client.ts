@@ -116,9 +116,9 @@ axiosClient.interceptors.response.use(
 
       const newData = json.data;
 
-      // Cập nhật store với token mới
+      // Cập nhật store chỉ với token mới, giữ nguyên thông tin user
       if (typeof window !== 'undefined') {
-        useAuthStore.getState().setAuth(newData);
+        useAuthStore.getState().updateTokens(newData.accessToken, newData.refreshToken);
       }
 
       // Retry tất cả request trong queue với token mới

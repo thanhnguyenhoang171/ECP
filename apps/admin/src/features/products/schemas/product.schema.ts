@@ -27,6 +27,7 @@ export const productSchema = z.object({
   name: z.string().min(2, "Tên sản phẩm phải có ít nhất 2 ký tự"),
   slug: z.string().optional().or(z.literal("")),
   brand: z.string().optional().or(z.literal("")),
+  brandId: z.string().optional().or(z.literal("")),
   categoryId: z.string().min(1, "Vui lòng chọn danh mục"),
   description: z.string().optional().or(z.literal("")),
   thumbnail: z.string().optional().or(z.literal("")),

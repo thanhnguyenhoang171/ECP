@@ -28,6 +28,7 @@ import {
   AddNewButton,
   FilterPopover,
   SortPopover,
+  ResetFiltersButton,
   EditActionButton,
   DeleteActionButton,
   ViewActionButton,
@@ -290,6 +291,21 @@ export default function ProductView({
             </FilterPopover>
 
             <SortPopover options={sortOptions} currentValue={sort} onSelect={setSort} />
+
+            {(Boolean(searchTerm) || Boolean(categoryIdParam) || isPublishedParam !== null || sort !== 'name,asc') && (
+              <ResetFiltersButton
+                onClick={() => {
+                  setSearchTerm('');
+                  updateUrl({
+                    name: undefined,
+                    categoryId: undefined,
+                    isPublished: undefined,
+                    sort: 'name,asc',
+                    page: 1,
+                  });
+                }}
+              />
+            )}
           </>
         }
         footer={

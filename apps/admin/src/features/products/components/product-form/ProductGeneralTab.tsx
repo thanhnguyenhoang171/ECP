@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { UseFormReturn, useFieldArray } from 'react-hook-form';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, Check, Search } from 'lucide-react';
 import {
   FormControl,
   FormField,
@@ -18,6 +18,11 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { 
   ImageUpload,
@@ -27,16 +32,132 @@ import {
 } from '@/components/common';
 import { ProductFormValues } from '../../schemas/product.schema';
 import { Category } from '@/features/categories/types/category.interface';
-import { convertToSlug, convertToSku } from '@/lib/utils';
+import { Brand } from '@/features/brands/types/brand.interface';
+import { useCreateBrand } from '@/features/brands/hooks/use-brand-mutation';
+import { cn, convertToSlug, convertToSku } from '@/lib/utils';
+
+const CreatableBrandSelect = ({
+  value,
+  onChange,
+  brands,
+}: {
+  value?: string;
+  onChange: (brandId: string, brandName: string) => void;
+  brands: Brand[];
+}) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const createBrandMutation = useCreateBrand();
+
+  const selectedBrand = brands.find((b) => b.id === value);
+  const filteredBrands = brands.filter((b) =>
+    b.name.toLowerCase().includes(search.toLowerCase())
+  );
+  const isExactMatch = brands.some(
+    (b) => b.name.toLowerCase() === search.trim().toLowerCase()
+  );
+
+  const handleCreateNewBrand = async () => {
+    if (!search.trim()) return;
+    try {
+      const res = await createBrandMutation.mutateAsync({
+        name: search.trim(),
+        active: true,
+      });
+      if (res.data) {
+        onChange(res.data.id, res.data.name);
+        setOpen(false);
+        setSearch('');
+      }
+    } catch (e) {
+      // Error is handled in mutation toast
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          className="w-full h-11 justify-between bg-white border-slate-200 text-left font-normal"
+        >
+          {selectedBrand ? (
+            <span className="truncate font-medium text-slate-900">{selectedBrand.name}</span>
+          ) : (
+            <span className="text-slate-400">Chọn hoặc nhập tên thương hiệu...</span>
+          )}
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[320px] p-2" align="start">
+        <div className="space-y-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <Input
+              placeholder="Tìm hoặc nhập tên mới..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 h-9 text-xs"
+            />
+          </div>
+
+          <div className="max-h-48 overflow-y-auto space-y-1 custom-scrollbar">
+            {filteredBrands.map((brand) => (
+              <button
+                key={brand.id}
+                type="button"
+                className={cn(
+                  "w-full text-left px-3 py-2 text-xs rounded-md flex items-center justify-between transition-colors",
+                  brand.id === value ? "bg-blue-50 text-blue-700 font-bold" : "hover:bg-slate-100 text-slate-700"
+                )}
+                onClick={() => {
+                  onChange(brand.id, brand.name);
+                  setOpen(false);
+                }}
+              >
+                <span>{brand.name}</span>
+                {brand.id === value && <Check className="h-3.5 w-3.5 text-blue-600" />}
+              </button>
+            ))}
+
+            {filteredBrands.length === 0 && !isExactMatch && search.trim() === '' && (
+              <div className="p-3 text-center text-xs text-slate-400">
+                Chưa có thương hiệu nào.
+              </div>
+            )}
+
+            {search.trim() !== '' && !isExactMatch && (
+              <button
+                type="button"
+                disabled={createBrandMutation.isPending}
+                className="w-full text-left px-3 py-2 text-xs rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold flex items-center gap-2 border border-blue-200 transition-colors"
+                onClick={handleCreateNewBrand}
+              >
+                <Plus className="h-3.5 w-3.5 text-blue-600" />
+                <span>
+                  {createBrandMutation.isPending ? 'Đang tạo...' : `Tạo mới thương hiệu "${search.trim()}"`}
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 interface ProductGeneralTabProps {
   form: UseFormReturn<ProductFormValues>;
   categories: Category[];
+  brands?: Brand[];
   isSlugEditedRef: React.MutableRefObject<boolean>;
   nameValue: string;
+  onUploadingChange?: (isUploading: boolean) => void;
 }
 
-export const ProductGeneralTab = ({ form, categories, isSlugEditedRef, nameValue }: ProductGeneralTabProps) => {
+export const ProductGeneralTab = ({ form, categories, brands = [], isSlugEditedRef, nameValue, onUploadingChange }: ProductGeneralTabProps) => {
   const { fields: specFields, append: appendSpec, remove: removeSpec } = useFieldArray({
     control: form.control,
     name: "specifications",
@@ -57,7 +178,7 @@ export const ProductGeneralTab = ({ form, categories, isSlugEditedRef, nameValue
                 <FormItem className="md:col-span-2">
                   <AdminFormLabel required>Tên sản phẩm</AdminFormLabel>
                   <FormControl>
-                    <Input placeholder="Ví dụ: iPhone 15 Pro Max" {...field} className="h-11 border-slate-200 focus:border-blue-500" />
+                    <Input placeholder="Ví dụ: Mực Sấy Bento Thái Lan Vị Cay Ngọt 20g" {...field} className="h-11 border-slate-200 focus:border-blue-500" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -66,12 +187,19 @@ export const ProductGeneralTab = ({ form, categories, isSlugEditedRef, nameValue
 
             <FormField
               control={form.control}
-              name="brand"
+              name="brandId"
               render={({ field }) => (
                 <FormItem>
-                  <AdminFormLabel required>Thương hiệu</AdminFormLabel>
+                  <AdminFormLabel>Thương hiệu</AdminFormLabel>
                   <FormControl>
-                    <Input placeholder="Ví dụ: Apple" {...field} className="h-11" />
+                    <CreatableBrandSelect
+                      value={field.value}
+                      brands={brands}
+                      onChange={(brandId, brandName) => {
+                        field.onChange(brandId);
+                        form.setValue('brand', brandName, { shouldValidate: true });
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -100,7 +228,7 @@ export const ProductGeneralTab = ({ form, categories, isSlugEditedRef, nameValue
                   <FormControl>
                     <div className="relative group">
                       <Input 
-                        placeholder="iphone-15-pro-max" 
+                        placeholder="muc-sot-bento-thai-lan-20g" 
                         {...field} 
                         className="h-11 bg-slate-50/50 font-mono text-xs pr-16 border-slate-200" 
                         onChange={(e) => {
@@ -139,7 +267,7 @@ export const ProductGeneralTab = ({ form, categories, isSlugEditedRef, nameValue
                   </div>
                   <FormControl>
                     <Input 
-                      placeholder="Tự động tạo (Ví dụ: IP15PM-8392) hoặc nhập tùy chỉnh" 
+                      placeholder="Tự động tạo (Ví dụ: BENTO-20G-RED) hoặc nhập tùy chỉnh" 
                       {...field} 
                       className="h-11 font-mono uppercase border-slate-200 focus:border-blue-500" 
                     />
@@ -153,7 +281,7 @@ export const ProductGeneralTab = ({ form, categories, isSlugEditedRef, nameValue
 
         <FormSection 
           title="Mô tả chi tiết" 
-          description="Giới thiệu tính năng, cấu hình và lợi ích sản phẩm."
+          description="Giới thiệu tính năng, thành phần và hương vị sản phẩm."
         >
           <FormField
             control={form.control}
@@ -174,8 +302,8 @@ export const ProductGeneralTab = ({ form, categories, isSlugEditedRef, nameValue
         </FormSection>
 
         <FormSection 
-          title="Thông số kỹ thuật sản phẩm" 
-          description="Các đặc tính kỹ thuật định dạng Key-Value (ví dụ: RAM, ROM, Pin...)"
+          title="Thông tin chi tiết & Quy cách" 
+          description="Các thông tin sản phẩm định dạng Key-Value (ví dụ: Xuất xứ, Trọng lượng, Hạn sử dụng, Hương vị...)"
         >
           <div className="space-y-4">
             <div className="flex justify-end">
@@ -192,7 +320,7 @@ export const ProductGeneralTab = ({ form, categories, isSlugEditedRef, nameValue
 
             {specFields.length === 0 ? (
               <div className="text-center py-8 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-                <p className="text-xs text-slate-400">Chưa thiết lập thông số kỹ thuật nào.</p>
+                <p className="text-xs text-slate-400">Chưa thiết lập thông tin chi tiết nào.</p>
               </div>
             ) : (
               <FormGrid cols={2}>
@@ -203,14 +331,14 @@ export const ProductGeneralTab = ({ form, categories, isSlugEditedRef, nameValue
                         control={form.control}
                         name={`specifications.${index}.key`}
                         render={({ field }) => (
-                          <Input placeholder="Tên (vd: Bộ nhớ)" {...field} className="h-10" />
+                          <Input placeholder="Tên (vd: Xuất xứ)" {...field} className="h-10" />
                         )}
                       />
                       <FormField
                         control={form.control}
                         name={`specifications.${index}.value`}
                         render={({ field }) => (
-                          <Input placeholder="Giá trị (vd: 256GB)" {...field} className="h-10" />
+                          <Input placeholder="Giá trị (vd: Thái Lan)" {...field} className="h-10" />
                         )}
                       />
                     </div>
@@ -269,6 +397,7 @@ export const ProductGeneralTab = ({ form, categories, isSlugEditedRef, nameValue
                   <ImageUpload 
                     value={field.value} 
                     onChange={field.onChange}
+                    onUploadingChange={onUploadingChange}
                     folder="products"
                     className="w-full aspect-square max-w-[200px] mx-auto"
                   />
@@ -291,6 +420,7 @@ export const ProductGeneralTab = ({ form, categories, isSlugEditedRef, nameValue
                     maxFiles={5}
                     value={field.value} 
                     onChange={field.onChange}
+                    onUploadingChange={onUploadingChange}
                     folder="products"
                   />
                 </FormControl>
@@ -338,106 +468,6 @@ export const ProductGeneralTab = ({ form, categories, isSlugEditedRef, nameValue
                       className="scale-90 data-[state=checked]:bg-amber-500"
                     />
                   </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="isNew"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-xl border border-emerald-200/60 p-4 bg-emerald-50/40">
-                  <div className="flex flex-col gap-0.5">
-                    <AdminFormLabel className="mb-0 cursor-pointer text-emerald-900 font-bold">Sản phẩm mới (New Arrival)</AdminFormLabel>
-                    <span className="text-[10px] text-emerald-700/80">Gắn nhãn Hàng mới về.</span>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      className="scale-90 data-[state=checked]:bg-emerald-500"
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="isBestSeller"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-xl border border-purple-200/60 p-4 bg-purple-50/40">
-                  <div className="flex flex-col gap-0.5">
-                    <AdminFormLabel className="mb-0 cursor-pointer text-purple-900 font-bold">Sản phẩm bán chạy (Best Seller)</AdminFormLabel>
-                    <span className="text-[10px] text-purple-700/80">Gắn nhãn Bán chạy nhất.</span>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      className="scale-90 data-[state=checked]:bg-purple-600"
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </div>
-        </FormSection>
-
-        <FormSection title="Chỉ số thống kê">
-          <div className="grid grid-cols-2 gap-3">
-            <FormField
-              control={form.control}
-              name="viewCount"
-              render={({ field }) => (
-                <FormItem>
-                  <AdminFormLabel>Lượt xem (View count)</AdminFormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} onChange={(e) => field.onChange(Number(e.target.value))} className="h-10 border-slate-200 text-xs" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="soldCount"
-              render={({ field }) => (
-                <FormItem>
-                  <AdminFormLabel>Đã bán (Sold count)</AdminFormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} onChange={(e) => field.onChange(Number(e.target.value))} className="h-10 border-slate-200 text-xs" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="ratingAvg"
-              render={({ field }) => (
-                <FormItem>
-                  <AdminFormLabel>Đánh giá TB (Rating avg)</AdminFormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.1" min="0" max="5" {...field} onChange={(e) => field.onChange(Number(e.target.value))} className="h-10 border-slate-200 text-xs" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="ratingCount"
-              render={({ field }) => (
-                <FormItem>
-                  <AdminFormLabel>Số lượt ĐG (Rating count)</AdminFormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} onChange={(e) => field.onChange(Number(e.target.value))} className="h-10 border-slate-200 text-xs" />
-                  </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />

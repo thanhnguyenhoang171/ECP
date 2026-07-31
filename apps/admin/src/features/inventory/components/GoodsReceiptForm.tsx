@@ -70,10 +70,10 @@ const mockWarehouses = [
 
 // Fallback Mock SKUs
 const mockSkus = [
-  { id: 'sku-1', barcode: '893123456781', skuCode: 'IP15PM-TITAN-256', name: 'iPhone 15 Pro Max - Titan - 256GB', price: 27500000 },
-  { id: 'sku-2', barcode: '893123456782', skuCode: 'S24-ULTRA-BLACK-512', name: 'Samsung Galaxy S24 Ultra - Black - 512GB', price: 25000000 },
-  { id: 'sku-3', barcode: '893123456783', skuCode: 'MBP14-M3-SILVER', name: 'MacBook Pro M3 Max - 36GB - 1TB', price: 58900000 },
-  { id: 'sku-4', barcode: '893123456784', skuCode: 'AIRPODS-GEN2', name: 'iPad Pro M2 11 inch - WiFi - 128GB', price: 19500000 },
+  { id: 'sku-1', barcode: '8850123456781', skuCode: 'BENTO-20G-RED', name: 'Mực Sấy Bento Thái Lan Vị Cay Ngọt 20g', price: 12000 },
+  { id: 'sku-2', barcode: '8850123456783', skuCode: 'CHATRAMUE-GREEN-200G', name: 'Trà Thái Xanh ChaTraMue Đậm Vị 200g', price: 45000 },
+  { id: 'sku-3', barcode: '8850123456784', skuCode: 'LAYS-SHRIMP-48G', name: "Snack Khoai Tây Lay's Thái Lan Vị Tôm Căng Cay 48g", price: 15000 },
+  { id: 'sku-4', barcode: '8850123456786', skuCode: 'REDBULL-THAI-150ML', name: 'Nước Tăng Lực Red Bull Thái Chai Thủy Tinh 150ml', price: 8500 },
 ];
 
 // Fallback Mock Purchase Orders (PO)
@@ -81,7 +81,7 @@ const mockPurchaseOrders = [
   {
     id: 'po-2026-001',
     code: 'PO-20260701-01',
-    supplierName: 'Công ty TNHH Apple Việt Nam',
+    supplierName: 'Công ty TNHH Nhập Khẩu Bánh Kẹo ThaiLand Inter Trade',
     warehouseId: 'wh-1',
     items: [
       { skuId: 'sku-1', quantity: 10, unitCost: 27500000, batchCode: 'LOT-APL-202607', manufactureDate: '2026-06-01', expiryDate: '2028-06-01' },

@@ -39,6 +39,12 @@ public class UserProfile {
     @Column(name = "avatar_url", columnDefinition = "TEXT")
     private String avatarUrl;
 
+    @Column(name = "avatar_public_id", length = 255)
+    private String avatarPublicId;
+
+    @Column(name = "phone_number", length = 20)
+    private String phoneNumber;
+
     private LocalDate dob;
 
     @Enumerated(EnumType.STRING)

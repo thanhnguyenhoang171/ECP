@@ -16,20 +16,28 @@ import java.util.UUID;
 public class CustomUserDetails implements UserDetails {
 
     private UUID id;
-    private String username;
     private String email;
     private String password;
+    private String firstName;
+    private String lastName;
+    private String avatarUrl;
     private Collection<? extends GrantedAuthority> authorities;
     private boolean active;
 
     public static CustomUserDetails build(User user) {
         GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
 
+        String firstName = user.getProfile() != null ? user.getProfile().getFirstName() : null;
+        String lastName = user.getProfile() != null ? user.getProfile().getLastName() : null;
+        String avatarUrl = user.getProfile() != null ? user.getProfile().getAvatarUrl() : null;
+
         return new CustomUserDetails(
                 user.getId(),
-                user.getUsername(),
                 user.getEmail(),
                 user.getPasswordHash(),
+                firstName,
+                lastName,
+                avatarUrl,
                 Collections.singletonList(authority),
                 user.isActive()
         );
@@ -47,7 +55,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public String getUsername() {
-        return username;
+        return email;
     }
 
     @Override

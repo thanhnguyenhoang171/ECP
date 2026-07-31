@@ -40,7 +40,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import nprogress from 'nprogress';
@@ -94,7 +94,8 @@ const menuItems: MenuItem[] = [
       { key: '/products', label: 'Sản phẩm' },
       { key: '/skus', label: 'Danh sách SKU' },
       { key: '/categories', label: 'Danh mục' },
-          ],
+      { key: '/brands', label: 'Thương hiệu' },
+    ],
   },
   {
     key: 'inventory-group',
@@ -120,7 +121,7 @@ const menuItems: MenuItem[] = [
       { key: '/promotions', label: 'Mã giảm giá' },
     ],
   },
-  { key: '/users', icon: <UserCircle size={18} />, label: 'Nhân viên', requiredRoles: ['ROLE_SUPER_ADMIN'] },
+  { key: '/users', icon: <UserCircle size={18} />, label: 'Tài khoản', requiredRoles: ['ROLE_SUPER_ADMIN'] },
   {
     key: 'system-group',
     icon: <Settings size={18} />,
@@ -636,15 +637,30 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
               <DropdownMenuTrigger asChild>
                 <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 p-1.5 rounded-lg transition-all group">
                   <div className="hidden sm:flex flex-col items-end leading-tight">
-                    <span className="text-sm font-semibold text-slate-900">{user?.username || 'Admin User'}</span>
+                    <span className="text-sm font-semibold text-slate-900">
+                      {(user?.lastName || user?.firstName)
+                        ? `${user.lastName || ''} ${user.firstName || ''}`.trim()
+                        : (user?.email || 'Admin User')}
+                    </span>
                     <span className="text-[10px] uppercase font-bold text-primary tracking-wider">
                       {user?.roles?.[0] || 'Quản trị viên'}
                     </span>
                   </div>
-                  <Avatar className="h-9 w-9 border border-slate-200 shadow-sm">
-                    <AvatarFallback className="bg-slate-100 text-slate-600 font-bold text-xs">
-                      {getInitials(user?.username)}
-                    </AvatarFallback>
+                  <Avatar className="h-9 w-9 border border-slate-200 shadow-sm overflow-hidden">
+                    {user?.avatarUrl ? (
+                      <Image
+                        src={user.avatarUrl}
+                        alt={user?.email || 'Avatar'}
+                        width={36}
+                        height={36}
+                        unoptimized
+                        className="h-9 w-9 rounded-full object-cover"
+                      />
+                    ) : (
+                      <AvatarFallback className="bg-slate-100 text-slate-600 font-bold text-xs">
+                        {getInitials(user?.lastName ? `${user.lastName} ${user.firstName || ''}` : user?.email)}
+                      </AvatarFallback>
+                    )}
                   </Avatar>
                 </div>
               </DropdownMenuTrigger>

@@ -5,7 +5,6 @@ import { useDropzone, FileRejection } from 'react-dropzone';
 import Image from 'next/image';
 import { 
   X, 
-  Plus,
   Trash2,
   Maximize2,
   CheckCircle2,
@@ -28,6 +27,7 @@ interface ImageValue {
   file?: File;
   url: string;
   publicId?: string;
+  isUploading?: boolean;
 }
 
 interface ImageUploadProps {
@@ -35,6 +35,7 @@ interface ImageUploadProps {
   onChange: (value: any) => void;
   onRemove?: (url: string) => void;
   onUploadComplete?: (file: CloudinaryFile | CloudinaryFile[]) => void;
+  onUploadingChange?: (isUploading: boolean) => void;
   folder?: string;
   multiple?: boolean;
   maxFiles?: number;
@@ -51,7 +52,7 @@ interface ImageUploadProps {
 
 /**
  * A premium Image Upload component using react-dropzone.
- * Supports single/multiple images, previews, and robust validation.
+ * Supports single/multiple images, optimistic instant previews, and background uploading.
  * Uses shadcn/ui components and Next.js Image for optimization.
  */
 export const ImageUpload = ({
@@ -59,6 +60,7 @@ export const ImageUpload = ({
   onChange,
   onRemove,
   onUploadComplete,
+  onUploadingChange,
   folder,
   multiple = false,
   maxFiles = 5,
@@ -93,6 +95,12 @@ export const ImageUpload = ({
   // Effect to sync internal state with external 'value' prop
   useEffect(() => {
     setInternalImages(prevImages => {
+      // If any image is actively uploading or using a local blob URL, keep state intact until complete
+      const hasUploading = prevImages.some(img => img.isUploading || (img.url && img.url.startsWith('blob:')));
+      if (hasUploading && (!value || (Array.isArray(value) && value.length === 0))) {
+        return prevImages;
+      }
+
       // 1. Normalize external value to an array
       const externalValues = value 
         ? (Array.isArray(value) ? value : [value])
@@ -109,7 +117,7 @@ export const ImageUpload = ({
 
       if (isSync) return prevImages;
 
-      // 3. Only if not in sync, create new internal state
+      // 3. Create new internal state if not in sync
       const newInternalImages: ImageValue[] = externalValues.map(ext => {
         if (typeof ext === 'string') {
           return { url: ext };
@@ -199,18 +207,40 @@ export const ImageUpload = ({
       return;
     }
 
+    // 1. Instant Optimistic Preview on FE
+    if (multiple) {
+      const newBlobItems: ImageValue[] = acceptedFiles.map(file => ({
+        file,
+        url: URL.createObjectURL(file),
+        isUploading: true
+      }));
+      setInternalImages(prev => [...prev, ...newBlobItems].slice(0, maxFiles));
+    } else {
+      const fileToUpload = acceptedFiles[0];
+      const blobUrl = URL.createObjectURL(fileToUpload);
+      setInternalImages([{ file: fileToUpload, url: blobUrl, isUploading: true }]);
+    }
+
+    onUploadingChange?.(true);
+
+    // 2. Perform background API upload
     try {
       if (multiple) {
         const res = await uploadMultiple({ files: acceptedFiles, folder });
         if (res.success && res.data) {
-          const newImages = res.data.map(file => ({
+          const uploadedItems = res.data.map(file => ({
             url: file.secure_url,
             publicId: file.public_id,
+            isUploading: false
           }));
 
-          const updatedImages = [...internalImages, ...newImages].slice(0, maxFiles);
-          setInternalImages(updatedImages);
-          onChange(updatedImages.map(img => img.url));
+          setInternalImages(prev => {
+            const nonBlob = prev.filter(img => !img.isUploading && !img.url.startsWith('blob:'));
+            const updated = [...nonBlob, ...uploadedItems].slice(0, maxFiles);
+            onChange(updated.map(img => img.url));
+            return updated;
+          });
+
           if (onUploadComplete) {
             onUploadComplete(res.data);
           }
@@ -220,17 +250,22 @@ export const ImageUpload = ({
         const res = await uploadFile({ file: fileToUpload, folder });
         if (res.success && res.data) {
           const secureUrl = res.data.secure_url;
-          setInternalImages([{ url: secureUrl, publicId: res.data.public_id }]);
+          setInternalImages([{ url: secureUrl, publicId: res.data.public_id, isUploading: false }]);
           onChange(secureUrl);
           if (onUploadComplete) {
             onUploadComplete(res.data);
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Upload error in onDrop:", error);
+      toast.error(error?.message || 'Tải ảnh lên thất bại');
+      // Revert optimistic preview on upload failure
+      setInternalImages(prev => prev.filter(img => !img.isUploading && !img.url.startsWith('blob:')));
+    } finally {
+      onUploadingChange?.(false);
     }
-  }, [multiple, maxFiles, internalImages, onChange, uploadFile, uploadMultiple, folder, onUploadComplete, reqWidth, reqHeight, deferUpload]);
+  }, [multiple, maxFiles, internalImages, onChange, uploadFile, uploadMultiple, folder, onUploadComplete, reqWidth, reqHeight, deferUpload, onUploadingChange]);
 
   const onDropRejected = useCallback((fileRejections: FileRejection[]) => {
     fileRejections.forEach((rejection) => {
@@ -255,7 +290,7 @@ export const ImageUpload = ({
     maxFiles: multiple ? maxFiles - internalImages.length : 1,
     multiple: multiple,
     maxSize,
-    disabled: disabled || isUploading || (!multiple && internalImages.length > 0) || (multiple && internalImages.length >= maxFiles)
+    disabled: disabled || (!multiple && internalImages.length > 0) || (multiple && internalImages.length >= maxFiles)
   });
 
   const handleRemove = (url: string, e: React.MouseEvent) => {
@@ -281,91 +316,119 @@ export const ImageUpload = ({
     if (onRemove) onRemove(url);
   };
 
-  const renderSinglePreview = () => (
-    <div className={cn(
-      "relative w-full group overflow-hidden border-2 border-slate-100 shadow-lg ring-1 ring-black/5 animate-in zoom-in-95 duration-200",
-      variant === 'circle' ? 'rounded-full' : 'rounded-2xl',
-      aspectRatio === 'square' ? 'aspect-square' : aspectRatio === 'video' ? 'aspect-video' : 'h-full'
-    )}>
-      <Image 
-        src={internalImages[0].url} 
-        alt="Preview" 
-        fill 
-        unoptimized={internalImages[0].url.startsWith('blob:')}
-        sizes="(max-width: 768px) 100vw, 400px"
-        className="object-cover transition-transform duration-500 group-hover:scale-105" 
-      />
-      
-      {/* Overlay controls */}
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-        <div className="flex gap-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  type="button" 
-                  variant="secondary" 
-                  size="icon" 
-                  className="h-10 w-10 rounded-full shadow-xl bg-white hover:bg-slate-100 text-slate-900 border-none"
-                  onClick={(e) => { e.stopPropagation(); window.open(internalImages[0].url, '_blank'); }}
-                >
-                  <Maximize2 size={16} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Xem ảnh gốc</TooltipContent>
-            </Tooltip>
+  const renderSinglePreview = () => {
+    const currentImage = internalImages[0];
+    const isItemUploading = currentImage?.isUploading || currentImage?.url?.startsWith('blob:');
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  type="button" 
-                  variant="destructive" 
-                  size="icon" 
-                  className="h-10 w-10 rounded-full shadow-xl"
-                  onClick={(e) => handleRemove(internalImages[0].url, e)}
-                >
-                  <Trash2 size={16} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Gỡ bỏ ảnh</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </div>
+    return (
+      <div className={cn(
+        "relative w-full group overflow-hidden border-2 border-slate-100 shadow-lg ring-1 ring-black/5 animate-in zoom-in-95 duration-200",
+        variant === 'circle' ? 'rounded-full' : 'rounded-2xl',
+        aspectRatio === 'square' ? 'aspect-square' : aspectRatio === 'video' ? 'aspect-video' : 'h-full'
+      )}>
+        <Image 
+          src={currentImage.url} 
+          alt="Preview" 
+          fill 
+          unoptimized={currentImage.url.startsWith('blob:')}
+          sizes="(max-width: 768px) 100vw, 400px"
+          className="object-cover transition-transform duration-500 group-hover:scale-105" 
+        />
+        
+        {/* Uploading overlay spinner */}
+        {isItemUploading ? (
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px] flex flex-col items-center justify-center text-white gap-2 p-2 z-20">
+            <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
+            <span className="text-[11px] font-bold tracking-tight">Đang tải...</span>
+          </div>
+        ) : (
+          <>
+            {/* Overlay controls */}
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <div className="flex gap-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        type="button" 
+                        variant="secondary" 
+                        size="icon" 
+                        className="h-10 w-10 rounded-full shadow-xl bg-white hover:bg-slate-100 text-slate-900 border-none"
+                        onClick={(e) => { e.stopPropagation(); window.open(currentImage.url, '_blank'); }}
+                      >
+                        <Maximize2 size={16} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Xem ảnh gốc</TooltipContent>
+                  </Tooltip>
 
-      {/* Success Badge */}
-      <div className="absolute top-3 right-3 bg-emerald-500 text-white p-1 rounded-full shadow-lg">
-        <CheckCircle2 size={14} />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        type="button" 
+                        variant="destructive" 
+                        size="icon" 
+                        className="h-10 w-10 rounded-full shadow-xl"
+                        onClick={(e) => handleRemove(currentImage.url, e)}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Gỡ bỏ ảnh</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
+
+            {/* Success Badge */}
+            <div className="absolute top-3 right-3 bg-emerald-500 text-white p-1 rounded-full shadow-lg">
+              <CheckCircle2 size={14} />
+            </div>
+          </>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderMultiPreview = () => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-      {internalImages.map((img, i) => (
-        <div key={img.url} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-slate-50 group shadow-md animate-in zoom-in-95 duration-200">
-          <Image 
-            src={img.url} 
-            alt={`Preview ${i}`} 
-            fill 
-            unoptimized={img.url.startsWith('blob:')}
-            sizes="(max-width: 768px) 50vw, 200px"
-            className="object-cover transition-transform duration-500 group-hover:scale-110" 
-          />
-          
-          <button 
-            type="button"
-            className="absolute top-2 right-2 h-7 w-7 bg-white/90 backdrop-blur-md text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl hover:bg-red-50"
-            onClick={(e) => handleRemove(img.url, e)}
-          >
-            <X size={14} strokeWidth={3} />
-          </button>
-          
-          <div className="absolute bottom-2 left-2 bg-slate-900/60 backdrop-blur-sm text-[10px] font-bold text-white px-2 py-0.5 rounded-lg border border-white/20">
-            #{i + 1}
+      {internalImages.map((img, i) => {
+        const isItemUploading = img.isUploading || img.url.startsWith('blob:');
+
+        return (
+          <div key={img.url} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-slate-50 group shadow-md animate-in zoom-in-95 duration-200">
+            <Image 
+              src={img.url} 
+              alt={`Preview ${i}`} 
+              fill 
+              unoptimized={img.url.startsWith('blob:')}
+              sizes="(max-width: 768px) 50vw, 200px"
+              className="object-cover transition-transform duration-500 group-hover:scale-110" 
+            />
+
+            {isItemUploading ? (
+              <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px] flex flex-col items-center justify-center text-white gap-1 p-1 z-20">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-400" />
+                <span className="text-[10px] font-bold">Đang tải...</span>
+              </div>
+            ) : (
+              <>
+                <button 
+                  type="button"
+                  className="absolute top-2 right-2 h-7 w-7 bg-white/90 backdrop-blur-md text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl hover:bg-red-50"
+                  onClick={(e) => handleRemove(img.url, e)}
+                >
+                  <X size={14} strokeWidth={3} />
+                </button>
+                
+                <div className="absolute bottom-2 left-2 bg-slate-900/60 backdrop-blur-sm text-[10px] font-bold text-white px-2 py-0.5 rounded-lg border border-white/20">
+                  #{i + 1}
+                </div>
+              </>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
       
       {internalImages.length < maxFiles && (
         <Card 
@@ -482,4 +545,5 @@ export const ImageUpload = ({
     </div>
   );
 };
+
 

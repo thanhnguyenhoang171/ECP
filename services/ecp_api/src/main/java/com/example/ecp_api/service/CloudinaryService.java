@@ -8,5 +8,6 @@ import java.util.Map;
 public interface CloudinaryService {
     Map upload(MultipartFile file, String folder);
     List<Map> uploadMultiple(MultipartFile[] files, String folder);
-    void delete(String url);
+    void delete(String publicId);
+    void deleteByUrl(String url);
 }

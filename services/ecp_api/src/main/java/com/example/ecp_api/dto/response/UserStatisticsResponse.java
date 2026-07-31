@@ -14,4 +14,5 @@ public class UserStatisticsResponse {
     private long onlineUsers;
     private long offlineUsers;
     private long managementUsers; // SUPER_ADMIN + MANAGER
+    private long customerUsers;   // USER
 }

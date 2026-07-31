@@ -12,23 +12,15 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Response object containing authentication tokens and user info")
+@Schema(description = "Response object containing authentication tokens")
 public class AuthResponse {
-    @Schema(description = "User ID", example = "550e8400-e29b-41d4-a716-446655440000")
-    private String id;
-
     @Schema(description = "JWT Access Token")
     private String accessToken;
 
     @Schema(description = "JWT Refresh Token")
     private String refreshToken;
 
-    @Schema(description = "Username", example = "admin")
-    private String username;
-
-    @Schema(description = "Email address", example = "admin@example.com")
-    private String email;
-
-    @Schema(description = "List of user roles", example = "[\"ROLE_USER\", \"ROLE_ADMIN\"]")
-    private List<String> roles;
+    @Schema(description = "Token Type", example = "Bearer")
+    @Builder.Default
+    private String tokenType = "Bearer";
 }

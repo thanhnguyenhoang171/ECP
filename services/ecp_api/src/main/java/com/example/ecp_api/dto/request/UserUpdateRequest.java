@@ -1,6 +1,7 @@
 package com.example.ecp_api.dto.request;
 
 import com.example.ecp_api.enums.users.UserGender;
+import com.example.ecp_api.enums.users.UserRole;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -30,4 +31,12 @@ public class UserUpdateRequest {
     private LocalDate dob;
 
     private UserGender gender;
+
+    private UserRole role;
+
+    private Boolean active;
+
+    private String avatarUrl;
+
+    private String avatarPublicId;
 }

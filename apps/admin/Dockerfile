@@ -11,6 +11,9 @@ ARG NEXT_PUBLIC_API_URL={{NEXT_PUBLIC_API_URL}}
 # Đặt ENV để Next.js nhìn thấy và nhúng vào mã nguồn lúc chạy lệnh build
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
+ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
+
 # Enable pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 

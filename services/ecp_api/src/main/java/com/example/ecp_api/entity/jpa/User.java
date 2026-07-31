@@ -29,12 +29,6 @@ public class User {
     @Column(unique = true)
     private String email;
 
-    @Column(unique = true)
-    private String username;
-
-    @Column(name= "phone_number", unique = true, length = 20)
-    private String phoneNumber;
-
     @Column(name = "password_hash")
     private String passwordHash;
 
@@ -99,4 +93,16 @@ public class User {
     // Relationship 1-1 with UserProfile
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private UserProfile profile;
+
+    public String getFirstName() {
+        return profile != null ? profile.getFirstName() : null;
+    }
+
+    public String getLastName() {
+        return profile != null ? profile.getLastName() : null;
+    }
+
+    public String getAvatarUrl() {
+        return profile != null ? profile.getAvatarUrl() : null;
+    }
 }

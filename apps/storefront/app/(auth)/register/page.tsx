@@ -7,12 +7,12 @@ import { useRouter } from 'next/navigation';
 import { Mail, Lock, User, Phone, Eye, EyeOff, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { registerClient } from '@/services/auth.service';
 import { useAuthStore } from '@/store/authStore';
+import SocialLoginButtons from '@/components/auth/SocialLoginButtons';
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
-    username: '',
     email: '',
     phone: '',
     password: '',
@@ -46,7 +46,6 @@ export default function RegisterPage() {
     try {
       const response = await registerClient({
         fullName: formData.fullName,
-        username: formData.username,
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
@@ -121,27 +120,6 @@ export default function RegisterPage() {
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   placeholder="Nguyễn Văn A"
-                  disabled={isLoading}
-                  className="w-full pl-9 pr-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#F5C542] focus:bg-white transition-all disabled:opacity-60"
-                />
-              </div>
-            </div>
-
-            {/* Username */}
-            <div>
-              <label className="block text-xs font-medium text-zinc-700 mb-1">
-                Tên đăng nhập
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
-                  <User className="w-4 h-4" />
-                </div>
-                <input
-                  type="text"
-                  required
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  placeholder="Nhập tên đăng nhập"
                   disabled={isLoading}
                   className="w-full pl-9 pr-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#F5C542] focus:bg-white transition-all disabled:opacity-60"
                 />
@@ -273,6 +251,9 @@ export default function RegisterPage() {
               )}
             </button>
           </form>
+
+          {/* Social Login Buttons */}
+          <SocialLoginButtons />
 
           {/* Footer Login Link */}
           <div className="mt-5 text-center border-t border-zinc-100 pt-4">

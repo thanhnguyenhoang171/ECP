@@ -32,9 +32,10 @@ import { convertToSlug } from '@/lib/utils';
 
 interface ProductVariantsTabProps {
   form: UseFormReturn<ProductFormValues>;
+  onUploadingChange?: (isUploading: boolean) => void;
 }
 
-export const ProductVariantsTab = ({ form }: ProductVariantsTabProps) => {
+export const ProductVariantsTab = ({ form, onUploadingChange }: ProductVariantsTabProps) => {
   const { fields: variantFields, append: appendVariant, remove: removeVariant } = useFieldArray({
     control: form.control,
     name: "variants",
@@ -157,6 +158,7 @@ export const ProductVariantsTab = ({ form }: ProductVariantsTabProps) => {
                           <ImageUpload 
                             value={field.value} 
                             onChange={field.onChange} 
+                            onUploadingChange={onUploadingChange}
                             folder="products"
                             className="w-full aspect-square max-w-[120px] mx-auto" 
                           />

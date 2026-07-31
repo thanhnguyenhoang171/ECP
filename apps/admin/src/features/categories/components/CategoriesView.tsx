@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import {
  Badge,
@@ -19,6 +20,7 @@ import {
  AddNewButton,
  FilterPopover,
  SortPopover,
+ ResetFiltersButton,
  EditActionButton,
  DeleteActionButton,
  ViewActionButton,
@@ -193,19 +195,38 @@ export default function CategoriesView({
   {
    header: 'Tên danh mục',
    skeleton: (
-    <div className='flex flex-col gap-2'>
-     <Skeleton className='h-4 w-32' />
-     <Skeleton className='h-3 w-24' />
+    <div className='flex items-center gap-3'>
+     <Skeleton className='h-10 w-10 rounded-lg' />
+     <div className='flex flex-col gap-2'>
+      <Skeleton className='h-4 w-32' />
+      <Skeleton className='h-3 w-24' />
+     </div>
     </div>
    ),
    cell: (category) => (
-    <div className='flex flex-col'>
-     <span className='text-sm font-bold text-slate-900'>
-      {category.name}
-     </span>
-     <span className='text-[10px] text-slate-400 font-medium'>
-      ID: {category.id}
-     </span>
+    <div className='flex items-center gap-3'>
+     <div className='h-10 w-10 rounded-lg border border-slate-200 overflow-hidden flex-shrink-0 bg-slate-50 flex items-center justify-center p-1'>
+      {category.imageUrl ? (
+       <Image
+        src={category.imageUrl}
+        alt={category.name}
+        width={40}
+        height={40}
+        className='w-full h-full object-contain'
+        unoptimized
+       />
+      ) : (
+       <Layers className='w-5 h-5 text-slate-400' />
+      )}
+     </div>
+     <div className='flex flex-col'>
+      <span className='text-sm font-bold text-slate-900 line-clamp-1'>
+       {category.name}
+      </span>
+      <span className='text-[10px] text-slate-400 font-medium'>
+       ID: {category.id}
+      </span>
+     </div>
     </div>
    ),
   },
@@ -226,22 +247,23 @@ export default function CategoriesView({
    header: 'Trạng thái',
    align: 'center',
    skeleton: <Skeleton className='h-5 w-20 mx-auto rounded-full' />,
-   cell: (category) => (
-    <div className="flex justify-center items-center gap-2">
-      <Switch 
-        checked={category.active}
-        onCheckedChange={() => handleToggleActive(category)}
-        disabled={updateMutation.isPending && updateMutation.variables?.id === category.id}
-        className="scale-75 data-[state=checked]:bg-green-500"
-      />
-      <Badge
-       variant={category.active ? 'default' : 'destructive'}
-       className='text-[10px] font-bold py-0.5 px-2 uppercase tracking-tight border-none whitespace-nowrap'
-      >
-       {category.active ? 'Hoạt động' : 'Đã ẩn'}
-      </Badge>
-    </div>
-   ),
+   cell: (category) => {
+    const isPending = updateMutation.isPending && updateMutation.variables?.id === category.id;
+    return (
+     <div className="flex justify-center items-center">
+       <Badge
+        variant={category.active ? 'default' : 'destructive'}
+        className={cn(
+         'text-[10px] font-bold py-0.5 px-2 uppercase tracking-tight border-none whitespace-nowrap cursor-pointer hover:opacity-80 transition-all select-none',
+         isPending && 'pointer-events-none opacity-50'
+        )}
+        onClick={() => handleToggleActive(category)}
+       >
+        {category.active ? 'Hoạt động' : 'Đã ẩn'}
+       </Badge>
+     </div>
+    );
+   },
   },
   {
    header: 'Nổi bật',
@@ -410,6 +432,23 @@ export default function CategoriesView({
        currentValue={sort}
        onSelect={setSort}
       />
+
+      {(Boolean(searchTerm) || Boolean(activeParam) || Boolean(levelParam) || Boolean(isFeaturedParam) || sort !== 'name,asc') && (
+       <ResetFiltersButton
+        onClick={() => {
+         setSearchTerm('');
+         updateUrl({
+          name: '',
+          id: '',
+          active: '',
+          level: '',
+          isFeatured: '',
+          sort: 'name,asc',
+          page: 1,
+         });
+        }}
+       />
+      )}
      </>
     }
     footer={

@@ -80,7 +80,7 @@ export const AdminFormLabel = ({
   required?: boolean; 
   className?: string;
 }) => (
-  <FormLabel className={cn("text-xs font-bold uppercase text-slate-500 tracking-wide", className)}>
+  <label className={cn("text-xs font-bold uppercase text-slate-500 tracking-wide block mb-1", className)}>
     {children} {required && <span className="text-red-500 ml-0.5">*</span>}
-  </FormLabel>
+  </label>
 );

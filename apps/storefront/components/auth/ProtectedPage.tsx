@@ -6,15 +6,16 @@ import { useAuthStore } from '@/store/authStore';
 
 interface ProtectedPageProps {
   children: React.ReactNode;
+  fallback?: React.ReactNode;
 }
 
 /**
  * Bọc xung quanh bất kỳ trang nào cần đăng nhập.
- * - isLoading = true  → Hiển thị skeleton loading
+ * - isLoading = true  → Hiển thị fallback (hoặc skeleton loading mặc định)
  * - isAuthenticated = false → Redirect về /login
  * - isAuthenticated = true  → Render children bình thường
  */
-export default function ProtectedPage({ children }: ProtectedPageProps) {
+export default function ProtectedPage({ children, fallback }: ProtectedPageProps) {
   const { isAuthenticated, isLoading } = useAuthStore();
   const router = useRouter();
 
@@ -26,8 +27,12 @@ export default function ProtectedPage({ children }: ProtectedPageProps) {
 
   // Đang kiểm tra session (AuthInitializer đang chạy)
   if (isLoading) {
+    if (fallback) {
+      return <>{fallback}</>;
+    }
+
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+      <div className="min-h-[70vh] flex items-center justify-center">
         <div className="text-center space-y-4">
           {/* Logo skeleton */}
           <div className="w-10 h-10 rounded-xl bg-[#F5C542] flex items-center justify-center mx-auto animate-pulse">

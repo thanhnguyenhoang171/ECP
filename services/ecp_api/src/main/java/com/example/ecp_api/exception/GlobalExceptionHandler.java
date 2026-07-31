@@ -1,6 +1,8 @@
 package com.example.ecp_api.exception;
 
 import com.example.ecp_api.dto.response.ErrorResponse;
+import com.example.ecp_api.service.TelegramNotificationService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,8 +17,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@RequiredArgsConstructor
 @Slf4j
 public class GlobalExceptionHandler {
+
+    private final TelegramNotificationService telegramNotificationService;
+
 
     // Handle Login Failure (401 Unauthorized)
     @ExceptionHandler(BadCredentialsException.class)
@@ -103,15 +109,20 @@ public class GlobalExceptionHandler {
     // Handle general errors (500 Internal Server Error)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex, WebRequest request) {
-        log.error("SERIOUS SYSTEM ERROR at {}: ", request.getDescription(false), ex);
+        String path = request.getDescription(false).replace("uri=", "");
+        log.error("SERIOUS SYSTEM ERROR at {}: ", path, ex);
+
+        // Send alert to Telegram asynchronously
+        telegramNotificationService.sendErrorLogAsync(path, ex);
+
         ErrorResponse err = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error("Internal Server Error")
                 .code("SYS_INTERNAL_ERROR")
                 .message("An error occurred on the system. Please try again later..")
-                .path(request.getDescription(false).replace("uri=", ""))
+                .path(path)
                 .build();
         return new ResponseEntity<>(err, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-}
+}

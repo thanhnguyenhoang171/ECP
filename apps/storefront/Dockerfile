@@ -17,6 +17,11 @@ RUN pnpm install --frozen-lockfile
 # Copy the rest of the app's source code
 COPY apps/storefront ./apps/storefront
 
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
+ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
+
 # Build the storefront application
 RUN pnpm --filter storefront build
 

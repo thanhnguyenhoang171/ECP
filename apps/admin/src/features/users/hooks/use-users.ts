@@ -13,6 +13,7 @@ export function useUsers(
     sort?: string;
     keyword?: string;
     role?: 'SUPER_ADMIN' | 'MANAGER' | 'USER';
+    roles?: string[] | string;
     active?: boolean;
   },
   initialData?: PageResponse<User>,
@@ -25,6 +26,14 @@ export function useUsers(
   });
 }
 
+export function useUser(id: string) {
+  return useQuery({
+    queryKey: ['users', id],
+    queryFn: () => userApi.getById(id),
+    enabled: !!id,
+  });
+}
+
 export function useDeleteUser() {
   const queryClient = useQueryClient();
 
@@ -34,6 +43,7 @@ export function useDeleteUser() {
       if (result.success) {
         toast.success('Xóa người dùng thành công');
         queryClient.invalidateQueries({ queryKey: ['users'] });
+        queryClient.invalidateQueries({ queryKey: ['users', 'statistics'] });
       }
     },
     onError: (error) => {
@@ -58,11 +68,12 @@ export function useCreateUser() {
   return useMutation({
     mutationFn: (data: any) => userApi.create(data),
     onSuccess: () => {
-      toast.success('Thêm nhân viên thành công');
+      toast.success('Thêm người dùng thành công');
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'statistics'] });
     },
     onError: (error: any) => {
-      toast.error(error.message || 'Có lỗi xảy ra khi thêm nhân viên');
+      toast.error(error.message || 'Có lỗi xảy ra khi thêm người dùng');
     }
   });
 }
@@ -73,11 +84,12 @@ export function useUpdateUser() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => userApi.update(id, data),
     onSuccess: () => {
-      toast.success('Cập nhật nhân viên thành công');
+      toast.success('Cập nhật người dùng thành công');
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'statistics'] });
     },
     onError: (error: any) => {
-      toast.error(error.message || 'Có lỗi xảy ra khi cập nhật nhân viên');
+      toast.error(error.message || 'Có lỗi xảy ra khi cập nhật người dùng');
     }
   });
 }

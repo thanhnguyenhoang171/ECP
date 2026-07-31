@@ -44,6 +44,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductMapper productMapper;
     private final MongoTemplate mongoTemplate;
     private final CategoryRepository categoryRepository;
+    private final com.example.ecp_api.repository.mongodb.BrandRepository brandRepository;
     private final SkuRepository skuRepository;
     private final com.example.ecp_api.repository.jpa.InventoryRepository inventoryRepository;
     private final AuditLogService auditLogService;
@@ -67,6 +68,9 @@ public class ProductServiceImpl implements ProductService {
         }
         if (StringUtils.hasText(filter.getCategoryId())) {
             query.addCriteria(Criteria.where("category_id").is(filter.getCategoryId()));
+        }
+        if (StringUtils.hasText(filter.getBrandId())) {
+            query.addCriteria(Criteria.where("brand_id").is(filter.getBrandId()));
         }
         if (StringUtils.hasText(filter.getBrand())) {
             query.addCriteria(Criteria.where("brand").is(filter.getBrand()));
@@ -104,10 +108,20 @@ public class ProductServiceImpl implements ProductService {
                     .orElseThrow(() -> new ResourceNotFoundException("Category Not Found", "CATEGORY_NOT_FOUND"));
         }
 
+        // Validate & Resolve Brand
+        String brandName = request.getBrand();
+        if (StringUtils.hasText(request.getBrandId())) {
+            com.example.ecp_api.entity.mongodb.Brand brandEntity = brandRepository.findById(request.getBrandId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Brand Not Found", "BRAND_NOT_FOUND"));
+            if (!StringUtils.hasText(brandName)) {
+                brandName = brandEntity.getName();
+            }
+        }
+
         // Handle SKU (Auto-generate if empty)
         String finalSku = request.getSku();
         if (!StringUtils.hasText(finalSku)) {
-            finalSku = ProductUtils.generateSku(request.getBrand(), request.getName());
+            finalSku = ProductUtils.generateSku(brandName, request.getName());
         }
 
         // Handle Slug (Auto-generate if empty)
@@ -125,6 +139,9 @@ public class ProductServiceImpl implements ProductService {
         Product product = productMapper.toEntity(request);
         product.setSku(finalSku);
         product.setSlug(finalSlug);
+        if (StringUtils.hasText(brandName)) {
+            product.setBrand(brandName);
+        }
 
         product.setPublished(request.getIsPublished() != null ? request.getIsPublished() : false);
 

@@ -1,0 +1,134 @@
+[
+  {
+    "collection": "brands",
+    "operation": "createIndex",
+    "fields": "slug",
+    "unique": true
+  },
+  {
+    "collection": "brands",
+    "operation": "createIndex",
+    "fields": "is_active",
+    "unique": false
+  },
+  {
+    "collection": "products",
+    "operation": "createIndex",
+    "fields": "sku",
+    "unique": true
+  },
+  {
+    "collection": "products",
+    "operation": "createIndex",
+    "fields": "slug",
+    "unique": true
+  },
+  {
+    "collection": "products",
+    "operation": "createIndex",
+    "fields": "category_id",
+    "unique": false
+  },
+  {
+    "collection": "products",
+    "operation": "createIndex",
+    "fields": "brand_id",
+    "unique": false
+  },
+  {
+    "collection": "products",
+    "operation": "createIndex",
+    "fields": "is_published",
+    "unique": false
+  },
+  {
+    "collection": "products",
+    "operation": "createIndex",
+    "fields": "is_featured",
+    "unique": false
+  },
+  {
+    "collection": "products",
+    "operation": "createIndex",
+    "fields": "is_deleted",
+    "unique": false
+  },
+  {
+    "collection": "products",
+    "operation": "updateMany",
+    "filter": { "is_deleted": { "$exists": false } },
+    "update": { "$set": { "is_deleted": false } }
+  },
+  {
+    "collection": "products",
+    "operation": "updateMany",
+    "filter": { "is_published": { "$exists": false } },
+    "update": { "$set": { "is_published": false } }
+  },
+  {
+    "collection": "products",
+    "operation": "updateMany",
+    "filter": { "is_featured": { "$exists": false } },
+    "update": { "$set": { "is_featured": false } }
+  },
+  {
+    "collection": "products",
+    "operation": "updateMany",
+    "filter": { "is_new": { "$exists": false } },
+    "update": { "$set": { "is_new": false } }
+  },
+  {
+    "collection": "products",
+    "operation": "updateMany",
+    "filter": { "is_best_seller": { "$exists": false } },
+    "update": { "$set": { "is_best_seller": false } }
+  },
+  {
+    "collection": "categories",
+    "operation": "createIndex",
+    "fields": "slug",
+    "unique": true
+  },
+  {
+    "collection": "categories",
+    "operation": "createIndex",
+    "fields": "parent_id",
+    "unique": false
+  },
+  {
+    "collection": "categories",
+    "operation": "createIndex",
+    "fields": "is_active",
+    "unique": false
+  },
+  {
+    "collection": "categories",
+    "operation": "createIndex",
+    "fields": "is_featured",
+    "unique": false
+  },
+  {
+    "collection": "categories",
+    "operation": "createIndex",
+    "fields": "is_deleted",
+    "unique": false
+  },
+  {
+    "collection": "categories",
+    "operation": "updateMany",
+    "filter": { "is_deleted": { "$exists": false } },
+    "update": { "$set": { "is_deleted": false } }
+  },
+  {
+    "collection": "categories",
+    "operation": "updateMany",
+    "filter": { "is_active": { "$exists": false } },
+    "update": { "$set": { "is_active": true } }
+  },
+  {
+    "collection": "categories",
+    "operation": "updateMany",
+    "filter": { "is_featured": { "$exists": false } },
+    "update": { "$set": { "is_featured": false } }
+  }
+]

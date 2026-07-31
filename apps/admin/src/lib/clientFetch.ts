@@ -10,7 +10,7 @@ export interface FetchOptions extends RequestInit {
 
 export const clientFetch = async (url: string, options: FetchOptions = {}) => {
   const { skipToast, ...fetchOptions } = options;
-  const { accessToken, setAuth, clearAuth, isBlocked, incrementErrorCount } = useAuthStore.getState();
+  const { accessToken, setAuth, updateAccessToken, clearAuth, isBlocked, incrementErrorCount } = useAuthStore.getState();
 
   // 1. Kiểm tra nếu đang bị block do lỗi server quá nhiều
   if (isBlocked) {
@@ -63,10 +63,10 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
     if (refreshRes.ok) {
       const result = await refreshRes.json();
       if (result.success && result.data) {
-        const { accessToken: newAccessToken, id, username, email, roles } = result.data;
+        const { accessToken: newAccessToken } = result.data;
         
-        // Update new token in Zustand
-        setAuth(newAccessToken, { id, username, email, roles });
+        // Chỉ cập nhật accessToken, giữ nguyên thông tin user (đã persist trong localStorage)
+        updateAccessToken(newAccessToken);
         
         // Retry the original request with new token
         headers.set('Authorization', `Bearer ${newAccessToken}`);
@@ -83,6 +83,18 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
       if (typeof window !== 'undefined') {
           window.location.href = '/login';
       }
+    }
+  }
+
+  // Handle Forbidden access / Role revoked (403)
+  if (response.status === 403) {
+    console.warn('[clientFetch] 403 Forbidden detected. Access rights changed, logging out...');
+    clearAuth();
+    if (typeof window !== 'undefined') {
+      fetch(`${APP_URL}/api/auth/logout`, { method: 'POST' }).finally(() => {
+        toast.error('Quyền truy cập của tài khoản đã bị thay đổi. Vui lòng đăng nhập lại.');
+        window.location.href = '/login';
+      });
     }
   }
 

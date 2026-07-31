@@ -34,6 +34,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.example.ecp_api.dto.request.GoogleLoginRequest;
+
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
@@ -48,9 +50,9 @@ public class AuthController {
         private final CustomUserDetailsService customUserDetailsService;
 
         @PostMapping("/register")
-        @Operation(summary = "Register a new user", description = "Creates a new user account with default USER role.")
+        @Operation(summary = "Register a new user", description = "Creates a new user account with default USER role using Email.")
         public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody UserRequest userRequest) {
-                UserResponse response = userService.registerUserByUsername(userRequest);
+                UserResponse response = userService.registerUserByEmail(userRequest);
                 ApiResponse<UserResponse> apiResponse = ApiResponse.<UserResponse>builder()
                                 .success(true)
                                 .message("User registered successfully")
@@ -60,7 +62,7 @@ public class AuthController {
         }
 
         @PostMapping("/login")
-        @Operation(summary = "Login to the system", description = "Authenticates user and returns Access Token and Refresh Token (also set in HttpOnly cookie).")
+        @Operation(summary = "Login to the system", description = "Authenticates user with Email and returns Access Token and Refresh Token.")
         public ResponseEntity<ApiResponse<AuthResponse>> authenticateUser(
                         @Valid @RequestBody LoginRequest loginRequest,
                         HttpServletRequest request,
@@ -68,7 +70,7 @@ public class AuthController {
 
                 try {
                         Authentication authentication = authenticationManager.authenticate(
-                                        new UsernamePasswordAuthenticationToken(loginRequest.getUsername(),
+                                        new UsernamePasswordAuthenticationToken(loginRequest.getEmail(),
                                                         loginRequest.getPassword()));
 
                         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -79,9 +81,9 @@ public class AuthController {
                         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
                         // Save tokens to Redis
-                        tokenService.saveAccessToken(accessToken, userDetails.getUsername(),
+                        tokenService.saveAccessToken(accessToken, userDetails.getEmail(),
                                         jwtTokenProvider.getJwtExpirationMs());
-                        tokenService.saveRefreshToken(refreshToken, userDetails.getUsername(),
+                        tokenService.saveRefreshToken(refreshToken, userDetails.getEmail(),
                                         jwtTokenProvider.getRefreshExpirationMs());
 
                         List<String> roles = userDetails.getAuthorities().stream()
@@ -89,12 +91,9 @@ public class AuthController {
                                         .collect(Collectors.toList());
 
                         AuthResponse authResponse = AuthResponse.builder()
-                                        .id(userDetails.getId().toString())
                                         .accessToken(accessToken)
                                         .refreshToken(refreshToken)
-                                        .username(userDetails.getUsername())
-                                        .email(userDetails.getEmail())
-                                        .roles(roles)
+                                        .tokenType("Bearer")
                                         .build();
 
                         ApiResponse<AuthResponse> apiResponse = ApiResponse.<AuthResponse>builder()
@@ -106,7 +105,7 @@ public class AuthController {
                         // Set Refresh Token in HttpOnly Cookie
                         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
                                         .httpOnly(true)
-                                        .secure(true) // ideally true in production, set false if testing on localhost http
+                                        .secure(true)
                                         .path("/api/auth")
                                         .maxAge(jwtTokenProvider.getRefreshExpirationMs() / 1000)
                                         .sameSite("Strict")
@@ -114,17 +113,64 @@ public class AuthController {
                         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
                         // Log success
-                        auditLogService.log("LOGIN_SUCCESS", userDetails.getUsername(), "User logged in", "SUCCESS");
+                        auditLogService.log("LOGIN_SUCCESS", userDetails.getEmail(), "User logged in", "SUCCESS");
 
                         // Update last login in database
-                        userService.updateLastLogin(userDetails.getUsername());
+                        userService.updateLastLogin(userDetails.getEmail());
 
                         return ResponseEntity.ok(apiResponse);
                 } catch (Exception e) {
                         // Log failure
-                        auditLogService.log("LOGIN_FAILURE", loginRequest.getUsername(), "Failed login attempt: " + e.getMessage(), "FAILURE");
+                        auditLogService.log("LOGIN_FAILURE", loginRequest.getEmail(), "Failed login attempt: " + e.getMessage(), "FAILURE");
                         throw e;
                 }
+        }
+
+        @PostMapping("/google")
+        @Operation(summary = "Login or Register with Google", description = "Authenticates user using Google ID Token.")
+        public ResponseEntity<ApiResponse<AuthResponse>> googleLogin(
+                        @Valid @RequestBody GoogleLoginRequest googleLoginRequest,
+                        HttpServletResponse response) {
+
+                UserResponse userResponse = userService.processGoogleLogin(googleLoginRequest);
+                CustomUserDetails userDetails = (CustomUserDetails) customUserDetailsService.loadUserByUsername(userResponse.getEmail());
+
+                Authentication authentication = new UsernamePasswordAuthenticationToken(
+                                userDetails, null, userDetails.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                String accessToken = jwtTokenProvider.generateAccessToken(authentication);
+                String refreshToken = jwtTokenProvider.generateRefreshToken(authentication);
+
+                tokenService.saveAccessToken(accessToken, userDetails.getEmail(), jwtTokenProvider.getJwtExpirationMs());
+                tokenService.saveRefreshToken(refreshToken, userDetails.getEmail(), jwtTokenProvider.getRefreshExpirationMs());
+
+                List<String> roles = userDetails.getAuthorities().stream()
+                                .map(GrantedAuthority::getAuthority)
+                                .collect(Collectors.toList());
+
+                AuthResponse authResponse = AuthResponse.builder()
+                                .accessToken(accessToken)
+                                .refreshToken(refreshToken)
+                                .tokenType("Bearer")
+                                .build();
+
+                ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
+                                .httpOnly(true)
+                                .secure(true)
+                                .path("/api/auth")
+                                .maxAge(jwtTokenProvider.getRefreshExpirationMs() / 1000)
+                                .sameSite("Strict")
+                                .build();
+                response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+                userService.updateLastLogin(userDetails.getEmail());
+
+                return ResponseEntity.ok(ApiResponse.<AuthResponse>builder()
+                                .success(true)
+                                .message("Google login successful")
+                                .data(authResponse)
+                                .build());
         }
 
         @PostMapping("/refresh")
@@ -160,12 +206,9 @@ public class AuthController {
                                         .collect(Collectors.toList());
 
                         AuthResponse authResponse = AuthResponse.builder()
-                                        .id(userDetails.getId().toString())
                                         .accessToken(newAccessToken)
                                         .refreshToken(requestRefreshToken)
-                                        .username(userDetails.getUsername())
-                                        .email(userDetails.getEmail())
-                                        .roles(roles)
+                                        .tokenType("Bearer")
                                         .build();
 
                         ApiResponse<AuthResponse> response = ApiResponse.<AuthResponse>builder()

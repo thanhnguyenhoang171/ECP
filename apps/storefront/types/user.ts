@@ -4,6 +4,9 @@ export interface AuthUser {
   username: string;
   email: string;
   roles: string[];
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string;
   fullName?: string;
   phone?: string;
   dateOfBirth?: string;
@@ -18,6 +21,9 @@ export interface AuthData {
   username: string;
   email: string;
   roles: string[];
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string;
 }
 
 // ─── Cấu trúc response tổng quát từ API Auth ──────────────────────────────────

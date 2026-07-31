@@ -16,11 +16,17 @@ const mapCategory = (cat: any): Category => {
     parentId = cat.parent.id?.toString();
   }
 
+  const rawImage = cat.imageUrl || cat.image;
+  const imageUrl = typeof rawImage === 'string' ? rawImage : (rawImage?.url || null);
+  const imagePublicId = cat.imagePublicId || (typeof rawImage === 'object' ? rawImage?.publicId : undefined);
+
   return {
     ...cat,
     id: cat.id?.toString(),
     parentId: parentId || null,
-    imageUrl: cat.imageUrl || cat.imageUrl,
+    imageUrl: imageUrl,
+    imagePublicId: imagePublicId,
+    image: rawImage,
   };
 };
 
@@ -72,10 +78,13 @@ export const categoryApi = {
     values: Partial<CategoryFormValues>,
   ): Promise<{ success: boolean; data: Category }> => {
     const { imageUrl, imagePublicId, ...rest } = values;
+    const mappedUrl = typeof imageUrl === 'string' ? imageUrl : undefined;
+
     const payload = {
       ...rest,
-      imageUrl: typeof imageUrl === 'string' ? imageUrl : undefined,
+      imageUrl: mappedUrl,
       imagePublicId: imagePublicId || undefined,
+      image: mappedUrl ? { url: mappedUrl, publicId: imagePublicId } : undefined,
     };
 
     const res = await clientFetch(`v1/categories/${id}`, {
@@ -98,10 +107,13 @@ export const categoryApi = {
     values: CategoryFormValues,
   ): Promise<{ success: boolean; data: Category }> => {
     const { imageUrl, imagePublicId, ...rest } = values;
+    const mappedUrl = typeof imageUrl === 'string' ? imageUrl : undefined;
+
     const payload = {
       ...rest,
-      imageUrl: typeof imageUrl === 'string' ? imageUrl : undefined,
+      imageUrl: mappedUrl,
       imagePublicId: imagePublicId || undefined,
+      image: mappedUrl ? { url: mappedUrl, publicId: imagePublicId } : undefined,
     };
 
     const res = await clientFetch('v1/categories', {

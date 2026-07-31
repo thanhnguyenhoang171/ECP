@@ -9,15 +9,16 @@ import lombok.*;
 
 import java.time.LocalDate;
 
+import jakarta.validation.constraints.Email;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class UserRequest {
-    @NotBlank(message = "Username cannot be blank")
-    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
-    @Pattern(regexp = "^[a-zA-Z0-9._-]+$", message = "Username can only contain letters, numbers, dots, hyphens, and underscores")
-    private String username;
+    @NotBlank(message = "Email cannot be blank")
+    @Email(message = "Email is invalid")
+    private String email;
 
     @NotBlank(message = "Password cannot be blank")
     @Size(min = 8, message = "Password must be at least 8 characters")

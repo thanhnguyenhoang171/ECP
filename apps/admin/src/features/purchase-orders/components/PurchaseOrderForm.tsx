@@ -51,9 +51,9 @@ import { useCreatePurchaseOrder, useUpdatePurchaseOrder } from '../hooks/use-pur
 
 // Fallback Mock Suppliers
 const mockSuppliers = [
-  { id: 'sup-1', name: 'Công ty TNHH Apple Việt Nam', code: 'SUP-APPLE' },
-  { id: 'sup-2', name: 'Samsung Electronics Việt Nam', code: 'SUP-SAMSUNG' },
-  { id: 'sup-3', name: 'Công ty CP Thế Giới Di Động', code: 'SUP-MWG' },
+  { id: 'sup-1', name: 'Công ty TNHH Nhập Khẩu Bánh Kẹo ThaiLand Inter Trade', code: 'SUP-THAILAND' },
+  { id: 'sup-2', name: 'Công ty CP Thương Mại Thực Phẩm Bangkok Vina', code: 'SUP-BANGKOK' },
+  { id: 'sup-3', name: 'Nhà phân phối Trà Thái ChaTraMue Việt Nam', code: 'SUP-CHATRAMUE' },
 ];
 
 // Fallback Mock Warehouses
@@ -65,10 +65,10 @@ const mockWarehouses = [
 
 // Fallback Mock SKUs
 const mockSkus = [
-  { id: 'sku-1', barcode: '893123456781', name: 'iPhone 15 Pro Max - Titan - 256GB', costPrice: 26500000 },
-  { id: 'sku-2', barcode: '893123456782', name: 'Samsung Galaxy S24 Ultra - Black - 512GB', costPrice: 24500000 },
-  { id: 'sku-3', barcode: '893123456783', name: 'MacBook Pro M3 Max - 36GB - 1TB', costPrice: 56000000 },
-  { id: 'sku-4', barcode: '893123456784', name: 'iPad Pro M2 11 inch - WiFi - 128GB', costPrice: 18500000 },
+  { id: 'sku-1', barcode: '8850123456781', name: 'Mực Sấy Bento Thái Lan Vị Cay Ngọt 20g', costPrice: 12000 },
+  { id: 'sku-2', barcode: '8850123456783', name: 'Trà Thái Xanh ChaTraMue Đậm Vị 200g', costPrice: 45000 },
+  { id: 'sku-3', barcode: '8850123456784', name: "Snack Khoai Tây Lay's Thái Lan Vị Tôm Căng Cay 48g", costPrice: 15000 },
+  { id: 'sku-4', barcode: '8850123456786', name: 'Nước Tăng Lực Red Bull Thái Chai Thủy Tinh 150ml', costPrice: 8500 },
 ];
 
 interface PurchaseOrderFormProps {

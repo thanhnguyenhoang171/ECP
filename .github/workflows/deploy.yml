@@ -112,7 +112,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false # Quan trọng: Tắt cái này để sửa lỗi 'unknown blob'
           build-args: |
-            NEXT_PUBLIC_API_URL={{NEXT_PUBLIC_API_URL}}
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
 
   # ==========================================
   # JOB 3: DEPLOY TRỰC TIẾP VỀ LAPTOP ASUS
@@ -157,6 +158,7 @@ jobs:
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
           # Secrets cho Frontend
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
         run: |
           # 1. Thiết lập thư mục SSH và lưu Private Key
           mkdir -p ~/.ssh
@@ -198,6 +200,7 @@ jobs:
           echo "CLOUDINARY_API_KEY=$CLOUDINARY_API_KEY" >> .env
           echo "CLOUDINARY_API_SECRET=$CLOUDINARY_API_SECRET" >> .env
           echo "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" >> .env
+          echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID" >> .env
 
           # Đăng nhập để có quyền kéo image private
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin

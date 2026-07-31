@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       return NextResponse.json(data, { status: response.status });
     }
 
-    const { id, accessToken, refreshToken, username, email, roles } = data.data;
+    const { accessToken, refreshToken } = data.data;
     const { remember } = body;
 
     // Set HttpOnly cookie for Refresh Token
@@ -43,16 +43,12 @@ export async function POST(request: Request) {
 
     cookieStore.set('refreshToken', refreshToken, cookieOptions);
 
-    // Return Access Token and User info (Including refreshToken as requested)
+    // Return Access Token only — user profile will be fetched via /v1/users/account
     return NextResponse.json({
       success: true,
       message: 'Login successful',
       data: {
-        id,
         accessToken,
-        username,
-        email,
-        roles
       }
     });
 
