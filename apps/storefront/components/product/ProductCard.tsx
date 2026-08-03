@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -14,11 +14,14 @@ interface ProductCardProps {
   product: Product;
 }
 
+const emptySubscribe = () => () => {};
+
 export default function ProductCard({ product }: ProductCardProps) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   const { toggleItem, isInWishlist } = useWishlistStore();
   const isWishlisted = mounted ? isInWishlist(product.id) : false;
