@@ -64,6 +64,7 @@ export default function CategoryForm({
   const updateMutation = useUpdateCategory();
   const uploadFileMutation = useUploadFile();
   const isSlugEdited = useRef(false);
+  const [isImageUploading, setIsImageUploading] = useState(false);
 
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categorySchema),
@@ -135,6 +136,11 @@ export default function CategoryForm({
   }, [nameValue, form, id]);
 
   async function onSubmit(values: CategoryFormValues) {
+    if (isImageUploading) {
+      toast.warning('Ảnh đang được tải lên cloud, vui lòng chờ trong giây lát!');
+      return;
+    }
+
     let uploadedImageUrl = values.imageUrl;
     let uploadedPublicId = values.imagePublicId;
 
@@ -159,33 +165,23 @@ export default function CategoryForm({
       parentId: (values.parentId === '' || values.parentId === 'none') ? null : values.parentId
     };
 
-    if (id) {
-      updateMutation.mutate(
-        { id, values: payload as any },
-        {
-          onSuccess: (result) => {
-            if (result.success) {
-              onSuccess();
-            } else if ((result as any).message?.includes('slug')) {
-              form.setError('slug', { message: 'Đường dẫn (Slug) đã tồn tại' });
-            }
-          },
-        },
-      );
-    } else {
-      createMutation.mutate(payload as any, {
-        onSuccess: (result) => {
-          if (result.success) {
-            onSuccess();
-          } else if ((result as any).message?.includes('slug')) {
-            form.setError('slug', { message: 'Đường dẫn (Slug) đã tồn tại' });
-          }
-        },
-      });
+    try {
+      if (id) {
+        await updateMutation.mutateAsync({ id, values: payload as any });
+      } else {
+        await createMutation.mutateAsync(payload as any);
+      }
+      onSuccess();
+    } catch (error: any) {
+      if (error?.message?.includes('slug')) {
+        form.setError('slug', { message: 'Đường dẫn (Slug) đã tồn tại' });
+      } else {
+        toast.error(error?.message || 'Có lỗi xảy ra khi lưu danh mục');
+      }
     }
   }
 
-  const isSubmitting = createMutation.isPending || updateMutation.isPending || uploadFileMutation.isPending;
+  const isLoading = createMutation.isPending || updateMutation.isPending || uploadFileMutation.isPending;
 
   // Filter out current category from parent categories to avoid circular references
   const filteredParentCategories = parentCategories.filter(
@@ -415,7 +411,7 @@ export default function CategoryForm({
                       <FormItem className='flex flex-row items-center justify-between rounded-xl border border-slate-200/60 p-4 bg-amber-50/40 h-14'>
                         <div className="flex flex-col gap-0.5">
                           <AdminFormLabel className="mb-0 cursor-pointer text-amber-900 font-bold">Danh mục nổi bật</AdminFormLabel>
-                          <span className="text-[10px] text-amber-700/80">Đánh dấu is_featured để Home hiển thị &quot;Danh mục nổi bật&quot;.</span>
+                          <span className="text-[10px] text-amber-700/80">Đánh dấu để Home hiển thị &quot;Danh mục nổi bật&quot;.</span>
                         </div>
                         <FormControl>
                           <Switch
@@ -446,12 +442,12 @@ export default function CategoryForm({
                         <ImageUpload
                           value={field.value}
                           onChange={field.onChange}
+                          onUploadingChange={setIsImageUploading}
                           folder="categories"
                           description="Ảnh danh mục"
                           className="w-32 h-32 mx-auto"
                           reqWidth={128}
                           reqHeight={128}
-                          deferUpload={true}
                         />
                       </FormControl>
                       <FormMessage />
@@ -522,7 +518,7 @@ export default function CategoryForm({
                         <AdminFormLabel>Từ khóa SEO (Keywords)</AdminFormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="Ví dụ: apple, iphone, phu kien,..." 
+                            placeholder="Ví dụ: bento, snack thai, tra sua chatramue,..." 
                             className="h-11 border-slate-200" 
                             {...field} 
                           />
@@ -559,8 +555,8 @@ export default function CategoryForm({
         {/* Actions Bar */}
         <FormActionsBar
           onCancel={onSuccess}
-          isSubmitting={isSubmitting}
-          submitText={id ? 'Cập nhật danh mục' : 'Tạo danh mục'}
+          isSubmitting={isLoading || isImageUploading}
+          submitText={isImageUploading ? 'Đang tải ảnh lên...' : (id ? 'Cập nhật danh mục' : 'Lưu danh mục')}
           activeTabLabel={tabs.find(t => t.id === activeTab)?.label}
           isDialog={isDialog}
         />

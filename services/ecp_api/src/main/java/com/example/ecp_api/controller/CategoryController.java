@@ -35,7 +35,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/v1/categories")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
 @Tag(name = "Category Management", description = "APIs for managing product categories and hierarchy")
 public class CategoryController {
 

@@ -1,6 +1,5 @@
 export interface User {
   id: string;
-  username: string;
   email: string;
   roles: string[];
 }
@@ -10,7 +9,6 @@ export interface AuthResponse {
   message: string;
   data: {
     id: string;
-    username: string;
     email: string;
     roles: string[];
     accessToken: string;
@@ -31,7 +29,6 @@ export interface RefreshResponse {
   data: {
     id: string;
     accessToken: string;
-    username: string;
     email: string;
     roles: string[];
   };

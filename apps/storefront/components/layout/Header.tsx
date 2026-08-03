@@ -20,6 +20,7 @@ import {
   LogOut,
   LogIn,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { logoutClient } from '@/services/auth.service';
@@ -30,6 +31,10 @@ export default function Header() {
   const cartItemCount = 3;
 
   const { user, isAuthenticated, isLoading, clearAuth } = useAuthStore();
+  const displayName = (user?.lastName || user?.firstName)
+    ? `${user.lastName || ''} ${user.firstName || ''}`.trim()
+    : ((user as any)?.fullName || user?.username || user?.email || 'User');
+  const avatarInitial = displayName.charAt(0).toUpperCase();
   const wishlistItems = useWishlistStore((state) => state.items);
   const wishlistCount = wishlistItems.length;
   const router = useRouter();
@@ -37,6 +42,7 @@ export default function Header() {
   const handleLogout = async () => {
     await logoutClient();
     clearAuth();
+    toast.success('Đã đăng xuất thành công!');
     router.push('/');
   };
 
@@ -158,10 +164,21 @@ export default function Header() {
                     <button
                       className="flex items-center gap-1.5 p-1.5 pr-2.5 text-zinc-300 hover:bg-zinc-800/60 rounded-lg transition-colors border border-zinc-800 text-xs font-medium cursor-pointer outline-none"
                     >
-                      <div className="w-5 h-5 rounded-full bg-[#F5C542] flex items-center justify-center text-[#1E1B18] font-bold text-[10px]">
-                        {user.username.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="hidden lg:inline-block max-w-[80px] truncate">{user.username}</span>
+                      {user?.avatarUrl ? (
+                        <Image
+                          src={user.avatarUrl}
+                          alt={displayName}
+                          width={20}
+                          height={20}
+                          unoptimized
+                          className="w-5 h-5 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-[#F5C542] flex items-center justify-center text-[#1E1B18] font-bold text-[10px]">
+                          {avatarInitial}
+                        </div>
+                      )}
+                      <span className="hidden lg:inline-block max-w-[200px] truncate">{displayName}</span>
                       <ChevronDown className="w-3 h-3 text-zinc-500 hidden lg:inline-block" />
                     </button>
                   </DropdownMenu.Trigger>
@@ -180,8 +197,8 @@ export default function Header() {
                         className="w-48 bg-[#1e1b18] rounded-xl shadow-2xl border border-zinc-800 py-1.5 z-50 outline-none"
                       >
                         <div className="px-3.5 py-2 border-b border-zinc-800/80 mb-1">
-                          <p className="text-[11px] font-semibold text-zinc-100 truncate">{user.username}</p>
-                          <p className="text-[10px] text-zinc-400 truncate">{user.email}</p>
+                          <p className="text-[11px] font-semibold text-zinc-100 truncate">{displayName}</p>
+                          <p className="text-[10px] text-zinc-400 truncate">{user?.email || ''}</p>
                         </div>
 
                         <DropdownMenu.Item asChild>
@@ -307,7 +324,7 @@ export default function Header() {
               {isAuthenticated && user ? (
                 <>
                   <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className="text-zinc-300">
-                    Trang cá nhân ({user.username})
+                    Trang cá nhân ({displayName})
                   </Link>
                   <button
                     onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}

@@ -29,7 +29,6 @@ export default function RegisterView() {
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      username: "",
       email: "",
       firstName: "",
       lastName: "",
@@ -78,26 +77,6 @@ export default function RegisterView() {
           <CardContent className="p-5 sm:p-8">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-slate-700 font-semibold text-sm sm:text-base">Tên đăng nhập</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <User className="absolute left-3 top-3 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
-                          <Input 
-                            placeholder="username" 
-                            {...field} 
-                            className="pl-9 sm:pl-10 h-10 sm:h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all text-sm sm:text-base"
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-xs" />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}

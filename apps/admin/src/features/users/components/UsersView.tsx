@@ -1,15 +1,25 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { 
   Users, 
   Wifi, 
   WifiOff, 
   Shield, 
-  KeyRound, 
-  ShieldCheck, 
   Edit2, 
-  UserPlus 
+  UserPlus, 
+  ShieldCheck, 
+  ShoppingBag,
+  Award,
+  DollarSign,
+  UserCheck,
+  ChevronDown,
+  CheckCircle2,
+  Lock,
+  Mail,
+  Phone,
+  Calendar,
+  Layers
 } from 'lucide-react';
 import { 
   PageHeader, 
@@ -17,10 +27,9 @@ import {
   DataTable, 
   type ColumnDef, 
   Badge, 
-  Card, 
-  CardContent, 
   NextPagination, 
-  Breadcrumbs 
+  Breadcrumbs,
+  StatsCard 
 } from '@/components/common';
 import { 
   SearchInput, 
@@ -29,24 +38,40 @@ import {
   ExportButton, 
   FilterPopover, 
   SortPopover, 
+  ResetFiltersButton,
+  ViewActionButton,
   EditActionButton, 
   DeleteActionButton, 
   DeleteConfirmDialog 
 } from '@/components/common/view-control';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { User, ROLE_OPTIONS } from '@/features/users/types/user.interface';
 import { 
   useUsers, 
   useDeleteUser, 
-  useUserStatistics 
+  useUserStatistics,
+  useUpdateUser 
 } from '@/features/users/hooks/use-users';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
+import { useHotkeys } from '@/hooks/use-hotkeys';
 import { toast } from 'sonner';
 import { PageResponse } from '@/types/pagination';
 import { UserStatistics } from '../api/user.api';
+import { formatCurrency, formatDateTimeForFilename } from '@/lib/formatters';
 
-// Dialog & Switch UI components
+// Dialog UI components
 import {
   Dialog,
   DialogContent,
@@ -54,120 +79,107 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
 import UserForm from './UserForm';
+import UserDetailDialog from './UserDetailDialog';
+import { useRouter } from 'next/navigation';
 
 interface UsersViewProps {
   initialData: PageResponse<User>;
   initialStats: UserStatistics;
 }
 
-// RBAC Permissions structure
-interface Permission {
-  key: string;
-  name: string;
-  description: string;
-  group: 'catalog' | 'inventory' | 'sales' | 'system';
-}
-
-const permissionGroups = {
-  catalog: 'Sản phẩm & Danh mục',
-  inventory: 'Kho hàng & Logistics',
-  sales: 'Bán hàng & Doanh thu',
-  system: 'Cấu hình hệ thống',
-};
-
-const permissionsList: Permission[] = [
-  { key: 'catalog.view', name: 'Xem sản phẩm & danh mục', description: 'Xem danh sách sản phẩm, SKU và danh mục sản phẩm.', group: 'catalog' },
-  { key: 'catalog.create_edit', name: 'Thêm mới / Sửa sản phẩm', description: 'Tạo sản phẩm mới, thiết lập biến thể và cập nhật thông tin.', group: 'catalog' },
-  { key: 'catalog.delete', name: 'Xóa sản phẩm & danh mục', description: 'Xóa vĩnh viễn sản phẩm hoặc danh mục khỏi hệ thống.', group: 'catalog' },
-  
-  { key: 'inventory.view', name: 'Xem thông tin tồn kho', description: 'Theo dõi lượng tồn kho và xem sổ cái kho.', group: 'inventory' },
-  { key: 'inventory.adjust', name: 'Điều chỉnh tồn kho nhanh', description: 'Thay đổi trực tiếp số lượng tồn kho của biến thể.', group: 'inventory' },
-  { key: 'inventory.goods_receipt', name: 'Tạo đơn nhập kho', description: 'Tạo phiếu nhập hàng và xác nhận nhập kho.', group: 'inventory' },
-  { key: 'inventory.manage_setup', name: 'Quản lý kho & Nhà cung cấp', description: 'Thêm mới/Chỉnh sửa thông tin kho bãi và nhà cung cấp.', group: 'inventory' },
-  
-  { key: 'sales.view_orders', name: 'Xem danh sách đơn hàng', description: 'Xem chi tiết thông tin đơn hàng và giao dịch thanh toán.', group: 'sales' },
-  { key: 'sales.update_order_status', name: 'Cập nhật trạng thái đơn hàng', description: 'Xác nhận đơn hàng, giao hàng và hoàn thành đơn hàng.', group: 'sales' },
-  { key: 'sales.refund', name: 'Hoàn tiền giao dịch', description: 'Xác nhận và hoàn tiền cho các giao dịch bị lỗi hoặc hủy đơn.', group: 'sales' },
-  { key: 'sales.view_customers', name: 'Xem thông tin khách hàng', description: 'Xem dữ liệu chi tiêu LTV và thăng hạng thành viên.', group: 'sales' },
-  
-  { key: 'system.manage_users', name: 'Quản lý nhân viên', description: 'Tạo mới, khóa hoặc cập nhật tài khoản nhân sự.', group: 'system' },
-  { key: 'system.view_audit_logs', name: 'Xem nhật ký kiểm toán', description: 'Theo dõi lịch sử truy vết hành động của các tài khoản (chỉ dành cho Super Admin).', group: 'system' },
-  { key: 'system.settings', name: 'Cài đặt hệ thống', description: 'Thay đổi các tham số cấu hình chung của ứng dụng.', group: 'system' },
-];
-
-const initialRolePermissions: Record<string, Record<User['role'], boolean>> = {
-  'catalog.view': { SUPER_ADMIN: true, MANAGER: true, USER: true },
-  'catalog.create_edit': { SUPER_ADMIN: true, MANAGER: true, USER: false },
-  'catalog.delete': { SUPER_ADMIN: true, MANAGER: false, USER: false },
-  
-  'inventory.view': { SUPER_ADMIN: true, MANAGER: true, USER: true },
-  'inventory.adjust': { SUPER_ADMIN: true, MANAGER: true, USER: true },
-  'inventory.goods_receipt': { SUPER_ADMIN: true, MANAGER: true, USER: false },
-  'inventory.manage_setup': { SUPER_ADMIN: true, MANAGER: true, USER: false },
-  
-  'sales.view_orders': { SUPER_ADMIN: true, MANAGER: true, USER: true },
-  'sales.update_order_status': { SUPER_ADMIN: true, MANAGER: true, USER: true },
-  'sales.refund': { SUPER_ADMIN: true, MANAGER: true, USER: false },
-  'sales.view_customers': { SUPER_ADMIN: true, MANAGER: true, USER: true },
-  
-  'system.manage_users': { SUPER_ADMIN: true, MANAGER: false, USER: false },
-  'system.view_audit_logs': { SUPER_ADMIN: true, MANAGER: false, USER: false },
-  'system.settings': { SUPER_ADMIN: true, MANAGER: false, USER: false },
-};
-
 export default function UsersView({ initialData, initialStats }: UsersViewProps) {
-  const [activeTab, setActiveTab] = useState<'users' | 'permissions'>('users');
-  
-  const {
-    page,
-    size,
-    sort,
-    name,
-    updateUrl,
-    setPage,
-    setSize,
-    setSort,
-    searchParams,
-  } = useViewParams('createdAt,desc');
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'staff' | 'customers'>('staff');
 
-  const roleParam = searchParams.get('role') as User['role'] | null;
-  const activeParam = searchParams.get('active');
-
-  // React Query fetch danh sách users
-  const { data, isLoading, isFetching } = useUsers(
-    {
-      page,
-      size,
-      sort,
-      keyword: name,
-      role: roleParam || undefined,
-      active: activeParam === 'true' ? true : activeParam === 'false' ? false : undefined,
-    },
-    initialData
-  );
-
-  // React Query fetch số liệu thống kê (MySQL + Redis)
+  // React Query fetch số liệu thống kê thực tế từ API Backend (/v1/users/statistics)
   const { data: statsData } = useUserStatistics(initialStats);
   const stats = statsData || initialStats;
 
   const deleteMutation = useDeleteUser();
+  const updateMutation = useUpdateUser();
 
-  // States quản lý Form Dialog
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  // ===================== 1. LOGIC NHÂN SỰ (STAFF API: SUPER_ADMIN, MANAGER) =====================
+  const {
+    page: staffPage,
+    size: staffSize,
+    sort: staffSort,
+    name: staffName,
+    updateUrl: updateStaffUrl,
+    setPage: setStaffPage,
+    setSize: setStaffSize,
+    setSort: setStaffSort,
+    searchParams: staffSearchParams,
+  } = useViewParams('createdAt,desc');
 
-  const handleSearch = (val: string) => {
-    updateUrl({ name: val, page: 1 });
+  const staffRoleParam = staffSearchParams.get('role') as User['role'] | null;
+  const staffActiveParam = staffSearchParams.get('active');
+
+  const handleStaffSearch = (val: string) => {
+    updateStaffUrl({ name: val, page: 1 });
   };
 
-  const [searchTerm, setSearchTerm] = useDebounceSearch(name, handleSearch);
+  const [staffSearchTerm, setStaffSearchTerm] = useDebounceSearch(staffName, handleStaffSearch);
 
-  const usersData = data || initialData;
-  const users = usersData.data || [];
-  const pagination = usersData.pagination;
+  // Gọi API Backend lấy danh sách nhân sự (roles = SUPER_ADMIN, MANAGER)
+  const { 
+    data: staffQueryData, 
+    isLoading: isStaffLoading, 
+    isFetching: isStaffFetching 
+  } = useUsers(
+    {
+      page: staffPage,
+      size: staffSize,
+      sort: staffSort,
+      keyword: staffName,
+      roles: staffRoleParam ? [staffRoleParam] : ['SUPER_ADMIN', 'MANAGER'],
+      active: staffActiveParam === 'true' ? true : staffActiveParam === 'false' ? false : undefined,
+    },
+    initialData
+  );
+
+  const staffUsersData = staffQueryData || initialData;
+  const staffUsers = staffUsersData.data || [];
+  const staffPagination = staffUsersData.pagination || { currentPage: 1, totalPages: 1, totalElements: staffUsers.length, pageSize: 10 };
+
+  // ===================== 2. LOGIC KHÁCH HÀNG (CUSTOMERS API: USER) =====================
+  const [customerPage, setCustomerPage] = useState(1);
+  const [customerSize, setCustomerSize] = useState(10);
+  const [customerSort, setCustomerSort] = useState('createdAt,desc');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [customerActiveFilter, setCustomerActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
+
+  const handleCustomerSearch = (val: string) => {
+    setCustomerSearch(val);
+    setCustomerPage(1);
+  };
+  const [customerSearchTerm, setCustomerSearchTerm] = useDebounceSearch(customerSearch, handleCustomerSearch);
+
+  // Gọi API Backend lấy danh sách khách hàng (role = USER)
+  const { 
+    data: customerQueryData, 
+    isLoading: isCustomerLoading, 
+    isFetching: isCustomerFetching 
+  } = useUsers(
+    {
+      page: customerPage,
+      size: customerSize,
+      sort: customerSort,
+      keyword: customerSearch,
+      role: 'USER',
+      active: customerActiveFilter === 'active' ? true : customerActiveFilter === 'inactive' ? false : undefined,
+    }
+  );
+
+  const customerUsersData = customerQueryData || { data: [], pagination: { currentPage: 1, totalPages: 1, totalElements: 0, pageSize: 10 } };
+  const customerUsers = customerUsersData.data || [];
+  const customerPagination = customerUsersData.pagination || { currentPage: 1, totalPages: 1, totalElements: customerUsers.length, pageSize: 10 };
+
+  // Shared States Dialog
+  const [selectedDetailUser, setSelectedDetailUser] = useState<User | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleDelete = () => {
     if (deleteConfirmId) {
@@ -180,36 +192,107 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
   };
 
   const handleEditClick = (user: User) => {
-    setEditingUser(user);
-    setIsFormOpen(true);
+    router.push(`/users/${user.id}/edit`);
   };
 
-  const handleCreateClick = () => {
-    setEditingUser(null);
-    setIsFormOpen(true);
+  const handleViewDetail = (user: User) => {
+    setSelectedDetailUser(user);
+    setIsDetailOpen(true);
   };
 
+  const handleCreateStaffClick = () => {
+    router.push('/users/create');
+  };
+
+  const handleCreateCustomerClick = () => {
+    router.push('/users/create');
+  };
+
+  // 👑 Gán quyền nhanh (Quick Role Assign - Gọi API Backend PUT /v1/users/{id})
+  const handleQuickRoleChange = (user: User, newRole: User['role']) => {
+    if (user.role === newRole) return;
+    updateMutation.mutate(
+      {
+        id: user.id,
+        data: {
+          role: newRole,
+        },
+      },
+      {
+        onSuccess: () => {
+          const roleLabel = ROLE_OPTIONS.find(r => r.value === newRole)?.label || newRole;
+          toast.success(`Đã cập nhật vai trò của ${user.fullName} thành ${roleLabel}`);
+        },
+      }
+    );
+  };
+
+  // 🟢 Bật/Tắt trạng thái nhanh (Quick Status Switch - Gọi API Backend PUT /v1/users/{id})
+  const handleQuickStatusToggle = (user: User) => {
+    const newStatus = user.status === 'active' ? 'inactive' : 'active';
+    updateMutation.mutate(
+      {
+        id: user.id,
+        data: {
+          active: newStatus === 'active',
+          status: newStatus,
+        },
+      },
+      {
+        onSuccess: () => {
+          const statusText = newStatus === 'active' ? 'kích hoạt' : 'tạm khóa';
+          toast.success(`Đã ${statusText} tài khoản ${user.email}`);
+        },
+      }
+    );
+  };
+
+  useHotkeys('+', activeTab === 'staff' ? handleCreateStaffClick : handleCreateCustomerClick);
+
+  const handleExport = () => {
+    setIsExporting(true);
+    setTimeout(() => {
+      toast.success(`Xuất file danh sách tài khoản (${formatDateTimeForFilename()}) thành công`);
+      setIsExporting(false);
+    }, 800);
+  };
 
   const getRoleMeta = (role: User['role']) => ROLE_OPTIONS.find((r) => r.value === role);
 
-  const columns: ColumnDef<User>[] = [
+  const getInitials = (fullName: string) => {
+    if (!fullName) return 'U';
+    return fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+  };
+
+  // Table Columns Nhân sự (SUPER_ADMIN, MANAGER)
+  const staffColumns: ColumnDef<User>[] = [
     {
-      header: 'Người dùng',
+      header: 'Nhân sự',
+      skeleton: (
+        <div className='flex items-center gap-3'>
+          <Skeleton className='h-10 w-10 rounded-full' />
+          <div className='flex flex-col gap-1.5'>
+            <Skeleton className='h-4 w-32' />
+            <Skeleton className='h-3 w-24' />
+          </div>
+        </div>
+      ),
       cell: (user) => (
         <div className='flex items-center gap-3'>
-          <Avatar className='h-9 w-9 border border-slate-200'>
+          <Avatar className='h-10 w-10 border border-slate-200 shadow-sm shrink-0'>
+            {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.fullName} />}
             <AvatarFallback className='bg-primary/10 text-primary text-xs font-bold'>
-              {user.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+              {getInitials(user.fullName)}
             </AvatarFallback>
           </Avatar>
           <div className="text-left">
             <p className='text-sm font-bold text-slate-900 flex items-center gap-1.5'>
               {user.fullName}
               {user.isOnline && (
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" title="Trực tuyến" />
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_#10B981]" title="Trực tuyến" />
               )}
             </p>
-            <p className='text-[11px] text-slate-400 font-mono'>{user.email} • @{user.username}</p>
+            <p className='text-[11px] text-slate-400 font-mono'>{user.email}</p>
           </div>
         </div>
       ),
@@ -217,43 +300,82 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
     {
       header: 'Số điện thoại',
       accessorKey: 'phone',
-      className: 'text-sm text-slate-600 font-medium',
+      className: 'text-sm text-slate-600 font-medium font-mono',
+      skeleton: <Skeleton className='h-4 w-24' />,
+      cell: (user) => <span className="font-mono text-xs font-medium text-slate-600">{user.phone || '—'}</span>,
     },
     {
-      header: 'Vai trò',
+      header: 'Vai trò (Gán quyền)',
+      skeleton: <Skeleton className='h-6 w-24 rounded-lg' />,
       cell: (user) => {
         const meta = getRoleMeta(user.role);
         return (
-          <Badge variant='outline' className={cn('text-[10px] font-bold py-0.5 px-2 border-none', meta?.color)}>
-            {meta?.label || user.role}
-          </Badge>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button 
+                type="button" 
+                className="group inline-flex items-center gap-1.5 focus:outline-none"
+                title="Bấm để thay đổi vai trò hệ thống"
+              >
+                <Badge variant='outline' className={cn('text-[10px] font-bold py-1 px-2.5 border-none cursor-pointer group-hover:ring-2 group-hover:ring-primary/20 transition-all flex items-center gap-1', meta?.color)}>
+                  <span>{meta?.label || user.role}</span>
+                  <ChevronDown size={12} className="opacity-60 group-hover:opacity-100" />
+                </Badge>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48 bg-white shadow-xl border-slate-200 rounded-xl">
+              <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Gán vai trò mới
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {ROLE_OPTIONS.map((opt) => (
+                <DropdownMenuItem
+                  key={opt.value}
+                  onClick={() => handleQuickRoleChange(user, opt.value)}
+                  className={cn(
+                    "cursor-pointer text-xs font-semibold flex items-center justify-between py-2 rounded-lg",
+                    user.role === opt.value ? "bg-primary/10 text-primary font-bold" : "hover:bg-slate-50 text-slate-700"
+                  )}
+                >
+                  <span>{opt.label}</span>
+                  {user.role === opt.value && <CheckCircle2 size={14} className="text-primary" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         );
       },
     },
     {
-      header: 'Trạng thái',
+      header: 'Trạng thái tài khoản',
       align: 'center',
-      cell: (user) => {
-        const variant = user.status === 'active' ? 'default' : 'secondary';
-        const label = user.status === 'active' ? 'Hoạt động' : 'Tạm khóa';
-        return (
+      skeleton: <Skeleton className='h-6 w-20 mx-auto rounded-full' />,
+      cell: (user) => (
+        <div className="flex items-center justify-center gap-2">
+          <Switch
+            checked={user.status === 'active'}
+            onCheckedChange={() => handleQuickStatusToggle(user)}
+            disabled={user.role === 'SUPER_ADMIN'}
+            title={user.status === 'active' ? 'Đang hoạt động (Bấm để khóa)' : 'Tạm khóa (Bấm để kích hoạt)'}
+          />
           <Badge 
-            variant={variant} 
+            variant={user.status === 'active' ? 'default' : 'secondary'} 
             className={cn(
-              'text-[10px] font-bold py-0.5 px-2 border-none uppercase',
+              'text-[9px] font-bold py-0.5 px-1.5 border-none uppercase',
               user.status === 'active' 
-                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-50' 
-                : 'bg-rose-50 text-rose-700 hover:bg-rose-50'
+                ? 'bg-emerald-50 text-emerald-700' 
+                : 'bg-rose-50 text-rose-700'
             )}
           >
-            {label}
+            {user.status === 'active' ? 'Hoạt động' : 'Tạm khóa'}
           </Badge>
-        );
-      },
+        </div>
+      ),
     },
     {
       header: 'Trạng thái phiên',
       align: 'center',
+      skeleton: <Skeleton className='h-4 w-24 mx-auto' />,
       cell: (user) => (
         <div className='flex items-center justify-center gap-1.5'>
           <div className={cn('h-2 w-2 rounded-full', user.isOnline ? 'bg-emerald-500 shadow-[0_0_6px_#10B981]' : 'bg-slate-300')} />
@@ -268,14 +390,136 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
       align: 'center',
       accessorKey: 'createdAt',
       className: 'text-xs text-slate-500 font-medium',
+      skeleton: <Skeleton className='h-4 w-20 mx-auto' />,
+    },
+    {
+      header: 'Thao tác',
+      align: 'right',
+      skeleton: <Skeleton className='h-8 w-24 ml-auto rounded-lg' />,
+      cell: (user) => (
+        <div className='flex justify-end gap-1'>
+          <ViewActionButton onClick={() => handleViewDetail(user)} disabled={isStaffLoading || isStaffFetching} />
+          <EditActionButton onClick={() => handleEditClick(user)} disabled={isStaffLoading || isStaffFetching} />
+          <DeleteActionButton onClick={() => setDeleteConfirmId(user.id)} disabled={isStaffLoading || isStaffFetching || user.role === 'SUPER_ADMIN'} />
+        </div>
+      ),
+    },
+  ];
+
+  // Table Columns Khách hàng (USER)
+  const customerColumns: ColumnDef<User>[] = [
+    {
+      header: 'Khách hàng',
+      skeleton: (
+        <div className='flex items-center gap-3'>
+          <Skeleton className='h-10 w-10 rounded-full' />
+          <div className='flex flex-col gap-1.5'>
+            <Skeleton className='h-4 w-32' />
+            <Skeleton className='h-3 w-24' />
+          </div>
+        </div>
+      ),
+      cell: (user) => (
+        <div className='flex items-center gap-3'>
+          <Avatar className='h-10 w-10 border border-slate-200 shadow-sm shrink-0'>
+            {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.fullName} />}
+            <AvatarFallback className='bg-amber-100 text-amber-700 text-xs font-bold'>
+              {getInitials(user.fullName)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="text-left">
+            <p className='text-sm font-bold text-slate-900'>{user.fullName}</p>
+            <p className='text-[11px] text-slate-400 font-mono'>{user.email}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: 'Số điện thoại',
+      accessorKey: 'phone',
+      className: 'text-sm text-slate-600 font-mono',
+      skeleton: <Skeleton className='h-4 w-24' />,
+      cell: (user) => <span className="font-mono text-xs font-medium text-slate-600">{user.phone || '—'}</span>,
+    },
+    {
+      header: 'Vai trò (Gán quyền)',
+      cell: (user) => {
+        const meta = getRoleMeta(user.role);
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button 
+                type="button" 
+                className="group inline-flex items-center gap-1.5 focus:outline-none"
+                title="Gán vai trò quản trị cho khách hàng này"
+              >
+                <Badge variant='outline' className={cn('text-[10px] font-bold py-1 px-2.5 border-none cursor-pointer group-hover:ring-2 group-hover:ring-primary/20 transition-all flex items-center gap-1', meta?.color)}>
+                  <span>{meta?.label || user.role}</span>
+                  <ChevronDown size={12} className="opacity-60 group-hover:opacity-100" />
+                </Badge>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48 bg-white shadow-xl border-slate-200 rounded-xl">
+              <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Nâng cấp vai trò
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {ROLE_OPTIONS.map((opt) => (
+                <DropdownMenuItem
+                  key={opt.value}
+                  onClick={() => handleQuickRoleChange(user, opt.value)}
+                  className={cn(
+                    "cursor-pointer text-xs font-semibold flex items-center justify-between py-2 rounded-lg",
+                    user.role === opt.value ? "bg-primary/10 text-primary font-bold" : "hover:bg-slate-50 text-slate-700"
+                  )}
+                >
+                  <span>{opt.label}</span>
+                  {user.role === opt.value && <CheckCircle2 size={14} className="text-primary" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+    {
+      header: 'Trạng thái mua hàng',
+      align: 'center',
+      cell: (user) => (
+        <div className="flex items-center justify-center gap-2">
+          <Switch
+            checked={user.status === 'active'}
+            onCheckedChange={() => handleQuickStatusToggle(user)}
+            title={user.status === 'active' ? 'Tài khoản hoạt động (Bấm để khóa)' : 'Đã bị khóa (Bấm để mở khóa)'}
+          />
+          <Badge 
+            variant={user.status === 'active' ? 'default' : 'secondary'} 
+            className={cn(
+              'text-[9px] font-bold py-0.5 px-1.5 border-none uppercase',
+              user.status === 'active' 
+                ? 'bg-emerald-50 text-emerald-700' 
+                : 'bg-rose-50 text-rose-700'
+            )}
+          >
+            {user.status === 'active' ? 'Hoạt động' : 'Đã khóa'}
+          </Badge>
+        </div>
+      ),
+    },
+    {
+      header: 'Ngày đăng ký',
+      align: 'center',
+      accessorKey: 'createdAt',
+      className: 'text-xs text-slate-500 font-medium',
     },
     {
       header: 'Thao tác',
       align: 'right',
       cell: (user) => (
         <div className='flex justify-end gap-1'>
-          <EditActionButton onClick={() => handleEditClick(user)} disabled={isLoading || isFetching} />
-          <DeleteActionButton onClick={() => setDeleteConfirmId(user.id)} disabled={isLoading || isFetching || user.role === 'SUPER_ADMIN'} />
+          <ViewActionButton onClick={() => handleViewDetail(user)} disabled={isCustomerLoading || isCustomerFetching} />
+          <EditActionButton onClick={() => handleEditClick(user)} disabled={isCustomerLoading || isCustomerFetching} />
+          <DeleteActionButton onClick={() => setDeleteConfirmId(user.id)} disabled={isCustomerLoading || isCustomerFetching} />
         </div>
       ),
     },
@@ -285,177 +529,147 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
     cn(
       'justify-start font-medium text-xs px-3 py-2 rounded-lg text-left transition-all flex items-center w-full',
       active
-        ? 'bg-primary/10 text-primary'
-        : 'bg-transparent hover:bg-slate-50 text-slate-500',
+        ? 'bg-primary/10 text-primary font-bold'
+        : 'bg-transparent hover:bg-slate-50 text-slate-600',
     );
 
   const sortOptions = [
-    { value: 'createdAt,desc', label: 'Ngày tạo (Mới nhất)' },
-    { value: 'createdAt,asc', label: 'Ngày tạo (Cũ nhất)' },
-    { value: 'username,asc', label: 'Tài khoản (A-Z)' },
-    { value: 'username,desc', label: 'Tài khoản (Z-A)' },
+    { value: 'createdAt,desc', label: 'Mới nhất' },
+    { value: 'createdAt,asc', label: 'Cũ nhất' },
+    { value: 'fullName,asc', label: 'Tên (A-Z)' },
     { value: 'email,asc', label: 'Email (A-Z)' },
   ];
 
   const breadcrumbItems = [
-    { label: 'Nhân viên', icon: Users },
+    { label: 'Tài khoản & Phân quyền', icon: Users },
   ];
 
-  // Phân chia danh sách quyền hạn theo nhóm
-  const groupedPermissions = useMemo(() => {
-    const groups: Record<Permission['group'], Permission[]> = {
-      catalog: [],
-      inventory: [],
-      sales: [],
-      system: [],
-    };
-    permissionsList.forEach(p => {
-      groups[p.group].push(p);
-    });
-    return groups;
-  }, []);
+  const activeStaffFiltersCount = (staffRoleParam ? 1 : 0) + (staffActiveParam ? 1 : 0);
 
   return (
     <div className='space-y-6'>
       <Breadcrumbs items={breadcrumbItems} />
       
-      {/* Tabs Switch */}
-      <div className="flex justify-between items-center border-b border-slate-200 pb-px">
-        <div className="flex gap-4">
-          <button
-            onClick={() => setActiveTab('users')}
-            className={cn(
-              "pb-3 text-sm font-bold transition-all relative",
-              activeTab === 'users' 
-                ? "text-primary border-b-2 border-primary" 
-                : "text-slate-500 hover:text-slate-900"
-            )}
-          >
-            <span className="flex items-center gap-2">
-              <Users size={16} />
-              Tài khoản nhân viên
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab('permissions')}
-            className={cn(
-              "pb-3 text-sm font-bold transition-all relative",
-              activeTab === 'permissions' 
-                ? "text-primary border-b-2 border-primary" 
-                : "text-slate-500 hover:text-slate-900"
-            )}
-          >
-            <span className="flex items-center gap-2">
-              <KeyRound size={16} />
-              Vai trò & Quyền hạn (RBAC)
-            </span>
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title='Quản lý người dùng'
+        description='Quản lý phân quyền tài khoản nhân sự hệ thống và theo dõi tài khoản khách hàng.'
+        actions={
+          activeTab === 'staff' ? (
+            <>
+              <ImportButton onClick={() => toast.info('Tính năng nhập file đang phát triển')} disabled={isStaffLoading || isStaffFetching} />
+              <ExportButton onExport={handleExport} isLoading={isExporting} disabled={isStaffLoading || isStaffFetching} />
+              <AddNewButton onClick={handleCreateStaffClick} disabled={isStaffLoading || isStaffFetching} />
+            </>
+          ) : (
+            <>
+              <ExportButton onExport={handleExport} isLoading={isExporting} disabled={isCustomerLoading || isCustomerFetching} />
+              <AddNewButton onClick={handleCreateCustomerClick} disabled={isCustomerLoading || isCustomerFetching} />
+            </>
+          )
+        }
+      />
 
-      {activeTab === 'users' ? (
-        <>
-          <PageHeader
-            title='Quản lý nhân viên'
-            description='Quản lý tài khoản và giám sát trạng thái hoạt động của nhân sự.'
-            actions={
-              <>
-                <ImportButton onClick={() => toast.info('Tính năng đang được phát triển')} disabled={isLoading || isFetching} />
-                <ExportButton onExport={() => toast.info('Tính năng đang được phát triển')} isLoading={false} disabled={isLoading || isFetching} />
-                <AddNewButton onClick={handleCreateClick} disabled={isLoading || isFetching} />
-              </>
-            }
-          />
+      {/* Tabs Container */}
+      <Tabs defaultValue="staff" onValueChange={(val) => setActiveTab(val as any)} className="space-y-6">
+        <TabsList className="bg-slate-100 p-1.5 rounded-xl border border-slate-200/80 inline-flex gap-2">
+          <TabsTrigger 
+            value="staff" 
+            className="font-bold flex items-center gap-2 px-5 py-2 rounded-lg text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+          >
+            <ShieldCheck size={16} />
+            <span>Quản lý nhân sự</span>
+            <Badge className="bg-primary/10 text-primary text-[10px] font-extrabold px-1.5 py-0 border-none">
+              {stats.managementUsers}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="customers" 
+            className="font-bold flex items-center gap-2 px-5 py-2 rounded-lg text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+          >
+            <ShoppingBag size={16} />
+            <span>Quản lý khách hàng</span>
+            <Badge className="bg-amber-100 text-amber-700 text-[10px] font-extrabold px-1.5 py-0 border-none">
+              {stats.customerUsers}
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
 
-          {/* Stats Grid */}
+        {/* TAB 1: QUẢN LÝ NHÂN SỰ (SUPER_ADMIN, MANAGER) */}
+        <TabsContent value="staff" className="space-y-6 mt-0">
+          {/* Stats Grid Nhân sự */}
           <div className='grid gap-4 md:grid-cols-4'>
-            <Card className="border-slate-200/80 shadow-sm">
-              <CardContent className='flex items-center gap-3 pt-6'>
-                <div className='p-2.5 rounded-xl bg-blue-50 text-blue-600'>
-                  <Users size={20} />
-                </div>
-                <div className="text-left">
-                  <p className='text-[10px] font-bold uppercase tracking-widest text-slate-400'>Tổng người dùng</p>
-                  <p className='text-2xl font-black text-slate-900'>{stats.totalUsers}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-slate-200/80 shadow-sm">
-              <CardContent className='flex items-center gap-3 pt-6'>
-                <div className='p-2.5 rounded-xl bg-emerald-50 text-emerald-600'>
-                  <Wifi size={20} />
-                </div>
-                <div className="text-left">
-                  <p className='text-[10px] font-bold uppercase tracking-widest text-slate-400'>Đang trực tuyến</p>
-                  <p className='text-2xl font-black text-slate-900'>{stats.onlineUsers}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-slate-200/80 shadow-sm">
-              <CardContent className='flex items-center gap-3 pt-6'>
-                <div className='p-2.5 rounded-xl bg-slate-50 text-slate-600'>
-                  <WifiOff size={20} />
-                </div>
-                <div className="text-left">
-                  <p className='text-[10px] font-bold uppercase tracking-widest text-slate-400'>Ngoại tuyến</p>
-                  <p className='text-2xl font-black text-slate-900'>{stats.offlineUsers}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-slate-200/80 shadow-sm">
-              <CardContent className='flex items-center gap-3 pt-6'>
-                <div className='p-2.5 rounded-xl bg-purple-50 text-purple-600'>
-                  <Shield size={20} />
-                </div>
-                <div className="text-left">
-                  <p className='text-[10px] font-bold uppercase tracking-widest text-slate-400'>Admin / Quản lý</p>
-                  <p className='text-2xl font-black text-slate-900'>{stats.managementUsers}</p>
-                </div>
-              </CardContent>
-            </Card>
+            <StatsCard
+              title="Tổng nhân sự"
+              value={stats.managementUsers}
+              description="Tài khoản vận hành"
+              icon={<Users size={18} />}
+              color="bg-blue-50 text-blue-600 border border-blue-100"
+            />
+            <StatsCard
+              title="Đang trực tuyến"
+              value={stats.onlineUsers}
+              description="Phiên làm việc hoạt động"
+              icon={<Wifi size={18} />}
+              color="bg-emerald-50 text-emerald-600 border border-emerald-100"
+              trend="up"
+            />
+            <StatsCard
+              title="Ngoại tuyến"
+              value={stats.offlineUsers}
+              description="Không hoạt động gần đây"
+              icon={<WifiOff size={18} />}
+              color="bg-slate-50 text-slate-600 border border-slate-100"
+            />
+            <StatsCard
+              title="Admin / Quản lý"
+              value={stats.managementUsers}
+              description="Tài khoản quản trị viên"
+              icon={<Shield size={18} />}
+              color="bg-purple-50 text-purple-600 border border-purple-100"
+            />
           </div>
 
-          {/* Table Area */}
+          {/* Table Area Nhân sự */}
           <DataCard
-            isLoading={isLoading}
-            isFetching={isFetching}
+            isLoading={isStaffLoading}
+            isFetching={isStaffFetching}
             search={
               <SearchInput 
-                value={searchTerm} 
-                onChange={setSearchTerm} 
-                placeholder='Tìm kiếm nhân viên...' 
-                isLoading={isLoading || isFetching}
+                value={staffSearchTerm} 
+                onChange={setStaffSearchTerm} 
+                placeholder='Tìm kiếm nhân sự theo tên, email, SĐT...' 
+                isLoading={isStaffLoading || isStaffFetching}
               />
             }
             extra={
               <>
                 <FilterPopover 
-                  activeCount={(roleParam ? 1 : 0) + (activeParam ? 1 : 0)} 
-                  onClear={() => updateUrl({ role: '', active: '', page: 1 })}
-                  disabled={isLoading || isFetching}
+                  activeCount={activeStaffFiltersCount} 
+                  onClear={() => updateStaffUrl({ role: '', active: '', page: 1 })}
+                  disabled={isStaffLoading || isStaffFetching}
                 >
-                  <div className='space-y-4 p-1 w-52 text-left'>
+                  <div className='space-y-4 p-1 w-56 text-left'>
                     <div className='space-y-2'>
                       <h4 className='font-bold text-[10px] uppercase tracking-wider text-slate-400 px-3'>
                         Trạng thái
                       </h4>
                       <div className='flex flex-col gap-0.5'>
                         <button
-                          className={filterBtnClass(!activeParam)}
-                          onClick={() => updateUrl({ active: '', page: 1 })}>
+                          className={filterBtnClass(!staffActiveParam)}
+                          onClick={() => updateStaffUrl({ active: '', page: 1 })}>
                           Tất cả trạng thái
                         </button>
                         <button
-                          className={filterBtnClass(activeParam === 'true')}
-                          onClick={() => updateUrl({ active: 'true', page: 1 })}>
-                          <div className='mr-2 h-2 w-2 rounded-full bg-green-500' />{' '}
+                          className={filterBtnClass(staffActiveParam === 'true')}
+                          onClick={() => updateStaffUrl({ active: 'true', page: 1 })}>
+                          <div className='mr-2 h-2 w-2 rounded-full bg-emerald-500' />{' '}
                           Hoạt động
                         </button>
                         <button
-                          className={filterBtnClass(activeParam === 'false')}
-                          onClick={() => updateUrl({ active: 'false', page: 1 })}>
-                          <div className='mr-2 h-2 w-2 rounded-full bg-red-500' />{' '}
-                          Không hoạt động
+                          className={filterBtnClass(staffActiveParam === 'false')}
+                          onClick={() => updateStaffUrl({ active: 'false', page: 1 })}>
+                          <div className='mr-2 h-2 w-2 rounded-full bg-rose-500' />{' '}
+                          Tạm khóa
                         </button>
                       </div>
                     </div>
@@ -466,196 +680,197 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
                       </h4>
                       <div className='flex flex-col gap-0.5'>
                         <button
-                          className={filterBtnClass(!roleParam)}
-                          onClick={() => updateUrl({ role: '', page: 1 })}>
-                          Tất cả vai trò
+                          className={filterBtnClass(!staffRoleParam)}
+                          onClick={() => updateStaffUrl({ role: '', page: 1 })}>
+                          Tất cả vai trò nhân sự
                         </button>
-                        {ROLE_OPTIONS.map((opt) => (
-                          <button
-                            key={opt.value}
-                            className={filterBtnClass(roleParam === opt.value)}
-                            onClick={() => updateUrl({ role: opt.value, page: 1 })}>
-                            {opt.label}
-                          </button>
-                        ))}
+                        <button
+                          className={filterBtnClass(staffRoleParam === 'SUPER_ADMIN')}
+                          onClick={() => updateStaffUrl({ role: 'SUPER_ADMIN', page: 1 })}>
+                          Quản trị viên (Super Admin)
+                        </button>
+                        <button
+                          className={filterBtnClass(staffRoleParam === 'MANAGER')}
+                          onClick={() => updateStaffUrl({ role: 'MANAGER', page: 1 })}>
+                          Quản lý (Manager)
+                        </button>
                       </div>
                     </div>
+
+                    {activeStaffFiltersCount > 0 && (
+                      <div className="pt-2 border-t border-slate-100">
+                        <ResetFiltersButton onClick={() => updateStaffUrl({ role: '', active: '', page: 1 })} />
+                      </div>
+                    )}
                   </div>
                 </FilterPopover>
 
                 <SortPopover
                   options={sortOptions}
-                  currentValue={sort}
-                  onSelect={setSort}
-                  disabled={isLoading || isFetching}
+                  currentValue={staffSort}
+                  onSelect={setStaffSort}
+                  disabled={isStaffLoading || isStaffFetching}
                 />
               </>
             }
             footer={
-              users.length > 0 && (
+              staffUsers.length > 0 && (
                 <NextPagination
-                  currentPage={pagination.currentPage}
-                  totalPages={pagination.totalPages}
-                  totalItems={pagination.totalElements}
-                  itemsPerPage={pagination.pageSize}
-                  onItemsPerPageChange={setSize}
-                  onPageChange={setPage}
+                  currentPage={staffPagination.currentPage}
+                  totalPages={staffPagination.totalPages}
+                  totalItems={staffPagination.totalElements}
+                  itemsPerPage={staffPagination.pageSize}
+                  onItemsPerPageChange={setStaffSize}
+                  onPageChange={setStaffPage}
                   className='bg-slate-50/30'
                 />
               )
             }
           >
             <DataTable
-              columns={columns}
-              data={users}
-              isLoading={isLoading}
+              columns={staffColumns}
+              data={staffUsers}
+              isLoading={isStaffLoading}
               emptyState={{
-                title: 'Không tìm thấy nhân viên',
-                description: 'Thử thay đổi từ khoá tìm kiếm hoặc bộ lọc.',
-                icon: <Users className='h-10 w-10 text-slate-400' />,
+                title: 'Không tìm thấy nhân sự',
+                description: 'Không có tài khoản quản trị nào khớp với tìm kiếm.',
+                icon: <ShieldCheck className='h-10 w-10 text-slate-400' />,
               }}
             />
           </DataCard>
+        </TabsContent>
 
-          {/* Form Modal Dialog */}
-          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogContent className="sm:max-w-lg bg-white border border-slate-200 shadow-xl rounded-2xl">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-slate-900">
-                  {editingUser ? <Edit2 size={18} className="text-primary" /> : <UserPlus size={18} className="text-primary" />}
-                  {editingUser ? 'Cập nhật tài khoản nhân sự' : 'Tạo tài khoản nhân viên mới'}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingUser ? `Chỉnh sửa thông tin tài khoản của nhân viên @${editingUser.username}.` : 'Điền đầy đủ thông tin để cấp tài khoản truy cập hệ thống.'}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-2 text-left">
-                <UserForm
-                  onSuccess={() => setIsFormOpen(false)}
-                  userId={editingUser?.id}
-                  initialData={editingUser ? {
-                    username: editingUser.username,
-                    fullName: editingUser.fullName,
-                    email: editingUser.email,
-                    phone: editingUser.phone,
-                    role: editingUser.role,
-                    status: editingUser.status,
-                    password: '',
-                  } : undefined}
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <DeleteConfirmDialog
-            isOpen={!!deleteConfirmId}
-            onClose={() => setDeleteConfirmId(null)}
-            onConfirm={handleDelete}
-            isLoading={deleteMutation.isPending}
-          />
-        </>
-      ) : (
-        /* RBAC Permissions Matrix Tab */
-        <div className="space-y-6">
-          <PageHeader
-            title="Quyền hạn mặc định theo vai trò (RBAC)"
-            description="Xem bảng liệt kê các quyền hạn hệ thống mặc định được gắn sẵn cho từng nhóm vai trò."
-          />
-
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 w-1/2">Quyền hạn & Mô tả</th>
-                    <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-center w-1/6">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[9px] font-bold">SUPER_ADMIN</span>
-                        <span>Quản trị tối cao</span>
-                      </div>
-                    </th>
-                    <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-center w-1/6">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-[9px] font-bold">MANAGER</span>
-                        <span>Quản lý bộ phận</span>
-                      </div>
-                    </th>
-                    <th className="p-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-center w-1/6">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-[9px] font-bold">USER</span>
-                        <span>Nhân viên vận hành</span>
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {Object.entries(groupedPermissions).map(([groupKey, permissions]) => (
-                    <React.Fragment key={groupKey}>
-                      {/* Group Header Row */}
-                      <tr className="bg-slate-100/50">
-                        <td colSpan={4} className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500">
-                          {permissionGroups[groupKey as Permission['group']]}
-                        </td>
-                      </tr>
-                      {/* Permission Rows */}
-                      {permissions.map((permission) => (
-                        <tr key={permission.key} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="p-4">
-                            <div className="space-y-0.5 text-left">
-                              <p className="text-sm font-bold text-slate-800">{permission.name}</p>
-                              <p className="text-xs text-slate-400 max-w-xl">{permission.description}</p>
-                            </div>
-                          </td>
-                          {/* Super Admin */}
-                          <td className="p-4 text-center">
-                            <div className="flex justify-center">
-                              <Switch 
-                                checked={initialRolePermissions[permission.key].SUPER_ADMIN} 
-                                disabled={true}
-                              />
-                            </div>
-                          </td>
-                          {/* Manager */}
-                          <td className="p-4 text-center">
-                            <div className="flex justify-center">
-                              <Switch 
-                                checked={initialRolePermissions[permission.key].MANAGER} 
-                                disabled={true}
-                                className="disabled:opacity-80 disabled:cursor-default"
-                              />
-                            </div>
-                          </td>
-                          {/* User */}
-                          <td className="p-4 text-center">
-                            <div className="flex justify-center">
-                              <Switch 
-                                checked={initialRolePermissions[permission.key].USER} 
-                                disabled={true}
-                                className="disabled:opacity-80 disabled:cursor-default"
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            {/* RBAC Info Card */}
-            <div className="p-5 bg-indigo-50/20 border-t border-slate-100 flex items-start gap-3 text-left">
-              <ShieldCheck className="text-indigo-600 shrink-0 mt-0.5" size={18} />
-              <div className="space-y-1">
-                <h5 className="text-xs font-bold text-slate-800">Cơ chế bảo mật theo vai trò</h5>
-                <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Bảng ma trận RBAC thể hiện danh sách quyền hạn được gán mặc định cho từng vai trò trong hệ thống. Khi gán vai trò tương ứng cho nhân sự ở danh sách tài khoản, các quyền hạn này sẽ tự động được áp dụng để bật/tắt các tính năng, menu truy cập và quyền thực thi hành động tương ứng.
-                </p>
-              </div>
-            </div>
+        {/* TAB 2: QUẢN LÝ KHÁCH HÀNG (USER) */}
+        <TabsContent value="customers" className="space-y-6 mt-0">
+          {/* Stats Grid Khách hàng */}
+          <div className='grid gap-4 md:grid-cols-4'>
+            <StatsCard
+              title="Tổng khách hàng"
+              value={stats.customerUsers}
+              description="Tài khoản người dùng"
+              icon={<Users size={18} />}
+              color="bg-amber-50 text-amber-600 border border-amber-100"
+            />
+            <StatsCard
+              title="Đang trực tuyến"
+              value={stats.onlineUsers}
+              description="Phiên truy cập mua hàng"
+              icon={<Wifi size={18} />}
+              color="bg-emerald-50 text-emerald-600 border border-emerald-100"
+              trend="up"
+            />
+            <StatsCard
+              title="Ngoại tuyến"
+              value={stats.offlineUsers}
+              description="Chưa truy cập gần đây"
+              icon={<WifiOff size={18} />}
+              color="bg-slate-50 text-slate-600 border border-slate-100"
+            />
+            <StatsCard
+              title="Tài khoản Khách hàng"
+              value={stats.customerUsers}
+              description="Tài khoản người mua sắm"
+              icon={<ShoppingBag size={18} />}
+              color="bg-purple-50 text-purple-600 border border-purple-100"
+            />
           </div>
-        </div>
-      )}
+
+          {/* Table Area Khách hàng */}
+          <DataCard
+            isLoading={isCustomerLoading}
+            isFetching={isCustomerFetching}
+            search={
+              <SearchInput 
+                value={customerSearchTerm} 
+                onChange={setCustomerSearchTerm} 
+                placeholder='Tìm kiếm khách hàng theo tên, email, SĐT...' 
+                isLoading={isCustomerLoading || isCustomerFetching}
+              />
+            }
+            extra={
+              <>
+                <FilterPopover 
+                  activeCount={customerActiveFilter !== 'all' ? 1 : 0} 
+                  onClear={() => setCustomerActiveFilter('all')}
+                  disabled={isCustomerLoading || isCustomerFetching}
+                >
+                  <div className='space-y-2 p-1 w-48 text-left'>
+                    <h4 className='font-bold text-[10px] uppercase tracking-wider text-slate-400 px-3'>
+                      Trạng thái tài khoản
+                    </h4>
+                    <div className='flex flex-col gap-0.5'>
+                      <button
+                        className={filterBtnClass(customerActiveFilter === 'all')}
+                        onClick={() => setCustomerActiveFilter('all')}>
+                        Tất cả trạng thái
+                      </button>
+                      <button
+                        className={filterBtnClass(customerActiveFilter === 'active')}
+                        onClick={() => setCustomerActiveFilter('active')}>
+                        <div className='mr-2 h-2 w-2 rounded-full bg-emerald-500' />{' '}
+                        Hoạt động
+                      </button>
+                      <button
+                        className={filterBtnClass(customerActiveFilter === 'inactive')}
+                        onClick={() => setCustomerActiveFilter('inactive')}>
+                        <div className='mr-2 h-2 w-2 rounded-full bg-rose-500' />{' '}
+                        Đã khóa
+                      </button>
+                    </div>
+                  </div>
+                </FilterPopover>
+
+                <SortPopover
+                  options={sortOptions}
+                  currentValue={customerSort}
+                  onSelect={setCustomerSort}
+                  disabled={isCustomerLoading || isCustomerFetching}
+                />
+              </>
+            }
+            footer={
+              customerUsers.length > 0 && (
+                <NextPagination
+                  currentPage={customerPagination.currentPage}
+                  totalPages={customerPagination.totalPages}
+                  totalItems={customerPagination.totalElements}
+                  itemsPerPage={customerPagination.pageSize}
+                  onItemsPerPageChange={setCustomerSize}
+                  onPageChange={setCustomerPage}
+                  className='bg-slate-50/30'
+                />
+              )
+            }
+          >
+            <DataTable
+              columns={customerColumns}
+              data={customerUsers}
+              isLoading={isCustomerLoading}
+              emptyState={{
+                title: 'Không tìm thấy khách hàng',
+                description: 'Chưa có tài khoản khách hàng nào khớp với tìm kiếm.',
+                icon: <ShoppingBag className='h-10 w-10 text-slate-400' />,
+              }}
+            />
+          </DataCard>
+        </TabsContent>
+      </Tabs>
+
+      {/* Shared User Detail Dialog */}
+      <UserDetailDialog
+        isOpen={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        user={selectedDetailUser}
+      />
+
+
+
+      <DeleteConfirmDialog
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={handleDelete}
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

@@ -60,5 +60,31 @@ export const authApi = {
       throw result;
     }
     return result;
+  },
+
+  googleLogin: async (idToken: string): Promise<LoginResponse> => {
+    const response = await fetch('/api/auth/google', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ idToken }),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw result;
+    }
+    return result;
+  },
+
+  getAccountInfo: async (): Promise<any> => {
+    const { clientFetch } = await import('@/lib/clientFetch');
+    const response = await clientFetch('v1/users/account');
+    const result = await response.json();
+    if (!response.ok) {
+      throw result;
+    }
+    return result;
   }
 };

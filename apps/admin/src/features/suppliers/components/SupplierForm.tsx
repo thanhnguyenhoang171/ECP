@@ -87,7 +87,7 @@ export default function SupplierForm({ onSuccess, initialData, isDialog = false 
                       <FormItem>
                         <AdminFormLabel required>Tên nhà cung cấp</AdminFormLabel>
                         <FormControl>
-                          <Input placeholder="Vd: Công ty TNHH Cung ứng ABC" {...field} className="h-11 border-slate-200 focus:border-blue-500" />
+                          <Input placeholder="Vd: Công ty TNHH Nhập Khẩu Bánh Kẹo ThaiLand Inter Trade" {...field} className="h-11 border-slate-200 focus:border-blue-500" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

@@ -34,6 +34,9 @@ public class ProductResponse {
     @Schema(description = "Brand name", example = "Apple")
     private String brand;
 
+    @Schema(description = "ID of the brand", example = "65f1a2b3c4d5e6f7a8b9c0d1")
+    private String brandId;
+
     @Schema(description = "ID of the category", example = "65f1a2b3c4d5e6f7a8b9c0d1")
     private String categoryId;
 

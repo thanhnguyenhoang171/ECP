@@ -34,7 +34,7 @@ export default function InventoryLedgerView() {
     {
       accessorKey: 'createdAt',
       header: 'Thời gian',
-      cell: (item: typeof mockLedger[0]) => (
+      cell: (item: any) => (
         <span className="text-xs text-slate-500">
           {new Date(item.createdAt).toLocaleString('vi-VN')}
         </span>
@@ -43,24 +43,24 @@ export default function InventoryLedgerView() {
     {
       accessorKey: 'skuName',
       header: 'Sản phẩm',
-      cell: (item: typeof mockLedger[0]) => <span className="text-sm font-bold text-slate-700">{item.skuName}</span>
+      cell: (item: any) => <span className="text-sm font-bold text-slate-700">{item.skuName}</span>
     },
     {
       accessorKey: 'type',
       header: 'Loại GD',
       align: 'center' as const,
-      cell: (item: typeof mockLedger[0]) => {
+      cell: (item: any) => {
         const isPositive = item.quantityChange > 0;
         return (
           <div className="flex items-center gap-1.5">
             {isPositive ? <ArrowDownLeft size={14} className="text-emerald-500" /> : <ArrowUpRight size={14} className="text-rose-500" />}
             <Badge className={cn(
               "text-[10px] border-none",
-              item.type === 'INBOUND' ? "bg-emerald-100 text-emerald-700" :
-              item.type === 'OUTBOUND' ? "bg-rose-100 text-rose-700" :
+              item.type === 'INBOUND' || item.type === 'PURCHASE_RECEIPT' ? "bg-emerald-100 text-emerald-700" :
+              item.type === 'OUTBOUND' || item.type === 'SALES_ISSUE' ? "bg-rose-100 text-rose-700" :
               "bg-amber-100 text-amber-700"
             )}>
-              {item.type === 'INBOUND' ? 'Nhập kho' : item.type === 'OUTBOUND' ? 'Xuất kho' : 'Điều chỉnh'}
+              {item.type === 'INBOUND' || item.type === 'PURCHASE_RECEIPT' ? 'Nhập kho' : item.type === 'OUTBOUND' || item.type === 'SALES_ISSUE' ? 'Xuất kho' : 'Điều chỉnh'}
             </Badge>
           </div>
         );
@@ -70,7 +70,7 @@ export default function InventoryLedgerView() {
       accessorKey: 'quantityChange',
       header: 'Thay đổi',
       align: 'right' as const,
-      cell: (item: typeof mockLedger[0]) => (
+      cell: (item: any) => (
         <span className={cn("font-bold", item.quantityChange > 0 ? "text-emerald-600" : "text-rose-600")}>
           {item.quantityChange > 0 ? `+${item.quantityChange}` : item.quantityChange}
         </span>
@@ -80,7 +80,7 @@ export default function InventoryLedgerView() {
       accessorKey: 'balanceAfter',
       header: 'Tồn sau GD',
       align: 'right' as const,
-      cell: (item: typeof mockLedger[0]) => <span className="font-mono text-sm text-slate-600">{item.balanceAfter}</span>
+      cell: (item: any) => <span className="font-mono text-sm text-slate-600">{item.balanceAfter}</span>
     },
     {
       accessorKey: 'warehouseName',
@@ -90,7 +90,7 @@ export default function InventoryLedgerView() {
     {
       accessorKey: 'referenceCode',
       header: 'Chứng từ',
-      cell: (item: typeof mockLedger[0]) => <span className="text-[11px] font-mono text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded">{item.referenceCode}</span>
+      cell: (item: any) => <span className="text-[11px] font-mono text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded">{item.referenceCode}</span>
     }
   ];
 

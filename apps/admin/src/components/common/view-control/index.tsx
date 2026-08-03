@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Search, Loader2, Download, Filter, ArrowUpDown, Plus, Upload, Edit, Trash2, Eye } from 'lucide-react';
+import { Search, Loader2, Download, Filter, ArrowUpDown, Plus, Upload, Edit, Trash2, Eye, RotateCcw } from 'lucide-react';
 import { Button, Input } from '@/components/common';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -57,6 +57,18 @@ export const ExportButton = ({ onExport, isLoading, label = 'Xuất file', disab
 export const AddNewButton = ({ onClick, label = 'Thêm mới', disabled }: { onClick: () => void; label?: string; disabled?: boolean }) => (
   <Button size='sm' variant='default' onClick={onClick} className='h-9 shadow-md shadow-blue-100' disabled={disabled}>
     <Plus className='mr-2 h-4 w-4' /> {label} 
+  </Button>
+);
+
+export const ResetFiltersButton = ({ onClick, label = 'Đặt lại bộ lọc', disabled }: { onClick: () => void; label?: string; disabled?: boolean }) => (
+  <Button 
+    variant='ghost' 
+    size='sm' 
+    onClick={onClick} 
+    disabled={disabled}
+    className='h-10 text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors'
+  >
+    <RotateCcw className='mr-1.5 h-3.5 w-3.5 text-slate-400 group-hover:text-rose-600' /> {label}
   </Button>
 );
 

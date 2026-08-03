@@ -25,8 +25,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         const result = await authApi.refresh();
 
         if (result.success) {
-          const { id, accessToken, username, email, roles } = result.data;
-          setAuth(accessToken, { id, username, email, roles });
+          const { id, accessToken, email, roles } = result.data;
+          setAuth(accessToken, { id, email, roles });
         }
       } catch (error: any) {
         if (error.status === 401) {

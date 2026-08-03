@@ -10,8 +10,11 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.UUID;
 
+import com.example.ecp_api.dto.request.GoogleLoginRequest;
+
 public interface UserService {
-    UserResponse registerUserByUsername(UserRequest userRequest);
+    UserResponse registerUserByEmail(UserRequest userRequest);
+    UserResponse processGoogleLogin(GoogleLoginRequest googleLoginRequest);
     UserResponse getUserById(UUID id);
     PageResponse<UserResponse> getAllUsers(Pageable pageable);
     PageResponse<UserResponse> searchUsers(UserFilterRequest filter, Pageable pageable);
@@ -19,6 +22,7 @@ public interface UserService {
     void deleteUser(UUID id);
     
     // Auth helpers
-    void updateLastLogin(String username);
+    UserResponse getCurrentUserAccount(String email);
+    void updateLastLogin(String identifier);
     UserStatisticsResponse getStatistics();
 }

@@ -35,8 +35,8 @@ const mockLogs: AuditLog[] = [
     type: 'MANAGEMENT',
     action: 'UPDATE_PRODUCT',
     username: 'admin_thanh',
-    details: 'Thay đổi giá sản phẩm iPhone 15 Pro Max',
-    target: 'iPhone 15 Pro Max',
+    details: 'Thay đổi giá sản phẩm Mực Sấy Bento Thái Lan 20g',
+    target: 'Mực Sấy Bento Thái Lan 20g',
     timestamp: new Date().toISOString(),
   },
   {

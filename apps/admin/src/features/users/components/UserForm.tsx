@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, UserPlus, Save } from 'lucide-react';
+import { Loader2, Save, Image as ImageIcon, Info, ShieldCheck, KeyRound, Upload } from 'lucide-react';
 import {
   Form,
   FormControl,
@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Select,
   SelectContent,
@@ -24,43 +25,57 @@ import {
 } from '@/components/ui/select';
 import { userSchema, UserFormValues } from '../schemas/user.schema';
 import { useCreateUser, useUpdateUser } from '../hooks/use-users';
-import { AdminFormLabel } from '@/components/common';
+import { useUploadFile } from '@/features/files/hooks/use-file-upload';
+import { FormSection, FormGrid, AdminFormLabel, FormActionsBar } from '@/components/common';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface UserFormProps {
   onSuccess: () => void;
+  onCancel?: () => void;
   initialData?: UserFormValues;
   userId?: string;
+  isDialog?: boolean;
 }
 
-export default function UserForm({ onSuccess, initialData, userId }: UserFormProps) {
+export default function UserForm({ onSuccess, onCancel, initialData, userId, isDialog = false }: UserFormProps) {
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
+  const uploadFileMutation = useUploadFile();
+  const [isUploading, setIsUploading] = useState(false);
   const isEdit = !!initialData;
+  const [activeTab, setActiveTab] = useState<'general'>('general');
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
     defaultValues: initialData || {
-      username: '',
       fullName: '',
       email: '',
       phone: '',
       role: 'USER',
       status: 'active',
       password: '',
+      avatarUrl: '',
     },
   });
 
-  // Reset form when initialData changes
   useEffect(() => {
     if (initialData) {
-      form.reset(initialData);
+      form.reset({
+        ...initialData,
+        avatarUrl: initialData.avatarUrl || '',
+      });
     }
   }, [initialData, form]);
 
   const onSubmit = (values: UserFormValues) => {
-    // Validate password for new user
+    if (isUploading) {
+      toast.warning('Ảnh đang được tải lên Cloudinary, vui lòng chờ trong giây lát!');
+      return;
+    }
+
     if (!isEdit && !values.password) {
-      form.setError('password', { type: 'custom', message: 'Mật khẩu bắt buộc đối với nhân viên mới' });
+      form.setError('password', { type: 'custom', message: 'Mật khẩu bắt buộc đối với người dùng mới' });
       return;
     }
 
@@ -84,183 +99,297 @@ export default function UserForm({ onSuccess, initialData, userId }: UserFormPro
     }
   };
 
-  const isLoading = createUserMutation.isPending || updateUserMutation.isPending;
+  const isLoading = createUserMutation.isPending || updateUserMutation.isPending || isUploading;
+  const currentAvatarUrl = form.watch('avatarUrl');
+  const currentFullName = form.watch('fullName');
+
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+  };
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Kích thước tệp quá lớn (tối đa 5MB)");
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      toast.info("Đang tải ảnh lên Cloudinary...");
+      const res = await uploadFileMutation.mutateAsync({ file, folder: 'avatars' });
+      if (res.success && res.data) {
+        form.setValue('avatarUrl', res.data.secure_url, { shouldValidate: true, shouldDirty: true });
+        form.setValue('avatarPublicId' as any, res.data.public_id, { shouldValidate: true, shouldDirty: true });
+        toast.success("Đã tải ảnh đại diện lên Cloudinary thành công!");
+      }
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      toast.error("Lỗi khi tải ảnh lên Cloudinary, vui lòng thử lại.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const tabs = [
+    { id: 'general', label: 'Thông tin chung', icon: Info },
+  ];
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Tên tài khoản */}
-          <FormField
-            control={form.control}
-            name="username"
-            render={({ field }) => (
-              <FormItem className="space-y-1.5">
-                <AdminFormLabel required>Tên đăng nhập</AdminFormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="Nhập tên đăng nhập (vd: staff_lan)..." 
-                    disabled={isEdit || isLoading} 
-                    className="h-10 text-sm focus-visible:ring-2 focus-visible:ring-primary/20"
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Họ và tên */}
-          <FormField
-            control={form.control}
-            name="fullName"
-            render={({ field }) => (
-              <FormItem className="space-y-1.5">
-                <AdminFormLabel required>Họ và tên</AdminFormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="Nhập họ và tên đầy đủ..." 
-                    disabled={isLoading} 
-                    className="h-10 text-sm focus-visible:ring-2 focus-visible:ring-primary/20"
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Email */}
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem className="space-y-1.5">
-                <AdminFormLabel required>Email</AdminFormLabel>
-                <FormControl>
-                  <Input 
-                    type="email"
-                    placeholder="Nhập địa chỉ email..." 
-                    disabled={isLoading} 
-                    className="h-10 text-sm focus-visible:ring-2 focus-visible:ring-primary/20"
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Số điện thoại */}
-          <FormField
-            control={form.control}
-            name="phone"
-            render={({ field }) => (
-              <FormItem className="space-y-1.5">
-                <AdminFormLabel required>Số điện thoại</AdminFormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="Nhập số điện thoại (vd: 0912345678)..." 
-                    disabled={isLoading} 
-                    className="h-10 text-sm focus-visible:ring-2 focus-visible:ring-primary/20"
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Vai trò */}
-          <FormField
-            control={form.control}
-            name="role"
-            render={({ field }) => (
-              <FormItem className="space-y-1.5">
-                <AdminFormLabel required>Vai trò</AdminFormLabel>
-                <Select
-                  disabled={isLoading || (isEdit && initialData?.role === 'SUPER_ADMIN')}
-                  onValueChange={field.onChange}
-                  value={field.value}
+      <form onSubmit={form.handleSubmit(onSubmit)} className={cn("space-y-6", isDialog ? "pb-2" : "pb-24")}>
+        
+        {/* Navigation Tabs Header */}
+        {!isDialog && (
+          <div className="flex border-b border-slate-200 gap-1 overflow-x-auto pb-px scrollbar-none bg-slate-50/50 p-1.5 rounded-xl">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all bg-white text-blue-600 shadow-sm border border-slate-200/50"
                 >
-                  <FormControl>
-                    <SelectTrigger className="h-10 text-sm focus:ring-2 focus:ring-primary/20">
-                      <SelectValue placeholder="Chọn vai trò cho nhân viên" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent className="bg-white border-slate-200">
-                    <SelectItem value="USER" className="text-sm cursor-pointer">Nhân viên (User)</SelectItem>
-                    <SelectItem value="MANAGER" className="text-sm cursor-pointer">Quản lý (Manager)</SelectItem>
-                    <SelectItem value="SUPER_ADMIN" className="text-sm cursor-pointer">Quản trị viên (Super Admin)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                  <Icon size={14} className="text-blue-600" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-          {/* Mật khẩu */}
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem className="space-y-1.5">
-                <AdminFormLabel required={!isEdit}>
-                  Mật khẩu {isEdit && <span className="text-[10px] text-slate-400 font-normal">(để trống nếu không đổi)</span>}
-                </AdminFormLabel>
-                <FormControl>
-                  <Input 
-                    type="password"
-                    placeholder={isEdit ? "••••••••" : "Nhập mật khẩu..."} 
-                    disabled={isLoading} 
-                    className="h-10 text-sm focus-visible:ring-2 focus-visible:ring-primary/20"
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        {/* Trạng thái hoạt động */}
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem className="flex items-center justify-between p-3.5 rounded-lg border border-slate-200/80 bg-slate-50/50">
-              <div className="space-y-0.5">
-                <AdminFormLabel className="text-slate-800">Trạng thái tài khoản</AdminFormLabel>
-                <FormDescription className="text-[10px] text-slate-400">Cho phép nhân viên đăng nhập vào hệ thống vận hành.</FormDescription>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value === 'active'}
-                  onCheckedChange={(checked) => field.onChange(checked ? 'active' : 'inactive')}
-                  disabled={isLoading || (isEdit && initialData?.role === 'SUPER_ADMIN')}
+        {/* 2-Column Main Layout Grid */}
+        <div className={cn("grid grid-cols-1 gap-8 animate-in fade-in-30", !isDialog && "lg:grid-cols-12")}>
+          
+          {/* Cột trái (8 cột): Thông tin cá nhân, Phân quyền & Bảo mật */}
+          <div className={cn("space-y-6", !isDialog && "lg:col-span-8")}>
+            
+            {/* Section 1: Thông tin cơ bản */}
+            <FormSection
+              title="Thông tin cơ bản"
+              description="Nhập các thông tin định danh chính của tài khoản."
+            >
+              <FormGrid cols={2}>
+                {/* Họ và tên */}
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <AdminFormLabel required>Họ và tên</AdminFormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Nhập họ và tên đầy đủ..." 
+                          disabled={isLoading} 
+                          className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </FormControl>
-            </FormItem>
-          )}
-        />
 
-        {/* Footer Actions */}
-        <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="font-bold flex items-center gap-1.5 shadow-md h-10 px-5"
-          >
-            {isLoading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : isEdit ? (
-              <Save size={16} />
-            ) : (
-              <UserPlus size={16} />
-            )}
-            {isEdit ? 'Lưu thay đổi' : 'Thêm nhân viên'}
-          </Button>
+                {/* Email */}
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <AdminFormLabel required>Email đăng nhập</AdminFormLabel>
+                      <FormControl>
+                        <Input 
+                          type="email"
+                          placeholder="Nhập địa chỉ email..." 
+                          disabled={isLoading} 
+                          className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Số điện thoại */}
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5 md:col-span-2">
+                      <AdminFormLabel required>Số điện thoại</AdminFormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Nhập số điện thoại liên hệ (vd: 0912345678)..." 
+                          disabled={isLoading} 
+                          className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-mono text-sm" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </FormGrid>
+            </FormSection>
+
+            {/* Section 2: Phân loại & Hiển thị */}
+            <FormSection
+              title="Phân loại & Hiển thị"
+              description="Cấu hình vai trò hệ thống và trạng thái tài khoản."
+            >
+              <FormGrid cols={2}>
+                {/* Vai trò */}
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <AdminFormLabel required>Vai trò hệ thống</AdminFormLabel>
+                      <Select
+                        disabled={isLoading || (isEdit && initialData?.role === 'SUPER_ADMIN')}
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white">
+                            <SelectValue placeholder="Chọn vai trò cho tài khoản" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-white border-slate-200">
+                          <SelectItem value="USER" className="text-sm cursor-pointer">Khách hàng (User)</SelectItem>
+                          <SelectItem value="MANAGER" className="text-sm cursor-pointer">Quản lý (Manager)</SelectItem>
+                          <SelectItem value="SUPER_ADMIN" className="text-sm cursor-pointer">Admin (Super Admin)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Trạng thái hoạt động */}
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/50 mt-1">
+                      <div className="space-y-0.5">
+                        <AdminFormLabel className="text-slate-800">Kích hoạt tài khoản</AdminFormLabel>
+                        <FormDescription className="text-[10px] text-slate-400">Cho phép truy cập sắm hoặc quản trị.</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value === 'active'}
+                          onCheckedChange={(checked) => field.onChange(checked ? 'active' : 'inactive')}
+                          disabled={isLoading || (isEdit && initialData?.role === 'SUPER_ADMIN')}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </FormGrid>
+            </FormSection>
+
+            {/* Section 3: Bảo mật */}
+            <FormSection
+              title="Bảo mật tài khoản"
+              description="Đặt mật khẩu đăng nhập mới hoặc để trống nếu giữ nguyên."
+            >
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem className="space-y-1.5">
+                    <AdminFormLabel required={!isEdit}>
+                      Mật khẩu truy cập {isEdit && <span className="text-[10px] text-slate-400 font-normal">(Đóng băng / Để trống nếu giữ nguyên)</span>}
+                    </AdminFormLabel>
+                    <FormControl>
+                      <Input 
+                        type="password"
+                        placeholder={isEdit ? "•••••••• (Để trống nếu giữ nguyên mật khẩu cũ)" : "Nhập mật khẩu truy cập mới..."} 
+                        disabled={isLoading} 
+                        className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </FormSection>
+          </div>
+
+          {/* Cột phải (4 cột): Hình ảnh đại diện Avatar */}
+          <div className={cn("space-y-6", !isDialog && "lg:col-span-4")}>
+            <FormSection
+              title="Hình ảnh đại diện"
+              description="Ảnh đại diện hiển thị đại diện cho tài khoản người dùng."
+            >
+              <div className="space-y-4">
+                <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 hover:bg-slate-50 transition-all text-center group">
+                  <Avatar className="h-28 w-28 border-4 border-white shadow-lg ring-1 ring-slate-200/80 mb-4">
+                    {currentAvatarUrl && <AvatarImage src={currentAvatarUrl} alt={currentFullName || 'Avatar'} className="object-cover" />}
+                    <AvatarFallback className="bg-blue-100 text-blue-700 font-black text-2xl">
+                      {getInitials(currentFullName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileUpload} 
+                    accept="image/*" 
+                    className="hidden" 
+                  />
+
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="h-9 px-4 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border-slate-200 gap-1.5 shadow-sm rounded-xl"
+                  >
+                    <Upload size={14} className="text-blue-600" />
+                    <span>Tải ảnh lên</span>
+                  </Button>
+                  <p className="text-[11px] text-slate-400 mt-2">Hỗ trợ JPG, PNG, WebP (Tối đa 5MB)</p>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="avatarUrl"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <AdminFormLabel className="text-[11px]">Đường dẫn ảnh (URL)</AdminFormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Hoặc dán URL ảnh (https://...)..." 
+                          disabled={isLoading} 
+                          className="h-9 text-xs bg-white border-slate-200 focus:border-blue-500 font-mono" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </FormSection>
+          </div>
         </div>
+
+        {/* Form Actions Bar */}
+        <FormActionsBar
+          onCancel={onCancel || onSuccess}
+          isSubmitting={isLoading}
+          submitText={isEdit ? 'Cập nhật tài khoản' : 'Tạo tài khoản mới'}
+          activeTabLabel={isEdit ? `Chỉnh sửa: ${currentFullName}` : 'Tạo người dùng mới'}
+          isDialog={isDialog}
+        />
       </form>
     </Form>
   );

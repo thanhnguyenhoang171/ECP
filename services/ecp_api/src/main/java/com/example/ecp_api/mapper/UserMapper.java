@@ -6,9 +6,11 @@ import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.PaginationResponse;
 import com.example.ecp_api.dto.response.UserResponse;
 import com.example.ecp_api.entity.jpa.User;
+import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
@@ -18,7 +20,6 @@ public interface UserMapper {
 
     // Convert Request -> Entity (CREATE)
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "email", ignore = true)
     @Mapping(target = "passwordHash", ignore = true)
     @Mapping(target = "role", ignore = true)
     @Mapping(target = "active", ignore = true)
@@ -36,6 +37,7 @@ public interface UserMapper {
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "profile.firstName", source = "firstName")
     @Mapping(target = "profile.lastName", source = "lastName")
+    @Mapping(target = "profile.phoneNumber", source = "phoneNumber")
     @Mapping(target = "profile.dob", source = "dob")
     @Mapping(target = "profile.gender", source = "gender")
     User toEntity(UserRequest userRequest);
@@ -43,9 +45,11 @@ public interface UserMapper {
 
     // Convert Entity -> Response (READ)
     @Mapping(target = "isActive", source = "active")
+    @Mapping(target = "phoneNumber", source = "profile.phoneNumber")
     @Mapping(target = "firstName", source = "profile.firstName")
     @Mapping(target = "lastName", source = "profile.lastName")
     @Mapping(target = "avatarUrl", source = "profile.avatarUrl")
+    @Mapping(target = "avatarPublicId", source = "profile.avatarPublicId")
     @Mapping(target = "dob", source = "profile.dob")
     @Mapping(target = "gender", source = "profile.gender")
     @Mapping(target = "loyaltyPoints", source = "profile.loyaltyPoints")
@@ -76,12 +80,10 @@ public interface UserMapper {
 
 
     // Update Entity from Request (UPDATE)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "email", ignore = true)
-    @Mapping(target = "username", ignore = true)
     @Mapping(target = "passwordHash", ignore = true)
-    @Mapping(target = "role", ignore = true)
-    @Mapping(target = "active", ignore = true)
     @Mapping(target = "emailVerified", ignore = true)
     @Mapping(target = "phoneVerified", ignore = true)
     @Mapping(target = "provider", ignore = true)
@@ -96,6 +98,9 @@ public interface UserMapper {
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "profile.firstName", source = "firstName")
     @Mapping(target = "profile.lastName", source = "lastName")
+    @Mapping(target = "profile.phoneNumber", source = "phoneNumber")
+    @Mapping(target = "profile.avatarUrl", source = "avatarUrl")
+    @Mapping(target = "profile.avatarPublicId", source = "avatarPublicId")
     @Mapping(target = "profile.dob", source = "dob")
     @Mapping(target = "profile.gender", source = "gender")
     void updateUserFromRequest(UserUpdateRequest request, @MappingTarget User user);

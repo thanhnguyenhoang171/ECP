@@ -28,20 +28,13 @@ export async function POST() {
       return NextResponse.json(data, { status: response.status });
     }
 
-    const { id, accessToken, username, email, roles } = data.data;
-
-    // We keep the same refresh token or backend might have returned a new one (not in current backend code)
-    // If backend returns a new one, we should update the cookie here.
+    const { accessToken } = data.data;
 
     return NextResponse.json({
       success: true,
       message: 'Token refreshed',
       data: {
-        id,
         accessToken,
-        username,
-        email,
-        roles
       }
     });
 

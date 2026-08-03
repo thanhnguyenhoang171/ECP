@@ -19,9 +19,6 @@ public class UserResponse {
     @Schema(description = "Unique user ID (UUID)", example = "550e8400-e29b-41d4-a716-446655440000")
     private UUID id;
 
-    @Schema(description = "Account username", example = "johndoe")
-    private String username;
-
     @Schema(description = "Email address", example = "john.doe@example.com")
     private String email;
 
@@ -42,6 +39,9 @@ public class UserResponse {
 
     @Schema(description = "URL to user's avatar image")
     private String avatarUrl;
+
+    @Schema(description = "Cloudinary public ID for avatar")
+    private String avatarPublicId;
 
     @Schema(description = "Date of birth")
     private LocalDate dob;

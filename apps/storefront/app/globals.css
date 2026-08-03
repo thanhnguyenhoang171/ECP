@@ -23,7 +23,10 @@ html {
 }
 
 body {
-  background: var(--background);
+  background-color: #faf6f0 !important;
+  background-image: radial-gradient(rgba(217, 119, 6, 0.22) 1.2px, transparent 1.2px) !important;
+  background-size: 24px 24px !important;
+  background-attachment: fixed !important;
   color: var(--foreground);
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
 }
@@ -35,5 +38,74 @@ body {
 
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out forwards;
+}
+
+/* ─── Custom Sonner Toast Styles (6 Distinct States) ────────────────────────── */
+[data-sonner-toast] {
+  border-radius: 14px !important;
+  backdrop-filter: blur(10px) !important;
+  font-family: var(--font-inter), system-ui, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  padding: 12px 20px !important;
+  box-shadow: 0 20px 25px -5px rgba(30, 27, 24, 0.12), 0 8px 10px -6px rgba(30, 27, 24, 0.08) !important;
+}
+
+/* 1. Default Toast */
+[data-sonner-toast][data-type="default"],
+[data-sonner-toast]:not([data-type]) {
+  background: rgba(30, 27, 24, 0.96) !important;
+  color: #F5C542 !important;
+  border: 1px solid rgba(245, 197, 66, 0.5) !important;
+}
+
+/* 2. Success Toast */
+[data-sonner-toast][data-type="success"] {
+  background: rgba(240, 253, 244, 0.96) !important;
+  color: #14532D !important;
+  border: 1px solid rgba(74, 222, 128, 0.7) !important;
+}
+[data-sonner-toast][data-type="success"] [data-icon] {
+  color: #16A34A !important;
+}
+
+/* 3. Error Toast */
+[data-sonner-toast][data-type="error"] {
+  background: rgba(254, 242, 242, 0.96) !important;
+  color: #7F1D1D !important;
+  border: 1px solid rgba(248, 113, 113, 0.7) !important;
+}
+[data-sonner-toast][data-type="error"] [data-icon] {
+  color: #DC2626 !important;
+}
+
+/* 4. Warning Toast */
+[data-sonner-toast][data-type="warning"] {
+  background: rgba(255, 251, 235, 0.96) !important;
+  color: #78350F !important;
+  border: 1px solid rgba(245, 158, 11, 0.7) !important;
+}
+[data-sonner-toast][data-type="warning"] [data-icon] {
+  color: #D97706 !important;
+}
+
+/* 5. Info Toast */
+[data-sonner-toast][data-type="info"] {
+  background: rgba(240, 249, 255, 0.96) !important;
+  color: #0C4A6E !important;
+  border: 1px solid rgba(56, 189, 248, 0.7) !important;
+}
+[data-sonner-toast][data-type="info"] [data-icon] {
+  color: #0284C7 !important;
+}
+
+/* 6. Loading Toast */
+[data-sonner-toast][data-type="loading"] {
+  background: rgba(255, 253, 247, 0.96) !important;
+  color: #1E1B18 !important;
+  border: 1px solid rgba(245, 197, 66, 0.8) !important;
+}
+[data-sonner-toast][data-type="loading"] [data-icon] {
+  color: #F5C542 !important;
 }
 

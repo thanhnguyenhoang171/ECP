@@ -79,7 +79,11 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         return uploadResults;
     }
 
+    @Override
     public void delete(String publicId){
+        if (publicId == null || publicId.trim().isEmpty()) {
+            return;
+        }
         try {
             this.cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
             log.info("Delete file successfully : {}", publicId);
@@ -88,5 +92,17 @@ public class CloudinaryServiceImpl implements CloudinaryService {
             throw new RuntimeException(e);
         }
     }
-    
+
+    @Override
+    public void deleteByUrl(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            return;
+        }
+        String publicId = CloudinaryUtils.extractPublicId(url);
+        if (publicId != null && !publicId.trim().isEmpty()) {
+            delete(publicId);
+        } else {
+            log.warn("Could not extract public_id from URL: {}", url);
+        }
+    }
 }

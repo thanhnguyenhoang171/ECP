@@ -1,11 +1,10 @@
 import { User } from '../types/user.interface';
-import { PageResponse } from '@/types/pagination';
+import { PageResponse, PaginationInfo } from '@/types/pagination';
 import { clientFetch } from '@/lib/clientFetch';
-import { toApiPage, syncPagination } from '@/lib/utils';
+import { toApiPage } from '@/lib/utils';
 
 export interface BackendUserResponse {
   id: string;
-  username: string;
   email: string;
   phoneNumber?: string;
   role: 'SUPER_ADMIN' | 'MANAGER' | 'USER';
@@ -14,6 +13,7 @@ export interface BackendUserResponse {
   firstName?: string;
   lastName?: string;
   avatarUrl?: string;
+  avatarPublicId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -22,15 +22,19 @@ export const mapBackendUserToFrontend = (b: BackendUserResponse): User => {
   const isAct = b.active !== undefined ? b.active : (b.isActive !== undefined ? b.isActive : true);
   return {
     id: b.id,
-    username: b.username,
-    fullName: [b.firstName, b.lastName].filter(Boolean).join(' ').trim() || b.username || b.email,
+    fullName: [b.firstName, b.lastName].filter(Boolean).join(' ').trim() || b.email,
     email: b.email,
     phone: b.phoneNumber || '',
     role: b.role,
     status: isAct ? 'active' : 'inactive',
-    isOnline: b.id === 'u-1' || b.id === 'u-2', // Giả lập online
+    isOnline: b.id === 'u-1' || b.id === 'u-2',
     lastActive: 'Không rõ',
     createdAt: b.createdAt ? b.createdAt.split('T')[0] : '',
+    firstName: b.firstName,
+    lastName: b.lastName,
+    avatarUrl: b.avatarUrl,
+    avatarPublicId: b.avatarPublicId,
+    updatedAt: b.updatedAt,
   };
 };
 
@@ -38,148 +42,171 @@ export const mapBackendUserToFrontend = (b: BackendUserResponse): User => {
 let mockUsers: BackendUserResponse[] = [
   {
     id: 'u-1',
-    username: 'admin',
-    email: 'admin@cacao.com',
-    phoneNumber: '0912345678',
+    email: 'admin@ecp.com',
+    phoneNumber: '0901234567',
     role: 'SUPER_ADMIN',
     active: true,
-    firstName: 'Hùng',
-    lastName: 'Nguyễn',
-    createdAt: '2026-01-15T08:30:00Z',
+    firstName: 'Quản trị viên',
+    lastName: 'Hệ thống',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+    createdAt: '2026-01-15T08:00:00Z',
   },
   {
     id: 'u-2',
-    username: 'manager_quang',
-    email: 'quang.manager@cacao.com',
-    phoneNumber: '0987654321',
+    email: 'manager.ban@ecp.com',
+    phoneNumber: '0912345678',
     role: 'MANAGER',
     active: true,
-    firstName: 'Quang',
-    lastName: 'Trần',
-    createdAt: '2026-02-10T14:45:00Z',
+    firstName: 'Nguyễn Văn',
+    lastName: 'Quản lý',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+    createdAt: '2026-02-01T09:30:00Z',
   },
   {
     id: 'u-3',
-    username: 'staff_an',
-    email: 'an.staff@cacao.com',
-    phoneNumber: '0905123456',
+    email: 'customer.an@gmail.com',
+    phoneNumber: '0987654321',
     role: 'USER',
     active: true,
-    firstName: 'An',
-    lastName: 'Phạm',
-    createdAt: '2026-03-22T09:15:00Z',
+    firstName: 'Trần Văn',
+    lastName: 'An',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+    createdAt: '2026-03-10T14:15:00Z',
   },
-  {
-    id: 'u-4',
-    username: 'staff_binh',
-    email: 'binh.staff@cacao.com',
-    phoneNumber: '0935987654',
-    role: 'USER',
-    active: false,
-    firstName: 'Bình',
-    lastName: 'Lê',
-    createdAt: '2026-04-05T16:00:00Z',
-  }
 ];
 
 export const userApi = {
-  // Lấy danh sách người dùng có phân trang và lọc
+  // Lấy danh sách phân trang (kết nối Backend API /v1/users)
   getPaged: async (params: {
     page: number;
     size: number;
     sort?: string;
     keyword?: string;
     role?: 'SUPER_ADMIN' | 'MANAGER' | 'USER';
+    roles?: string[] | string;
     active?: boolean;
   }): Promise<PageResponse<User>> => {
     try {
-      const query = new URLSearchParams();
-      query.append('page', toApiPage(params.page).toString());
-      query.append('size', params.size.toString());
-      if (params.sort) query.append('sort', params.sort);
-      if (params.keyword) query.append('keyword', params.keyword);
-      if (params.role) query.append('role', params.role);
-      if (params.active !== undefined)
-        query.append('active', params.active.toString());
+      const apiPage = toApiPage(params.page);
+      const queryParams = new URLSearchParams();
+      queryParams.append('page', apiPage.toString());
+      queryParams.append('size', params.size.toString());
+      if (params.sort) queryParams.append('sort', params.sort);
+      if (params.keyword) queryParams.append('keyword', params.keyword);
 
-      const res = await clientFetch(`v1/users?${query.toString()}`);
+      if (params.roles) {
+        const rolesList = Array.isArray(params.roles) ? params.roles : params.roles.split(',');
+        rolesList.forEach(r => queryParams.append('roles', r.trim()));
+      } else if (params.role) {
+        queryParams.append('roles', params.role);
+      }
+
+      if (params.active !== undefined) queryParams.append('active', params.active.toString());
+
+      const res = await clientFetch(`v1/users?${queryParams.toString()}`);
       if (res.ok) {
-        const result: PageResponse<BackendUserResponse> = await res.json();
-        const mappedData: User[] = (result.data || []).map(mapBackendUserToFrontend);
-        const mappedResult: PageResponse<User> = {
-          ...result,
-          data: mappedData,
+        const result = await res.json();
+        const items = (result.data || []).map(mapBackendUserToFrontend);
+        const bePg = result.pagination || {};
+        const pg: PaginationInfo = {
+          currentPage: bePg.currentPage || params.page,
+          totalPages: bePg.totalPages || 1,
+          totalElements: bePg.totalElements || items.length,
+          pageSize: bePg.pageSize || params.size,
+          first: bePg.first ?? bePg.isFirst ?? (params.page === 1),
+          last: bePg.last ?? bePg.isLast ?? (params.page >= (bePg.totalPages || 1)),
         };
-        return syncPagination<PageResponse<User>>(mappedResult);
+
+        return {
+          success: true,
+          message: result.message || 'Lấy danh sách người dùng thành công',
+          data: items,
+          pagination: pg,
+        };
       }
     } catch (e) {
-      console.warn('Backend getPaged failed, using mock fallback', e);
+      console.warn('Backend fetch failed, using mock fallback', e);
     }
 
-    // Fallback logic
+    // Mock fallback
     let filtered = [...mockUsers];
     if (params.keyword) {
       const kw = params.keyword.toLowerCase();
       filtered = filtered.filter(u => 
-        u.username.toLowerCase().includes(kw) || 
-        u.email.toLowerCase().includes(kw) ||
+        u.email.toLowerCase().includes(kw) || 
         (u.firstName && u.firstName.toLowerCase().includes(kw)) ||
-        (u.lastName && u.lastName.toLowerCase().includes(kw))
+        (u.lastName && u.lastName.toLowerCase().includes(kw)) ||
+        (u.phoneNumber && u.phoneNumber.includes(kw))
       );
     }
-    if (params.role) {
+    if (params.roles) {
+      const rolesList = Array.isArray(params.roles) ? params.roles : params.roles.split(',');
+      filtered = filtered.filter(u => rolesList.includes(u.role));
+    } else if (params.role) {
       filtered = filtered.filter(u => u.role === params.role);
     }
     if (params.active !== undefined) {
-      filtered = filtered.filter(u => {
-        const isAct = u.active !== undefined ? u.active : (u.isActive !== undefined ? u.isActive : true);
-        return isAct === params.active;
-      });
+      filtered = filtered.filter(u => u.active === params.active);
     }
 
-    // Sorting
-    if (params.sort) {
-      const [field, order] = params.sort.split(',');
-      filtered.sort((a, b) => {
-        let valA = (a as any)[field] || '';
-        let valB = (b as any)[field] || '';
-        if (field === 'createdAt') {
-          valA = new Date(valA || 0).getTime();
-          valB = new Date(valB || 0).getTime();
-        }
-        if (valA < valB) return order === 'asc' ? -1 : 1;
-        if (valA > valB) return order === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-
-    const totalElements = filtered.length;
-    const totalPages = Math.ceil(totalElements / params.size) || 1;
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / params.size) || 1;
     const start = (params.page - 1) * params.size;
-    const end = start + params.size;
-    const paginated = filtered.slice(start, end);
+    const pagedItems = filtered.slice(start, start + params.size).map(mapBackendUserToFrontend);
 
     return {
       success: true,
-      data: paginated.map(mapBackendUserToFrontend),
+      message: 'Lấy dữ liệu thành công (Mock)',
+      data: pagedItems,
       pagination: {
         currentPage: params.page,
-        totalPages: totalPages,
-        totalElements: totalElements,
+        totalPages,
+        totalElements: total,
         pageSize: params.size,
-        last: params.page >= totalPages,
         first: params.page === 1,
-      }
+        last: params.page >= totalPages,
+      },
     };
   },
 
-  // Tạo mới nhân viên
+  // Lấy thông tin chi tiết 1 người dùng theo ID
+  getById: async (id: string): Promise<User> => {
+    try {
+      const res = await clientFetch(`v1/users/${id}`);
+      if (res.ok) {
+        const result = await res.json();
+        return mapBackendUserToFrontend(result.data);
+      }
+    } catch (e) {
+      console.warn('Backend getById failed, using mock fallback', e);
+    }
+    const found = mockUsers.find(u => u.id === id);
+    if (!found) throw new Error('Không tìm thấy người dùng');
+    return mapBackendUserToFrontend(found);
+  },
+
+  // Tạo mới nhân viên / người dùng
   create: async (data: any): Promise<User> => {
+    const names = (data.fullName || '').trim().split(' ');
+    const lastName = names.length > 1 ? names[names.length - 1] : '';
+    const firstName = names.length > 1 ? names.slice(0, names.length - 1).join(' ') : (data.fullName || '');
+
+    const payload = {
+      email: data.email,
+      firstName: data.firstName || firstName,
+      lastName: data.lastName || lastName,
+      phoneNumber: data.phoneNumber || data.phone,
+      role: data.role || 'USER',
+      active: data.active !== undefined ? data.active : (data.status === 'active'),
+      avatarUrl: data.avatarUrl || '',
+      avatarPublicId: data.avatarPublicId || '',
+    };
+
     try {
       const res = await clientFetch(`v1/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         const result = await res.json();
@@ -190,19 +217,16 @@ export const userApi = {
     }
 
     // Fallback logic
-    const names = data.fullName.trim().split(' ');
-    const lastName = names[names.length - 1] || '';
-    const firstName = names.slice(0, names.length - 1).join(' ') || data.fullName;
-
     const newUser: BackendUserResponse = {
       id: 'u-' + Math.random().toString(36).substr(2, 9),
-      username: data.username,
-      email: data.email,
-      phoneNumber: data.phone,
-      role: data.role,
-      active: data.status === 'active',
-      firstName: firstName,
-      lastName: lastName,
+      email: payload.email,
+      phoneNumber: payload.phoneNumber,
+      role: payload.role,
+      active: payload.active,
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      avatarUrl: payload.avatarUrl,
+      avatarPublicId: payload.avatarPublicId,
       createdAt: new Date().toISOString(),
     };
 
@@ -210,13 +234,38 @@ export const userApi = {
     return mapBackendUserToFrontend(newUser);
   },
 
-  // Chỉnh sửa nhân viên
+  // Chỉnh sửa nhân viên / người dùng (Hỗ trợ Partial Update)
   update: async (id: string, data: any): Promise<User> => {
+    const payload: Record<string, any> = {};
+
+    if (data.email !== undefined && data.email !== '') payload.email = data.email;
+
+    if (data.fullName !== undefined) {
+      const names = (data.fullName || '').trim().split(' ');
+      const lastName = names.length > 1 ? names[names.length - 1] : '';
+      const firstName = names.length > 1 ? names.slice(0, names.length - 1).join(' ') : data.fullName;
+      if (firstName) payload.firstName = firstName;
+      if (lastName) payload.lastName = lastName;
+    }
+    if (data.firstName !== undefined) payload.firstName = data.firstName;
+    if (data.lastName !== undefined) payload.lastName = data.lastName;
+
+    if (data.phoneNumber !== undefined || data.phone !== undefined) {
+      payload.phoneNumber = data.phoneNumber !== undefined ? data.phoneNumber : data.phone;
+    }
+
+    if (data.role !== undefined) payload.role = data.role;
+    if (data.active !== undefined) payload.active = data.active;
+    else if (data.status !== undefined) payload.active = data.status === 'active';
+
+    if (data.avatarUrl !== undefined && data.avatarUrl !== '') payload.avatarUrl = data.avatarUrl;
+    if (data.avatarPublicId !== undefined && data.avatarPublicId !== '') payload.avatarPublicId = data.avatarPublicId;
+
     try {
       const res = await clientFetch(`v1/users/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         const result = await res.json();
@@ -227,22 +276,18 @@ export const userApi = {
     }
 
     // Fallback logic
-    const names = data.fullName.trim().split(' ');
-    const lastName = names[names.length - 1] || '';
-    const firstName = names.slice(0, names.length - 1).join(' ') || data.fullName;
-
     let updated: BackendUserResponse | null = null;
     mockUsers = mockUsers.map(u => {
       if (u.id === id) {
         const uitem = {
           ...u,
-          username: data.username,
-          email: data.email,
-          phoneNumber: data.phone,
-          role: data.role,
-          active: data.status === 'active',
-          firstName: firstName,
-          lastName: lastName,
+          email: payload.email !== undefined ? payload.email : u.email,
+          phoneNumber: payload.phoneNumber !== undefined ? payload.phoneNumber : u.phoneNumber,
+          role: payload.role !== undefined ? payload.role : u.role,
+          active: payload.active !== undefined ? payload.active : u.active,
+          firstName: payload.firstName || u.firstName,
+          lastName: payload.lastName || u.lastName,
+          avatarUrl: payload.avatarUrl !== undefined ? payload.avatarUrl : u.avatarUrl,
         };
         updated = uitem;
         return uitem;
@@ -250,7 +295,7 @@ export const userApi = {
       return u;
     });
 
-    if (!updated) throw new Error('Không tìm thấy nhân viên');
+    if (!updated) throw new Error('Không tìm thấy người dùng');
     return mapBackendUserToFrontend(updated);
   },
 
@@ -278,7 +323,16 @@ export const userApi = {
       const res = await clientFetch('v1/users/statistics');
       if (res.ok) {
         const result = await res.json();
-        return result.success ? result.data : { totalUsers: 0, onlineUsers: 0, offlineUsers: 0, managementUsers: 0 };
+        if (result.success && result.data) {
+          const stats = result.data;
+          return {
+            totalUsers: stats.totalUsers || 0,
+            onlineUsers: stats.onlineUsers || 0,
+            offlineUsers: stats.offlineUsers || 0,
+            managementUsers: stats.managementUsers || 0,
+            customerUsers: stats.customerUsers !== undefined ? stats.customerUsers : (stats.totalUsers - stats.managementUsers),
+          };
+        }
       }
     } catch (e) {
       console.warn('Backend statistics failed, using mock fallback', e);
@@ -287,6 +341,7 @@ export const userApi = {
     // Fallback logic
     const total = mockUsers.length;
     const management = mockUsers.filter(u => u.role === 'SUPER_ADMIN' || u.role === 'MANAGER').length;
+    const customers = mockUsers.filter(u => u.role === 'USER').length;
     const online = mockUsers.filter(u => u.id === 'u-1' || u.id === 'u-2').length;
 
     return {
@@ -294,6 +349,7 @@ export const userApi = {
       onlineUsers: online,
       offlineUsers: total - online,
       managementUsers: management,
+      customerUsers: customers,
     };
   },
 };
@@ -303,4 +359,5 @@ export interface UserStatistics {
   onlineUsers: number;
   offlineUsers: number;
   managementUsers: number;
+  customerUsers: number;
 }

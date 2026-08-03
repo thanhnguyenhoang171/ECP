@@ -20,6 +20,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.example.ecp_api.util.SecurityUtils;
 
 import java.util.UUID;
 
@@ -30,6 +31,19 @@ import java.util.UUID;
 public class UserController {
 
     private final UserService userService;
+
+    @GetMapping("/account")
+    @Operation(summary = "Get current authenticated user account", description = "Retrieve detailed information for the currently logged in user based on JWT Token.")
+    public ResponseEntity<ApiResponse<UserResponse>> getCurrentAccount() {
+        String email = SecurityUtils.getCurrentUsername();
+        UserResponse response = userService.getCurrentUserAccount(email);
+        ApiResponse<UserResponse> apiResponse = ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message("Account info fetched successfully")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get user by ID", description = "Retrieve detailed information for a specific user.")

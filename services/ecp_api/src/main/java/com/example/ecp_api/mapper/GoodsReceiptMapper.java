@@ -32,6 +32,16 @@ public interface GoodsReceiptMapper {
     @Mapping(target = "items", ignore = true)
     void updateEntityFromRequest(GoodsReceiptRequest request, @MappingTarget GoodsReceipt entity);
 
+    @Mapping(source = "purchaseOrder.id", target = "purchaseOrderId")
+    @Mapping(source = "purchaseOrder.poCode", target = "purchaseOrderCode")
+    @Mapping(source = "warehouse.id", target = "warehouseId")
+    @Mapping(source = "warehouse.code", target = "warehouseCode")
+    @Mapping(source = "warehouse.name", target = "warehouseName")
+    @Mapping(source = "receiptCode", target = "code")
+    com.example.ecp_api.dto.response.GoodsReceiptAdminResponse toAdminResponse(GoodsReceipt entity);
+
+    List<com.example.ecp_api.dto.response.GoodsReceiptAdminResponse> toAdminResponseList(List<GoodsReceipt> entities);
+
     default PageResponse<GoodsReceiptResponse> toPageResponse(Page<GoodsReceipt> page) {
         PaginationResponse pagination = PaginationResponse.builder()
                 .currentPage(page.getNumber() + 1)
@@ -47,6 +57,25 @@ public interface GoodsReceiptMapper {
                 .code("GOODS_RECEIPT_LIST_FETCHED")
                 .message("Fetch data successfully")
                 .data(toResponseList(page.getContent()))
+                .pagination(pagination)
+                .build();
+    }
+
+    default PageResponse<com.example.ecp_api.dto.response.GoodsReceiptAdminResponse> toAdminPageResponse(Page<GoodsReceipt> page) {
+        PaginationResponse pagination = PaginationResponse.builder()
+                .currentPage(page.getNumber() + 1)
+                .totalPages(page.getTotalPages())
+                .totalElements(page.getTotalElements())
+                .pageSize(page.getSize())
+                .isLast(page.isLast())
+                .isFirst(page.isFirst())
+                .build();
+
+        return PageResponse.<com.example.ecp_api.dto.response.GoodsReceiptAdminResponse>builder()
+                .success(true)
+                .code("GOODS_RECEIPT_LIST_FETCHED")
+                .message("Fetch data successfully (Admin)")
+                .data(toAdminResponseList(page.getContent()))
                 .pagination(pagination)
                 .build();
     }

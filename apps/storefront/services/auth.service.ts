@@ -4,15 +4,14 @@ import { AuthApiResponse, AuthData } from '@/types/user';
 // ─── Payload Types ────────────────────────────────────────────────────────────
 
 export interface LoginPayload {
-  username: string;
+  email: string;
   password: string;
 }
 
 export interface RegisterPayload {
-  fullName: string;
-  username: string;
+  fullName?: string;
   email: string;
-  phone: string;
+  phone?: string;
   password: string;
 }
 
@@ -24,6 +23,13 @@ export interface RegisterPayload {
  */
 export async function loginClient(payload: LoginPayload): Promise<AuthApiResponse> {
   return axiosClient.post<unknown, AuthApiResponse>('/auth/login', payload);
+}
+
+/**
+ * Đăng nhập Google — POST /auth/google
+ */
+export async function loginGoogleClient(idToken: string): Promise<AuthApiResponse> {
+  return axiosClient.post<unknown, AuthApiResponse>('/auth/google', { idToken });
 }
 
 /**
@@ -71,4 +77,12 @@ export async function logoutClient(): Promise<void> {
   } catch {
     // Bỏ qua lỗi — vẫn xóa cookie và state dù backend lỗi
   }
+}
+
+/**
+ * Lấy thông tin tài khoản người dùng hiện tại từ API /v1/users/account
+ */
+export async function getAccountInfo(): Promise<any> {
+  const response = await axiosClient.get('/v1/users/account');
+  return (response as any).data || response;
 }

@@ -34,6 +34,9 @@ public class ProductRequest {
     @Schema(description = "Brand name", example = "Apple")
     private String brand;
 
+    @Schema(description = "ID of the brand this product belongs to", example = "65f1a2b3c4d5e6f7a8b9c0d1")
+    private String brandId;
+
     @Schema(description = "ID of the category this product belongs to", example = "65f1a2b3c4d5e6f7a8b9c0d1")
     private String categoryId;
 

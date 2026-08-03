@@ -40,6 +40,10 @@ public class Product {
     private String brand;
 
     @Indexed
+    @Field("brand_id")
+    private String brandId;
+
+    @Indexed
     @Field("category_id")
     private String categoryId;
 

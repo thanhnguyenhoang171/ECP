@@ -3,9 +3,12 @@ import { persist } from 'zustand/middleware';
 
 interface User {
   id: string;
-  username: string;
   email: string;
   roles: string[];
+  role?: string;
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string;
 }
 
 interface AuthState {
@@ -13,11 +16,14 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   hasHydrated: boolean;
+  isInitialized: boolean; // true sau khi AuthInitializer đã chạy xong (refresh + fetch profile)
   errorCount: number;
   isBlocked: boolean;
   setAuth: (token: string, user: User) => void;
+  updateAccessToken: (token: string) => void;
   clearAuth: () => void;
   setHasHydrated: (val: boolean) => void;
+  setInitialized: (val: boolean) => void;
   incrementErrorCount: () => void;
   resetErrorCount: () => void;
 }
@@ -29,6 +35,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       hasHydrated: false,
+      isInitialized: false,
       errorCount: 0,
       isBlocked: false,
       setAuth: (token, user) => set({ 
@@ -38,6 +45,8 @@ export const useAuthStore = create<AuthState>()(
         errorCount: 0,
         isBlocked: false
       }),
+      updateAccessToken: (token) => set({ accessToken: token }),
+      setInitialized: (val) => set({ isInitialized: val }),
       clearAuth: () => set({ 
         accessToken: null, 
         user: null, 

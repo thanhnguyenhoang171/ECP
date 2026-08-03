@@ -114,6 +114,14 @@ public class GoodsReceiptServiceImpl implements GoodsReceiptService {
 
     @Override
     @Transactional(readOnly = true)
+    public com.example.ecp_api.dto.response.GoodsReceiptAdminResponse getGoodsReceiptByIdAdmin(String id) {
+        GoodsReceipt receipt = goodsReceiptRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new AppException("RECEIPT_NOT_FOUND", "Không tìm thấy phiếu nhập.", HttpStatus.NOT_FOUND));
+        return goodsReceiptMapper.toAdminResponse(receipt);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PageResponse<GoodsReceiptResponse> getAllGoodsReceipts(com.example.ecp_api.dto.request.GoodsReceiptFilterRequest filter, Pageable pageable) {
         org.springframework.data.jpa.domain.Specification<GoodsReceipt> spec = (root, query, cb) -> {
             java.util.List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
@@ -136,6 +144,32 @@ public class GoodsReceiptServiceImpl implements GoodsReceiptService {
 
         Page<GoodsReceipt> page = goodsReceiptRepository.findAll(spec, pageable);
         return goodsReceiptMapper.toPageResponse(page);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<com.example.ecp_api.dto.response.GoodsReceiptAdminResponse> getAllGoodsReceiptsAdmin(com.example.ecp_api.dto.request.GoodsReceiptFilterRequest filter, Pageable pageable) {
+        org.springframework.data.jpa.domain.Specification<GoodsReceipt> spec = (root, query, cb) -> {
+            java.util.List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+            if (filter != null) {
+                if (org.springframework.util.StringUtils.hasText(filter.getReceiptCode())) {
+                    predicates.add(cb.like(root.get("receiptCode"), "%" + filter.getReceiptCode() + "%"));
+                }
+                if (org.springframework.util.StringUtils.hasText(filter.getPurchaseOrderId())) {
+                    predicates.add(cb.equal(root.get("purchaseOrder").get("id"), UUID.fromString(filter.getPurchaseOrderId())));
+                }
+                if (org.springframework.util.StringUtils.hasText(filter.getWarehouseId())) {
+                    predicates.add(cb.equal(root.get("warehouse").get("id"), UUID.fromString(filter.getWarehouseId())));
+                }
+                if (filter.getStatus() != null) {
+                    predicates.add(cb.equal(root.get("status"), filter.getStatus()));
+                }
+            }
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        Page<GoodsReceipt> page = goodsReceiptRepository.findAll(spec, pageable);
+        return goodsReceiptMapper.toAdminPageResponse(page);
     }
 
     @Override

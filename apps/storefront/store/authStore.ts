@@ -15,6 +15,7 @@ interface AuthState {
 
   // Actions
   setAuth: (data: AuthData) => void;
+  updateTokens: (accessToken: string, refreshToken: string) => void;
   clearAuth: () => void;
   setLoading: (loading: boolean) => void;
   getRefreshToken: () => string | undefined;
@@ -44,13 +45,28 @@ export const useAuthStore = create<AuthState>((set) => ({
       accessToken: data.accessToken,
       user: {
         id: data.id,
-        username: data.username,
+        username: data.username || data.email,
         email: data.email,
         roles: data.roles,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        avatarUrl: data.avatarUrl,
       },
       isAuthenticated: true,
       isLoading: false,
     });
+  },
+
+  updateTokens: (newAccessToken: string, newRefreshToken: string) => {
+    Cookies.set(REFRESH_TOKEN_COOKIE, newRefreshToken, {
+      expires: COOKIE_EXPIRES_DAYS,
+      sameSite: 'Strict',
+    });
+    set((state) => ({
+      accessToken: newAccessToken,
+      // giữ nguyên user, isAuthenticated, isLoading
+      isAuthenticated: state.isAuthenticated,
+    }));
   },
 
   /**

@@ -25,7 +25,8 @@ export interface Category {
   id: string;
   name: string;
   slug: string;
-  icon?: string;
+  description?: string;
+  icon?: any;
   image?: string;
   sortOrder?: number;
   isFeatured?: boolean;

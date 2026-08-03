@@ -40,7 +40,7 @@ public class AuditLogServiceImpl implements AuditLogService {
         if (!StringUtils.hasText(username) || "SYSTEM".equalsIgnoreCase(username)) {
             return "SYSTEM";
         }
-        return userRepository.findByUsername(username)
+        return userRepository.findByEmail(username)
                 .map(user -> {
                     if (user.getRole() == UserRole.SUPER_ADMIN) {
                         return "ADMIN";

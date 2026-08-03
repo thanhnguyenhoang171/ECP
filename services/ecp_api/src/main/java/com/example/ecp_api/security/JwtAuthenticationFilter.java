@@ -1,5 +1,7 @@
 package com.example.ecp_api.security;
 
+import com.example.ecp_api.entity.jpa.User;
+import com.example.ecp_api.repository.jpa.UserRepository;
 import com.example.ecp_api.service.TokenService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -29,6 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenService tokenService;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -41,25 +44,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (tokenService.validateAccessToken(jwt)) {
                     Claims claims = jwtTokenProvider.getClaimsFromJwtToken(jwt);
                     String username = claims.getSubject();
-                    String idStr = claims.get("id", String.class);
                     String email = claims.get("email", String.class);
-                    List<?> rolesList = claims.get("roles", List.class);
-                    List<String> roles = rolesList.stream()
-                            .filter(String.class::isInstance)
-                            .map(String.class::cast)
-                            .collect(Collectors.toList());
+                    if (email == null) email = username;
 
-                    List<GrantedAuthority> authorities = roles.stream()
-                            .map(SimpleGrantedAuthority::new)
-                            .collect(Collectors.toList());
+                    // Fetch user from database to verify real-time role & active status
+                    User dbUser = userRepository.findByEmail(email).orElse(null);
+                    if (dbUser == null || !dbUser.isActive()) {
+                        log.warn("User {} is disabled or deleted in database", email);
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+
+                    String roleStr = "ROLE_" + dbUser.getRole().name();
+                    List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(roleStr));
 
                     CustomUserDetails userDetails = new CustomUserDetails(
-                            UUID.fromString(idStr),
-                            username,
-                            email,
+                            dbUser.getId(),
+                            dbUser.getEmail(),
                             "", // Password not needed here
+                            null,
+                            null,
+                            null,
                             authorities,
-                            true
+                            dbUser.isActive()
                     );
                     
                     UsernamePasswordAuthenticationToken authentication = 

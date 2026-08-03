@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -8,18 +8,20 @@ import { Star, ShoppingCart, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { Product } from '@/types/product';
 import { useWishlistStore } from '@/store/wishlistStore';
+import { formatVND } from '@/utils/formatters';
 
 interface ProductCardProps {
   product: Product;
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const { toggleItem, isInWishlist } = useWishlistStore();
-  const isWishlisted = isInWishlist(product.id);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const formatVND = (price: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
-  };
+  const { toggleItem, isInWishlist } = useWishlistStore();
+  const isWishlisted = mounted ? isInWishlist(product.id) : false;
 
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.preventDefault();

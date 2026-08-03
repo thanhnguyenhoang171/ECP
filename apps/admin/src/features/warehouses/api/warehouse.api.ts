@@ -1,11 +1,15 @@
 import { clientFetch } from '@/lib/clientFetch';
 import { clientDb, ClientWarehouse } from '@/lib/clientDb';
+import { useAuthStore } from '@/store/authStore';
 
 export const warehouseApi = {
   // Lấy danh sách tất cả kho bãi
   getAll: async (): Promise<ClientWarehouse[]> => {
     try {
-      const res = await clientFetch(`v1/warehouses`);
+      const user = useAuthStore.getState().user;
+      const isSuperAdmin = user?.roles?.includes('SUPER_ADMIN') || user?.role === 'SUPER_ADMIN';
+      const endpoint = isSuperAdmin ? 'v1/warehouses/admin' : 'v1/warehouses';
+      const res = await clientFetch(endpoint);
       if (res.ok) {
         const result = await res.json();
         let items = [];
@@ -33,7 +37,10 @@ export const warehouseApi = {
   // Lấy chi tiết kho bãi
   getById: async (id: string): Promise<ClientWarehouse | null> => {
     try {
-      const res = await clientFetch(`v1/warehouses/${id}`);
+      const user = useAuthStore.getState().user;
+      const isSuperAdmin = user?.roles?.includes('SUPER_ADMIN') || user?.role === 'SUPER_ADMIN';
+      const endpoint = isSuperAdmin ? `v1/warehouses/admin/${id}` : `v1/warehouses/${id}`;
+      const res = await clientFetch(endpoint);
       if (res.ok) {
         const result = await res.json();
         const item = result.data || result;
@@ -45,7 +52,7 @@ export const warehouseApi = {
     } catch (e) {
       console.warn('Backend getById warehouse failed, using mock fallback', e);
     }
-    const data = clientDb.getWarehouse(id);
+    const data = clientDb.getWarehouses().find(w => w.id === id);
     return data || null;
   },
 

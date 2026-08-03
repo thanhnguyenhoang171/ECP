@@ -1,12 +1,19 @@
 'use client';
 
 import React from 'react';
-import { ShieldAlert, Home, ArrowLeft } from 'lucide-react';
+import { ShieldAlert, LogOut, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
 
 export default function Forbidden() {
   const router = useRouter();
+  const { clearAuth } = useAuthStore();
+
+  const handleBackToLogin = () => {
+    clearAuth();
+    router.replace('/login');
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
@@ -19,23 +26,17 @@ export default function Forbidden() {
         Bạn không có quyền truy cập vào trang này. Vui lòng liên hệ với quản trị viên nếu bạn cho rằng đây là một lỗi.
       </p>
       
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex justify-center">
         <Button 
           variant="outline" 
-          onClick={() => router.back()}
-          className="flex items-center gap-2"
+          onClick={handleBackToLogin}
+          className="flex items-center gap-2 font-bold px-6 py-2.5 shadow-sm hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Quay lại
-        </Button>
-        <Button 
-          onClick={() => router.push('/dashboard')}
-          className="flex items-center gap-2"
-        >
-          <Home className="h-4 w-4" />
-          Về trang chủ
+          <span>Quay lại trang đăng nhập</span>
         </Button>
       </div>
     </div>
   );
 }
+

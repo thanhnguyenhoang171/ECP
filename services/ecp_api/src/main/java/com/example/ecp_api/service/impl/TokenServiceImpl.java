@@ -63,6 +63,33 @@ public class TokenServiceImpl implements TokenService {
     }
 
     @Override
+    public void revokeUserTokens(String username) {
+        if (!StringUtils.hasText(username)) return;
+
+        clearUserPresence(username);
+
+        java.util.Set<String> accessKeys = redisTemplate.keys(ACCESS_TOKEN_PREFIX + "*");
+        if (accessKeys != null) {
+            for (String key : accessKeys) {
+                String val = redisTemplate.opsForValue().get(key);
+                if (username.equalsIgnoreCase(val)) {
+                    redisTemplate.delete(key);
+                }
+            }
+        }
+
+        java.util.Set<String> refreshKeys = redisTemplate.keys(REFRESH_TOKEN_PREFIX + "*");
+        if (refreshKeys != null) {
+            for (String key : refreshKeys) {
+                String val = redisTemplate.opsForValue().get(key);
+                if (username.equalsIgnoreCase(val)) {
+                    redisTemplate.delete(key);
+                }
+            }
+        }
+    }
+
+    @Override
     public void updateUserPresence(String username) {
         if (StringUtils.hasText(username)) {
             redisTemplate.opsForValue().set(

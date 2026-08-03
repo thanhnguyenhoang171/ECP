@@ -31,4 +31,35 @@ public class CloudinaryUtils {
         }
         return url; 
     }
+
+    public String extractPublicId(String url) {
+        if (url == null || !url.contains("/upload/")) {
+            return null;
+        }
+        try {
+            String path = url.substring(url.indexOf("/upload/") + 8);
+            String[] parts = path.split("/");
+            StringBuilder publicIdBuilder = new StringBuilder();
+            for (String part : parts) {
+                if (part.contains(",") || part.startsWith("c_") || part.startsWith("w_") || part.startsWith("h_") || part.startsWith("f_") || part.startsWith("q_")) {
+                    continue;
+                }
+                if (part.matches("v\\d+")) {
+                    continue;
+                }
+                if (publicIdBuilder.length() > 0) {
+                    publicIdBuilder.append("/");
+                }
+                publicIdBuilder.append(part);
+            }
+            String publicIdWithExt = publicIdBuilder.toString();
+            int lastDotIndex = publicIdWithExt.lastIndexOf(".");
+            if (lastDotIndex > 0) {
+                return publicIdWithExt.substring(0, lastDotIndex);
+            }
+            return publicIdWithExt;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }
