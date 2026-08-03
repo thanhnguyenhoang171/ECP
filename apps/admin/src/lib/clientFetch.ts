@@ -37,15 +37,23 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
     headers.set('Authorization', `Bearer ${accessToken}`);
   }
 
-  // Determine if it's a relative URL (Next.js API route) or absolute (Backend)
-  const isRelative = url.startsWith('/');
-  
-  // Use absolute URL for server-side or if base is needed
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
   
-  const finalUrl = isRelative 
-    ? (url.startsWith('http') ? url : `${APP_URL}${url}`) 
-    : `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+  let finalUrl: string;
+  if (url.startsWith('http')) {
+    finalUrl = url;
+  } else if (url.startsWith('/api/')) {
+    finalUrl = `${APP_URL}${url}`;
+  } else {
+    const cleanPath = url.startsWith('/') ? url.slice(1) : url;
+    if (typeof window !== 'undefined') {
+      // Phía Client (Browser): Gọi qua Next.js rewrite proxy /api/proxy/ để giấu URL backend thực sự
+      finalUrl = `/api/proxy/${cleanPath}`;
+    } else {
+      // Phía Server (Node.js): Gọi trực tiếp backend URL nội bộ
+      finalUrl = `${API_URL}/${cleanPath}`;
+    }
+  }
 
   let response: Response;
   try {
