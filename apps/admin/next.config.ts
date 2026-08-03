@@ -14,7 +14,16 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Cấu hình cache cho static assets và cho phép remote domains tải ảnh
+  async rewrites() {
+    const rawEnv = process.env.NEXT_PUBLIC_ADMIN_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL;
+    const backendUrl = (rawEnv && rawEnv.startsWith('http')) ? rawEnv : 'http://localhost:9090/api';
+    return [
+      {
+        source: '/api/proxy/:path*',
+        destination: `${backendUrl}/:path*`,
+      },
+    ];
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,
