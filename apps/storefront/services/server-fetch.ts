@@ -3,7 +3,11 @@
  * Tận dụng khả năng Caching / Revalidation của Next.js (ISR, SSR, SSG)
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const getServerApiBaseUrl = () => {
+  const envUrl = process.env.STOREFRONT_INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL;
+  return (envUrl && envUrl.startsWith('http')) ? envUrl : 'http://localhost:9090/api';
+};
+const API_BASE_URL = getServerApiBaseUrl();
 
 export interface ServerFetchOptions extends RequestInit {
   revalidate?: number | false; // Revalidate time in seconds

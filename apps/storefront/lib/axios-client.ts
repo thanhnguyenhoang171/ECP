@@ -4,7 +4,11 @@ import axios, { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig } 
 import Cookies from 'js-cookie';
 import { useAuthStore } from '@/store/authStore';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const getClientApiBaseUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_STOREFRONT_API_URL || process.env.NEXT_PUBLIC_API_URL;
+  return (envUrl && envUrl.startsWith('/')) ? envUrl : '/api';
+};
+const API_BASE_URL = getClientApiBaseUrl();
 const REFRESH_TOKEN_COOKIE = 'ecp_refresh_token';
 
 // ─── Queue cho các request đang chờ refresh token ─────────────────────────────

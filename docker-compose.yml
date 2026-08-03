@@ -72,6 +72,7 @@ services:
     ports:
       - '8081:80'
     environment:
+      NEXT_PUBLIC_ADMIN_API_URL: ${NEXT_PUBLIC_ADMIN_API_URL:-http://api:9090/api}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:9090/api}
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
     networks:
@@ -84,7 +85,9 @@ services:
     ports:
       - '3000:3000'
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:9091/api}
+      STOREFRONT_INTERNAL_API_URL: ${STOREFRONT_INTERNAL_API_URL:-http://api:9090/api}
+      NEXT_PUBLIC_STOREFRONT_API_URL: ${NEXT_PUBLIC_STOREFRONT_API_URL:-/api}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_STOREFRONT_API_URL:-/api}
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
     networks:
       - ecp_network

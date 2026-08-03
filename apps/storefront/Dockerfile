@@ -17,6 +17,8 @@ RUN pnpm install --frozen-lockfile
 # Copy the rest of the app's source code
 COPY apps/storefront ./apps/storefront
 
+ARG INTERNAL_API_URL
+ENV INTERNAL_API_URL=$INTERNAL_API_URL
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID

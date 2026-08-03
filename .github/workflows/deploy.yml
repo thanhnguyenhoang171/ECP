@@ -112,6 +112,10 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false # Quan trọng: Tắt cái này để sửa lỗi 'unknown blob'
           build-args: |
+            NEXT_PUBLIC_ADMIN_API_URL=${{ secrets.NEXT_PUBLIC_ADMIN_API_URL || secrets.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_STOREFRONT_API_URL=${{ secrets.NEXT_PUBLIC_STOREFRONT_API_URL || '/api' }}
+            STOREFRONT_INTERNAL_API_URL=${{ secrets.STOREFRONT_INTERNAL_API_URL || secrets.INTERNAL_API_URL || secrets.NEXT_PUBLIC_API_URL }}
+            INTERNAL_API_URL=${{ secrets.INTERNAL_API_URL || secrets.NEXT_PUBLIC_API_URL }}
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
             NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
 
@@ -156,7 +160,11 @@ jobs:
           CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
-          # Secrets cho Frontend
+          # Secrets cho Frontend & Admin
+          NEXT_PUBLIC_ADMIN_API_URL: ${{ secrets.NEXT_PUBLIC_ADMIN_API_URL }}
+          NEXT_PUBLIC_STOREFRONT_API_URL: ${{ secrets.NEXT_PUBLIC_STOREFRONT_API_URL }}
+          STOREFRONT_INTERNAL_API_URL: ${{ secrets.STOREFRONT_INTERNAL_API_URL }}
+          INTERNAL_API_URL: ${{ secrets.INTERNAL_API_URL }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
         run: |
@@ -199,6 +207,10 @@ jobs:
           echo "CLOUDINARY_CLOUD_NAME=$CLOUDINARY_CLOUD_NAME" >> .env
           echo "CLOUDINARY_API_KEY=$CLOUDINARY_API_KEY" >> .env
           echo "CLOUDINARY_API_SECRET=$CLOUDINARY_API_SECRET" >> .env
+          echo "NEXT_PUBLIC_ADMIN_API_URL=$NEXT_PUBLIC_ADMIN_API_URL" >> .env
+          echo "NEXT_PUBLIC_STOREFRONT_API_URL=$NEXT_PUBLIC_STOREFRONT_API_URL" >> .env
+          echo "STOREFRONT_INTERNAL_API_URL=$STOREFRONT_INTERNAL_API_URL" >> .env
+          echo "INTERNAL_API_URL=$INTERNAL_API_URL" >> .env
           echo "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" >> .env
           echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID" >> .env
 

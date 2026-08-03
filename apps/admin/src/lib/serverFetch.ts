@@ -1,6 +1,10 @@
 import { cookies } from 'next/headers';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9090/api';
+const getAdminBackendUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL || process.env.NEXT_PUBLIC_API_URL;
+  return (envUrl && envUrl.startsWith('http')) ? envUrl : 'http://localhost:9090/api';
+};
+const BACKEND_URL = getAdminBackendUrl();
 
 /**
  * Hàm fetch dữ liệu tại Server có xử lý Authentication
