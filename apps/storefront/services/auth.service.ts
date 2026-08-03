@@ -46,8 +46,8 @@ export async function registerClient(payload: RegisterPayload): Promise<AuthApiR
  * Được gọi bởi: AuthInitializer (khi load trang) và axios interceptor (khi 401)
  */
 export async function refreshTokenClient(refreshToken: string): Promise<AuthData> {
-  // Sử dụng fetch thuần để tránh vòng lặp vô hạn với axios interceptor
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+  const envUrl = process.env.NEXT_PUBLIC_STOREFRONT_API_URL || process.env.NEXT_PUBLIC_API_URL;
+  const API_BASE_URL = (envUrl && envUrl.startsWith('/')) ? envUrl : '/api';
   const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

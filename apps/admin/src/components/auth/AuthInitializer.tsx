@@ -3,7 +3,11 @@
 import { useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9090/api';
+const getAdminBackendUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL || process.env.NEXT_PUBLIC_API_URL;
+  return (envUrl && envUrl.startsWith('http')) ? envUrl : 'http://localhost:9090/api';
+};
+const API_URL = getAdminBackendUrl();
 
 /**
  * Module-level flag — bền vững qua StrictMode unmount/remount,

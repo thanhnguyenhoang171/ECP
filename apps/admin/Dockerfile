@@ -6,9 +6,9 @@ FROM base AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Khai báo ARG để nhận biến từ GitHub Actions truyền vào, mặc định là placeholder {{NEXT_PUBLIC_API_URL}}
+ARG NEXT_PUBLIC_ADMIN_API_URL
+ENV NEXT_PUBLIC_ADMIN_API_URL=$NEXT_PUBLIC_ADMIN_API_URL
 ARG NEXT_PUBLIC_API_URL={{NEXT_PUBLIC_API_URL}}
-# Đặt ENV để Next.js nhìn thấy và nhúng vào mã nguồn lúc chạy lệnh build
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
@@ -47,4 +47,4 @@ USER nextjs
 
 EXPOSE 80
 
-CMD ["sh", "-c", "find /app -type f \\( -name \"*.js\" -o -name \"*.html\" -o -name \"*.json\" \\) -exec sed -i \"s|{{NEXT_PUBLIC_API_URL}}|$NEXT_PUBLIC_API_URL|g\" {} + && node apps/admin/server.js"]
+CMD ["sh", "-c", "ADMIN_URL=\"${NEXT_PUBLIC_ADMIN_API_URL:-$NEXT_PUBLIC_API_URL}\"; find /app -type f \\( -name \"*.js\" -o -name \"*.html\" -o -name \"*.json\" \\) -exec sed -i \"s|{{NEXT_PUBLIC_API_URL}}|$ADMIN_URL|g\" {} + && node apps/admin/server.js"]
