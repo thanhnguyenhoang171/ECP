@@ -9,7 +9,7 @@ import { getErrorMessage } from '@/constants/errorMessages';
 
 export function useLogin() {
   const router = useRouter();
-  const { setAuth, updateAccessToken } = useAuthStore();
+  const { setAuth, updateAccessToken, clearAuth } = useAuthStore();
 
   return useMutation({
     mutationFn: authApi.login,
@@ -47,6 +47,12 @@ export function useLogin() {
                          !finalRoles.includes('ROLE_MANAGER');
 
       if (isRestricted) {
+        try {
+          await authApi.logout(accessToken);
+        } catch (e) {
+          console.error('[useLogin] Lỗi khi đăng xuất tài khoản không có quyền:', e);
+        }
+        clearAuth();
         toast.error('Tài khoản của bạn không có quyền truy cập hệ thống quản trị');
         return;
       }
@@ -103,7 +109,7 @@ export function useLogout() {
 
 export function useGoogleLogin() {
   const router = useRouter();
-  const { setAuth, updateAccessToken } = useAuthStore();
+  const { setAuth, updateAccessToken, clearAuth } = useAuthStore();
 
   return useMutation({
     mutationFn: authApi.googleLogin,
@@ -130,6 +136,22 @@ export function useGoogleLogin() {
         lastName: accountData?.lastName,
         avatarUrl: accountData?.avatarUrl,
       };
+
+      const finalRoles = userProfile.roles || [];
+      const isRestricted = finalRoles.includes('ROLE_USER') && 
+                         !finalRoles.includes('ROLE_SUPER_ADMIN') && 
+                         !finalRoles.includes('ROLE_MANAGER');
+
+      if (isRestricted) {
+        try {
+          await authApi.logout(accessToken);
+        } catch (e) {
+          console.error('[GoogleLogin] Lỗi khi đăng xuất tài khoản không có quyền:', e);
+        }
+        clearAuth();
+        toast.error('Tài khoản của bạn không có quyền truy cập hệ thống quản trị');
+        return;
+      }
 
       // 3. setAuth với đầy đủ thông tin
       setAuth(accessToken, userProfile);
