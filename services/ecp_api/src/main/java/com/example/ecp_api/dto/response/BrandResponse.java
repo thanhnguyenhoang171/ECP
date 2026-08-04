@@ -42,9 +42,4 @@ public class BrandResponse {
     @Schema(description = "Last update timestamp")
     private LocalDateTime updatedAt;
 
-    @Schema(description = "User who created the brand")
-    private String createdBy;
-
-    @Schema(description = "User who last updated the brand")
-    private String updatedBy;
 }

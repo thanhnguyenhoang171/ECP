@@ -21,7 +21,7 @@ import java.util.Map;
 @RequestMapping("/v1/files")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('SUPER_ADMIN')")
-@Tag(name = "File Management", description = "APIs for managing upload files")
+@Tag(name = "[COMMON] File Upload", description = "Authenticated users (MANAGER, SUPER_ADMIN): Upload and delete files via Cloudinary.")
 public class FileController {
     private final CloudinaryService  cloudinaryService;
 

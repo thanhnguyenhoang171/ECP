@@ -78,6 +78,30 @@ public class GoodsReceiptServiceImpl implements GoodsReceiptService {
 
     @Override
     @Transactional
+    public com.example.ecp_api.dto.response.GoodsReceiptAdminResponse createGoodsReceiptAdmin(GoodsReceiptRequest request) {
+        if (!StringUtils.hasText(request.getReceiptCode())) {
+            request.setReceiptCode("GR-" + System.currentTimeMillis());
+        }
+        if (goodsReceiptRepository.existsByReceiptCode(request.getReceiptCode())) {
+            throw new AppException("RECEIPT_CODE_EXISTS", "Mã phiếu nhập đã tồn tại.", HttpStatus.BAD_REQUEST);
+        }
+        GoodsReceipt receipt = goodsReceiptMapper.toEntity(request);
+        if (StringUtils.hasText(request.getPurchaseOrderId())) {
+            PurchaseOrder po = purchaseOrderRepository.findById(UUID.fromString(request.getPurchaseOrderId()))
+                    .orElseThrow(() -> new AppException("PO_NOT_FOUND", "Không tìm thấy đơn mua hàng.", HttpStatus.NOT_FOUND));
+            receipt.setPurchaseOrder(po);
+        }
+        Warehouse warehouse = warehouseRepository.findById(UUID.fromString(request.getWarehouseId()))
+                .orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Không tìm thấy kho hàng.", HttpStatus.NOT_FOUND));
+        receipt.setWarehouse(warehouse);
+        goodsReceiptHelper.processGoodsReceiptItems(request, receipt);
+        receipt = goodsReceiptRepository.save(receipt);
+        auditLogService.log("CREATE_GOODS_RECEIPT", SecurityUtils.getCurrentUsername(), "Created Goods Receipt: " + receipt.getReceiptCode());
+        return goodsReceiptMapper.toAdminResponse(receipt);
+    }
+
+    @Override
+    @Transactional
     public GoodsReceiptResponse updateGoodsReceipt(String id, GoodsReceiptRequest request) {
         GoodsReceipt receipt = goodsReceiptRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("RECEIPT_NOT_FOUND", "Không tìm thấy phiếu nhập.", HttpStatus.NOT_FOUND));
@@ -102,6 +126,28 @@ public class GoodsReceiptServiceImpl implements GoodsReceiptService {
 
         receipt = goodsReceiptRepository.save(receipt);
         return goodsReceiptMapper.toResponse(receipt);
+    }
+
+    @Override
+    @Transactional
+    public com.example.ecp_api.dto.response.GoodsReceiptAdminResponse updateGoodsReceiptAdmin(String id, GoodsReceiptRequest request) {
+        GoodsReceipt receipt = goodsReceiptRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new AppException("RECEIPT_NOT_FOUND", "Không tìm thấy phiếu nhập.", HttpStatus.NOT_FOUND));
+        if (receipt.getStatus() != ReceiptStatus.DRAFT) {
+            throw new AppException("INVALID_STATUS", "Chỉ có thể cập nhật phiếu ở trạng thái DRAFT.", HttpStatus.BAD_REQUEST);
+        }
+        goodsReceiptMapper.updateEntityFromRequest(request, receipt);
+        if (StringUtils.hasText(request.getPurchaseOrderId())) {
+            PurchaseOrder po = purchaseOrderRepository.findById(UUID.fromString(request.getPurchaseOrderId()))
+                    .orElseThrow(() -> new AppException("PO_NOT_FOUND", "Không tìm thấy đơn mua hàng.", HttpStatus.NOT_FOUND));
+            receipt.setPurchaseOrder(po);
+        }
+        Warehouse warehouse = warehouseRepository.findById(UUID.fromString(request.getWarehouseId()))
+                .orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Không tìm thấy kho hàng.", HttpStatus.NOT_FOUND));
+        receipt.setWarehouse(warehouse);
+        goodsReceiptHelper.processGoodsReceiptItems(request, receipt);
+        receipt = goodsReceiptRepository.save(receipt);
+        return goodsReceiptMapper.toAdminResponse(receipt);
     }
 
     @Override
@@ -268,5 +314,14 @@ public class GoodsReceiptServiceImpl implements GoodsReceiptService {
                 "Confirmed Goods Receipt: " + receipt.getReceiptCode());
 
         return goodsReceiptMapper.toResponse(receipt);
+    }
+
+    @Override
+    @Transactional
+    public com.example.ecp_api.dto.response.GoodsReceiptAdminResponse confirmReceiptAdmin(String id) {
+        GoodsReceiptResponse response = confirmReceipt(id);
+        GoodsReceipt receipt = goodsReceiptRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new AppException("RECEIPT_NOT_FOUND", "Không tìm thấy phiếu nhập.", HttpStatus.NOT_FOUND));
+        return goodsReceiptMapper.toAdminResponse(receipt);
     }
 }

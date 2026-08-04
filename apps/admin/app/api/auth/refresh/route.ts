@@ -16,7 +16,7 @@ export async function POST() {
       return NextResponse.json({ success: false, message: 'Refresh token missing' }, { status: 401 });
     }
 
-    const response = await fetch(`${BACKEND_URL}/auth/refresh`, {
+    const response = await fetch(`${BACKEND_URL}/v1/auth/refresh`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

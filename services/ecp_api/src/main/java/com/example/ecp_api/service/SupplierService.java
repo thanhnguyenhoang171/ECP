@@ -9,7 +9,9 @@ import org.springframework.data.domain.Pageable;
 
 public interface SupplierService {
     SupplierResponse createSupplier(SupplierRequest request);
+    SupplierAdminResponse createSupplierAdmin(SupplierRequest request);
     SupplierResponse updateSupplier(String id, SupplierRequest request);
+    SupplierAdminResponse updateSupplierAdmin(String id, SupplierRequest request);
     SupplierResponse getSupplierById(String id);
     SupplierAdminResponse getSupplierByIdForAdmin(String id);
     PageResponse<SupplierResponse> getAllSuppliers(SupplierRequestFilter filter, Pageable pageable);

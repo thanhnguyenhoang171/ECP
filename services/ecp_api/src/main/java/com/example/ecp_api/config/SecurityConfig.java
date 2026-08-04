@@ -7,6 +7,7 @@ import com.example.ecp_api.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
@@ -21,8 +22,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import org.springframework.http.HttpMethod;
 
 import java.util.List;
 
@@ -50,6 +49,7 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -61,9 +61,14 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/v1/test/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/v1/products/**", "/v1/categories/**", "/v1/brands/**").permitAll()
+                        // Public Auth Endpoints
+                        .requestMatchers("/v1/auth/**", "/auth/**").permitAll()
+                        // Public Swagger OpenAPI Endpoints
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        // Public Storefront Catalog Read Access
+                        .requestMatchers(HttpMethod.GET, "/v1/storefront/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/products/**", "/v1/categories/**", "/v1/brands/**").permitAll()
+                        // All other endpoints require authentication (role-based security enforced via @PreAuthorize on controllers)
                         .anyRequest().authenticated()
                 );
 
@@ -87,6 +92,4 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
 }
-

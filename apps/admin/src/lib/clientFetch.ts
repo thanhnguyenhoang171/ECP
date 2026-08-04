@@ -12,15 +12,61 @@ export interface FetchOptions extends RequestInit {
   skipToast?: boolean;
 }
 
+export function resolveRolePath(path: string): string {
+  let cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  
+  if (
+    cleanPath.startsWith('v1/admin/') || 
+    cleanPath.startsWith('v1/manager/') || 
+    cleanPath.startsWith('v1/common/') || 
+    cleanPath.startsWith('v1/auth/')
+  ) {
+    return cleanPath;
+  }
+
+  if (cleanPath === 'v1/users/account') {
+    return 'v1/common/users/account';
+  }
+
+  const { user } = useAuthStore.getState();
+  const role = user?.role || (user?.roles && user.roles[0]) || '';
+  const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'ROLE_SUPER_ADMIN';
+  const scope = isSuperAdmin ? 'admin' : 'manager';
+
+  if (cleanPath.startsWith('v1/audit-logs')) {
+    if (isSuperAdmin) {
+      return cleanPath.replace('v1/audit-logs', 'v1/admin/audit-logs');
+    } else {
+      const email = user?.email || '';
+      return `v1/manager/audit-logs/user/${email}`;
+    }
+  }
+
+  if (cleanPath.startsWith('v1/files')) {
+    return cleanPath.replace('v1/files', 'v1/common/files');
+  }
+
+  const resources = [
+    'brands', 'categories', 'products', 'skus', 'suppliers',
+    'warehouses', 'inventory', 'purchase-orders', 'goods-receipts', 'users'
+  ];
+
+  for (const res of resources) {
+    if (cleanPath.startsWith(`v1/${res}`)) {
+      return cleanPath.replace(`v1/${res}`, `v1/${scope}/${res}`);
+    }
+  }
+
+  return cleanPath;
+}
+
 export const clientFetch = async (url: string, options: FetchOptions = {}) => {
   const { skipToast, ...fetchOptions } = options;
   const { accessToken, setAuth, updateAccessToken, clearAuth, isBlocked, incrementErrorCount } = useAuthStore.getState();
 
-  // 1. Kiểm tra nếu đang bị block do lỗi server quá nhiều
   if (isBlocked) {
     console.log('Người dùng bị chặn do gặp quá nhiều lỗi server. Đang chuyển hướng về trang đăng nhập...');
     if (typeof window !== 'undefined') {
-      // Clear cookies as well to prevent middleware from redirecting back
       fetch('/api/auth/logout', { method: 'POST' }).finally(() => {
         window.location.href = '/login';
       });
@@ -45,13 +91,11 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
   } else if (url.startsWith('/api/')) {
     finalUrl = `${APP_URL}${url}`;
   } else {
-    const cleanPath = url.startsWith('/') ? url.slice(1) : url;
+    const resolvedPath = resolveRolePath(url);
     if (typeof window !== 'undefined') {
-      // Phía Client (Browser): Gọi qua Next.js rewrite proxy /api/proxy/ để giấu URL backend thực sự
-      finalUrl = `/api/proxy/${cleanPath}`;
+      finalUrl = `/api/proxy/${resolvedPath}`;
     } else {
-      // Phía Server (Node.js): Gọi trực tiếp backend URL nội bộ
-      finalUrl = `${API_URL}/${cleanPath}`;
+      finalUrl = `${API_URL}/${resolvedPath}`;
     }
   }
 
