@@ -1,14 +1,37 @@
+// Aligned with Spring Boot ProductResponse.java
+export interface ProductVariant {
+  // From ProductResponse.ProductVariantResponse
+  sku: string;
+  skuId?: string;
+  barcode?: string;
+  barcodeType?: string;
+  price: number;        // BigDecimal → number
+  costPrice?: number;   // BigDecimal → number
+  compareAtPrice?: number; // BigDecimal → number
+  image?: { url?: string; publicId?: string } | string | null;
+  attributes: Record<string, any>;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  // Legacy compat
+  stock?: number;
+  id?: string;
+}
+
 export interface Product {
+  // From ProductResponse.java - exact fields only
   id: string;
   sku: string;
   name: string;
   slug: string;
-  brand: string;
+  brand?: string;
+  brandId?: string;
   categoryId: string;
-  categoryName?: string;
   description?: string;
-  price: number;
-  stock: number;
+  thumbnail?: { url?: string; publicId?: string } | string | null;
+  images?: Array<{ url?: string; publicId?: string } | string>;
+  specifications?: Record<string, any> | Array<{ key: string; value: any }>;
+  variants?: ProductVariant[];
   isPublished: boolean;
   isFeatured?: boolean;
   isNew?: boolean;
@@ -19,31 +42,10 @@ export interface Product {
   ratingCount?: number;
   createdAt?: string;
   updatedAt?: string;
-  variants?: ProductVariant[];
-  thumbnail?: string;
-  images?: string[];
-  specifications?: Record<string, any> | Array<{ key: string; value: any }>;
-  weight?: number;
-  length?: number;
-  width?: number;
-  height?: number;
-  tags?: string[];
-  metaTitle?: string;
-  metaDescription?: string;
-  metaKeywords?: string;
-}
 
-export interface ProductVariant {
-  id: string;
-  sku: string;
-  price: number;
-  stock: number;
-  attributes: Record<string, string>;
-  compareAtPrice?: number;
-  costPrice?: number;
-  barcode?: string;
-  barcodeType?: string;
-  image?: string;
-  isActive?: boolean;
+  // Computed/compat properties — NOT in backend DTO, derived on FE:
+  // price → use variants[0]?.price
+  // stock → use inventoryApi separately
+  // categoryName → lookup from categories list
+  // supplierId / weight / length / width / height → not in ProductResponse
 }
-

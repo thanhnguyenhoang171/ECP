@@ -35,17 +35,14 @@ export default function StatsGrid({ stats }: StatsGridProps) {
   return (
     <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
       {stats.map((stat, i) => (
-        <Card key={i}>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-[10px] font-bold uppercase tracking-widest text-slate-400'>
+        <Card key={i} className="border-slate-200/80 shadow-2xs">
+          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-1.5'>
+            <CardTitle className='text-xs font-semibold uppercase tracking-wider text-slate-500'>
               {stat.title}
             </CardTitle>
-            <div className='p-2 rounded-xl bg-slate-100 text-slate-600'>
-              {React.cloneElement(stat.icon as any, { size: 18 })}
-            </div>
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-black text-slate-900 tracking-tight'>{stat.value}</div>
+            <div className='text-2xl font-bold text-slate-900 tracking-tight'>{stat.value}</div>
             <TrendBadge trend={stat.trend} description={stat.description} />
           </CardContent>
         </Card>

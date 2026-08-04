@@ -6,10 +6,7 @@ export const goodsReceiptApi = {
   // Lấy danh sách phiếu nhập kho
   getAll: async (): Promise<ClientGoodsReceipt[]> => {
     try {
-      const user = useAuthStore.getState().user;
-      const isSuperAdmin = user?.roles?.includes('SUPER_ADMIN') || user?.role === 'SUPER_ADMIN';
-      const endpoint = isSuperAdmin ? 'v1/goods-receipts/admin' : 'v1/goods-receipts';
-      const res = await clientFetch(endpoint);
+      const res = await clientFetch('v1/goods-receipts');
       if (res.ok) {
         const result = await res.json();
         if (Array.isArray(result.data)) {
@@ -30,10 +27,7 @@ export const goodsReceiptApi = {
   // Lấy chi tiết phiếu nhập kho
   getById: async (id: string): Promise<ClientGoodsReceipt | null> => {
     try {
-      const user = useAuthStore.getState().user;
-      const isSuperAdmin = user?.roles?.includes('SUPER_ADMIN') || user?.role === 'SUPER_ADMIN';
-      const endpoint = isSuperAdmin ? `v1/goods-receipts/admin/${id}` : `v1/goods-receipts/${id}`;
-      const res = await clientFetch(endpoint);
+      const res = await clientFetch(`v1/goods-receipts/${id}`);
       if (res.ok) {
         const result = await res.json();
         return result.data || result;

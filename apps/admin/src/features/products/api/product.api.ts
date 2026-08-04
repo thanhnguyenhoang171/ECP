@@ -60,21 +60,40 @@ export const productApi = {
     size: number;
     sort?: string;
     search?: string;
+    name?: string;
     categoryId?: string;
+    brandId?: string;
+    isPublished?: boolean;
+    isFeatured?: boolean;
+    isNew?: boolean;
+    isBestSeller?: boolean;
   }): Promise<import('@/types/pagination').PageResponse<Product>> => {
     const query = new URLSearchParams();
 
-    // Import toApiPage directly here or rely on the caller sending 1-indexed page
-    // Since we don't want to import toApiPage, we'll assume caller passes 1-indexed page
-    // and we convert to 0-indexed for Spring Data JPA if needed. Wait, Spring Pageable is 0-indexed.
-    // toApiPage converts 1-indexed to 0-indexed. I'll just do params.page - 1 if > 0.
     const apiPage = params.page > 0 ? params.page - 1 : 0;
 
     query.append('page', apiPage.toString());
     query.append('size', params.size.toString());
     if (params.sort) query.append('sort', params.sort);
-    if (params.search) query.append('search', params.search);
+    
+    // Map search/name to 'name' parameter expected by backend ProductFilterRequest
+    const filterName = params.name || params.search;
+    if (filterName) query.append('name', filterName);
+    
     if (params.categoryId) query.append('categoryId', params.categoryId);
+    if (params.brandId) query.append('brandId', params.brandId);
+    if (params.isPublished !== undefined && params.isPublished !== null) {
+      query.append('isPublished', params.isPublished.toString());
+    }
+    if (params.isFeatured !== undefined && params.isFeatured !== null) {
+      query.append('isFeatured', params.isFeatured.toString());
+    }
+    if (params.isNew !== undefined && params.isNew !== null) {
+      query.append('isNew', params.isNew.toString());
+    }
+    if (params.isBestSeller !== undefined && params.isBestSeller !== null) {
+      query.append('isBestSeller', params.isBestSeller.toString());
+    }
 
     const res = await clientFetch(`v1/products?${query.toString()}`);
     if (!res.ok) {

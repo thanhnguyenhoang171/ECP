@@ -1,10 +1,5 @@
-import React from 'react';
-import SkusView from '@/features/skus/components/SkusView';
+import { redirect } from 'next/navigation';
 
-export default async function SkusPage({
-  _searchParams,
-}: {
-  _searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  return <SkusView />;
+export default async function SkusPage() {
+  redirect('/products?tab=skus');
 }

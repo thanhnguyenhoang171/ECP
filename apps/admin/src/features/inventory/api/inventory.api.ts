@@ -46,12 +46,26 @@ export const inventoryApi = {
       const res = await clientFetch('v1/inventory');
       if (res.ok) {
         const result = await res.json();
+        let items: any[] = [];
         if (Array.isArray(result.data)) {
-          return result.data;
+          items = result.data;
         } else if (result.data && Array.isArray(result.data.data)) {
-          return result.data.data;
+          items = result.data.data;
+        } else if (result.data && Array.isArray(result.data.content)) {
+          items = result.data.content;
+        } else if (Array.isArray(result.content)) {
+          items = result.content;
         } else if (Array.isArray(result)) {
-          return result;
+          items = result;
+        }
+
+        if (items.length > 0) {
+          return items.map((item: any) => ({
+            ...item,
+            id: item.id?.toString(),
+            warehouseId: item.warehouseId?.toString(),
+            skuId: item.skuId?.toString(),
+          }));
         }
       }
     } catch (e) {
@@ -93,12 +107,26 @@ export const inventoryApi = {
       const res = await clientFetch('v1/inventory/ledgers');
       if (res.ok) {
         const result = await res.json();
+        let items: any[] = [];
         if (Array.isArray(result.data)) {
-          return result.data;
+          items = result.data;
         } else if (result.data && Array.isArray(result.data.data)) {
-          return result.data.data;
+          items = result.data.data;
+        } else if (result.data && Array.isArray(result.data.content)) {
+          items = result.data.content;
+        } else if (Array.isArray(result.content)) {
+          items = result.content;
         } else if (Array.isArray(result)) {
-          return result;
+          items = result;
+        }
+
+        if (items.length > 0) {
+          return items.map((item: any) => ({
+            ...item,
+            id: item.id?.toString(),
+            warehouseId: item.warehouseId?.toString(),
+            skuId: item.skuId?.toString(),
+          }));
         }
       }
     } catch (e) {
