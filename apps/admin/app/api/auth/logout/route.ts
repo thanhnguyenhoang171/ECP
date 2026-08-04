@@ -21,7 +21,7 @@ export async function POST(request: Request) {
         };
         if (authHeader) headers['Authorization'] = authHeader;
 
-        await fetch(`${BACKEND_URL}/auth/logout`, {
+        await fetch(`${BACKEND_URL}/v1/auth/logout`, {
             method: 'POST',
             headers,
             body: refreshToken ? JSON.stringify({ refreshToken }) : undefined

@@ -1,6 +1,7 @@
 package com.example.ecp_api.mapper;
 
 import com.example.ecp_api.dto.request.BrandRequest;
+import com.example.ecp_api.dto.response.BrandAdminResponse;
 import com.example.ecp_api.dto.response.BrandResponse;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.PaginationResponse;
@@ -26,6 +27,8 @@ public interface BrandMapper {
 
     BrandResponse toResponse(Brand brand);
 
+    BrandAdminResponse toAdminResponse(Brand brand);
+
     default PageResponse<BrandResponse> toPageResponse(Page<Brand> page) {
         List<BrandResponse> list = page.getContent().stream()
                 .map(this::toResponse)
@@ -41,6 +44,28 @@ public interface BrandMapper {
                 .build();
 
         return PageResponse.<BrandResponse>builder()
+                .success(true)
+                .message("Fetch data successfully")
+                .data(list)
+                .pagination(pagination)
+                .build();
+    }
+
+    default PageResponse<BrandAdminResponse> toAdminPageResponse(Page<Brand> page) {
+        List<BrandAdminResponse> list = page.getContent().stream()
+                .map(this::toAdminResponse)
+                .collect(java.util.stream.Collectors.toList());
+
+        PaginationResponse pagination = PaginationResponse.builder()
+                .currentPage(page.getNumber() + 1)
+                .totalPages(page.getTotalPages())
+                .totalElements(page.getTotalElements())
+                .pageSize(page.getSize())
+                .isLast(page.isLast())
+                .isFirst(page.isFirst())
+                .build();
+
+        return PageResponse.<BrandAdminResponse>builder()
                 .success(true)
                 .message("Fetch data successfully")
                 .data(list)

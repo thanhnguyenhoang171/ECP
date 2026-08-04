@@ -20,7 +20,23 @@ public class OpenAPIConfig {
                 .info(new Info()
                         .title("ECP E-Commerce Platform API Documentation")
                         .version("1.0.0")
-                        .description("API Documentation grouped by user role and functional area")
+                        .description("""
+                                ## Role-Based Access Control (RBAC) API Specification
+                                
+                                This API documentation is organized strictly by User Role and Functional Scope using RESTful versioning (`/v1/...`).
+                                
+                                | Group | Scope | Base Path | Target Audience |
+                                |-------|-------|-----------|-----------------|
+                                | **0-common** | Public Auth & Common Profile | `/v1/auth/**`, `/v1/common/**` | Public & All Authenticated Users |
+                                | **1-super-admin** | System Administration | `/v1/admin/**` | `SUPER_ADMIN` Only |
+                                | **2-manager** | Business Management | `/v1/manager/**` | `MANAGER` & `SUPER_ADMIN` |
+                                | **3-storefront** | E-Commerce Storefront | `/v1/storefront/**` | End Users & Customers |
+                                | **4-all-apis** | Full System Reference | `/**` | All Endpoints |
+                                
+                                ### Authentication Instructions
+                                1. Login via `POST /v1/auth/login` to obtain an Access Token.
+                                2. Click the **Authorize** button above and paste your token in format: `Bearer <your-token>`.
+                                """)
                         .license(new License().name("Apache 2.0").url("http://springdoc.org")))
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .components(new Components()
@@ -32,53 +48,57 @@ public class OpenAPIConfig {
                                         .bearerFormat("JWT")));
     }
 
+    /**
+     * Group 0: Common APIs (Auth, User Profile, File Operations)
+     * Paths: /v1/auth/**, /v1/common/**
+     */
     @Bean
     public GroupedOpenApi commonApi() {
         return GroupedOpenApi.builder()
-                .group("0-common-auth")
-                .pathsToMatch("/auth/**", "/v1/test/**", "/v1/users/**")
+                .group("0-common")
+                .pathsToMatch("/v1/auth/**", "/v1/common/**")
                 .build();
     }
 
+    /**
+     * Group 1: Super Admin APIs (Full system access, includes audit info)
+     * Paths: /v1/admin/**
+     */
     @Bean
     public GroupedOpenApi superAdminApi() {
         return GroupedOpenApi.builder()
                 .group("1-super-admin")
-                .pathsToMatch("/**/admin/**", "/v1/audit-logs/**")
+                .pathsToMatch("/v1/admin/**")
                 .build();
     }
 
+    /**
+     * Group 2: Manager APIs (Business management, hides createdBy/updatedBy)
+     * Paths: /v1/manager/**
+     */
     @Bean
     public GroupedOpenApi managerApi() {
         return GroupedOpenApi.builder()
                 .group("2-manager")
-                .pathsToMatch(
-                        "/v1/purchase-orders/**",
-                        "/v1/goods-receipts/**",
-                        "/v1/suppliers/**",
-                        "/v1/warehouses/**",
-                        "/v1/inventory/**",
-                        "/v1/skus/**"
-                )
-                .pathsToExclude("/**/admin/**")
+                .pathsToMatch("/v1/manager/**")
                 .build();
     }
 
+    /**
+     * Group 3: Storefront APIs (Public catalog & customer features)
+     * Paths: /v1/storefront/**
+     */
     @Bean
-    public GroupedOpenApi userApi() {
+    public GroupedOpenApi storefrontApi() {
         return GroupedOpenApi.builder()
-                .group("3-user-storefront")
-                .pathsToMatch(
-                        "/v1/products/**",
-                        "/v1/categories/**",
-                        "/v1/brands/**",
-                        "/v1/cart/**",
-                        "/v1/orders/**"
-                )
-                .pathsToExclude("/**/admin/**")
+                .group("3-storefront")
+                .pathsToMatch("/v1/storefront/**")
                 .build();
     }
 
+    /**
+     * Group 4: All APIs (Complete Reference)
+     */
     @Bean
     public GroupedOpenApi allApi() {
         return GroupedOpenApi.builder()

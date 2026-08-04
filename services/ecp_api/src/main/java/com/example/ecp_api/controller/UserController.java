@@ -27,7 +27,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/v1/users")
 @RequiredArgsConstructor
-@Tag(name = "User Management", description = "APIs for managing users and profiles")
+@Tag(name = "[COMMON] User Account", description = "Authenticated users: View and update own account. All roles (SUPER_ADMIN, MANAGER, USER).")
 public class UserController {
 
     private final UserService userService;

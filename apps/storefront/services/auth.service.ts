@@ -22,14 +22,14 @@ export interface RegisterPayload {
  * Trả về toàn bộ AuthApiResponse để nơi gọi tự xử lý setAuth()
  */
 export async function loginClient(payload: LoginPayload): Promise<AuthApiResponse> {
-  return axiosClient.post<unknown, AuthApiResponse>('/auth/login', payload);
+  return axiosClient.post<unknown, AuthApiResponse>('/v1/auth/login', payload);
 }
 
 /**
  * Đăng nhập Google — POST /auth/google
  */
 export async function loginGoogleClient(idToken: string): Promise<AuthApiResponse> {
-  return axiosClient.post<unknown, AuthApiResponse>('/auth/google', { idToken });
+  return axiosClient.post<unknown, AuthApiResponse>('/v1/auth/google', { idToken });
 }
 
 /**
@@ -37,7 +37,7 @@ export async function loginGoogleClient(idToken: string): Promise<AuthApiRespons
  * Trả về cùng cấu trúc như login nếu đăng ký thành công sẽ tự đăng nhập luôn
  */
 export async function registerClient(payload: RegisterPayload): Promise<AuthApiResponse> {
-  return axiosClient.post<unknown, AuthApiResponse>('/auth/register', payload);
+  return axiosClient.post<unknown, AuthApiResponse>('/v1/auth/register', payload);
 }
 
 /**
@@ -48,7 +48,7 @@ export async function registerClient(payload: RegisterPayload): Promise<AuthApiR
 export async function refreshTokenClient(refreshToken: string): Promise<AuthData> {
   const envUrl = process.env.NEXT_PUBLIC_STOREFRONT_API_URL || process.env.NEXT_PUBLIC_API_URL;
   const API_BASE_URL = (envUrl && envUrl.startsWith('/')) ? envUrl : '/api';
-  const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+  const res = await fetch(`${API_BASE_URL}/v1/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken }),
@@ -73,7 +73,7 @@ export async function refreshTokenClient(refreshToken: string): Promise<AuthData
  */
 export async function logoutClient(): Promise<void> {
   try {
-    await axiosClient.post('/auth/logout', {});
+    await axiosClient.post('/v1/auth/logout', {});
   } catch {
     // Bỏ qua lỗi — vẫn xóa cookie và state dù backend lỗi
   }
@@ -83,6 +83,6 @@ export async function logoutClient(): Promise<void> {
  * Lấy thông tin tài khoản người dùng hiện tại từ API /v1/users/account
  */
 export async function getAccountInfo(): Promise<any> {
-  const response = await axiosClient.get('/v1/users/account');
+  const response = await axiosClient.get('/v1/common/users/account');
   return (response as any).data || response;
 }

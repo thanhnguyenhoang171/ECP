@@ -9,7 +9,9 @@ import org.springframework.data.domain.Pageable;
 
 public interface PurchaseOrderService {
     PurchaseOrderResponse createPurchaseOrder(PurchaseOrderRequest request);
+    PurchaseOrderAdminResponse createPurchaseOrderAdmin(PurchaseOrderRequest request);
     PurchaseOrderResponse updatePurchaseOrder(String id, PurchaseOrderRequest request);
+    PurchaseOrderAdminResponse updatePurchaseOrderAdmin(String id, PurchaseOrderRequest request);
     PurchaseOrderResponse getPurchaseOrderById(String id);
     PurchaseOrderAdminResponse getPurchaseOrderByIdAdmin(String id);
     PageResponse<PurchaseOrderResponse> getAllPurchaseOrders(PurchaseOrderFilterRequest filter, Pageable pageable);

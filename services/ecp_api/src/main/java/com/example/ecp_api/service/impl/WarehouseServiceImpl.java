@@ -73,6 +73,26 @@ public class WarehouseServiceImpl implements WarehouseService {
 
     @Override
     @Transactional
+    public WarehouseAdminResponse createWarehouseAdmin(WarehouseRequest request) {
+        if (!StringUtils.hasText(request.getCode())) {
+            String slug = SlugUtils.toSlug(request.getName()).toUpperCase();
+            request.setCode(slug + "-" + System.currentTimeMillis() % 10000);
+        }
+        if (warehouseRepository.existsByCode(request.getCode())) {
+            throw new AppException("WAREHOUSE_CODE_EXISTS", "Mã kho đã tồn tại: " + request.getCode(), HttpStatus.BAD_REQUEST);
+        }
+        if (warehouseRepository.existsByName(request.getName())) {
+            throw new AppException("WAREHOUSE_NAME_EXISTS", "Tên kho đã tồn tại: " + request.getName(), HttpStatus.BAD_REQUEST);
+        }
+        Warehouse warehouse = warehouseMapper.toEntity(request);
+        if (request.getIsActive() == null) { warehouse.setActive(true); }
+        warehouse = warehouseRepository.saveAndFlush(warehouse);
+        auditLogService.log("CREATE_WAREHOUSE", SecurityUtils.getCurrentUsername(), "Created warehouse: " + warehouse.getName() + " (" + warehouse.getCode() + ")");
+        return warehouseMapper.toAdminResponse(warehouse);
+    }
+
+    @Override
+    @Transactional
     public WarehouseResponse updateWarehouse(String id, WarehouseRequest request) {
         Warehouse warehouse = warehouseRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Không tìm thấy kho hàng với ID: " + id, HttpStatus.NOT_FOUND));
@@ -102,6 +122,29 @@ public class WarehouseServiceImpl implements WarehouseService {
         auditLogService.log("UPDATE_WAREHOUSE", SecurityUtils.getCurrentUsername(), "Updated warehouse: " + warehouse.getName() + " (" + warehouse.getCode() + ")");
 
         return warehouseMapper.toResponse(warehouse);
+    }
+
+    @Override
+    @Transactional
+    public WarehouseAdminResponse updateWarehouseAdmin(String id, WarehouseRequest request) {
+        Warehouse warehouse = warehouseRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Không tìm thấy kho hàng với ID: " + id, HttpStatus.NOT_FOUND));
+        if (StringUtils.hasText(request.getCode()) && !warehouse.getCode().equals(request.getCode()) && warehouseRepository.existsByCode(request.getCode())) {
+            throw new AppException("WAREHOUSE_CODE_EXISTS", "Mã kho đã tồn tại: " + request.getCode(), HttpStatus.BAD_REQUEST);
+        }
+        if (StringUtils.hasText(request.getName()) && !warehouse.getName().equals(request.getName()) && warehouseRepository.existsByName(request.getName())) {
+            throw new AppException("WAREHOUSE_NAME_EXISTS", "Tên kho đã tồn tại: " + request.getName(), HttpStatus.BAD_REQUEST);
+        }
+        if (request.getIsActive() != null && !request.getIsActive() && warehouse.isActive()) {
+            if (inventoryRepository.existsByWarehouseId(warehouse.getId())) {
+                throw new AppException("WAREHOUSE_HAS_INVENTORY", "Không thể ngưng hoạt động kho vẫn còn tồn kho", HttpStatus.BAD_REQUEST);
+            }
+        }
+        warehouseMapper.updateWarehouseFromRequest(request, warehouse);
+        if (request.getIsActive() != null) { warehouse.setActive(request.getIsActive()); }
+        warehouse = warehouseRepository.saveAndFlush(warehouse);
+        auditLogService.log("UPDATE_WAREHOUSE", SecurityUtils.getCurrentUsername(), "Updated warehouse: " + warehouse.getName() + " (" + warehouse.getCode() + ")");
+        return warehouseMapper.toAdminResponse(warehouse);
     }
 
     @Override

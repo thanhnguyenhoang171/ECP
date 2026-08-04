@@ -57,6 +57,24 @@ public class SupplierServiceImpl implements SupplierService {
 
     @Override
     @Transactional
+    public SupplierAdminResponse createSupplierAdmin(SupplierRequest request) {
+        if (supplierRepository.existsByName(request.getName())) {
+            throw new AppException("SUPPLIER_NAME_EXISTS", "Tên nhà cung cấp đã tồn tại: " + request.getName(), HttpStatus.BAD_REQUEST);
+        }
+        if (StringUtils.hasText(request.getEmail()) && supplierRepository.existsByEmail(request.getEmail())) {
+            throw new AppException("SUPPLIER_EMAIL_EXISTS", "Email nhà cung cấp đã tồn tại: " + request.getEmail(), HttpStatus.BAD_REQUEST);
+        }
+        if (StringUtils.hasText(request.getTaxCode()) && supplierRepository.existsByTaxCode(request.getTaxCode())) {
+            throw new AppException("SUPPLIER_TAX_CODE_EXISTS", "Mã số thuế đã tồn tại: " + request.getTaxCode(), HttpStatus.BAD_REQUEST);
+        }
+        Supplier supplier = supplierMapper.toEntity(request);
+        supplier = supplierRepository.save(supplier);
+        auditLogService.log("CREATE_SUPPLIER", SecurityUtils.getCurrentUsername(), "Created supplier: " + supplier.getName());
+        return supplierMapper.toAdminResponse(supplier);
+    }
+
+    @Override
+    @Transactional
     public SupplierResponse updateSupplier(String id, SupplierRequest request) {
         Supplier supplier = supplierRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("SUPPLIER_NOT_FOUND", "Không tìm thấy nhà cung cấp với ID: " + id, HttpStatus.NOT_FOUND));
@@ -75,6 +93,26 @@ public class SupplierServiceImpl implements SupplierService {
         supplier = supplierRepository.save(supplier);
         auditLogService.log("UPDATE_SUPPLIER", SecurityUtils.getCurrentUsername(), "Updated supplier: " + supplier.getName());
         return supplierMapper.toResponse(supplier);
+    }
+
+    @Override
+    @Transactional
+    public SupplierAdminResponse updateSupplierAdmin(String id, SupplierRequest request) {
+        Supplier supplier = supplierRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new AppException("SUPPLIER_NOT_FOUND", "Không tìm thấy nhà cung cấp với ID: " + id, HttpStatus.NOT_FOUND));
+        if (StringUtils.hasText(request.getName()) && !supplier.getName().equals(request.getName()) && supplierRepository.existsByName(request.getName())) {
+            throw new AppException("SUPPLIER_NAME_EXISTS", "Tên nhà cung cấp đã tồn tại: " + request.getName(), HttpStatus.BAD_REQUEST);
+        }
+        if (StringUtils.hasText(request.getEmail()) && !request.getEmail().equals(supplier.getEmail()) && supplierRepository.existsByEmail(request.getEmail())) {
+            throw new AppException("SUPPLIER_EMAIL_EXISTS", "Email nhà cung cấp đã tồn tại: " + request.getEmail(), HttpStatus.BAD_REQUEST);
+        }
+        if (StringUtils.hasText(request.getTaxCode()) && !request.getTaxCode().equals(supplier.getTaxCode()) && supplierRepository.existsByTaxCode(request.getTaxCode())) {
+            throw new AppException("SUPPLIER_TAX_CODE_EXISTS", "Mã số thuế đã tồn tại: " + request.getTaxCode(), HttpStatus.BAD_REQUEST);
+        }
+        supplierMapper.updateSupplierFromRequest(request, supplier);
+        supplier = supplierRepository.save(supplier);
+        auditLogService.log("UPDATE_SUPPLIER", SecurityUtils.getCurrentUsername(), "Updated supplier: " + supplier.getName());
+        return supplierMapper.toAdminResponse(supplier);
     }
 
     @Override

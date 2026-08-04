@@ -78,6 +78,27 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
     @Override
     @Transactional
+    public PurchaseOrderAdminResponse createPurchaseOrderAdmin(PurchaseOrderRequest request) {
+        if (purchaseOrderRepository.existsByPoCode(request.getPoCode())) {
+            throw new AppException("PO_CODE_EXISTS", "Mã đơn mua hàng đã tồn tại: " + request.getPoCode(), HttpStatus.BAD_REQUEST);
+        }
+        Warehouse warehouse = warehouseRepository.findById(UUID.fromString(request.getWarehouseId()))
+                .orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Không tìm thấy kho hàng với ID: " + request.getWarehouseId(), HttpStatus.NOT_FOUND));
+        Supplier supplier = supplierRepository.findById(UUID.fromString(request.getSupplierId()))
+                .orElseThrow(() -> new AppException("SUPPLIER_NOT_FOUND", "Không tìm thấy nhà cung cấp với ID: " + request.getSupplierId(), HttpStatus.NOT_FOUND));
+        PurchaseOrder purchaseOrder = purchaseOrderMapper.toEntity(request);
+        purchaseOrder.setWarehouse(warehouse);
+        purchaseOrder.setSupplier(supplier);
+        purchaseOrderHelper.processPurchaseOrderItems(request, purchaseOrder);
+        if (request.getStatus() == null) { purchaseOrder.setStatus(PurchaseOrderStatus.DRAFT); }
+        purchaseOrder = purchaseOrderRepository.saveAndFlush(purchaseOrder);
+        auditLogService.log("CREATE_PURCHASE_ORDER", SecurityUtils.getCurrentUsername(),
+                "Created purchase order: " + purchaseOrder.getPoCode() + " for warehouse: " + warehouse.getName() + " and supplier: " + supplier.getName());
+        return purchaseOrderMapper.toAdminResponse(purchaseOrder);
+    }
+
+    @Override
+    @Transactional
     public PurchaseOrderResponse updatePurchaseOrder(String id, PurchaseOrderRequest request) {
         PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("PURCHASE_ORDER_NOT_FOUND", "Không tìm thấy đơn mua hàng với ID: " + id, HttpStatus.NOT_FOUND));
@@ -108,6 +129,29 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 "Updated purchase order: " + purchaseOrder.getPoCode() + " status: " + purchaseOrder.getStatus());
 
         return purchaseOrderMapper.toResponse(purchaseOrder);
+    }
+
+    @Override
+    @Transactional
+    public PurchaseOrderAdminResponse updatePurchaseOrderAdmin(String id, PurchaseOrderRequest request) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new AppException("PURCHASE_ORDER_NOT_FOUND", "Không tìm thấy đơn mua hàng với ID: " + id, HttpStatus.NOT_FOUND));
+        if (!purchaseOrder.getPoCode().equals(request.getPoCode()) && purchaseOrderRepository.existsByPoCode(request.getPoCode())) {
+            throw new AppException("PO_CODE_EXISTS", "Mã đơn mua hàng đã tồn tại: " + request.getPoCode(), HttpStatus.BAD_REQUEST);
+        }
+        Warehouse warehouse = warehouseRepository.findById(UUID.fromString(request.getWarehouseId()))
+                .orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Không tìm thấy kho hàng với ID: " + request.getWarehouseId(), HttpStatus.NOT_FOUND));
+        Supplier supplier = supplierRepository.findById(UUID.fromString(request.getSupplierId()))
+                .orElseThrow(() -> new AppException("SUPPLIER_NOT_FOUND", "Không tìm thấy nhà cung cấp với ID: " + request.getSupplierId(), HttpStatus.NOT_FOUND));
+        purchaseOrderMapper.updatePurchaseOrderFromRequest(request, purchaseOrder);
+        purchaseOrder.setWarehouse(warehouse);
+        purchaseOrder.setSupplier(supplier);
+        purchaseOrderHelper.processPurchaseOrderItems(request, purchaseOrder);
+        if (request.getStatus() != null) { purchaseOrder.setStatus(request.getStatus()); }
+        purchaseOrder = purchaseOrderRepository.saveAndFlush(purchaseOrder);
+        auditLogService.log("UPDATE_PURCHASE_ORDER", SecurityUtils.getCurrentUsername(),
+                "Updated purchase order: " + purchaseOrder.getPoCode() + " status: " + purchaseOrder.getStatus());
+        return purchaseOrderMapper.toAdminResponse(purchaseOrder);
     }
 
     @Override

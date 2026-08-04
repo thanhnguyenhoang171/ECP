@@ -61,7 +61,7 @@ axiosClient.interceptors.response.use(
     const originalRequest = error.config;
 
     // Nếu là endpoint đăng nhập/đăng ký hoặc không phải 401 hoặc đã retry rồi → reject luôn kèm data lỗi từ server
-    const isAuthEndpoint = originalRequest?.url?.includes('/auth/login') || originalRequest?.url?.includes('/auth/register');
+    const isAuthEndpoint = originalRequest?.url?.includes('/v1/auth/login') || originalRequest?.url?.includes('/v1/auth/register') || originalRequest?.url?.includes('/auth/login') || originalRequest?.url?.includes('/auth/register');
 
     if (isAuthEndpoint || error.response?.status !== 401 || originalRequest?._retry) {
       const responseData = error.response?.data;
@@ -107,7 +107,7 @@ axiosClient.interceptors.response.use(
 
     try {
       // Gọi refresh bằng fetch thuần để tránh trigger interceptor này lại
-      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      const res = await fetch(`${API_BASE_URL}/v1/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken }),

@@ -37,9 +37,9 @@ import java.util.stream.Collectors;
 import com.example.ecp_api.dto.request.GoogleLoginRequest;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/v1/auth")
 @RequiredArgsConstructor
-@Tag(name = "Authentication", description = "Endpoints for user registration, login, and token management")
+@Tag(name = "[COMMON] Authentication", description = "Public API: Register, login, logout, refresh token, and Google OAuth. Available to all users (SUPER_ADMIN, MANAGER, USER).")
 public class AuthController {
 
         private final AuthenticationManager authenticationManager;

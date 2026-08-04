@@ -2,9 +2,9 @@ package com.example.ecp_api.service.impl;
 
 import com.example.ecp_api.dto.request.SkuFilterRequest;
 import com.example.ecp_api.dto.response.PageResponse;
+import com.example.ecp_api.dto.response.SkuAdminResponse;
 import com.example.ecp_api.dto.response.SkuResponse;
 import com.example.ecp_api.entity.jpa.Sku;
-import com.example.ecp_api.entity.mongodb.Product;
 import com.example.ecp_api.exception.ResourceNotFoundException;
 import com.example.ecp_api.mapper.SkuMapper;
 import com.example.ecp_api.repository.jpa.SkuRepository;
@@ -30,48 +30,63 @@ public class SkuServiceImpl implements SkuService {
     private final SkuRepository skuRepository;
     private final SkuMapper skuMapper;
 
-    @Override
-    public PageResponse<SkuResponse> getAllSkus(SkuFilterRequest filter, Pageable pageable) {
-        Pageable finalPageable = PaginationUtils.applyStableSort(pageable, 
-                Sort.Order.desc("createdAt"), 
-                Sort.Order.asc("id"));
-
-        Specification<Sku> spec = (root, query, cb) -> {
+    private Specification<Sku> buildSpec(SkuFilterRequest filter) {
+        return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-
             if (StringUtils.hasText(filter.getSkuCode())) {
                 predicates.add(cb.equal(root.get("skuCode"), filter.getSkuCode()));
             }
-
             if (StringUtils.hasText(filter.getProductId())) {
                 predicates.add(cb.equal(root.get("productId"), filter.getProductId()));
             }
-
             if (StringUtils.hasText(filter.getProductName())) {
                 predicates.add(cb.like(cb.lower(root.get("productName")), "%" + filter.getProductName().toLowerCase() + "%"));
             }
-
             if (filter.getActive() != null) {
                 predicates.add(cb.equal(root.get("active"), filter.getActive()));
             }
-
             return cb.and(predicates.toArray(new Predicate[0]));
         };
-
-        Page<Sku> skuPage = skuRepository.findAll(spec, finalPageable);
-        return skuMapper.toPageResponse(skuPage);
     }
 
-    @Override
-    public SkuResponse getSkuById(String skuId) {
+    private Sku findSku(String skuId) {
         UUID uuid;
         try {
             uuid = UUID.fromString(skuId);
         } catch (IllegalArgumentException e) {
             throw new ResourceNotFoundException("SKU not found with ID: " + skuId, "SKU_NOT_FOUND");
         }
-        Sku sku = skuRepository.findById(uuid)
+        return skuRepository.findById(uuid)
                 .orElseThrow(() -> new ResourceNotFoundException("SKU not found with ID: " + skuId, "SKU_NOT_FOUND"));
-        return skuMapper.toResponse(sku);
+    }
+
+    // ─────────────────────────── MANAGER METHODS ───────────────────────────
+
+    @Override
+    public PageResponse<SkuResponse> getAllSkus(SkuFilterRequest filter, Pageable pageable) {
+        Pageable finalPageable = PaginationUtils.applyStableSort(pageable,
+                Sort.Order.desc("createdAt"), Sort.Order.asc("id"));
+        Page<Sku> skuPage = skuRepository.findAll(buildSpec(filter), finalPageable);
+        return skuMapper.toPageResponse(skuPage);
+    }
+
+    @Override
+    public SkuResponse getSkuById(String skuId) {
+        return skuMapper.toResponse(findSku(skuId));
+    }
+
+    // ─────────────────────────── ADMIN METHODS ───────────────────────────
+
+    @Override
+    public PageResponse<SkuAdminResponse> getAllSkusAdmin(SkuFilterRequest filter, Pageable pageable) {
+        Pageable finalPageable = PaginationUtils.applyStableSort(pageable,
+                Sort.Order.desc("createdAt"), Sort.Order.asc("id"));
+        Page<Sku> skuPage = skuRepository.findAll(buildSpec(filter), finalPageable);
+        return skuMapper.toAdminPageResponse(skuPage);
+    }
+
+    @Override
+    public SkuAdminResponse getSkuByIdAdmin(String skuId) {
+        return skuMapper.toAdminResponse(findSku(skuId));
     }
 }

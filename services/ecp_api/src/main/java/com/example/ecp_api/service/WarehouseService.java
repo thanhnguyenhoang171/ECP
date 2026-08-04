@@ -9,7 +9,9 @@ import org.springframework.data.domain.Pageable;
 
 public interface WarehouseService {
     WarehouseResponse createWarehouse(WarehouseRequest request);
+    WarehouseAdminResponse createWarehouseAdmin(WarehouseRequest request);
     WarehouseResponse updateWarehouse(String id, WarehouseRequest request);
+    WarehouseAdminResponse updateWarehouseAdmin(String id, WarehouseRequest request);
     WarehouseResponse getWarehouseById(String id);
     WarehouseAdminResponse getWarehouseByIdForAdmin(String id);
     PageResponse<WarehouseResponse> getAllWarehouses(WarehouseFilterRequest filter, Pageable pageable);
