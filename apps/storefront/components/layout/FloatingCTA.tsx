@@ -194,10 +194,10 @@ export default function FloatingCTA() {
               />
               <button
                 type="submit"
-                className="p-2 bg-[#F5C542] hover:bg-[#E5B32E] text-[#191715] rounded-xl transition-all shadow-xs cursor-pointer"
+                className="p-2 bg-[#1e1b18] hover:bg-zinc-800 text-[#F5C542] rounded-xl transition-all shadow-xs cursor-pointer border border-amber-500/30"
                 title="Gửi tin nhắn"
               >
-                <Send className="w-4 h-4 font-bold" />
+                <Send className="w-4 h-4 text-[#F5C542] font-bold" />
               </button>
             </form>
 

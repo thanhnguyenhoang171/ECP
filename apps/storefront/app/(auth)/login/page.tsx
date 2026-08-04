@@ -189,7 +189,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2.5 px-4 bg-[#F5C542] hover:bg-[#E5B32E] text-[#1E1B18] font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full py-2.5 px-4 bg-[#1e1b18] hover:bg-zinc-800 text-[#F5C542] font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm border border-amber-500/30 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <>

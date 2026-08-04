@@ -144,7 +144,7 @@ export default function Header() {
               >
                 <ShoppingBag className="w-4 h-4" />
                 {cartItemCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-[#F5C542] text-[#1E1B18] text-[9px] font-extrabold rounded-full flex items-center justify-center border border-[#191715] shadow-xs">
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-[#1e1b18] text-[#F5C542] text-[9px] font-extrabold rounded-full flex items-center justify-center border border-amber-500/50 shadow-xs">
                     {cartItemCount}
                   </span>
                 )}

@@ -94,9 +94,9 @@ export default function Home() {
 
           <Link
             href="/promotions"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F5C542] hover:bg-[#E5B32E] text-zinc-900 font-bold text-xs rounded-lg transition-colors shrink-0 shadow-md cursor-pointer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1e1b18] hover:bg-zinc-800 text-[#F5C542] font-bold text-xs rounded-xl transition-all shrink-0 shadow-md cursor-pointer border border-amber-500/20"
           >
-            <Tag className="w-3.5 h-3.5" /> Săn Combo ngay
+            <Tag className="w-3.5 h-3.5 text-[#F5C542]" /> Săn Combo ngay
           </Link>
         </div>
       </section>

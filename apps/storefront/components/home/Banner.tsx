@@ -39,9 +39,10 @@ export default function Banner() {
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}>
                   <Link
                     href="/products/snack-muc-bento-thai-lan"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F5C542] hover:bg-[#E5B32E] text-zinc-900 text-xs font-bold rounded-lg transition-all shadow-md"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#1e1b18] hover:bg-zinc-800 text-[#F5C542] text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer border border-amber-500/20"
                   >
-                    <ShoppingBag className="w-4 h-4 text-zinc-900" /> Thưởng thức ngay
+                    <ShoppingBag className="w-4 h-4 text-[#F5C542]" />
+                    <span className="text-[#F5C542] font-bold">Thưởng thức ngay</span>
                   </Link>
                 </motion.div>
                 <span className="text-xs text-zinc-800 font-semibold font-mono pl-2">Chỉ từ 25.000đ</span>
@@ -86,10 +87,10 @@ export default function Banner() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
             whileHover={{ y: -2 }}
-            className="bg-zinc-100 rounded-2xl p-6 border border-zinc-200/80 flex flex-col justify-between flex-1 hover:border-zinc-300 transition-all shadow-xs"
+            className="bg-gradient-to-br from-[#FFFBEB] via-[#FAF6ED] to-[#FFF3DC] rounded-2xl p-6 border border-amber-200/80 flex flex-col justify-between flex-1 hover:border-amber-300 transition-all shadow-xs"
           >
             <div>
-              <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+              <span className="text-[11px] font-semibold text-amber-800 uppercase tracking-wider">
                 Nước Giải Khát
               </span>
               <h3 className="text-lg font-semibold text-zinc-900 mt-1">
@@ -103,10 +104,10 @@ export default function Banner() {
               <span className="text-xs font-semibold text-zinc-900">45.000đ</span>
               <Link
                 href="/products/tra-sua-thai-do-chatramue"
-                className="p-2 bg-[#1e1b18] text-white rounded-lg hover:bg-[#2d2925] transition-colors"
+                className="p-2.5 bg-[#1e1b18] hover:bg-zinc-800 text-[#F5C542] rounded-xl transition-all font-bold shadow-sm border border-amber-500/20"
                 title="Xem chi tiết"
               >
-                <ArrowUpRight className="w-4 h-4" />
+                <ArrowUpRight className="w-4 h-4 text-[#F5C542]" />
               </Link>
             </div>
           </motion.div>
@@ -134,10 +135,10 @@ export default function Banner() {
               <span className="text-xs font-semibold text-zinc-900">18.000đ</span>
               <Link
                 href="/products/banh-pocky-chuoi-thai-lan"
-                className="p-2 bg-[#F5C542] text-zinc-900 rounded-lg hover:bg-[#E5B32E] transition-colors font-bold shadow-sm"
+                className="p-2.5 bg-[#1e1b18] hover:bg-zinc-800 text-[#F5C542] rounded-xl transition-all font-bold shadow-sm border border-amber-500/20"
                 title="Xem chi tiết"
               >
-                <ArrowUpRight className="w-4 h-4" />
+                <ArrowUpRight className="w-4 h-4 text-[#F5C542]" />
               </Link>
             </div>
           </motion.div>

@@ -43,9 +43,9 @@ export default function CategoryGrid() {
             <Link
               key={cat.id || idx}
               href={`/categories/${cat.slug}`}
-              className="group p-5 bg-white rounded-2xl border border-zinc-200/80 hover:border-amber-400 hover:shadow-md transition-all flex flex-col justify-between"
+              className="group p-5 bg-gradient-to-b from-[#FFFDF9] via-[#FAF6ED] to-[#FFF8EE] rounded-2xl border border-amber-200/60 hover:border-amber-400 hover:shadow-md transition-all flex flex-col justify-between"
             >
-              <div className="w-12 h-12 rounded-xl bg-amber-50 group-hover:bg-[#F5C542] text-zinc-900 flex items-center justify-center transition-colors mb-4 shadow-xs">
+              <div className="w-12 h-12 rounded-xl bg-amber-100/60 group-hover:bg-[#F5C542] text-amber-900 group-hover:text-zinc-900 flex items-center justify-center transition-colors mb-4 shadow-xs">
                 {typeof IconComponent === 'function' ? <IconComponent className="w-6 h-6" /> : <Cookie className="w-6 h-6" />}
               </div>
               <div>
