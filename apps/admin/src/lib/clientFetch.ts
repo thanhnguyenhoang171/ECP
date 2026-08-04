@@ -13,7 +13,7 @@ export interface FetchOptions extends RequestInit {
 }
 
 export function resolveRolePath(path: string): string {
-  let cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
   
   if (
     cleanPath.startsWith('v1/admin/') || 

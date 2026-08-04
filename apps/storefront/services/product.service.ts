@@ -45,7 +45,7 @@ export function mapBackendProductToFrontend(beProd: any): Product {
 export async function getProductsServer(category?: string): Promise<Product[]> {
   try {
     const query = category ? `?category=${category}&size=50` : '?size=50';
-    const res = await serverFetch<any>(`/v1/products${query}`, {
+    const res = await serverFetch<any>(`/v1/storefront/products${query}`, {
       revalidate: 60,
       tags: ['products'],
     });
@@ -68,7 +68,7 @@ export async function getProductsServer(category?: string): Promise<Product[]> {
  */
 export async function getProductBySlugServer(slug: string): Promise<Product | null> {
   try {
-    const res = await serverFetch<any>(`/v1/products?slug=${slug}`, {
+    const res = await serverFetch<any>(`/v1/storefront/products?slug=${slug}`, {
       revalidate: 300,
       tags: [`product-${slug}`],
     });
