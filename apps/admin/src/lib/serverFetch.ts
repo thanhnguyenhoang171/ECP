@@ -19,7 +19,7 @@ export async function serverFetch(url: string, options: RequestInit = {}) {
 
   // 1. Lấy Access Token mới từ Backend bằng Refresh Token
   // Chúng ta thực hiện việc này ngay tại Server để có token gọi API
-  const refreshRes = await fetch(`${BACKEND_URL}/auth/refresh`, {
+  const refreshRes = await fetch(`${BACKEND_URL}/v1/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken }),

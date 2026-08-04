@@ -6,7 +6,7 @@ const ICON_LIST = [Cookie, Coffee, Utensils, Flame, Sparkles];
 
 export async function getCategoriesServer(): Promise<Category[]> {
   try {
-    const res = await serverFetch<any>('/v1/categories?size=100', {
+    const res = await serverFetch<any>('/v1/storefront/categories?size=100', {
       revalidate: 60,
       tags: ['categories'],
     });

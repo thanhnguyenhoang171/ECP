@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     
     console.log(`Registering user: ${body.username}`);
     
-    const response = await fetch(`${BACKEND_URL}/auth/register`, {
+    const response = await fetch(`${BACKEND_URL}/v1/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
