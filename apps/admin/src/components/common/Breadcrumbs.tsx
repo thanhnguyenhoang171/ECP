@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ChevronRight, Home, LayoutDashboard, LucideIcon } from 'lucide-react';
+import { ChevronRight, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface BreadcrumbItem {
@@ -19,34 +19,30 @@ interface BreadcrumbsProps {
 
 export const Breadcrumbs = ({ items, className }: BreadcrumbsProps) => {
   return (
-    <nav className={cn("flex items-center gap-2 text-sm font-medium text-slate-500 mb-2", className)}>
+    <nav className={cn("flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-2.5", className)}>
       {items.length === 0 ? (
-        <span className="text-slate-900 font-bold flex items-center gap-1">
-          <LayoutDashboard size={14} />
-          <span>Tổng quan</span>
+        <span className="text-slate-900 font-semibold">
+          Tổng quan
         </span>
       ) : (
         <>
-          <Link href="/dashboard" className="hover:text-primary transition-colors flex items-center gap-1">
-            <LayoutDashboard size={14} />
-            <span>Tổng quan</span>
+          <Link href="/dashboard" className="hover:text-slate-900 transition-colors">
+            Tổng quan
           </Link>
           
           {items.map((item, index) => (
             <React.Fragment key={index}>
-              <ChevronRight size={14} className="text-slate-300 shrink-0" />
+              <ChevronRight size={12} className="text-slate-400 shrink-0" />
               {item.href ? (
                 <Link 
                   href={item.href} 
-                  className="hover:text-primary transition-colors flex items-center gap-1"
+                  className="hover:text-slate-900 transition-colors"
                 >
-                  {item.icon && <item.icon size={14} />}
-                  <span>{item.label}</span>
+                  {item.label}
                 </Link>
               ) : (
-                <span className="text-slate-900 font-bold flex items-center gap-1">
-                  {item.icon && <item.icon size={14} />}
-                  <span>{item.label}</span>
+                <span className="text-slate-900 font-semibold">
+                  {item.label}
                 </span>
               )}
             </React.Fragment>

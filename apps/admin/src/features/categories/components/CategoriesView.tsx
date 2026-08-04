@@ -13,6 +13,7 @@ import {
 } from '@/components/common';
 import { Layers, Eye } from 'lucide-react';
 import { CategoryDetailDialog } from './CategoryDetailDialog';
+import { CategoryTreeView } from './CategoryTreeView';
 import {
  SearchInput,
  ExportButton,
@@ -116,6 +117,8 @@ export default function CategoriesView({
   handleSearch,
  );
 
+ const [viewMode, setViewMode] = useState<'tree' | 'table'>('tree');
+
  const deleteMutation = useDeleteCategory();
  const updateMutation = useUpdateCategory();
 
@@ -203,32 +206,37 @@ export default function CategoriesView({
      </div>
     </div>
    ),
-   cell: (category) => (
-    <div className='flex items-center gap-3'>
-     <div className='h-10 w-10 rounded-lg border border-slate-200 overflow-hidden flex-shrink-0 bg-slate-50 flex items-center justify-center p-1'>
-      {category.imageUrl ? (
-       <Image
-        src={category.imageUrl}
-        alt={category.name}
-        width={40}
-        height={40}
-        className='w-full h-full object-contain'
-        unoptimized
-       />
-      ) : (
-       <Layers className='w-5 h-5 text-slate-400' />
-      )}
-     </div>
-     <div className='flex flex-col'>
-      <span className='text-sm font-bold text-slate-900 line-clamp-1'>
-       {category.name}
-      </span>
-      <span className='text-[10px] text-slate-400 font-medium'>
-       ID: {category.id}
-      </span>
-     </div>
-    </div>
-   ),
+    cell: (category) => {
+      const thumbObj = category.image || category.imageUrl;
+      const thumbUrl = typeof thumbObj === 'string' ? thumbObj : thumbObj?.url;
+
+      return (
+        <div className='flex items-center gap-3'>
+          <div className='h-10 w-10 rounded-lg border border-slate-200 overflow-hidden flex-shrink-0 bg-slate-50 flex items-center justify-center p-1'>
+            {thumbUrl ? (
+              <Image
+                src={thumbUrl}
+                alt={category.name}
+                width={40}
+                height={40}
+                className='w-full h-full object-contain'
+                unoptimized
+              />
+            ) : (
+              <Layers className='w-5 h-5 text-slate-400' />
+            )}
+          </div>
+          <div className='flex flex-col'>
+            <span className='text-sm font-bold text-slate-900 line-clamp-1'>
+              {category.name}
+            </span>
+            <span className='text-[10px] text-slate-400 font-medium'>
+              ID: {category.id}
+            </span>
+          </div>
+        </div>
+      );
+    },
   },
   {
    header: 'Cấp độ',
@@ -320,6 +328,26 @@ export default function CategoriesView({
 
  const commonActions = (
   <>
+   <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200/80 mr-2">
+     <button
+       onClick={() => setViewMode('tree')}
+       className={cn(
+         "px-2.5 py-1 text-xs font-bold rounded-md transition-all cursor-pointer",
+         viewMode === 'tree' ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-900"
+       )}
+     >
+       Cây thư mục (Tree)
+     </button>
+     <button
+       onClick={() => setViewMode('table')}
+       className={cn(
+         "px-2.5 py-1 text-xs font-bold rounded-md transition-all cursor-pointer",
+         viewMode === 'table' ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-900"
+       )}
+     >
+       Dạng bảng (Table)
+     </button>
+   </div>
    <ImportButton onClick={() => router.push('/categories/import')} disabled={isLoading || isFetching} />
    <ExportButton onExport={handleExportExcelFile} isLoading={isExporting} disabled={isLoading || isFetching} />
    <AddNewButton onClick={handleCreate} disabled={isLoading || isFetching} />
@@ -452,7 +480,7 @@ export default function CategoriesView({
      </>
     }
     footer={
-     categories.length > 0 && (
+     viewMode === 'table' && categories.length > 0 && (
       <NextPagination
        currentPage={pagination.currentPage}
        totalPages={pagination.totalPages}
@@ -465,17 +493,29 @@ export default function CategoriesView({
      )
     }
    >
-    <DataTable
-     columns={columns}
-     data={categories}
-     isLoading={isLoading}
-     emptyState={{
-      title: 'Chưa có danh mục nào',
-      description: 'Bắt đầu phân loại sản phẩm bằng cách tạo danh mục đầu tiên.',
-      icon: <Plus className='h-10 w-10 text-primary opacity-80' />,
-      iconColor: 'bg-primary/10',
-     }}
-    />
+        {viewMode === 'tree' ? (
+          <div className="p-4">
+            <CategoryTreeView
+              categories={categories}
+              onEdit={handleEdit}
+              onDelete={(id) => setDeleteConfirmId(id)}
+              onAddSub={(parentCategory) => router.push(`/categories/create?parentId=${parentCategory.id}`)}
+            />
+          </div>
+        ) : (
+          <DataTable
+           columns={columns}
+           data={categories}
+           isLoading={isLoading || isFetching}
+           emptyState={{
+            title: 'Không tìm thấy danh mục',
+            description:
+             'Thử thay đổi bộ lọc tìm kiếm hoặc tạo danh mục sản phẩm mới.',
+            icon: <Layers className='h-10 w-10 text-primary opacity-80' />,
+            iconColor: 'bg-primary/10',
+           }}
+          />
+        )}
    </DataCard>
 
    {/* Dialog hiển thị chi tiết category */}

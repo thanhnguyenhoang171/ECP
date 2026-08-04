@@ -16,18 +16,25 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
 @RequestMapping("/v1/manager/categories")
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('MANAGER', 'SUPER_ADMIN')")
-@Tag(name = "[MANAGER] Category Management", description = "Manager: CRUD on categories. Response excludes audit fields.")
+@Tag(name = "[MANAGER] Category Management", description = "Manager: CRUD, Export, and Import categories. Response excludes audit fields.")
 public class ManagerCategoryController {
 
     private final CategoryService categoryService;
@@ -84,5 +91,44 @@ public class ManagerCategoryController {
         categoryService.deleteCategory(id);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true).message("Category deleted successfully").build());
+    }
+
+    @GetMapping("/export")
+    @Operation(summary = "Export categories to Excel")
+    public ResponseEntity<StreamingResponseBody> exportToExcel() {
+        String fileName = "Danh_sach_loai_hang_hoa.xlsx";
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+        StreamingResponseBody body = out -> {
+            try { categoryService.exportAllCategoriesToExcel(out); }
+            catch (Exception e) { throw new IOException("Error during excel export", e); }
+        };
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFileName)
+                .body(body);
+    }
+
+    @GetMapping("/template")
+    @Operation(summary = "Download Excel import template")
+    public ResponseEntity<StreamingResponseBody> downloadTemplate() {
+        String dateStr = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("ddMMyyyy"));
+        String fileName = "Template_Import_Category_" + dateStr + ".xlsx";
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+        StreamingResponseBody body = out -> {
+            try { categoryService.downloadCategoryTemplate(out); }
+            catch (Exception e) { throw new IOException("Error during template download", e); }
+        };
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFileName)
+                .body(body);
+    }
+
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Import categories from Excel")
+    public ResponseEntity<ApiResponse<Void>> importCategories(@RequestParam("file") MultipartFile file) {
+        categoryService.importCategoriesFromExcel(file);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true).message("Categories imported successfully").build());
     }
 }

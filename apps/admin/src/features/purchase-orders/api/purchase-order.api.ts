@@ -6,10 +6,7 @@ export const purchaseOrderApi = {
   // Lấy danh sách Đơn mua hàng
   getAll: async (): Promise<ClientPurchaseOrder[]> => {
     try {
-      const user = useAuthStore.getState().user;
-      const isSuperAdmin = user?.roles?.includes('SUPER_ADMIN') || user?.role === 'SUPER_ADMIN';
-      const endpoint = isSuperAdmin ? 'v1/purchase-orders/admin' : 'v1/purchase-orders';
-      const res = await clientFetch(endpoint);
+      const res = await clientFetch('v1/purchase-orders');
       if (res.ok) {
         const result = await res.json();
         if (Array.isArray(result.data)) {
@@ -30,10 +27,7 @@ export const purchaseOrderApi = {
   // Lấy chi tiết Đơn mua hàng
   getById: async (id: string): Promise<ClientPurchaseOrder | null> => {
     try {
-      const user = useAuthStore.getState().user;
-      const isSuperAdmin = user?.roles?.includes('SUPER_ADMIN') || user?.role === 'SUPER_ADMIN';
-      const endpoint = isSuperAdmin ? `v1/purchase-orders/admin/${id}` : `v1/purchase-orders/${id}`;
-      const res = await clientFetch(endpoint);
+      const res = await clientFetch(`v1/purchase-orders/${id}`);
       if (res.ok) {
         const result = await res.json();
         return result.data || result;

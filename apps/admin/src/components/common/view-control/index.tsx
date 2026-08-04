@@ -42,21 +42,21 @@ export const SearchInput = ({ value, onChange, placeholder, isLoading }: SearchI
 
 // 2. Action Buttons (Header)
 export const ImportButton = ({ onClick, label = 'Nhập file', disabled }: { onClick: () => void; label?: string; disabled?: boolean }) => (
-  <Button variant='outline' size='sm' className='h-9' onClick={onClick} disabled={disabled}>
-    <Download className='mr-2 h-4 w-4 text-slate-500' /> {label}
+  <Button variant='outline' size='sm' className='h-9 font-medium text-slate-700' onClick={onClick} disabled={disabled}>
+    {label}
   </Button>
 );
 
 export const ExportButton = ({ onExport, isLoading, label = 'Xuất file', disabled }: { onExport: () => void; isLoading: boolean; label?: string; disabled?: boolean }) => (
-  <Button variant='outline' size='sm' className='h-9' onClick={onExport} disabled={isLoading || disabled}>
-    {isLoading ? <Loader2 className='mr-2 h-4 w-4 animate-spin' /> : <Upload className='mr-2 h-4 w-4 text-slate-500' />}
+  <Button variant='outline' size='sm' className='h-9 font-medium text-slate-700' onClick={onExport} disabled={isLoading || disabled}>
+    {isLoading && <Loader2 className='mr-2 h-3.5 w-3.5 animate-spin' />}
     {isLoading ? 'Đang xuất...' : label}
   </Button>
 );
 
 export const AddNewButton = ({ onClick, label = 'Thêm mới', disabled }: { onClick: () => void; label?: string; disabled?: boolean }) => (
-  <Button size='sm' variant='default' onClick={onClick} className='h-9 shadow-md shadow-blue-100' disabled={disabled}>
-    <Plus className='mr-2 h-4 w-4' /> {label} 
+  <Button size='sm' variant='default' onClick={onClick} className='h-9 shadow-xs font-semibold' disabled={disabled}>
+    <Plus className='mr-1.5 h-4 w-4' /> {label} 
   </Button>
 );
 
@@ -66,9 +66,9 @@ export const ResetFiltersButton = ({ onClick, label = 'Đặt lại bộ lọc',
     size='sm' 
     onClick={onClick} 
     disabled={disabled}
-    className='h-10 text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors'
+    className='h-10 text-xs font-medium text-slate-500 hover:text-slate-900 border border-slate-200 transition-colors'
   >
-    <RotateCcw className='mr-1.5 h-3.5 w-3.5 text-slate-400 group-hover:text-rose-600' /> {label}
+    {label}
   </Button>
 );
 
@@ -77,17 +77,16 @@ export const FilterPopover = ({ children, activeCount, onClear, disabled }: { ch
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant={activeCount ? 'default' : 'outline'} className='h-10 text-xs border-slate-200' disabled={disabled}>
-          <Filter className={cn('mr-2 h-4 w-4', activeCount ? "text-white" : "text-slate-400")} />
+        <Button variant={activeCount ? 'default' : 'outline'} className='h-10 text-xs font-medium border-slate-200' disabled={disabled}>
           Lọc {activeCount ? `(${activeCount})` : ''}
         </Button>
       </PopoverTrigger>
       <PopoverContent align='end' className='w-64 p-4'>
         <div className='space-y-4'>
-          <h4 className='font-medium text-sm leading-none'>Bộ lọc</h4>
+          <h4 className='font-semibold text-xs uppercase tracking-wider text-slate-500'>Bộ lọc</h4>
           {children}
           {activeCount ? (
-            <Button variant='ghost' size='sm' className='w-full text-red-500 hover:text-red-600 hover:bg-red-50 text-xs mt-2' onClick={onClear}>
+            <Button variant='ghost' size='sm' className='w-full text-red-500 hover:text-red-600 hover:bg-red-50 text-xs mt-2 font-medium' onClick={onClear}>
               Xóa tất cả bộ lọc
             </Button>
           ) : null}
@@ -101,8 +100,8 @@ export const SortPopover = ({ options, currentValue, onSelect, disabled }: { opt
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant='outline' className='h-10 text-xs border-slate-200' disabled={disabled}>
-          <ArrowUpDown className='mr-2 h-4 w-4 text-slate-400' /> Sắp xếp
+        <Button variant='outline' className='h-10 text-xs font-medium border-slate-200' disabled={disabled}>
+          Sắp xếp
         </Button>
       </PopoverTrigger>
       <PopoverContent align='end' className='w-48 p-2'>

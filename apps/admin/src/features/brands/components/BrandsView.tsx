@@ -127,7 +127,7 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
       header: 'Thương hiệu',
       cell: (brand) => (
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg border border-slate-200 overflow-hidden flex-shrink-0 bg-slate-50 flex items-center justify-center p-1">
+          <div className="h-10 w-10 rounded-lg border border-slate-200 overflow-hidden flex-shrink-0 bg-slate-100 flex items-center justify-center p-1 text-xs font-bold text-slate-600">
             {brand.logo ? (
               <Image
                 src={brand.logo}
@@ -138,11 +138,11 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
                 unoptimized
               />
             ) : (
-              <Tag className="w-5 h-5 text-slate-400" />
+              <span>{brand.name.substring(0, 2).toUpperCase()}</span>
             )}
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-slate-900 line-clamp-1">
+            <span className="text-sm font-semibold text-slate-900 line-clamp-1">
               {brand.name}
             </span>
             {brand.website && (
@@ -150,10 +150,10 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
                 href={brand.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[11px] text-blue-600 hover:underline flex items-center gap-1 line-clamp-1"
+                className="text-[11px] text-slate-500 hover:text-slate-900 hover:underline line-clamp-1"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Globe size={11} /> {brand.website.replace(/^https?:\/\//, '')}
+                {brand.website.replace(/^https?:\/\//, '')}
               </a>
             )}
           </div>

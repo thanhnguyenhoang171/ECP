@@ -8,8 +8,11 @@ export const skuApi = {
     size: number;
     sort?: string;
     search?: string;
+    skuCode?: string;
+    productName?: string;
     productId?: string;
     isActive?: boolean;
+    active?: boolean;
   }): Promise<PageResponse<Sku>> => {
     const query = new URLSearchParams();
     
@@ -18,9 +21,16 @@ export const skuApi = {
     query.append('page', apiPage.toString());
     query.append('size', params.size.toString());
     if (params.sort) query.append('sort', params.sort);
-    if (params.search) query.append('search', params.search);
+    
+    const codeFilter = params.skuCode || params.search;
+    if (codeFilter) query.append('skuCode', codeFilter);
+    if (params.productName) query.append('productName', params.productName);
     if (params.productId) query.append('productId', params.productId);
-    if (params.isActive !== undefined) query.append('isActive', params.isActive.toString());
+    
+    const activeVal = params.active !== undefined ? params.active : params.isActive;
+    if (activeVal !== undefined && activeVal !== null) {
+      query.append('active', activeVal.toString());
+    }
 
     const res = await clientFetch(`v1/skus?${query.toString()}`);
     if (!res.ok) {
@@ -65,5 +75,55 @@ export const skuApi = {
       data: items,
       pagination
     };
+  },
+
+  getById: async (id: string): Promise<Sku> => {
+    const res = await clientFetch(`v1/skus/${id}`);
+    if (!res.ok) throw new Error('Không thể tải thông tin SKU');
+    const body = await res.json();
+    return body.data || body;
+  },
+
+  create: async (data: {
+    skuCode: string;
+    productId: string;
+    productName?: string;
+    variantName?: string;
+    barcode?: string;
+    barcodeType?: string;
+    active?: boolean;
+  }): Promise<Sku> => {
+    const res = await clientFetch('v1/skus', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Thêm mới SKU thất bại');
+    const body = await res.json();
+    return body.data || body;
+  },
+
+  update: async (id: string, data: Partial<{
+    skuCode: string;
+    variantName: string;
+    barcode: string;
+    barcodeType: string;
+    active: boolean;
+  }>): Promise<Sku> => {
+    const res = await clientFetch(`v1/skus/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Cập nhật SKU thất bại');
+    const body = await res.json();
+    return body.data || body;
+  },
+
+  delete: async (id: string): Promise<boolean> => {
+    const res = await clientFetch(`v1/skus/${id}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
   }
 };

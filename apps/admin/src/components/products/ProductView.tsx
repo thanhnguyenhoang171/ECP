@@ -131,13 +131,13 @@ export default function ProductView({ initialProducts }: ProductViewProps) {
                       {product.categoryId}
                     </TableCell>
                     <TableCell className='text-right text-sm font-bold text-blue-600 py-4'>
-                      {product.price}
+                      {(product as any).price || product.variants?.[0]?.price || 0}
                     </TableCell>
                     <TableCell className='text-center py-4'>
                       <Badge
                         variant='secondary'
                         className='text-[10px] h-5 px-2 bg-slate-100 text-slate-600 border-none'>
-                        {product.stock}
+                        {(product as any).stock || 0}
                       </Badge>
                     </TableCell>
                     <TableCell className='text-right py-4 pr-6'>

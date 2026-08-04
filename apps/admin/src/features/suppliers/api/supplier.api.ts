@@ -6,10 +6,7 @@ export const supplierApi = {
   // Lấy danh sách tất cả nhà cung cấp
   getAll: async (): Promise<ClientSupplier[]> => {
     try {
-      const user = useAuthStore.getState().user;
-      const isSuperAdmin = user?.roles?.includes('SUPER_ADMIN') || user?.role === 'SUPER_ADMIN';
-      const endpoint = isSuperAdmin ? 'v1/suppliers/admin' : 'v1/suppliers';
-      const res = await clientFetch(endpoint);
+      const res = await clientFetch('v1/suppliers');
       if (res.ok) {
         const result = await res.json();
         let items = [];
@@ -37,10 +34,7 @@ export const supplierApi = {
   // Lấy chi tiết nhà cung cấp
   getById: async (id: string): Promise<ClientSupplier | null> => {
     try {
-      const user = useAuthStore.getState().user;
-      const isSuperAdmin = user?.roles?.includes('SUPER_ADMIN') || user?.role === 'SUPER_ADMIN';
-      const endpoint = isSuperAdmin ? `v1/suppliers/admin/${id}` : `v1/suppliers/${id}`;
-      const res = await clientFetch(endpoint);
+      const res = await clientFetch(`v1/suppliers/${id}`);
       if (res.ok) {
         const result = await res.json();
         const item = result.data || result;

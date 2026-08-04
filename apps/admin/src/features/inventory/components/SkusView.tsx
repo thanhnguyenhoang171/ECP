@@ -13,10 +13,9 @@ export default function SkusView() {
       />
       
       <EmptyState 
+        icon={<Layers className="w-10 h-10 text-amber-500" />}
         title="Chưa có mã SKU"
         description="Vui lòng cấu hình sản phẩm để hệ thống tự động sinh mã SKU."
-        icon={<Layers className="h-10 w-10 text-slate-500 opacity-80" />}
-        iconColor="bg-slate-50"
       />
     </div>
   );

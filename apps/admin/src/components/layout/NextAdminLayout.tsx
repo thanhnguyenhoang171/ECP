@@ -89,10 +89,9 @@ const menuItems: MenuItem[] = [
   {
     key: 'products-group',
     icon: <ShoppingBag size={18} />,
-    label: 'Sản phẩm & SKU',
+    label: 'Sản phẩm',
     children: [
       { key: '/products', label: 'Sản phẩm' },
-      { key: '/skus', label: 'Danh sách SKU' },
       { key: '/categories', label: 'Danh mục' },
       { key: '/brands', label: 'Thương hiệu' },
     ],
@@ -647,20 +646,16 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
                     </span>
                   </div>
                   <Avatar className="h-9 w-9 border border-slate-200 shadow-sm overflow-hidden">
-                    {user?.avatarUrl ? (
-                      <Image
+                    {user?.avatarUrl && (
+                      <AvatarImage
                         src={user.avatarUrl}
                         alt={user?.email || 'Avatar'}
-                        width={36}
-                        height={36}
-                        unoptimized
-                        className="h-9 w-9 rounded-full object-cover"
+                        className="object-cover"
                       />
-                    ) : (
-                      <AvatarFallback className="bg-slate-100 text-slate-600 font-bold text-xs">
-                        {getInitials(user?.lastName ? `${user.lastName} ${user.firstName || ''}` : user?.email)}
-                      </AvatarFallback>
                     )}
+                    <AvatarFallback className="bg-slate-100 text-slate-600 font-bold text-xs">
+                      {getInitials(user?.lastName ? `${user.lastName} ${user.firstName || ''}` : user?.email)}
+                    </AvatarFallback>
                   </Avatar>
                 </div>
               </DropdownMenuTrigger>
