@@ -63,11 +63,11 @@ export default function TodaySuggestions() {
                 onClick={() => handleTabChange(tab.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
                   isActive
-                    ? 'bg-[#F5C542] text-zinc-900 shadow-xs border border-amber-400'
+                    ? 'bg-[#1e1b18] text-[#F5C542] shadow-xs border border-amber-500/30 font-bold'
                     : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200/80'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-zinc-900' : 'text-zinc-500'}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#F5C542]' : 'text-zinc-500'}`} />
                 {tab.label}
               </button>
             );
@@ -128,7 +128,7 @@ export default function TodaySuggestions() {
                 onClick={() => setCurrentPage(pageNum)}
                 className={`w-8 h-8 rounded-lg font-bold transition-all cursor-pointer ${
                   currentPage === pageNum
-                    ? 'bg-[#F5C542] text-zinc-900 shadow-xs border border-amber-400'
+                    ? 'bg-[#1e1b18] text-[#F5C542] shadow-xs border border-amber-500/30 font-bold'
                     : 'bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50'
                 }`}
               >

@@ -312,9 +312,9 @@ export default function ProductDetailPage({ params }: PageProps) {
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={handleAddToCart}
-                className="py-3 px-6 bg-[#F5C542] hover:bg-[#E5B32E] text-[#1E1B18] font-extrabold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                className="py-3 px-6 bg-[#1e1b18] hover:bg-zinc-800 text-[#F5C542] font-extrabold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer border border-amber-500/30"
               >
-                <ShoppingCart className="w-4 h-4" /> Thêm vào giỏ hàng
+                <ShoppingCart className="w-4 h-4 text-[#F5C542]" /> Thêm vào giỏ hàng
               </motion.button>
 
               <motion.button

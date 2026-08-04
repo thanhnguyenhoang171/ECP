@@ -14,8 +14,8 @@ export default function ProfileInfoTab({ user, isDataLoading }: ProfileInfoTabPr
     <div className="bg-white rounded-xl border border-zinc-200/80 p-6 space-y-6">
       <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
         <h3 className="text-sm font-bold text-zinc-900">Thông tin cá nhân</h3>
-        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F5C542] text-zinc-900 text-xs font-bold rounded-lg hover:bg-[#E5B32E] transition-colors shadow-sm cursor-pointer">
-          <Edit3 className="w-3.5 h-3.5" /> Chỉnh sửa
+        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e1b18] hover:bg-zinc-800 text-[#F5C542] text-xs font-bold rounded-lg transition-colors shadow-sm border border-amber-500/30 cursor-pointer">
+          <Edit3 className="w-3.5 h-3.5 text-[#F5C542]" /> Chỉnh sửa
         </button>
       </div>
 

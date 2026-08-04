@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafaf9;
+  --background: #ffffff;
   --foreground: #1c1917;
   --brand-yellow: #f5c542;
   --brand-yellow-hover: #e5b32e;
@@ -23,8 +23,8 @@ html {
 }
 
 body {
-  background-color: #faf6f0 !important;
-  background-image: radial-gradient(rgba(217, 119, 6, 0.22) 1.2px, transparent 1.2px) !important;
+  background-color: #ffffff !important;
+  background-image: radial-gradient(rgba(217, 119, 6, 0.15) 1.2px, transparent 1.2px) !important;
   background-size: 24px 24px !important;
   background-attachment: fixed !important;
   color: var(--foreground);
@@ -107,5 +107,19 @@ body {
 }
 [data-sonner-toast][data-type="loading"] [data-icon] {
   color: #F5C542 !important;
+}
+
+/* 7. Prevent Dark Mode browser extensions from forcing white text on yellow buttons */
+[class*="bg-[#F5C542]"],
+[class*="bg-[#f5c542]"],
+[class*="bg-amber-400"] {
+  color: #09090b !important;
+}
+
+[class*="bg-[#F5C542]"] *,
+[class*="bg-[#f5c542]"] *,
+[class*="bg-amber-400"] * {
+  color: #09090b !important;
+  stroke: #09090b !important;
 }
 

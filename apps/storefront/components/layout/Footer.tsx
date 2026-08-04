@@ -77,7 +77,7 @@ export default function Footer() {
             />
             <button
               type="submit"
-              className="px-4 py-2 bg-[#f5c542] hover:bg-[#e5b32e] text-[#1e1b18] font-bold text-xs rounded-lg transition-colors whitespace-nowrap shadow-sm"
+              className="px-4 py-2 bg-[#F5C542] hover:bg-[#e5b32e] text-[#1e1b18] font-bold text-xs rounded-lg transition-colors whitespace-nowrap shadow-sm border border-amber-500/40"
             >
               Đăng ký
             </button>
