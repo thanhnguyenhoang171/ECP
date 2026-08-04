@@ -144,7 +144,7 @@ export default function Header() {
               >
                 <ShoppingBag className="w-4 h-4" />
                 {cartItemCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-[#1e1b18] text-[#F5C542] text-[9px] font-extrabold rounded-full flex items-center justify-center border border-amber-500/50 shadow-xs">
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-[#1e293b] text-[#F5C542] text-[9px] font-extrabold rounded-full flex items-center justify-center border border-amber-500/50 shadow-xs">
                     {cartItemCount}
                   </span>
                 )}
@@ -194,7 +194,7 @@ export default function Header() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -8, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
-                        className="w-48 bg-[#1e1b18] rounded-xl shadow-2xl border border-zinc-800 py-1.5 z-50 outline-none"
+                        className="w-48 bg-[#1e293b] rounded-xl shadow-2xl border border-slate-700 py-1.5 z-50 outline-none"
                       >
                         <div className="px-3.5 py-2 border-b border-zinc-800/80 mb-1">
                           <p className="text-[11px] font-semibold text-zinc-100 truncate">{displayName}</p>

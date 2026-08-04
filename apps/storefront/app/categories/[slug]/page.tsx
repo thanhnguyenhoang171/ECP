@@ -190,7 +190,7 @@ export default function CategoryDetailPage({ params }: PageProps) {
               onClick={() => setPriceFilter(item.id as any)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border cursor-pointer ${
                 priceFilter === item.id
-                  ? 'bg-[#1E1B18] text-[#F5C542] border-[#1E1B18] shadow-xs'
+                  ? 'bg-[#1e293b] text-[#F5C542] border-[#1e293b] shadow-xs'
                   : 'bg-white text-zinc-700 border-zinc-200 hover:border-zinc-400'
               }`}
             >

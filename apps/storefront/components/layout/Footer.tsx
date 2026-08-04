@@ -57,7 +57,7 @@ export default function Footer() {
         </div>
 
         {/* Newsletter Section */}
-        <div className="my-10 p-6 rounded-2xl bg-[#1e1b18] border border-amber-950/40 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+        <div className="my-10 p-6 rounded-2xl bg-[#1e293b] border border-slate-700/60 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
           <div>
             <h3 className="text-sm font-semibold text-zinc-100">
               Nhận thông báo ưu đãi sản phẩm mới
