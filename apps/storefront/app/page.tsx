@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Tag } from 'lucide-react';
 import Banner from '@/components/home/Banner';
@@ -14,7 +14,6 @@ import { Product } from '@/types/product';
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getProductsServer()
@@ -55,19 +54,16 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Horizontal Slider Container */}
-        <div
-          ref={scrollContainerRef}
-          className="flex gap-5 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-zinc-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#F5C542]"
-        >
+        {/* Horizontal Scroll Grid */}
+        <div className="grid grid-flow-col auto-cols-[calc(50%-8px)] sm:auto-cols-[calc(33.333%-11px)] md:auto-cols-[calc(25%-12px)] gap-4 sm:gap-6 overflow-x-auto pb-3 pt-1 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-zinc-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-amber-400 scroll-smooth snap-x snap-mandatory">
           {isLoading
             ? Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="w-[280px] sm:w-[320px] shrink-0 snap-start">
+                <div key={index} className="snap-start">
                   <ProductSkeleton />
                 </div>
               ))
             : products.map((product) => (
-                <div key={product.id} className="w-[280px] sm:w-[320px] shrink-0 snap-start">
+                <div key={product.id} className="snap-start">
                   <ProductCard product={product} />
                 </div>
               ))}
@@ -94,7 +90,7 @@ export default function Home() {
 
           <Link
             href="/promotions"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1e1b18] hover:bg-zinc-800 text-[#F5C542] font-bold text-xs rounded-xl transition-all shrink-0 shadow-md cursor-pointer border border-amber-500/20"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1e293b] hover:bg-slate-700 text-[#F5C542] font-bold text-xs rounded-xl transition-all shrink-0 shadow-md cursor-pointer border border-amber-500/20"
           >
             <Tag className="w-3.5 h-3.5 text-[#F5C542]" /> Săn Combo ngay
           </Link>

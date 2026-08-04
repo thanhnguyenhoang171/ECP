@@ -75,7 +75,7 @@ export default function WishlistPage() {
           <div className="pt-2">
             <Link
               href="/products"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#1e1b18] hover:bg-zinc-800 text-[#F5C542] font-extrabold text-xs rounded-xl transition-all shadow-md border border-amber-500/30 cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[#1e293b] hover:bg-slate-700 text-[#F5C542] font-extrabold text-xs rounded-xl transition-all shadow-md border border-amber-500/30 cursor-pointer"
             >
               <Sparkles className="w-4 h-4 text-[#F5C542]" /> Khám phá sản phẩm ngay <ArrowRight className="w-4 h-4 text-[#F5C542]" />
             </Link>

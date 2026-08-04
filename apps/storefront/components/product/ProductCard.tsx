@@ -133,7 +133,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => console.log('Add to cart:', product.id)}
-            className="p-2.5 bg-[#1e1b18] hover:bg-zinc-800 text-[#F5C542] font-bold rounded-xl transition-all duration-200 text-xs flex items-center justify-center shadow-sm hover:shadow cursor-pointer border border-amber-500/20"
+            className="p-2.5 bg-[#1e293b] hover:bg-slate-700 text-[#F5C542] font-bold rounded-xl transition-all duration-200 text-xs flex items-center justify-center shadow-sm hover:shadow cursor-pointer border border-amber-500/20"
             title="Thêm vào giỏ hàng"
           >
             <ShoppingCart className="w-4 h-4 text-[#F5C542]" />

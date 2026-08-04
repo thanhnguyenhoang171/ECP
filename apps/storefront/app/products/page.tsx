@@ -93,7 +93,7 @@ export default function ProductsPage() {
               onClick={() => handleCategoryChange(cat)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border cursor-pointer ${
                 selectedCategory === cat
-                  ? 'bg-[#1E1B18] text-[#F5C542] border-[#1E1B18] shadow-xs font-bold'
+                  ? 'bg-[#1e293b] text-[#F5C542] border-[#1e293b] shadow-xs font-bold'
                   : 'bg-white text-zinc-700 border-zinc-200 hover:border-zinc-400'
               }`}
             >

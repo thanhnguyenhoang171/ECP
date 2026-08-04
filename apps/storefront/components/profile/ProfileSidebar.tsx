@@ -18,7 +18,7 @@ export default function ProfileSidebar({ activeTab, setActiveTab, onLogout }: Pr
         onClick={() => setActiveTab('profile')}
         className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
           activeTab === 'profile'
-            ? 'bg-[#1e1b18] text-[#F5C542] font-bold shadow-sm border border-amber-500/30'
+            ? 'bg-[#1e293b] text-[#F5C542] font-bold shadow-sm border border-amber-500/30'
             : 'text-zinc-700 hover:bg-zinc-100'
         }`}
       >
@@ -29,7 +29,7 @@ export default function ProfileSidebar({ activeTab, setActiveTab, onLogout }: Pr
         onClick={() => setActiveTab('orders')}
         className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
           activeTab === 'orders'
-            ? 'bg-[#1e1b18] text-[#F5C542] font-bold shadow-sm border border-amber-500/30'
+            ? 'bg-[#1e293b] text-[#F5C542] font-bold shadow-sm border border-amber-500/30'
             : 'text-zinc-700 hover:bg-zinc-100'
         }`}
       >
@@ -40,7 +40,7 @@ export default function ProfileSidebar({ activeTab, setActiveTab, onLogout }: Pr
         onClick={() => setActiveTab('addresses')}
         className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
           activeTab === 'addresses'
-            ? 'bg-[#1e1b18] text-[#F5C542] font-bold shadow-sm border border-amber-500/30'
+            ? 'bg-[#1e293b] text-[#F5C542] font-bold shadow-sm border border-amber-500/30'
             : 'text-zinc-700 hover:bg-zinc-100'
         }`}
       >
@@ -51,7 +51,7 @@ export default function ProfileSidebar({ activeTab, setActiveTab, onLogout }: Pr
         onClick={() => setActiveTab('security')}
         className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
           activeTab === 'security'
-            ? 'bg-[#1e1b18] text-[#F5C542] font-bold shadow-sm border border-amber-500/30'
+            ? 'bg-[#1e293b] text-[#F5C542] font-bold shadow-sm border border-amber-500/30'
             : 'text-zinc-700 hover:bg-zinc-100'
         }`}
       >

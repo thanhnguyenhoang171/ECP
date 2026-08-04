@@ -113,13 +113,13 @@ export default function FloatingCTA() {
             className="pointer-events-auto w-[340px] sm:w-[380px] bg-white rounded-2xl border border-zinc-200 shadow-2xl overflow-hidden flex flex-col h-[480px]"
           >
             {/* Header Chat */}
-            <div className="p-4 bg-[#191715] text-white flex items-center justify-between border-b border-zinc-800">
+            <div className="p-4 bg-[#1e293b] text-white flex items-center justify-between border-b border-slate-600">
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <div className="w-9 h-9 rounded-xl bg-[#F5C542] text-[#191715] flex items-center justify-center font-bold shadow-sm">
                     <Bot className="w-5 h-5" />
                   </div>
-                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#191715]" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#1e293b]" />
                 </div>
                 <div>
                   <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -147,7 +147,7 @@ export default function FloatingCTA() {
                   <div
                     className={`max-w-[82%] px-3.5 py-2.5 rounded-2xl font-medium leading-relaxed ${
                       msg.sender === 'user'
-                        ? 'bg-[#191715] text-[#F5C542] rounded-br-xs shadow-xs'
+                        ? 'bg-[#1e293b] text-[#F5C542] rounded-br-xs shadow-xs'
                         : 'bg-white text-zinc-800 border border-zinc-200/90 rounded-bl-xs shadow-2xs'
                     }`}
                   >
@@ -194,7 +194,7 @@ export default function FloatingCTA() {
               />
               <button
                 type="submit"
-                className="p-2 bg-[#1e1b18] hover:bg-zinc-800 text-[#F5C542] rounded-xl transition-all shadow-xs cursor-pointer border border-amber-500/30"
+                className="p-2 bg-[#1e293b] hover:bg-slate-700 text-[#F5C542] rounded-xl transition-all shadow-xs cursor-pointer border border-amber-500/30"
                 title="Gửi tin nhắn"
               >
                 <Send className="w-4 h-4 text-[#F5C542] font-bold" />
@@ -317,7 +317,7 @@ export default function FloatingCTA() {
           whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.94 }}
           onClick={() => setIsChatOpen(!isChatOpen)}
-          className="relative p-3.5 bg-[#191715] hover:bg-[#282420] text-[#F5C542] border-2 border-[#F5C542]/80 rounded-2xl shadow-xl transition-all cursor-pointer flex items-center justify-center group"
+          className="relative p-3.5 bg-[#1e293b] hover:bg-slate-700 text-[#F5C542] border-2 border-[#F5C542]/80 rounded-2xl shadow-xl transition-all cursor-pointer flex items-center justify-center group"
           title="Chat tư vấn trực tuyến"
         >
           <MessageCircle className="w-6 h-6 fill-[#F5C542]/20" />

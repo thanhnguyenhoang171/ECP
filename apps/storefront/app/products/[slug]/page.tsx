@@ -276,7 +276,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                   onClick={() => setSelectedFlavor(flavor)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border ${
                     selectedFlavor === flavor
-                      ? 'bg-[#1E1B18] text-[#F5C542] border-[#1E1B18] shadow-sm'
+                      ? 'bg-[#1e293b] text-[#F5C542] border-[#1e293b] shadow-sm'
                       : 'bg-white text-zinc-700 border-zinc-300 hover:border-zinc-500'
                   }`}
                 >
@@ -312,7 +312,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={handleAddToCart}
-                className="py-3 px-6 bg-[#1e1b18] hover:bg-zinc-800 text-[#F5C542] font-extrabold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer border border-amber-500/30"
+                className="py-3 px-6 bg-[#1e293b] hover:bg-slate-700 text-[#F5C542] font-extrabold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer border border-amber-500/30"
               >
                 <ShoppingCart className="w-4 h-4 text-[#F5C542]" /> Thêm vào giỏ hàng
               </motion.button>
@@ -321,7 +321,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={handleBuyNow}
-                className="py-3 px-6 bg-[#1E1B18] hover:bg-[#2d2925] text-white font-extrabold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                className="py-3 px-6 bg-[#1e293b] hover:bg-slate-700 text-white font-extrabold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Zap className="w-4 h-4 text-[#F5C542]" /> Mua ngay
               </motion.button>

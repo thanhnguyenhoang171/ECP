@@ -39,7 +39,7 @@ export default function Banner() {
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }}>
                   <Link
                     href="/products/snack-muc-bento-thai-lan"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#1e1b18] hover:bg-zinc-800 text-[#F5C542] text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer border border-amber-500/20"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#1e293b] hover:bg-slate-700 text-[#F5C542] text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer border border-amber-500/20"
                   >
                     <ShoppingBag className="w-4 h-4 text-[#F5C542]" />
                     <span className="text-[#F5C542] font-bold">Thưởng thức ngay</span>
@@ -104,7 +104,7 @@ export default function Banner() {
               <span className="text-xs font-semibold text-zinc-900">45.000đ</span>
               <Link
                 href="/products/tra-sua-thai-do-chatramue"
-                className="p-2.5 bg-[#1e1b18] hover:bg-zinc-800 text-[#F5C542] rounded-xl transition-all font-bold shadow-sm border border-amber-500/20"
+                className="p-2.5 bg-[#1e293b] hover:bg-slate-700 text-[#F5C542] rounded-xl transition-all font-bold shadow-sm border border-amber-500/20"
                 title="Xem chi tiết"
               >
                 <ArrowUpRight className="w-4 h-4 text-[#F5C542]" />
@@ -135,7 +135,7 @@ export default function Banner() {
               <span className="text-xs font-semibold text-zinc-900">18.000đ</span>
               <Link
                 href="/products/banh-pocky-chuoi-thai-lan"
-                className="p-2.5 bg-[#1e1b18] hover:bg-zinc-800 text-[#F5C542] rounded-xl transition-all font-bold shadow-sm border border-amber-500/20"
+                className="p-2.5 bg-[#1e293b] hover:bg-slate-700 text-[#F5C542] rounded-xl transition-all font-bold shadow-sm border border-amber-500/20"
                 title="Xem chi tiết"
               >
                 <ArrowUpRight className="w-4 h-4 text-[#F5C542]" />

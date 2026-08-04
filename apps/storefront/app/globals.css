@@ -5,8 +5,10 @@
   --foreground: #1c1917;
   --brand-yellow: #f5c542;
   --brand-yellow-hover: #e5b32e;
-  --brand-dark: #1e1b18;
+  --brand-dark: #1e293b;
   --brand-pink: #e8a29a;
+  /* Prevent browser dark-mode extensions from forcing dark theme */
+  color-scheme: light;
 }
 
 @theme inline {
@@ -109,16 +111,29 @@ body {
   color: #F5C542 !important;
 }
 
-/* 7. Prevent Dark Mode browser extensions from forcing white text on yellow buttons */
-[class*="bg-[#F5C542]"],
-[class*="bg-[#f5c542]"],
-[class*="bg-amber-400"] {
+/* 7. Prevent Dark Mode browser extensions from forcing white text on yellow buttons/badges */
+/* Scope to interactive & inline elements only — never div/section containers */
+button[class*="bg-[#F5C542]"],
+button[class*="bg-[#f5c542]"],
+button[class*="bg-amber-400"],
+a[class*="bg-[#F5C542]"],
+a[class*="bg-[#f5c542]"],
+a[class*="bg-amber-400"],
+span[class*="bg-[#F5C542]"],
+span[class*="bg-[#f5c542]"],
+span[class*="bg-amber-400"] {
   color: #09090b !important;
 }
 
-[class*="bg-[#F5C542]"] *,
-[class*="bg-[#f5c542]"] *,
-[class*="bg-amber-400"] * {
+button[class*="bg-[#F5C542]"] *,
+button[class*="bg-[#f5c542]"] *,
+button[class*="bg-amber-400"] *,
+a[class*="bg-[#F5C542]"] *,
+a[class*="bg-[#f5c542]"] *,
+a[class*="bg-amber-400"] *,
+span[class*="bg-[#F5C542]"] *,
+span[class*="bg-[#f5c542]"] *,
+span[class*="bg-amber-400"] * {
   color: #09090b !important;
   stroke: #09090b !important;
 }
