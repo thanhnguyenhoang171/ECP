@@ -49,4 +49,10 @@ public class GoodsReceiptResponse {
 
     @Schema(description = "List of items in the goods receipt")
     private java.util.List<GoodsReceiptItemResponse> items;
+
+    @Schema(description = "Email of the user who created the goods receipt")
+    private String createdBy;
+
+    @Schema(description = "Email of the user who last updated the goods receipt")
+    private String updatedBy;
 }

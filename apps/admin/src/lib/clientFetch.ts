@@ -60,6 +60,38 @@ export function resolveRolePath(path: string): string {
   return cleanPath;
 }
 
+let refreshTokenPromise: Promise<string | null> | null = null;
+
+const getRefreshedAccessToken = async (APP_URL: string): Promise<string | null> => {
+  if (refreshTokenPromise) {
+    return refreshTokenPromise;
+  }
+
+  refreshTokenPromise = (async () => {
+    try {
+      const refreshRes = await fetch(`${APP_URL}/api/auth/refresh`, { method: 'POST' });
+      if (refreshRes.ok) {
+        const result = await refreshRes.json();
+        if (result.success && result.data?.accessToken) {
+          const newAccessToken = result.data.accessToken;
+          useAuthStore.getState().updateAccessToken(newAccessToken);
+          return newAccessToken;
+        }
+      }
+      useAuthStore.getState().clearAuth();
+      return null;
+    } catch (e) {
+      console.error('[clientFetch] Lỗi khi làm tươi token:', e);
+      useAuthStore.getState().clearAuth();
+      return null;
+    } finally {
+      refreshTokenPromise = null;
+    }
+  })();
+
+  return refreshTokenPromise;
+};
+
 export const clientFetch = async (url: string, options: FetchOptions = {}) => {
   const { skipToast, ...fetchOptions } = options;
   const { accessToken, setAuth, updateAccessToken, clearAuth, isBlocked, incrementErrorCount } = useAuthStore.getState();
@@ -111,33 +143,17 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
     throw error;
   }
 
-  // Handle Access Token expiration (401)
-  if (response.status === 401) {
-    // Try to refresh token via Next.js API Route (Must use absolute URL on server)
-    const refreshRes = await fetch(`${APP_URL}/api/auth/refresh`, { method: 'POST' });
+  // Handle Access Token expiration (401) with Mutex Lock to prevent race conditions
+  if (response.status === 401 && !url.includes('/api/auth/refresh')) {
+    const newAccessToken = await getRefreshedAccessToken(APP_URL);
     
-    if (refreshRes.ok) {
-      const result = await refreshRes.json();
-      if (result.success && result.data) {
-        const { accessToken: newAccessToken } = result.data;
-        
-        // Chỉ cập nhật accessToken, giữ nguyên thông tin user (đã persist trong localStorage)
-        updateAccessToken(newAccessToken);
-        
-        // Retry the original request with new token
-        headers.set('Authorization', `Bearer ${newAccessToken}`);
-        response = await fetch(finalUrl, { ...fetchOptions, headers });
-      } else {
-        clearAuth();
-        if (typeof window !== 'undefined') {
-            window.location.href = '/login';
-        }
-      }
+    if (newAccessToken) {
+      // Retry the original request with new token
+      headers.set('Authorization', `Bearer ${newAccessToken}`);
+      response = await fetch(finalUrl, { ...fetchOptions, headers });
     } else {
-      // Refresh Token expired or invalid -> Logout
-      clearAuth();
       if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+        window.location.href = '/login';
       }
     }
   }

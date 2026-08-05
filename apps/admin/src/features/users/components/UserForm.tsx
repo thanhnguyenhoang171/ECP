@@ -27,8 +27,10 @@ import { userSchema, UserFormValues } from '../schemas/user.schema';
 import { useCreateUser, useUpdateUser } from '../hooks/use-users';
 import { useUploadFile } from '@/features/files/hooks/use-file-upload';
 import { FormSection, FormGrid, AdminFormLabel, FormActionsBar } from '@/components/common';
+import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import AvatarCropModal from '@/components/common/AvatarCropModal';
 
 interface UserFormProps {
   onSuccess: () => void;
@@ -39,12 +41,20 @@ interface UserFormProps {
 }
 
 export default function UserForm({ onSuccess, onCancel, initialData, userId, isDialog = false }: UserFormProps) {
+  const { user: currentUser } = useAuthStore();
+  const operatorRole = currentUser?.role || (currentUser?.roles && currentUser.roles[0]) || '';
+  const isSuperAdmin = operatorRole === 'SUPER_ADMIN' || operatorRole === 'ROLE_SUPER_ADMIN';
+
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const uploadFileMutation = useUploadFile();
   const [isUploading, setIsUploading] = useState(false);
   const isEdit = !!initialData;
   const [activeTab, setActiveTab] = useState<'general'>('general');
+
+  // Crop Modal state
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+  const [isCropOpen, setIsCropOpen] = useState(false);
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
@@ -56,6 +66,7 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
       status: 'active',
       password: '',
       avatarUrl: '',
+      avatarPublicId: '',
     },
   });
 
@@ -64,6 +75,7 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
       form.reset({
         ...initialData,
         avatarUrl: initialData.avatarUrl || '',
+        avatarPublicId: initialData.avatarPublicId || '',
       });
     }
   }, [initialData, form]);
@@ -110,7 +122,7 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -119,14 +131,23 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
       return;
     }
 
+    const imageUrl = URL.createObjectURL(file);
+    setRawImageSrc(imageUrl);
+    setIsCropOpen(true);
+
+    // Reset input value so re-selecting the same file works
+    e.target.value = '';
+  };
+
+  const handleCropComplete = async (croppedFile: File) => {
     try {
       setIsUploading(true);
-      toast.info("Đang tải ảnh lên Cloudinary...");
-      const res = await uploadFileMutation.mutateAsync({ file, folder: 'avatars' });
+      toast.info("Đang tải ảnh đã cắt lên Cloudinary...");
+      const res = await uploadFileMutation.mutateAsync({ file: croppedFile, folder: 'avatars' });
       if (res.success && res.data) {
         form.setValue('avatarUrl', res.data.secure_url, { shouldValidate: true, shouldDirty: true });
         form.setValue('avatarPublicId' as any, res.data.public_id, { shouldValidate: true, shouldDirty: true });
-        toast.success("Đã tải ảnh đại diện lên Cloudinary thành công!");
+        toast.success("Đã tải ảnh đại diện đã cắt lên Cloudinary thành công!");
       }
     } catch (err: any) {
       console.error("Upload error:", err);
@@ -264,7 +285,9 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                         <SelectContent className="bg-white border-slate-200">
                           <SelectItem value="USER" className="text-sm cursor-pointer">Khách hàng (User)</SelectItem>
                           <SelectItem value="MANAGER" className="text-sm cursor-pointer">Quản lý (Manager)</SelectItem>
-                          <SelectItem value="SUPER_ADMIN" className="text-sm cursor-pointer">Admin (Super Admin)</SelectItem>
+                          {isSuperAdmin && (
+                            <SelectItem value="SUPER_ADMIN" className="text-sm cursor-pointer">Admin (Super Admin)</SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -298,7 +321,7 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
             {/* Section 3: Bảo mật */}
             <FormSection
               title="Bảo mật tài khoản"
-              description="Đặt mật khẩu đăng nhập mới hoặc để trống nếu giữ nguyên."
+              description="Đặt mật khẩu đăng nhập mới"
             >
               <FormField
                 control={form.control}
@@ -342,7 +365,7 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                   <input 
                     type="file" 
                     ref={fileInputRef} 
-                    onChange={handleFileUpload} 
+                    onChange={handleFileSelect} 
                     accept="image/*" 
                     className="hidden" 
                   />
@@ -354,33 +377,22 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                     className="h-9 px-4 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border-slate-200 gap-1.5 shadow-sm rounded-xl"
                   >
                     <Upload size={14} className="text-blue-600" />
-                    <span>Tải ảnh lên</span>
+                    <span>Tải ảnh lên & Cắt ảnh</span>
                   </Button>
                   <p className="text-[11px] text-slate-400 mt-2">Hỗ trợ JPG, PNG, WebP (Tối đa 5MB)</p>
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="avatarUrl"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1.5">
-                      <AdminFormLabel className="text-[11px]">Đường dẫn ảnh (URL)</AdminFormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Hoặc dán URL ảnh (https://...)..." 
-                          disabled={isLoading} 
-                          className="h-9 text-xs bg-white border-slate-200 focus:border-blue-500 font-mono" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
             </FormSection>
           </div>
         </div>
+
+        {/* Avatar Crop Modal */}
+        <AvatarCropModal
+          isOpen={isCropOpen}
+          onClose={() => setIsCropOpen(false)}
+          imageSrc={rawImageSrc}
+          onCropComplete={handleCropComplete}
+        />
 
         {/* Form Actions Bar */}
         <FormActionsBar

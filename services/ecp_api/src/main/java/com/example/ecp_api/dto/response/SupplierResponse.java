@@ -44,4 +44,9 @@ public class SupplierResponse {
     @Schema(description = "Last update timestamp")
     private LocalDateTime updatedAt;
 
+    @Schema(description = "Email of the user who created the supplier")
+    private String createdBy;
+
+    @Schema(description = "Email of the user who last updated the supplier")
+    private String updatedBy;
 }

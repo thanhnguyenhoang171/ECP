@@ -53,4 +53,10 @@ public class CategoryResponse {
 
     @Schema(description = "Featured category status for homepage display", example = "true")
     private Boolean isFeatured;
+
+    @Schema(description = "Email of the user who created the category")
+    private String createdBy;
+
+    @Schema(description = "Email of the user who last updated the category")
+    private String updatedBy;
 }

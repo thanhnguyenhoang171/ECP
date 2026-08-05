@@ -54,6 +54,8 @@ public interface UserMapper {
     @Mapping(target = "gender", source = "profile.gender")
     @Mapping(target = "loyaltyPoints", source = "profile.loyaltyPoints")
     @Mapping(target = "membershipTier", source = "profile.membershipTier")
+    @Mapping(target = "createdBy", source = "createdBy.email")
+    @Mapping(target = "updatedBy", source = "updatedBy.email")
     UserResponse toResponse(User user);
 
     default PageResponse<UserResponse> toPageResponse(Page<User> page) {

@@ -85,6 +85,12 @@ public class ProductResponse {
     @Schema(description = "Last update timestamp")
     private LocalDateTime updatedAt;
 
+    @Schema(description = "Email of the user who created the product")
+    private String createdBy;
+
+    @Schema(description = "Email of the user who last updated the product")
+    private String updatedBy;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

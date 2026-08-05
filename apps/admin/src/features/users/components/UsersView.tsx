@@ -6,20 +6,10 @@ import {
   Wifi, 
   WifiOff, 
   Shield, 
-  Edit2, 
-  UserPlus, 
-  ShieldCheck, 
-  ShoppingBag,
-  Award,
-  DollarSign,
-  UserCheck,
   ChevronDown,
   CheckCircle2,
-  Lock,
-  Mail,
-  Phone,
-  Calendar,
-  Layers
+  ShieldCheck,
+  ShoppingBag
 } from 'lucide-react';
 import { 
   PageHeader, 
@@ -28,8 +18,7 @@ import {
   type ColumnDef, 
   Badge, 
   NextPagination, 
-  Breadcrumbs,
-  StatsCard 
+  Breadcrumbs
 } from '@/components/common';
 import { 
   SearchInput, 
@@ -69,18 +58,7 @@ import { useHotkeys } from '@/hooks/use-hotkeys';
 import { toast } from 'sonner';
 import { PageResponse } from '@/types/pagination';
 import { UserStatistics } from '../api/user.api';
-import { formatCurrency, formatDateTimeForFilename } from '@/lib/formatters';
-
-// Dialog UI components
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import UserForm from './UserForm';
-import UserDetailDialog from './UserDetailDialog';
+import { formatDateTimeForFilename } from '@/lib/formatters';
 import { useRouter } from 'next/navigation';
 
 interface UsersViewProps {
@@ -175,9 +153,6 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
   const customerUsers = customerUsersData.data || [];
   const customerPagination = customerUsersData.pagination || { currentPage: 1, totalPages: 1, totalElements: customerUsers.length, pageSize: 10 };
 
-  // Shared States Dialog
-  const [selectedDetailUser, setSelectedDetailUser] = useState<User | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -196,8 +171,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
   };
 
   const handleViewDetail = (user: User) => {
-    setSelectedDetailUser(user);
-    setIsDetailOpen(true);
+    router.push(`/users/${user.id}`);
   };
 
   const handleCreateStaffClick = () => {
@@ -208,7 +182,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
     router.push('/users/create');
   };
 
-  // 👑 Gán quyền nhanh (Quick Role Assign - Gọi API Backend PUT /v1/users/{id})
+  // Gán quyền nhanh
   const handleQuickRoleChange = (user: User, newRole: User['role']) => {
     if (user.role === newRole) return;
     updateMutation.mutate(
@@ -227,7 +201,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
     );
   };
 
-  // 🟢 Bật/Tắt trạng thái nhanh (Quick Status Switch - Gọi API Backend PUT /v1/users/{id})
+  // Bật/Tắt trạng thái nhanh
   const handleQuickStatusToggle = (user: User) => {
     const newStatus = user.status === 'active' ? 'inactive' : 'active';
     updateMutation.mutate(
@@ -264,7 +238,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
     return fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
   };
 
-  // Table Columns Nhân sự (SUPER_ADMIN, MANAGER)
+  // Table Columns Nhân sự
   const staffColumns: ColumnDef<User>[] = [
     {
       header: 'Nhân sự',
@@ -406,7 +380,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
     },
   ];
 
-  // Table Columns Khách hàng (USER)
+  // Table Columns Khách hàng
   const customerColumns: ColumnDef<User>[] = [
     {
       header: 'Khách hàng',
@@ -541,7 +515,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
   ];
 
   const breadcrumbItems = [
-    { label: 'Tài khoản & Phân quyền', icon: Users },
+    { label: 'Tài khoản & Phân quyền' },
   ];
 
   const activeStaffFiltersCount = (staffRoleParam ? 1 : 0) + (staffActiveParam ? 1 : 0);
@@ -576,7 +550,6 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
             value="staff" 
             className="font-bold flex items-center gap-2 px-5 py-2 rounded-lg text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
           >
-            <ShieldCheck size={16} />
             <span>Quản lý nhân sự</span>
             <Badge className="bg-primary/10 text-primary text-[10px] font-extrabold px-1.5 py-0 border-none">
               {stats.managementUsers}
@@ -586,7 +559,6 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
             value="customers" 
             className="font-bold flex items-center gap-2 px-5 py-2 rounded-lg text-xs transition-all data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
           >
-            <ShoppingBag size={16} />
             <span>Quản lý khách hàng</span>
             <Badge className="bg-amber-100 text-amber-700 text-[10px] font-extrabold px-1.5 py-0 border-none">
               {stats.customerUsers}
@@ -594,42 +566,8 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
           </TabsTrigger>
         </TabsList>
 
-        {/* TAB 1: QUẢN LÝ NHÂN SỰ (SUPER_ADMIN, MANAGER) */}
+        {/* TAB 1: QUẢN LÝ NHÂN SỰ */}
         <TabsContent value="staff" className="space-y-6 mt-0">
-          {/* Stats Grid Nhân sự */}
-          <div className='grid gap-4 md:grid-cols-4'>
-            <StatsCard
-              title="Tổng nhân sự"
-              value={stats.managementUsers}
-              description="Tài khoản vận hành"
-              icon={<Users size={18} />}
-              color="bg-blue-50 text-blue-600 border border-blue-100"
-            />
-            <StatsCard
-              title="Đang trực tuyến"
-              value={stats.onlineUsers}
-              description="Phiên làm việc hoạt động"
-              icon={<Wifi size={18} />}
-              color="bg-emerald-50 text-emerald-600 border border-emerald-100"
-              trend="up"
-            />
-            <StatsCard
-              title="Ngoại tuyến"
-              value={stats.offlineUsers}
-              description="Không hoạt động gần đây"
-              icon={<WifiOff size={18} />}
-              color="bg-slate-50 text-slate-600 border border-slate-100"
-            />
-            <StatsCard
-              title="Admin / Quản lý"
-              value={stats.managementUsers}
-              description="Tài khoản quản trị viên"
-              icon={<Shield size={18} />}
-              color="bg-purple-50 text-purple-600 border border-purple-100"
-            />
-          </div>
-
-          {/* Table Area Nhân sự */}
           <DataCard
             isLoading={isStaffLoading}
             isFetching={isStaffFetching}
@@ -662,13 +600,11 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
                         <button
                           className={filterBtnClass(staffActiveParam === 'true')}
                           onClick={() => updateStaffUrl({ active: 'true', page: 1 })}>
-                          <div className='mr-2 h-2 w-2 rounded-full bg-emerald-500' />{' '}
                           Hoạt động
                         </button>
                         <button
                           className={filterBtnClass(staffActiveParam === 'false')}
                           onClick={() => updateStaffUrl({ active: 'false', page: 1 })}>
-                          <div className='mr-2 h-2 w-2 rounded-full bg-rose-500' />{' '}
                           Tạm khóa
                         </button>
                       </div>
@@ -734,48 +670,13 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
               emptyState={{
                 title: 'Không tìm thấy nhân sự',
                 description: 'Không có tài khoản quản trị nào khớp với tìm kiếm.',
-                icon: <ShieldCheck className='h-10 w-10 text-slate-400' />,
               }}
             />
           </DataCard>
         </TabsContent>
 
-        {/* TAB 2: QUẢN LÝ KHÁCH HÀNG (USER) */}
+        {/* TAB 2: QUẢN LÝ KHÁCH HÀNG */}
         <TabsContent value="customers" className="space-y-6 mt-0">
-          {/* Stats Grid Khách hàng */}
-          <div className='grid gap-4 md:grid-cols-4'>
-            <StatsCard
-              title="Tổng khách hàng"
-              value={stats.customerUsers}
-              description="Tài khoản người dùng"
-              icon={<Users size={18} />}
-              color="bg-amber-50 text-amber-600 border border-amber-100"
-            />
-            <StatsCard
-              title="Đang trực tuyến"
-              value={stats.onlineUsers}
-              description="Phiên truy cập mua hàng"
-              icon={<Wifi size={18} />}
-              color="bg-emerald-50 text-emerald-600 border border-emerald-100"
-              trend="up"
-            />
-            <StatsCard
-              title="Ngoại tuyến"
-              value={stats.offlineUsers}
-              description="Chưa truy cập gần đây"
-              icon={<WifiOff size={18} />}
-              color="bg-slate-50 text-slate-600 border border-slate-100"
-            />
-            <StatsCard
-              title="Tài khoản Khách hàng"
-              value={stats.customerUsers}
-              description="Tài khoản người mua sắm"
-              icon={<ShoppingBag size={18} />}
-              color="bg-purple-50 text-purple-600 border border-purple-100"
-            />
-          </div>
-
-          {/* Table Area Khách hàng */}
           <DataCard
             isLoading={isCustomerLoading}
             isFetching={isCustomerFetching}
@@ -807,13 +708,11 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
                       <button
                         className={filterBtnClass(customerActiveFilter === 'active')}
                         onClick={() => setCustomerActiveFilter('active')}>
-                        <div className='mr-2 h-2 w-2 rounded-full bg-emerald-500' />{' '}
                         Hoạt động
                       </button>
                       <button
                         className={filterBtnClass(customerActiveFilter === 'inactive')}
                         onClick={() => setCustomerActiveFilter('inactive')}>
-                        <div className='mr-2 h-2 w-2 rounded-full bg-rose-500' />{' '}
                         Đã khóa
                       </button>
                     </div>
@@ -849,21 +748,11 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
               emptyState={{
                 title: 'Không tìm thấy khách hàng',
                 description: 'Chưa có tài khoản khách hàng nào khớp với tìm kiếm.',
-                icon: <ShoppingBag className='h-10 w-10 text-slate-400' />,
               }}
             />
           </DataCard>
         </TabsContent>
       </Tabs>
-
-      {/* Shared User Detail Dialog */}
-      <UserDetailDialog
-        isOpen={isDetailOpen}
-        onOpenChange={setIsDetailOpen}
-        user={selectedDetailUser}
-      />
-
-
 
       <DeleteConfirmDialog
         isOpen={!!deleteConfirmId}

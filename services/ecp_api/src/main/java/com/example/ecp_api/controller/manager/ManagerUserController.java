@@ -26,6 +26,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+import com.example.ecp_api.dto.response.UserStatisticsResponse;
+
 @RestController
 @RequestMapping("/v1/manager/users")
 @RequiredArgsConstructor
@@ -36,8 +38,11 @@ public class ManagerUserController {
     private final UserService userService;
 
     @PostMapping
-    @Operation(summary = "Create a new user account (creates USER role by default)")
+    @Operation(summary = "Create a new user account (MANAGER can only create MANAGER or USER roles)")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody UserRequest request) {
+        if (request.getRole() == UserRole.SUPER_ADMIN) {
+            throw new AppException("FORBIDDEN", "Tài khoản Quản lý (Manager) không có quyền tạo tài khoản Quản trị viên cao cấp (Super Admin).", HttpStatus.FORBIDDEN);
+        }
         UserResponse response = userService.registerUserByEmail(request);
         return new ResponseEntity<>(ApiResponse.<UserResponse>builder()
                 .success(true).message("User created successfully").data(response).build(), HttpStatus.CREATED);
@@ -97,5 +102,13 @@ public class ManagerUserController {
         userService.deleteUser(id);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true).message("User deleted successfully").build());
+    }
+
+    @GetMapping("/statistics")
+    @Operation(summary = "Get user statistics (total, active, by role, etc.)")
+    public ResponseEntity<ApiResponse<UserStatisticsResponse>> getStatistics() {
+        return ResponseEntity.ok(ApiResponse.<UserStatisticsResponse>builder()
+                .success(true).message("Statistics fetched successfully")
+                .data(userService.getStatistics()).build());
     }
 }

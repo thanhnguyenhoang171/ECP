@@ -16,6 +16,11 @@ public interface GoodsReceiptMapper {
     @Mapping(target = "purchaseOrder", ignore = true)
     @Mapping(target = "warehouse", ignore = true)
     @Mapping(target = "items", ignore = true)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "receivedAt", ignore = true)
+    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "status", constant = "DRAFT")
     GoodsReceipt toEntity(GoodsReceiptRequest request);
 
@@ -30,6 +35,12 @@ public interface GoodsReceiptMapper {
     @Mapping(target = "purchaseOrder", ignore = true)
     @Mapping(target = "warehouse", ignore = true)
     @Mapping(target = "items", ignore = true)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "status", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "receivedAt", ignore = true)
+    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
     void updateEntityFromRequest(GoodsReceiptRequest request, @MappingTarget GoodsReceipt entity);
 
     @Mapping(source = "purchaseOrder.id", target = "purchaseOrderId")
