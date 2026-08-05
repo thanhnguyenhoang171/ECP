@@ -1,0 +1,38 @@
+[
+  {
+    "collection": "audit_logs",
+    "operation": "createIndex",
+    "fields": { "module": 1, "timestamp": -1 },
+    "name": "idx_module_timestamp"
+  },
+  {
+    "collection": "audit_logs",
+    "operation": "createIndex",
+    "fields": { "username": 1, "timestamp": -1 },
+    "name": "idx_username_timestamp"
+  },
+  {
+    "collection": "audit_logs",
+    "operation": "createIndex",
+    "fields": { "domain": 1, "timestamp": -1 },
+    "name": "idx_domain_timestamp"
+  },
+  {
+    "collection": "audit_logs",
+    "operation": "createIndex",
+    "fields": { "action": 1 },
+    "name": "idx_action"
+  },
+  {
+    "collection": "audit_logs",
+    "operation": "updateMany",
+    "filter": { "category": { "$exists": false } },
+    "update": { "$set": { "category": "SYSTEM" } }
+  },
+  {
+    "collection": "audit_logs",
+    "operation": "updateMany",
+    "filter": { "domain": { "$exists": false } },
+    "update": { "$set": { "domain": "GENERAL" } }
+  }
+]

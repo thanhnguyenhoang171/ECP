@@ -37,6 +37,12 @@ public class AuditLogResponse {
     @Schema(description = "Module: SYSTEM (Auth, Users) or MANAGEMENT (Products, Orders)")
     private String module;
 
+    @Schema(description = "Category: SYSTEM or MANAGEMENT")
+    private String category;
+
+    @Schema(description = "Domain: AUTH, USER, ROLE, PRODUCT, WAREHOUSE, PURCHASE_ORDER, etc.")
+    private String domain;
+
     private String ipAddress;
     private String userAgent;
     private String status;
