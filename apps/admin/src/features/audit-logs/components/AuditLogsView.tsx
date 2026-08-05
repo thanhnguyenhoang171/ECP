@@ -18,7 +18,6 @@ import {
   Button,
   Forbidden,
   DataCard,
-  StatsCard,
   NextPagination
 } from '@/components/common';
 import { useAuthStore } from '@/store/authStore';
@@ -182,23 +181,6 @@ export default function AuditLogsView() {
           </Button>
         }
       />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <StatsCard
-          title="Nhật ký Hệ thống (Real-time API)"
-          value={activeTab === 'SYSTEM' ? totalItems : (apiResponse?.pagination?.totalElements || 0)}
-          icon={<Settings />}
-          color="bg-blue-50 text-blue-600 border-blue-100"
-          description="Đăng nhập, Thao tác API, Cấu hình..."
-        />
-        <StatsCard
-          title="Nhật ký Quản lý"
-          value={mockLogs.length}
-          icon={<ShoppingBag />}
-          color="bg-slate-50 text-slate-600 border-slate-100"
-          description="Sản phẩm, Đơn hàng, Thương hiệu..."
-        />
-      </div>
 
       <DataCard
         className="overflow-hidden"

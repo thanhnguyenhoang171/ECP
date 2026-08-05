@@ -13,6 +13,8 @@ export interface User {
   avatarUrl?: string;
   avatarPublicId?: string;
   updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 export const ROLE_OPTIONS: { value: User['role']; label: string; color: string }[] = [

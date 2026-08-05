@@ -10,6 +10,7 @@ export const userSchema = z.object({
   status: z.enum(['active', 'inactive']).default('active'),
   password: z.string().optional().or(z.literal("")),
   avatarUrl: z.string().optional().or(z.literal("")),
+  avatarPublicId: z.string().optional().or(z.literal("")),
 });
 
 export type UserFormValues = z.infer<typeof userSchema>;

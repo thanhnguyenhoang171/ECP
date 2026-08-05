@@ -65,8 +65,8 @@ export default function AuthInitializer() {
         // Bước 2: Lưu accessToken tạm để gọi API account
         updateAccessToken(accessToken);
 
-        // Bước 3: Lấy thông tin profile đầy đủ từ /v1/users/account (qua Proxy giấu URL backend)
-        const accountRes = await fetch('/api/proxy/v1/users/account', {
+        // Bước 3: Lấy thông tin profile đầy đủ từ /v1/common/users/account (qua Proxy giấu URL backend)
+        const accountRes = await fetch('/api/proxy/v1/common/users/account', {
           headers: {
             Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',

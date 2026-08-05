@@ -71,21 +71,52 @@ public class UserServiceImpl implements UserService {
         User user = userMapper.toEntity(userRequest);
         user.setEmail(normalizedEmail);
 
-        // Thiết lập các thuộc tính mặc định
+        // Thiết lập thuộc tính từ request hoặc mặc định
         user.setPasswordHash(passwordEncoder.encode(userRequest.getPassword()));
         user.setProvider(AuthProvider.LOCAL);
-        user.setRole(UserRole.USER);
-        user.setActive(true);
+        user.setRole(userRequest.getRole() != null ? userRequest.getRole() : UserRole.USER);
+        user.setActive(userRequest.getActive() != null ? userRequest.getActive() : true);
 
-        if (user.getProfile() != null) {
-            user.getProfile().setUser(user);
+        if (user.getProfile() == null) {
+            user.setProfile(new UserProfile());
+        }
+        user.getProfile().setUser(user);
+
+        if (StringUtils.hasText(userRequest.getAvatarUrl())) {
+            user.getProfile().setAvatarUrl(userRequest.getAvatarUrl());
+        }
+        if (StringUtils.hasText(userRequest.getAvatarPublicId())) {
+            user.getProfile().setAvatarPublicId(userRequest.getAvatarPublicId());
+        }
+        if (StringUtils.hasText(userRequest.getFirstName())) {
+            user.getProfile().setFirstName(userRequest.getFirstName());
+        }
+        if (StringUtils.hasText(userRequest.getLastName())) {
+            user.getProfile().setLastName(userRequest.getLastName());
+        }
+        if (StringUtils.hasText(userRequest.getPhoneNumber())) {
+            user.getProfile().setPhoneNumber(userRequest.getPhoneNumber());
+        }
+
+        // Gán createdBy và updatedBy nếu có người dùng đang thao tác
+        String operatorUsername = SecurityUtils.getCurrentUsername();
+        if (StringUtils.hasText(operatorUsername) && !"SYSTEM".equals(operatorUsername)) {
+            User operator = userRepository.findByEmail(operatorUsername).orElse(null);
+            if (operator != null) {
+                user.setCreatedBy(operator);
+                user.setUpdatedBy(operator);
+            }
         }
 
         // Lưu user (cascade save profile)
         user = userRepository.save(user);
 
-        // Ghi log hoạt động vào MongoDB
-        auditLogService.log("USER_REGISTER", user.getEmail(), "New user registered with ID: " + user.getId());
+        // Ghi log hoạt động kiểm toán (Audit Log)
+        auditLogService.log(
+            "CREATE_USER",
+            operatorUsername,
+            String.format("Tạo mới tài khoản user: %s (ID: %s, Role: %s)", user.getEmail(), user.getId(), user.getRole())
+        );
 
         return userMapper.toResponse(user);
     }
@@ -261,6 +292,14 @@ public class UserServiceImpl implements UserService {
             user.getProfile().setUser(user);
         }
 
+        String operatorUsername = SecurityUtils.getCurrentUsername();
+        if (StringUtils.hasText(operatorUsername) && !"SYSTEM".equals(operatorUsername)) {
+            User operator = userRepository.findByEmail(operatorUsername).orElse(null);
+            if (operator != null) {
+                user.setUpdatedBy(operator);
+            }
+        }
+
         user = userRepository.save(user);
 
         // Chỉ thu hồi token khi vai trò THỰC SỰ bị thay đổi HOẶC tài khoản bị khóa (active -> false)
@@ -272,7 +311,7 @@ public class UserServiceImpl implements UserService {
             tokenService.revokeUserTokens(user.getEmail());
         }
 
-        auditLogService.log("UPDATE_USER", SecurityUtils.getCurrentUsername(), "Updated user with ID: " + user.getId());
+        auditLogService.log("UPDATE_USER", operatorUsername, "Updated user with ID: " + user.getId());
 
         return userMapper.toResponse(user);
     }
@@ -282,13 +321,21 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
 
+        String operatorUsername = SecurityUtils.getCurrentUsername();
+        if (StringUtils.hasText(operatorUsername) && !"SYSTEM".equals(operatorUsername)) {
+            User operator = userRepository.findByEmail(operatorUsername).orElse(null);
+            if (operator != null) {
+                user.setDeletedBy(operator);
+            }
+        }
+
         user.setActive(false);
         user.setDeletedAt(LocalDateTime.now());
         userRepository.save(user);
 
         tokenService.revokeUserTokens(user.getEmail());
 
-        auditLogService.log("DELETE_USER", SecurityUtils.getCurrentUsername(), "Soft deleted user with ID: " + user.getId());
+        auditLogService.log("DELETE_USER", operatorUsername, "Soft deleted user with ID: " + user.getId());
     }
 
     @Override

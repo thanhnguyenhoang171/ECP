@@ -59,4 +59,10 @@ public class PurchaseOrderResponse {
 
     @Schema(description = "List of items in the purchase order")
     private List<PurchaseOrderItemResponse> items;
+
+    @Schema(description = "Email of the user who created the purchase order")
+    private String createdBy;
+
+    @Schema(description = "Email of the user who last updated the purchase order")
+    private String updatedBy;
 }

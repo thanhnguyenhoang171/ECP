@@ -323,53 +323,6 @@ export default function StockView() {
         description="Quản lý số lượng hàng tồn thực tế tại các kho, điều chỉnh số lượng và cảnh báo sắp hết hàng."
       />
 
-      {/* KPI Cards Section */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">Tổng tồn thực tế</span>
-            <div className="text-2xl font-black text-slate-800">{stats.totalStock}</div>
-            <span className="text-[10px] text-slate-400 font-medium">Sản phẩm trong kho</span>
-          </div>
-          <div className="h-11 w-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-            <Database size={20} />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">Tồn khả dụng (Available)</span>
-            <div className="text-2xl font-black text-emerald-600">{stats.totalAvailable}</div>
-            <span className="text-[10px] text-slate-400 font-medium">Sẵn sàng xuất bán</span>
-          </div>
-          <div className="h-11 w-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <CheckCircle2 size={20} />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">Đang tạm khóa (Locked)</span>
-            <div className="text-2xl font-black text-amber-500">{stats.totalLocked}</div>
-            <span className="text-[10px] text-slate-400 font-medium">Giữ chỗ cho đơn hàng</span>
-          </div>
-          <div className="h-11 w-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-            <TrendingDown size={20} />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">Cảnh báo hết hàng</span>
-            <div className="text-2xl font-black text-red-500">{stats.outOfStockCount}</div>
-            <span className="text-[10px] text-slate-400 font-medium">Mặt hàng tồn bằng 0</span>
-          </div>
-          <div className="h-11 w-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
-            <AlertTriangle size={20} />
-          </div>
-        </div>
-      </div>
-
       {/* Main Stock Table */}
       <DataCard
         search={

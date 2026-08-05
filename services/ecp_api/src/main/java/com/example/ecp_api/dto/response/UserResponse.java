@@ -60,4 +60,10 @@ public class UserResponse {
 
     @Schema(description = "Account last update timestamp")
     private LocalDateTime updatedAt;
+
+    @Schema(description = "Email of the user who created this account")
+    private String createdBy;
+
+    @Schema(description = "Email of the user who last updated this account")
+    private String updatedBy;
 }

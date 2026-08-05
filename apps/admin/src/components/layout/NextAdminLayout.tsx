@@ -7,28 +7,25 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 
 import {
-  LayoutDashboard,
-  ShoppingBag,
-  Database,
-  LogOut,
   Menu as MenuIcon,
-  ShoppingCart,
-  UserCircle,
-  Bell,
-  Search,
-  Settings,
   ChevronDown,
-  FileClock,
-  ScanBarcode,
-  AlertTriangle,
-  CreditCard,
-  CheckCircle2,
-  Trash2,
-  Inbox,
+  LayoutDashboard,
+  Package,
+  FolderTree,
+  Tag,
+  Warehouse,
+  Boxes,
+  Receipt,
+  ShoppingCart,
+  Truck,
+  Store,
+  BookOpen,
+  Users,
+  Settings,
+  ShieldCheck,
+  LogOut,
+  type LucideIcon,
 } from 'lucide-react';
-import { toast } from 'sonner';
-
-
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -41,7 +38,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import nprogress from 'nprogress';
 import { useAuthStore } from '@/store/authStore';
@@ -54,81 +50,52 @@ const Sheet = dynamic(() => import("@/components/ui/sheet").then(m => m.Sheet));
 const SheetContent = dynamic(() => import("@/components/ui/sheet").then(m => m.SheetContent));
 const SheetTrigger = dynamic(() => import("@/components/ui/sheet").then(m => m.SheetTrigger));
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import BarcodeScanner from '@/features/inventory/components/BarcodeScanner';
-
-
-
 interface SubMenuItem {
   key: string;
   label: string;
+  icon?: LucideIcon;
 }
 
 interface MenuItem {
   key: string;
   label: string;
-  icon: React.ReactNode;
+  icon: LucideIcon;
   children?: SubMenuItem[];
   requiredRoles?: string[];
 }
 
 const menuItems: MenuItem[] = [
-  { key: '/dashboard', icon: <LayoutDashboard size={18} />, label: 'Tổng quan' },
+  { key: '/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
   {
     key: 'products-group',
-    icon: <ShoppingBag size={18} />,
     label: 'Sản phẩm',
+    icon: Package,
     children: [
-      { key: '/products', label: 'Sản phẩm' },
-      { key: '/categories', label: 'Danh mục' },
-      { key: '/brands', label: 'Thương hiệu' },
+      { key: '/products', label: 'Sản phẩm', icon: Package },
+      { key: '/categories', label: 'Danh mục', icon: FolderTree },
+      { key: '/brands', label: 'Thương hiệu', icon: Tag },
     ],
   },
   {
     key: 'inventory-group',
-    icon: <Database size={18} />,
     label: 'Kho hàng',
+    icon: Warehouse,
     children: [
-      { key: '/stock', label: 'Tồn kho' },
-      { key: '/goods-receipt', label: 'Nhập kho' },
-      { key: '/purchase-orders', label: 'Đơn mua hàng' },
-      { key: '/suppliers', label: 'Nhà cung cấp' },
-      { key: '/warehouses', label: 'Kho bãi' },
-      { key: '/inventory-ledger', label: 'Sổ cái kho' },
+      { key: '/stock', label: 'Tồn kho', icon: Boxes },
+      { key: '/goods-receipt', label: 'Nhập kho', icon: Receipt },
+      { key: '/purchase-orders', label: 'Đơn mua hàng', icon: ShoppingCart },
+      { key: '/suppliers', label: 'Nhà cung cấp', icon: Truck },
+      { key: '/warehouses', label: 'Kho bãi', icon: Store },
+      { key: '/inventory-ledger', label: 'Sổ cái kho', icon: BookOpen },
     ],
   },
-  {
-    key: 'sales-group',
-    icon: <ShoppingCart size={18} />,
-    label: 'Bán hàng',
-    children: [
-      { key: '/orders', label: 'Đơn hàng' },
-      { key: '/payments', label: 'Thanh toán' },
-      { key: '/customers', label: 'Khách hàng' },
-      { key: '/promotions', label: 'Mã giảm giá' },
-    ],
-  },
-  { key: '/users', icon: <UserCircle size={18} />, label: 'Tài khoản', requiredRoles: ['ROLE_SUPER_ADMIN'] },
+  { key: '/users', label: 'Tài khoản', icon: Users, requiredRoles: ['ROLE_SUPER_ADMIN'] },
   {
     key: 'system-group',
-    icon: <Settings size={18} />,
     label: 'Hệ thống',
+    icon: Settings,
     children: [
-      { key: '/settings', label: 'Cấu hình chung' },
-      { key: '/settings/storefront', label: 'Giao diện Website' },
-      { key: '/audit-logs', label: 'Nhật ký kiểm toán' },
+      { key: '/audit-logs', label: 'Nhật ký kiểm toán', icon: ShieldCheck },
     ],
   },
 ];
@@ -146,6 +113,7 @@ const SidebarItem = memo(({
   isMobile?: boolean;
   onNavigate?: () => void;
 }) => {
+  const Icon = item.icon;
   const hasChildren = !!item.children;
   const isActive = pathname === item.key || item.children?.some(c => pathname === c.key);
   const [isOpen, setIsOpen] = useState(false);
@@ -157,8 +125,6 @@ const SidebarItem = memo(({
       setIsOpen(true);
     }
   }
-
-  // Effect removed to avoid cascading renders warning
 
   if (isCollapsed && !isMobile && hasChildren) {
     return (
@@ -173,7 +139,7 @@ const SidebarItem = memo(({
                   isActive ? "bg-primary/10 text-primary" : "text-slate-400 hover:bg-slate-800 hover:text-white"
                 )}
               >
-                {item.icon}
+                <Icon size={18} />
               </Button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
@@ -184,11 +150,17 @@ const SidebarItem = memo(({
         <DropdownMenuContent side="right" align="start" className="w-52 bg-slate-900 shadow-2xl border-slate-800 ml-2 p-1 text-white">
           <DropdownMenuLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest px-3 py-2">{item.label}</DropdownMenuLabel>
           <DropdownMenuSeparator className="bg-slate-800" />
-          {item.children?.map((child) => (
-            <DropdownMenuItem key={child.key} asChild className="cursor-pointer rounded-md focus:bg-primary focus:text-white">
-              <Link href={child.key} className="w-full px-3 py-2 text-sm font-medium" onClick={onNavigate}>{child.label}</Link>
-            </DropdownMenuItem>
-          ))}
+          {item.children?.map((child) => {
+            const ChildIcon = child.icon;
+            return (
+              <DropdownMenuItem key={child.key} asChild className="cursor-pointer rounded-md focus:bg-primary focus:text-white">
+                <Link href={child.key} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm font-medium" onClick={onNavigate}>
+                  {ChildIcon && <ChildIcon size={16} />}
+                  <span>{child.label}</span>
+                </Link>
+              </DropdownMenuItem>
+            );
+          })}
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -206,7 +178,7 @@ const SidebarItem = memo(({
             )}
             onClick={onNavigate}
           >
-            {item.icon}
+            <Icon size={18} />
           </Link>
         </TooltipTrigger>
         <TooltipContent side="right" className="font-medium bg-slate-900 text-white border-none shadow-xl">
@@ -229,7 +201,7 @@ const SidebarItem = memo(({
             )}
           >
             <div className="flex items-center gap-3">
-              <span className={cn(isActive ? "text-primary" : "text-slate-500")}>{item.icon}</span>
+              <Icon size={18} />
               <span>{item.label}</span>
             </div>
             <ChevronDown size={14} className={cn("transition-transform duration-300", isOpen && "rotate-180")} />
@@ -238,21 +210,25 @@ const SidebarItem = memo(({
             "mt-1 ml-4 border-l border-slate-800 pl-2 overflow-hidden transition-all duration-300",
             isOpen ? "max-h-96 opacity-100 mb-2" : "max-h-0 opacity-0"
           )}>
-            {item.children?.map((child) => (
-              <Link
-                key={child.key}
-                href={child.key}
-                className={cn(
-                  "block px-4 py-2 text-sm font-medium rounded-md transition-all mb-1",
-                  pathname === child.key 
-                    ? "bg-primary/10 text-primary" 
-                    : "text-slate-500 hover:bg-slate-800 hover:text-white"
-                )}
-                onClick={onNavigate}
-              >
-                {child.label}
-              </Link>
-            ))}
+            {item.children?.map((child) => {
+              const ChildIcon = child.icon;
+              return (
+                <Link
+                  key={child.key}
+                  href={child.key}
+                  className={cn(
+                    "flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-md transition-all mb-1",
+                    pathname === child.key 
+                      ? "bg-primary/10 text-primary" 
+                      : "text-slate-500 hover:bg-slate-800 hover:text-white"
+                  )}
+                  onClick={onNavigate}
+                >
+                  {ChildIcon && <ChildIcon size={16} />}
+                  <span>{child.label}</span>
+                </Link>
+              );
+            })}
           </div>
         </>
       ) : (
@@ -266,7 +242,7 @@ const SidebarItem = memo(({
           )}
           onClick={onNavigate}
         >
-          <span className={cn(pathname === item.key ? "text-white" : "text-slate-500")}>{item.icon}</span>
+          <Icon size={18} />
           <span>{item.label}</span>
         </Link>
       )}
@@ -275,100 +251,10 @@ const SidebarItem = memo(({
 });
 SidebarItem.displayName = 'SidebarItem';
 
-interface NotificationItem {
-  id: string;
-  type: 'order' | 'stock' | 'payment' | 'system';
-  title: string;
-  description: string;
-  time: string;
-  isRead: boolean;
-  link?: string;
-}
-
-const initialNotifications: NotificationItem[] = [
-  {
-    id: 'n-1',
-    type: 'order',
-    title: 'Đơn hàng mới chờ duyệt',
-    description: 'Khách hàng Nguyễn Văn Nam vừa đặt đơn hàng #DH-8902 trị giá 34,990,000đ.',
-    time: '5 phút trước',
-    isRead: false,
-    link: '/orders',
-  },
-  {
-    id: 'n-2',
-    type: 'stock',
-    title: 'Cảnh báo tồn kho cực thấp',
-    description: 'Sản phẩm Samsung Galaxy S24 Ultra (Titanium Black / 512GB) đã hết hàng (0 cái).',
-    time: '25 phút trước',
-    isRead: false,
-    link: '/stock',
-  },
-  {
-    id: 'n-3',
-    type: 'payment',
-    title: 'Giao dịch Momo bị từ chối',
-    description: 'Thanh toán Momo đơn hàng #DH-8872 không thành công. Lý do: Người dùng hủy giao dịch.',
-    time: '1 giờ trước',
-    isRead: true,
-    link: '/payments',
-  },
-  {
-    id: 'n-4',
-    type: 'system',
-    title: 'Nhập kho thành công',
-    description: 'Lô hàng #NK-1092 chứa 50 chiếc AirPods Pro đã được nhập vào Kho Quận 1.',
-    time: '2 giờ trước',
-    isRead: true,
-    link: '/goods-receipt',
-  }
-];
-
-const notificationTypeIcons = {
-  order: ShoppingCart,
-  stock: AlertTriangle,
-  payment: CreditCard,
-  system: CheckCircle2,
-};
-
-const notificationTypeColors = {
-  order: 'bg-blue-50 text-blue-600 border border-blue-100',
-  stock: 'bg-rose-50 text-rose-600 border border-rose-100',
-  payment: 'bg-amber-50 text-amber-600 border border-amber-100',
-  system: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-};
-
-
 export default function NextAdminLayout({ children }: { children: React.ReactNode }) {
   const { isSidebarCollapsed, toggleSidebar } = useUIStore();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [isScanOpen, setIsScanOpen] = useState(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
   
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-
-  const handleMarkAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    toast.success('Đã đánh dấu đọc tất cả thông báo');
-  };
-
-  const handleNotificationClick = (notification: NotificationItem) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
-    );
-    setIsNotificationsOpen(false);
-    if (notification.link) {
-      router.push(notification.link);
-    }
-  };
-
-  const handleDeleteNotification = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setNotifications(prev => prev.filter(n => n.id !== id));
-    toast.success('Đã xóa thông báo');
-  };
-
   const router = useRouter();
   const pathname = usePathname();
 
@@ -397,11 +283,31 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
     return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   };
 
+  const getRoleLabel = (role?: string) => {
+    if (!role) return 'Quản trị viên';
+    switch (role) {
+      case 'ROLE_SUPER_ADMIN':
+        return 'Quản trị viên cao cấp';
+      case 'ROLE_ADMIN':
+        return 'Quản trị viên';
+      case 'ROLE_MANAGER':
+        return 'Quản lý';
+      case 'ROLE_STAFF':
+      case 'ROLE_EMPLOYEE':
+        return 'Nhân viên';
+      case 'ROLE_USER':
+        return 'Thành viên';
+      default:
+        return role.replace('ROLE_', '');
+    }
+  };
+
   const renderSidebarContent = (mobile = false) => {
     // Lọc menu items dựa trên role của user
     const filteredMenuItems = menuItems.filter(item => {
       if (!item.requiredRoles) return true;
       if (!user?.roles) return false;
+      if (!user?.roles?.length) return false;
       return item.requiredRoles.some(role => user.roles.includes(role));
     });
 
@@ -442,8 +348,8 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
           <Button 
             variant="ghost" 
             className={cn(
-              "w-full text-slate-400 hover:bg-red-500/10 hover:text-red-400 font-medium rounded-lg transition-all",
-              isSidebarCollapsed && !mobile ? "justify-center px-0" : "justify-start gap-3"
+              "w-full text-slate-400 hover:bg-red-500/10 hover:text-red-400 font-medium rounded-lg transition-all flex items-center gap-3",
+              isSidebarCollapsed && !mobile ? "justify-center px-0 text-xs font-bold" : "justify-start"
             )} 
             onClick={() => {
               handleLogout();
@@ -484,168 +390,13 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
             <Button variant="ghost" size="icon" className="hidden lg:flex text-slate-400 hover:text-slate-600" onClick={toggleSidebar}>
               <MenuIcon size={20} />
             </Button>
-
-            <div className="hidden md:flex items-center px-4 py-2 rounded-lg w-72 bg-slate-100 border border-slate-200 focus-within:border-primary/50 focus-within:bg-white transition-all group">
-              <Search size={16} className="mr-2 text-slate-400 group-focus-within:text-primary transition-colors" />
-              <input placeholder="Tìm kiếm..." className="bg-transparent border-none outline-none text-sm w-full placeholder:text-slate-400 text-slate-700" />
-            </div>
           </div>
           
           <div className="flex items-center gap-2 sm:gap-4">
-            <Dialog open={isScanOpen} onOpenChange={setIsScanOpen}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-600 hover:bg-slate-100">
-                      <ScanBarcode size={20} />
-                    </Button>
-                  </DialogTrigger>
-                </TooltipTrigger>
-                <TooltipContent>Quét mã vạch</TooltipContent>
-              </Tooltip>
-              <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2 text-slate-900">
-                    <ScanBarcode className="text-primary h-5 w-5" />
-                    Quét mã vạch & SKU
-                  </DialogTitle>
-                  <DialogDescription>
-                    Mô phỏng máy quét mã vạch trực tiếp bằng Camera hoặc nhập mã tay.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="py-2">
-                  <BarcodeScanner onClose={() => setIsScanOpen(false)} />
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="relative text-slate-400 hover:text-slate-600 hover:bg-slate-100">
-                      <Bell size={20} />
-                      {unreadCount > 0 && (
-                        <span className="absolute top-1.5 right-1.5 h-4 w-4 bg-rose-500 rounded-full text-[9px] font-extrabold text-white flex items-center justify-center animate-pulse">
-                          {unreadCount}
-                        </span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                </TooltipTrigger>
-                <TooltipContent>Thông báo ({unreadCount})</TooltipContent>
-              </Tooltip>
-              <PopoverContent className="w-80 sm:w-96 p-0 bg-white border border-slate-200 shadow-xl rounded-xl mr-2" align="end">
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-bold text-slate-900 text-sm">Thông báo</h4>
-                    {unreadCount > 0 && (
-                      <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none font-semibold text-[10px]">
-                        {unreadCount} chưa đọc
-                      </Badge>
-                    )}
-                  </div>
-                  {unreadCount > 0 && (
-                    <button 
-                      onClick={handleMarkAllAsRead}
-                      className="text-xs font-bold text-primary hover:text-primary-hover transition-colors"
-                    >
-                      Đọc tất cả
-                    </button>
-                  )}
-                </div>
-
-                {/* List */}
-                <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-100 custom-scrollbar">
-                  {notifications.length > 0 ? (
-                    notifications.map((notification) => {
-                      const Icon = notificationTypeIcons[notification.type] || Bell;
-                      const iconColor = notificationTypeColors[notification.type] || 'bg-slate-100 text-slate-600';
-                      
-                      return (
-                        <div 
-                          key={notification.id}
-                          onClick={() => handleNotificationClick(notification)}
-                          className={cn(
-                            "flex items-start gap-3 p-3.5 hover:bg-slate-50/70 transition-all cursor-pointer relative group",
-                            !notification.isRead && "bg-blue-50/20"
-                          )}
-                        >
-                          {/* Unread indicator dot */}
-                          {!notification.isRead && (
-                            <span className="absolute right-3 top-4 h-2 w-2 bg-blue-500 rounded-full"></span>
-                          )}
-
-                          <div className={cn("p-2 rounded-lg shrink-0", iconColor)}>
-                            <Icon size={16} />
-                          </div>
-
-                          <div className="space-y-1 min-w-0 flex-1 text-left">
-                            <p className={cn(
-                              "text-xs leading-snug text-slate-950",
-                              !notification.isRead ? "font-bold" : "font-medium"
-                            )}>
-                              {notification.title}
-                            </p>
-                            <p className="text-[11px] text-slate-500 leading-normal line-clamp-2">
-                              {notification.description}
-                            </p>
-                            <p className="text-[10px] text-slate-400 font-medium">
-                              {notification.time}
-                            </p>
-                          </div>
-
-                          {/* Delete button */}
-                          <button
-                            onClick={(e) => handleDeleteNotification(notification.id, e)}
-                            className="text-slate-300 hover:text-rose-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-                      <div className="p-3 bg-slate-50 text-slate-300 rounded-full mb-3">
-                        <Inbox size={28} />
-                      </div>
-                      <p className="text-xs font-bold text-slate-600">Không có thông báo mới</p>
-                      <p className="text-[10px] text-slate-400 mt-1 max-w-[200px]">Hệ thống vận hành của bạn hiện đang ở trạng thái tối ưu.</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Footer */}
-                {notifications.length > 0 && (
-                  <div className="p-3 bg-slate-50 border-t border-slate-100 text-center rounded-b-xl">
-                    <Link 
-                      href="/audit-logs" 
-                      onClick={() => setIsNotificationsOpen(false)}
-                      className="text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors inline-block w-full"
-                    >
-                      Xem tất cả nhật ký hệ thống
-                    </Link>
-                  </div>
-                )}
-              </PopoverContent>
-            </Popover>
-            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-100 p-1.5 rounded-lg transition-all group">
-                  <div className="hidden sm:flex flex-col items-end leading-tight">
-                    <span className="text-sm font-semibold text-slate-900">
-                      {(user?.lastName || user?.firstName)
-                        ? `${user.lastName || ''} ${user.firstName || ''}`.trim()
-                        : (user?.email || 'Admin User')}
-                    </span>
-                    <span className="text-[10px] uppercase font-bold text-primary tracking-wider">
-                      {user?.roles?.[0] || 'Quản trị viên'}
-                    </span>
-                  </div>
-                  <Avatar className="h-9 w-9 border border-slate-200 shadow-sm overflow-hidden">
+                <div className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-100/80 p-1.5 px-2.5 rounded-xl transition-all group border border-transparent hover:border-slate-200">
+                  <Avatar className="h-9 w-9 border border-slate-200/80 shadow-sm overflow-hidden ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
                     {user?.avatarUrl && (
                       <AvatarImage
                         src={user.avatarUrl}
@@ -653,33 +404,36 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
                         className="object-cover"
                       />
                     )}
-                    <AvatarFallback className="bg-slate-100 text-slate-600 font-bold text-xs">
+                    <AvatarFallback className="bg-slate-100 text-slate-700 font-bold text-xs">
                       {getInitials(user?.lastName ? `${user.lastName} ${user.firstName || ''}` : user?.email)}
                     </AvatarFallback>
                   </Avatar>
+                  <div className="hidden sm:flex flex-col items-start leading-tight">
+                    <span className="text-sm font-semibold text-slate-800 group-hover:text-slate-950 transition-colors">
+                      {(user?.lastName || user?.firstName)
+                        ? `${user.lastName || ''} ${user.firstName || ''}`.trim()
+                        : (user?.email || 'Admin User')}
+                    </span>
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full mt-0.5 tracking-wide">
+                      {getRoleLabel(user?.roles?.[0])}
+                    </span>
+                  </div>
+                  <ChevronDown size={14} className="text-slate-400 group-hover:text-slate-600 transition-transform group-data-[state=open]:rotate-180" />
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60 mt-2 p-1">
-                <DropdownMenuLabel className="px-3 py-2 text-xs font-bold text-slate-500 uppercase tracking-widest">Tài khoản</DropdownMenuLabel>
-                <DropdownMenuSeparator />
+              <DropdownMenuContent align="end" className="w-48 mt-2 p-1.5 shadow-xl border-slate-200 rounded-xl">
                 <DropdownMenuItem onClick={() => {
                   router.push('/profile');
                   handleNavigate();
-                }} className="cursor-pointer py-2 px-3">
-                  <UserCircle className="mr-2 h-4 w-4 opacity-70" /> <span className="text-sm font-medium">Hồ sơ cá nhân</span>
+                }} className="cursor-pointer py-2 px-3 rounded-lg focus:bg-slate-100 font-medium text-slate-700">
+                  <span className="text-sm font-medium">Hồ sơ cá nhân</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  router.push('/settings');
-                  handleNavigate();
-                }} className="cursor-pointer py-2 px-3">
-                  <Settings className="mr-2 h-4 w-4 opacity-70" /> <span className="text-sm font-medium">Cài đặt hệ thống</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="my-1 bg-slate-100" />
                 <DropdownMenuItem onClick={() => {
                   handleLogout();
                   handleNavigate();
-                }} className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer py-2 px-3">
-                  <LogOut className="mr-2 h-4 w-4" /> <span className="text-sm font-bold">Đăng xuất</span>
+                }} className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 cursor-pointer py-2 px-3 rounded-lg font-semibold">
+                  <span className="text-sm font-bold">Đăng xuất</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -700,3 +454,5 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
     </div>
   );
 }
+
+
