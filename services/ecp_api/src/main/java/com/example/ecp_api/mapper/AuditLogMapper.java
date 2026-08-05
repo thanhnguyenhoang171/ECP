@@ -5,15 +5,16 @@ import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.PaginationResponse;
 import com.example.ecp_api.entity.mongodb.AuditLog;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ReportingPolicy;
-import org.mapstruct.SubclassMapping;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE, nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface AuditLogMapper {
+    @Mapping(target = "email", expression = "java(auditLog.getEmail())")
     AuditLogResponse toResponse(AuditLog auditLog);
 
     default PageResponse<AuditLogResponse> toPageResponse(Page<AuditLog> page) {

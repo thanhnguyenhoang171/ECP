@@ -13,11 +13,11 @@ public class SecurityUtils {
     }
 
     /**
-     * Get the username of the current logged-in user.
+     * Get the email of the current logged-in user.
      *
-     * @return the username or "SYSTEM" if not authenticated
+     * @return the email or "SYSTEM" if not authenticated
      */
-    public static String getCurrentUsername() {
+    public static String getCurrentUserEmail() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && 
             authentication.isAuthenticated() && 
@@ -25,5 +25,12 @@ public class SecurityUtils {
             return authentication.getName();
         }
         return "SYSTEM";
+    }
+
+    /**
+     * Alias for getCurrentUserEmail.
+     */
+    public static String getCurrentUsername() {
+        return getCurrentUserEmail();
     }
 }

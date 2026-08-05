@@ -102,7 +102,7 @@ public class InventoryServiceImpl implements InventoryService {
         
         inventoryLedgerRepository.save(ledger);
 
-        auditLogService.log("INVENTORY_ADJUST", com.example.ecp_api.util.SecurityUtils.getCurrentUsername(), 
+        auditLogService.log("INVENTORY_ADJUST", com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail(), 
                 "Adjusted stock in warehouse " + warehouse.getName() + ": SKU " + sku.getSkuCode() + " change: " + request.getQuantityChange());
 
         InventoryResponse response = inventoryMapper.toResponse(inventory);
@@ -210,7 +210,7 @@ public class InventoryServiceImpl implements InventoryService {
         
         inventoryRepository.delete(inventory);
 
-        auditLogService.log("INVENTORY_DELETE", com.example.ecp_api.util.SecurityUtils.getCurrentUsername(), 
+        auditLogService.log("INVENTORY_DELETE", com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail(), 
                 "Deleted inventory record " + inventory.getId() + " for SKU " + inventory.getSku().getSkuCode());
     }
 

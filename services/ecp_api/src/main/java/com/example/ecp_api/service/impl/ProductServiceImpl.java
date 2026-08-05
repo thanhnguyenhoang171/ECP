@@ -195,7 +195,7 @@ public class ProductServiceImpl implements ProductService {
         product.setVariants(variants);
         product = productRepository.save(product);
 
-        auditLogService.log("CREATE_PRODUCT", SecurityUtils.getCurrentUsername(),
+        auditLogService.log("PRODUCT_CREATE", SecurityUtils.getCurrentUserEmail(),
                 "Created product: " + product.getName());
 
         return productMapper.toResponse(product);

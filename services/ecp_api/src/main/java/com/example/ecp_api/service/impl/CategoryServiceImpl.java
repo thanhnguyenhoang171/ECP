@@ -89,7 +89,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         Category savedCategory = categoryRepository.save(category);
 
-        auditLogService.log("CREATE_CATEGORY", SecurityUtils.getCurrentUsername(), "Created category: " + savedCategory.getName());
+        auditLogService.log("CATEGORY_CREATE", SecurityUtils.getCurrentUserEmail(), "Created category: " + savedCategory.getName());
 
         return categoryMapper.toResponse(savedCategory);
     }
@@ -199,7 +199,7 @@ public class CategoryServiceImpl implements CategoryService {
             categoryHelper.updateDescendants(updatedCategory);
         }
 
-        auditLogService.log("UPDATE_CATEGORY", SecurityUtils.getCurrentUsername(), "Updated category with ID: " + updatedCategory.getId());
+        auditLogService.log("CATEGORY_UPDATE", SecurityUtils.getCurrentUserEmail(), "Updated category with ID: " + updatedCategory.getId());
 
         return categoryMapper.toResponse(updatedCategory);
     }
@@ -219,7 +219,7 @@ public class CategoryServiceImpl implements CategoryService {
         category.setDeleted(true);
         categoryRepository.save(category);
 
-        auditLogService.log("DELETE_CATEGORY", SecurityUtils.getCurrentUsername(), "Soft deleted category with ID: " + category.getId());
+        auditLogService.log("CATEGORY_DELETE", SecurityUtils.getCurrentUserEmail(), "Soft deleted category with ID: " + category.getId());
     }
 
     // GET CATEGORY DETAIL
@@ -386,7 +386,7 @@ public class CategoryServiceImpl implements CategoryService {
                     HttpStatus.BAD_REQUEST);
             }
 
-            auditLogService.log("IMPORT_CATEGORIES", SecurityUtils.getCurrentUsername(), "Imported " + successCount + " categories from Excel");
+            auditLogService.log("CATEGORY_IMPORT", SecurityUtils.getCurrentUserEmail(), "Imported " + successCount + " categories from Excel");
         } catch (AppException e) {
             throw e; 
         } catch (Exception e) {

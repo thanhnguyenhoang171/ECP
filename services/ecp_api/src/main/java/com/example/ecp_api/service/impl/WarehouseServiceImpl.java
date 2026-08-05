@@ -66,7 +66,7 @@ public class WarehouseServiceImpl implements WarehouseService {
 
         warehouse = warehouseRepository.saveAndFlush(warehouse);
 
-        auditLogService.log("CREATE_WAREHOUSE", SecurityUtils.getCurrentUsername(), "Created warehouse: " + warehouse.getName() + " (" + warehouse.getCode() + ")");
+        auditLogService.log("WAREHOUSE_CREATE", SecurityUtils.getCurrentUserEmail(), "Created warehouse: " + warehouse.getName() + " (" + warehouse.getCode() + ")");
 
         return warehouseMapper.toResponse(warehouse);
     }
@@ -87,7 +87,7 @@ public class WarehouseServiceImpl implements WarehouseService {
         Warehouse warehouse = warehouseMapper.toEntity(request);
         if (request.getIsActive() == null) { warehouse.setActive(true); }
         warehouse = warehouseRepository.saveAndFlush(warehouse);
-        auditLogService.log("CREATE_WAREHOUSE", SecurityUtils.getCurrentUsername(), "Created warehouse: " + warehouse.getName() + " (" + warehouse.getCode() + ")");
+        auditLogService.log("WAREHOUSE_CREATE", SecurityUtils.getCurrentUserEmail(), "Created warehouse: " + warehouse.getName() + " (" + warehouse.getCode() + ")");
         return warehouseMapper.toAdminResponse(warehouse);
     }
 
@@ -119,7 +119,7 @@ public class WarehouseServiceImpl implements WarehouseService {
 
         warehouse = warehouseRepository.saveAndFlush(warehouse);
 
-        auditLogService.log("UPDATE_WAREHOUSE", SecurityUtils.getCurrentUsername(), "Updated warehouse: " + warehouse.getName() + " (" + warehouse.getCode() + ")");
+        auditLogService.log("WAREHOUSE_UPDATE", SecurityUtils.getCurrentUserEmail(), "Updated warehouse: " + warehouse.getName() + " (" + warehouse.getCode() + ")");
 
         return warehouseMapper.toResponse(warehouse);
     }
@@ -143,7 +143,7 @@ public class WarehouseServiceImpl implements WarehouseService {
         warehouseMapper.updateWarehouseFromRequest(request, warehouse);
         if (request.getIsActive() != null) { warehouse.setActive(request.getIsActive()); }
         warehouse = warehouseRepository.saveAndFlush(warehouse);
-        auditLogService.log("UPDATE_WAREHOUSE", SecurityUtils.getCurrentUsername(), "Updated warehouse: " + warehouse.getName() + " (" + warehouse.getCode() + ")");
+        auditLogService.log("WAREHOUSE_UPDATE", SecurityUtils.getCurrentUserEmail(), "Updated warehouse: " + warehouse.getName() + " (" + warehouse.getCode() + ")");
         return warehouseMapper.toAdminResponse(warehouse);
     }
 
@@ -237,6 +237,6 @@ public class WarehouseServiceImpl implements WarehouseService {
 
         warehouseRepository.delete(warehouse);
 
-        auditLogService.log("DELETE_WAREHOUSE", SecurityUtils.getCurrentUsername(), "Deleted warehouse: " + warehouse.getName() + " (" + warehouse.getCode() + ")");
+        auditLogService.log("WAREHOUSE_DELETE", SecurityUtils.getCurrentUserEmail(), "Deleted warehouse: " + warehouse.getName() + " (" + warehouse.getCode() + ")");
     }
 }

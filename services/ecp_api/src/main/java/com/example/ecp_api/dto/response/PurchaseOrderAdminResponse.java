@@ -57,10 +57,10 @@ public class PurchaseOrderAdminResponse {
     @Schema(description = "Timestamp of the last update to the purchase order")
     private LocalDateTime updatedAt;
 
-    @Schema(description = "Username of the creator")
+    @Schema(description = "Email of the creator")
     private String createdBy;
 
-    @Schema(description = "Username of the last updater")
+    @Schema(description = "Email of the last updater")
     private String updatedBy;
 
     @Schema(description = "List of items in the purchase order")

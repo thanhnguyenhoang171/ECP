@@ -22,8 +22,8 @@ public class AuditLogResponse {
     @Schema(description = "Type of action performed", example = "CREATE_PRODUCT")
     private String action;
 
-    @Schema(description = "Username of the person who performed the action", example = "admin")
-    private String username;
+    @Schema(description = "Email of the person who performed the action", example = "admin@example.com")
+    private String email;
 
     @Schema(description = "Detailed information about the action", example = "Created product: iPhone 15")
     private String details;

@@ -46,9 +46,9 @@ public class SupplierAdminResponse {
     @Schema(description = "Last update timestamp")
     private LocalDateTime updatedAt;
 
-    @Schema(description = "Creator username")
+    @Schema(description = "Creator email")
     private String createdBy;
 
-    @Schema(description = "Last updater username")
+    @Schema(description = "Last updater email")
     private String updatedBy;
 }

@@ -70,7 +70,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
         purchaseOrder = purchaseOrderRepository.saveAndFlush(purchaseOrder);
 
-        auditLogService.log("CREATE_PURCHASE_ORDER", SecurityUtils.getCurrentUsername(), 
+        auditLogService.log("PURCHASE_ORDER_CREATE", SecurityUtils.getCurrentUserEmail(), 
                 "Created purchase order: " + purchaseOrder.getPoCode() + " for warehouse: " + warehouse.getName() + " and supplier: " + supplier.getName());
 
         return purchaseOrderMapper.toResponse(purchaseOrder);
@@ -92,7 +92,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         purchaseOrderHelper.processPurchaseOrderItems(request, purchaseOrder);
         if (request.getStatus() == null) { purchaseOrder.setStatus(PurchaseOrderStatus.DRAFT); }
         purchaseOrder = purchaseOrderRepository.saveAndFlush(purchaseOrder);
-        auditLogService.log("CREATE_PURCHASE_ORDER", SecurityUtils.getCurrentUsername(),
+        auditLogService.log("PURCHASE_ORDER_CREATE", SecurityUtils.getCurrentUserEmail(),
                 "Created purchase order: " + purchaseOrder.getPoCode() + " for warehouse: " + warehouse.getName() + " and supplier: " + supplier.getName());
         return purchaseOrderMapper.toAdminResponse(purchaseOrder);
     }
@@ -125,7 +125,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
         purchaseOrder = purchaseOrderRepository.saveAndFlush(purchaseOrder);
 
-        auditLogService.log("UPDATE_PURCHASE_ORDER", SecurityUtils.getCurrentUsername(), 
+        auditLogService.log("PURCHASE_ORDER_UPDATE", SecurityUtils.getCurrentUserEmail(), 
                 "Updated purchase order: " + purchaseOrder.getPoCode() + " status: " + purchaseOrder.getStatus());
 
         return purchaseOrderMapper.toResponse(purchaseOrder);
@@ -149,7 +149,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         purchaseOrderHelper.processPurchaseOrderItems(request, purchaseOrder);
         if (request.getStatus() != null) { purchaseOrder.setStatus(request.getStatus()); }
         purchaseOrder = purchaseOrderRepository.saveAndFlush(purchaseOrder);
-        auditLogService.log("UPDATE_PURCHASE_ORDER", SecurityUtils.getCurrentUsername(),
+        auditLogService.log("PURCHASE_ORDER_UPDATE", SecurityUtils.getCurrentUserEmail(),
                 "Updated purchase order: " + purchaseOrder.getPoCode() + " status: " + purchaseOrder.getStatus());
         return purchaseOrderMapper.toAdminResponse(purchaseOrder);
     }
@@ -244,7 +244,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
         purchaseOrderRepository.delete(purchaseOrder);
 
-        auditLogService.log("DELETE_PURCHASE_ORDER", SecurityUtils.getCurrentUsername(), 
+        auditLogService.log("PURCHASE_ORDER_DELETE", SecurityUtils.getCurrentUserEmail(), 
                 "Deleted purchase order: " + purchaseOrder.getPoCode());
     }
 }

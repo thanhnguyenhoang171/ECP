@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Document(collection = "audit_logs")
 @CompoundIndexes({
         @CompoundIndex(name = "idx_module_timestamp", def = "{'module': 1, 'timestamp': -1}"),
-        @CompoundIndex(name = "idx_username_timestamp", def = "{'username': 1, 'timestamp': -1}"),
+        @CompoundIndex(name = "idx_email_timestamp", def = "{'email': 1, 'timestamp': -1}"),
         @CompoundIndex(name = "idx_domain_timestamp", def = "{'domain': 1, 'timestamp': -1}")
 })
 @Data
@@ -30,6 +30,8 @@ public class AuditLog {
     private String action;
 
     @Indexed
+    private String email;
+
     private String username;
 
     private String details;
@@ -44,4 +46,8 @@ public class AuditLog {
     private String ipAddress;
     private String userAgent;
     private String status;
+
+    public String getEmail() {
+        return email != null ? email : username;
+    }
 }

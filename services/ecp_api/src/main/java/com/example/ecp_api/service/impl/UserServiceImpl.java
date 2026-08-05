@@ -99,9 +99,9 @@ public class UserServiceImpl implements UserService {
         }
 
         // Gán createdBy và updatedBy nếu có người dùng đang thao tác
-        String operatorUsername = SecurityUtils.getCurrentUsername();
-        if (StringUtils.hasText(operatorUsername) && !"SYSTEM".equals(operatorUsername)) {
-            User operator = userRepository.findByEmail(operatorUsername).orElse(null);
+        String operatorEmail = SecurityUtils.getCurrentUserEmail();
+        if (StringUtils.hasText(operatorEmail) && !"SYSTEM".equals(operatorEmail)) {
+            User operator = userRepository.findByEmail(operatorEmail).orElse(null);
             if (operator != null) {
                 user.setCreatedBy(operator);
                 user.setUpdatedBy(operator);
@@ -113,8 +113,8 @@ public class UserServiceImpl implements UserService {
 
         // Ghi log hoạt động kiểm toán (Audit Log)
         auditLogService.log(
-            "CREATE_USER",
-            operatorUsername,
+            "USER_CREATE",
+            operatorEmail,
             String.format("Tạo mới tài khoản user: %s (ID: %s, Role: %s)", user.getEmail(), user.getId(), user.getRole())
         );
 
@@ -292,9 +292,9 @@ public class UserServiceImpl implements UserService {
             user.getProfile().setUser(user);
         }
 
-        String operatorUsername = SecurityUtils.getCurrentUsername();
-        if (StringUtils.hasText(operatorUsername) && !"SYSTEM".equals(operatorUsername)) {
-            User operator = userRepository.findByEmail(operatorUsername).orElse(null);
+        String operatorEmail = SecurityUtils.getCurrentUserEmail();
+        if (StringUtils.hasText(operatorEmail) && !"SYSTEM".equals(operatorEmail)) {
+            User operator = userRepository.findByEmail(operatorEmail).orElse(null);
             if (operator != null) {
                 user.setUpdatedBy(operator);
             }
@@ -311,7 +311,7 @@ public class UserServiceImpl implements UserService {
             tokenService.revokeUserTokens(user.getEmail());
         }
 
-        auditLogService.log("UPDATE_USER", operatorUsername, "Updated user with ID: " + user.getId());
+        auditLogService.log("USER_UPDATE", operatorEmail, "Updated user with ID: " + user.getId());
 
         return userMapper.toResponse(user);
     }
@@ -321,9 +321,9 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
 
-        String operatorUsername = SecurityUtils.getCurrentUsername();
-        if (StringUtils.hasText(operatorUsername) && !"SYSTEM".equals(operatorUsername)) {
-            User operator = userRepository.findByEmail(operatorUsername).orElse(null);
+        String operatorEmail = SecurityUtils.getCurrentUserEmail();
+        if (StringUtils.hasText(operatorEmail) && !"SYSTEM".equals(operatorEmail)) {
+            User operator = userRepository.findByEmail(operatorEmail).orElse(null);
             if (operator != null) {
                 user.setDeletedBy(operator);
             }
@@ -335,7 +335,7 @@ public class UserServiceImpl implements UserService {
 
         tokenService.revokeUserTokens(user.getEmail());
 
-        auditLogService.log("DELETE_USER", operatorUsername, "Soft deleted user with ID: " + user.getId());
+        auditLogService.log("USER_DELETE", operatorEmail, "Soft deleted user with ID: " + user.getId());
     }
 
     @Override

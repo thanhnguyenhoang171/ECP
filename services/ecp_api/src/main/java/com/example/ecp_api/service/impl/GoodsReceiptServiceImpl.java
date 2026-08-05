@@ -70,7 +70,7 @@ public class GoodsReceiptServiceImpl implements GoodsReceiptService {
 
         receipt = goodsReceiptRepository.save(receipt);
 
-        auditLogService.log("CREATE_GOODS_RECEIPT", SecurityUtils.getCurrentUsername(), 
+        auditLogService.log("GOODS_RECEIPT_CREATE", SecurityUtils.getCurrentUserEmail(), 
                 "Created Goods Receipt: " + receipt.getReceiptCode());
 
         return goodsReceiptMapper.toResponse(receipt);
@@ -96,7 +96,7 @@ public class GoodsReceiptServiceImpl implements GoodsReceiptService {
         receipt.setWarehouse(warehouse);
         goodsReceiptHelper.processGoodsReceiptItems(request, receipt);
         receipt = goodsReceiptRepository.save(receipt);
-        auditLogService.log("CREATE_GOODS_RECEIPT", SecurityUtils.getCurrentUsername(), "Created Goods Receipt: " + receipt.getReceiptCode());
+        auditLogService.log("GOODS_RECEIPT_CREATE", SecurityUtils.getCurrentUserEmail(), "Created Goods Receipt: " + receipt.getReceiptCode());
         return goodsReceiptMapper.toAdminResponse(receipt);
     }
 
@@ -229,7 +229,7 @@ public class GoodsReceiptServiceImpl implements GoodsReceiptService {
         }
 
         goodsReceiptRepository.delete(receipt);
-        auditLogService.log("DELETE_GOODS_RECEIPT", SecurityUtils.getCurrentUsername(), 
+        auditLogService.log("GOODS_RECEIPT_DELETE", SecurityUtils.getCurrentUserEmail(), 
                 "Deleted Goods Receipt: " + receipt.getReceiptCode());
     }
 
@@ -310,7 +310,7 @@ public class GoodsReceiptServiceImpl implements GoodsReceiptService {
 
         receipt = goodsReceiptRepository.save(receipt);
 
-        auditLogService.log("CONFIRM_GOODS_RECEIPT", SecurityUtils.getCurrentUsername(), 
+        auditLogService.log("GOODS_RECEIPT_CONFIRM", SecurityUtils.getCurrentUserEmail(), 
                 "Confirmed Goods Receipt: " + receipt.getReceiptCode());
 
         return goodsReceiptMapper.toResponse(receipt);

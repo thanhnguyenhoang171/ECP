@@ -78,9 +78,9 @@ public class BrandServiceImpl implements BrandService {
         Brand brand = brandMapper.toEntity(request);
         brand.setSlug(slug);
         brand.setActive(request.getActive() != null ? request.getActive() : true);
-        brand.setCreatedBy(SecurityUtils.getCurrentUsername());
+        brand.setCreatedBy(SecurityUtils.getCurrentUserEmail());
         Brand saved = brandRepository.save(brand);
-        auditLogService.log("CREATE_BRAND", SecurityUtils.getCurrentUsername(), "Created brand: " + saved.getName());
+        auditLogService.log("BRAND_CREATE", SecurityUtils.getCurrentUserEmail(), "Created brand: " + saved.getName());
         return saved;
     }
 
@@ -98,13 +98,13 @@ public class BrandServiceImpl implements BrandService {
         }
         String oldLogo = brand.getLogo();
         brandMapper.updateBrandFromRequest(request, brand);
-        brand.setUpdatedBy(SecurityUtils.getCurrentUsername());
+        brand.setUpdatedBy(SecurityUtils.getCurrentUserEmail());
         String newLogo = brand.getLogo();
         if (StringUtils.hasText(oldLogo) && StringUtils.hasText(newLogo) && !oldLogo.equals(newLogo)) {
             cloudinaryService.deleteByUrl(oldLogo);
         }
         Brand updated = brandRepository.save(brand);
-        auditLogService.log("UPDATE_BRAND", SecurityUtils.getCurrentUsername(), "Updated brand: " + updated.getName());
+        auditLogService.log("BRAND_UPDATE", SecurityUtils.getCurrentUserEmail(), "Updated brand: " + updated.getName());
         return updated;
     }
 
@@ -150,9 +150,9 @@ public class BrandServiceImpl implements BrandService {
             cloudinaryService.deleteByUrl(brand.getLogo());
         }
         brand.setDeleted(true);
-        brand.setUpdatedBy(SecurityUtils.getCurrentUsername());
+        brand.setUpdatedBy(SecurityUtils.getCurrentUserEmail());
         brandRepository.save(brand);
-        auditLogService.log("DELETE_BRAND", SecurityUtils.getCurrentUsername(), "Deleted brand: " + brand.getName());
+        auditLogService.log("BRAND_DELETE", SecurityUtils.getCurrentUserEmail(), "Deleted brand: " + brand.getName());
     }
 
     // ─────────────────────────── ADMIN METHODS ───────────────────────────

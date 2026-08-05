@@ -28,8 +28,8 @@ public class SystemServiceImpl implements SystemService {
     @Override
     @Transactional
     public void purgeAllData() {
-        String currentUsername = com.example.ecp_api.util.SecurityUtils.getCurrentUsername();
-        log.warn("PURGING ALL DATA FROM SYSTEM triggered by {}...", currentUsername);
+        String currentEmail = com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail();
+        log.warn("PURGING ALL DATA FROM SYSTEM triggered by {}...", currentEmail);
 
         // Purge MySQL Data
         purgeJpaData();
@@ -42,8 +42,8 @@ public class SystemServiceImpl implements SystemService {
 
         // Log the high-impact action
         auditLogService.log(
-                "PURGE_ALL_DATA",
-                currentUsername,
+                "SYSTEM_PURGE_ALL_DATA",
+                currentEmail,
                 "[SYSTEM ID: ALL] Permanently purged all system data and re-initialized default accounts."
         );
 
