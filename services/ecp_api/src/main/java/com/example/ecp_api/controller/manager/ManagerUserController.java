@@ -44,7 +44,7 @@ public class ManagerUserController {
         if (request.getRole() == UserRole.SUPER_ADMIN) {
             throw new AppException("FORBIDDEN", "Tài khoản Quản lý (Manager) không có quyền tạo tài khoản Quản trị viên cao cấp (Super Admin).", HttpStatus.FORBIDDEN);
         }
-        UserResponse response = userService.registerUserByEmail(request);
+        UserResponse response = userService.createUser(request);
         return new ResponseEntity<>(ApiResponse.<UserResponse>builder()
                 .success(true).message("User created successfully").data(response).build(), HttpStatus.CREATED);
     }

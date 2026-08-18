@@ -1,5 +1,6 @@
 package com.example.ecp_api.service.impl;
 
+import com.example.ecp_api.dto.request.RegisterRequest;
 import com.example.ecp_api.dto.request.UserFilterRequest;
 import com.example.ecp_api.dto.request.UserRequest;
 import com.example.ecp_api.dto.request.UserUpdateRequest;
@@ -63,7 +64,62 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse registerUserByEmail(UserRequest userRequest) {
+    public UserResponse registerUserByEmail(RegisterRequest registerRequest) {
+        String normalizedEmail = registerRequest.getEmail().toLowerCase().trim();
+
+        // Checking existed email
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            throw new AppException("USER_ALREADY_EXISTS", "Email already registered", HttpStatus.BAD_REQUEST);
+        }
+
+        // Map DTO to Entity
+        User user = userMapper.toEntity(registerRequest);
+        user.setEmail(normalizedEmail);
+
+        // Thiết lập thuộc tính mặc định
+        user.setPasswordHash(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setProvider(AuthProvider.LOCAL);
+        user.setRole(UserRole.USER);
+        user.setActive(true);
+
+        if (user.getProfile() == null) {
+            user.setProfile(new UserProfile());
+        }
+        user.getProfile().setUser(user);
+
+        if (StringUtils.hasText(registerRequest.getFirstName())) {
+            user.getProfile().setFirstName(registerRequest.getFirstName());
+        }
+        if (StringUtils.hasText(registerRequest.getLastName())) {
+            user.getProfile().setLastName(registerRequest.getLastName());
+        }
+
+        // Gán createdBy và updatedBy nếu có người dùng đang thao tác
+        String operatorEmail = SecurityUtils.getCurrentUserEmail();
+        if (StringUtils.hasText(operatorEmail) && !"SYSTEM".equals(operatorEmail)) {
+            User operator = userRepository.findByEmail(operatorEmail).orElse(null);
+            if (operator != null) {
+                user.setCreatedBy(operator);
+                user.setUpdatedBy(operator);
+            }
+        }
+
+        // Lưu user (cascade save profile)
+        user = userRepository.save(user);
+
+        // Ghi log hoạt động kiểm toán (Audit Log)
+        auditLogService.log(
+            "USER_CREATE",
+            operatorEmail,
+            String.format("Tạo mới tài khoản user: %s (ID: %s, Role: %s)", user.getEmail(), user.getId(), user.getRole())
+        );
+
+        return userMapper.toResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse createUser(UserRequest userRequest) {
         String normalizedEmail = userRequest.getEmail().toLowerCase().trim();
 
         // Checking existed email

@@ -1,8 +1,6 @@
 package com.example.ecp_api.service;
 
-import com.example.ecp_api.dto.request.UserFilterRequest;
-import com.example.ecp_api.dto.request.UserRequest;
-import com.example.ecp_api.dto.request.UserUpdateRequest;
+import com.example.ecp_api.dto.request.*;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.UserResponse;
 import com.example.ecp_api.dto.response.UserStatisticsResponse;
@@ -10,10 +8,10 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.UUID;
 
-import com.example.ecp_api.dto.request.GoogleLoginRequest;
-
 public interface UserService {
-    UserResponse registerUserByEmail(UserRequest userRequest);
+    UserResponse registerUserByEmail(RegisterRequest registerRequest);
+    UserResponse createUser(UserRequest userRequest);
+
     UserResponse processGoogleLogin(GoogleLoginRequest googleLoginRequest);
     UserResponse getUserById(UUID id);
     PageResponse<UserResponse> getAllUsers(Pageable pageable);

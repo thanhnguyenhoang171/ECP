@@ -38,7 +38,7 @@ public class AdminUserController {
     public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody UserRequest request) {
         return new ResponseEntity<>(ApiResponse.<UserResponse>builder()
                 .success(true).message("User created successfully")
-                .data(userService.registerUserByEmail(request)).build(), HttpStatus.CREATED);
+                .data(userService.createUser(request)).build(), HttpStatus.CREATED);
     }
 
     @GetMapping

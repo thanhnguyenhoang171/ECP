@@ -1,8 +1,6 @@
 package com.example.ecp_api.controller;
 
-import com.example.ecp_api.dto.request.LoginRequest;
-import com.example.ecp_api.dto.request.RefreshTokenRequest;
-import com.example.ecp_api.dto.request.UserRequest;
+import com.example.ecp_api.dto.request.*;
 import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.dto.response.AuthResponse;
 import com.example.ecp_api.dto.response.UserResponse;
@@ -35,8 +33,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.example.ecp_api.dto.request.GoogleLoginRequest;
-
 @RestController
 @RequestMapping("/v1/auth")
 @RequiredArgsConstructor
@@ -52,8 +48,8 @@ public class AuthController {
 
         @PostMapping("/register")
         @Operation(summary = "Register a new user", description = "Creates a new user account with default USER role using Email.")
-        public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody UserRequest userRequest) {
-                UserResponse response = userService.registerUserByEmail(userRequest);
+        public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody RegisterRequest request) {
+                UserResponse response = userService.registerUserByEmail(request);
                 ApiResponse<UserResponse> apiResponse = ApiResponse.<UserResponse>builder()
                                 .success(true)
                                 .message("User registered successfully")
