@@ -63,15 +63,7 @@ export default function EditUserPage({ params }: EditUserPageProps) {
           onSuccess={handleSuccess}
           onCancel={handleCancel}
           userId={user.id}
-          initialData={{
-            fullName: user.fullName,
-            email: user.email,
-            phone: user.phone,
-            role: user.role,
-            status: user.status,
-            password: '',
-            avatarUrl: user.avatarUrl || '',
-          }}
+          initialData={user}
         />
       )}
     </div>

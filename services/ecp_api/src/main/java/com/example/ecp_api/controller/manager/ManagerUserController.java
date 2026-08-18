@@ -20,10 +20,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.web.multipart.MultipartFile;
 import java.util.UUID;
 
 import com.example.ecp_api.dto.response.UserStatisticsResponse;
@@ -79,17 +80,32 @@ public class ManagerUserController {
                 .success(true).message("User fetched successfully").data(user).build());
     }
 
-    @PutMapping("/{id}")
-    @Operation(summary = "Update user profile (USER or MANAGER role only)")
-    public ResponseEntity<ApiResponse<UserResponse>> updateUser(
-            @PathVariable UUID id, @RequestBody UserUpdateRequest request) {
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Update user profile (JSON)")
+    public ResponseEntity<ApiResponse<UserResponse>> updateUserJson(
+            @PathVariable UUID id, @Valid @RequestBody UserUpdateRequest request) {
         UserResponse user = userService.getUserById(id);
         if (user.getRole() == UserRole.SUPER_ADMIN) {
             throw new AppException("FORBIDDEN", "Managers are not allowed to modify SUPER_ADMIN accounts.", HttpStatus.FORBIDDEN);
         }
         return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
                 .success(true).message("User updated successfully")
-                .data(userService.updateUser(id, request)).build());
+                .data(userService.updateUser(id, request, null)).build());
+    }
+
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Update user profile (Multipart)")
+    public ResponseEntity<ApiResponse<UserResponse>> updateUserMultipart(
+            @PathVariable UUID id,
+            @RequestPart("user") @Valid UserUpdateRequest request,
+            @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile) {
+        UserResponse user = userService.getUserById(id);
+        if (user.getRole() == UserRole.SUPER_ADMIN) {
+            throw new AppException("FORBIDDEN", "Managers are not allowed to modify SUPER_ADMIN accounts.", HttpStatus.FORBIDDEN);
+        }
+        return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
+                .success(true).message("User updated successfully")
+                .data(userService.updateUser(id, request, avatarFile)).build());
     }
 
     @DeleteMapping("/{id}")

@@ -250,7 +250,7 @@ export default function AuditLogsView() {
         <DataTable 
           columns={columns} 
           data={displayData} 
-          isLoading={activeTab === 'SYSTEM' && isApiLoading}
+          isLoading={activeTab === 'SYSTEM' && isApiLoading && !displayData.length}
           emptyState={{
             title: "Chưa có nhật ký hoạt động",
             description: "Hiện chưa ghi nhận nhật ký hoạt động nào trong hệ thống.",

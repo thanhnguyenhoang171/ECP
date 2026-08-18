@@ -22,7 +22,7 @@ export function useCategories(
   return useQuery({
     queryKey: ['categories', params],
     queryFn: () => categoryApi.getPaged(params),
-    placeholderData: initialData, // Sử dụng dữ liệu ban đầu làm placeholder
+    placeholderData: (previousData) => previousData || initialData,
     staleTime: 30 * 1000, // 30 giây - cache ngắn hơn để dữ liệu mới hơn
     refetchOnWindowFocus: true, // Refetch khi focus lại window
   });

@@ -147,31 +147,11 @@ export default function ProductForm({ onSuccess, initialData, isDialog = false }
       return;
     }
 
-    const transformToMap = (arr: {key: string, value: any}[]) => {
-      return arr.reduce((acc, curr) => {
-        if (curr.key) acc[curr.key] = curr.value;
-        return acc;
-      }, {} as Record<string, any>);
-    };
-
-    const mapImage = (url?: string) => {
-      if (!url) return null;
-      return { url, publicId: getCloudinaryPublicId(url) || '' };
-    };
-
     const finalParentSku = values.sku?.trim() || convertToSku(values.name);
 
     const payload = {
       ...values,
       sku: finalParentSku,
-      thumbnail: values.thumbnail ? mapImage(values.thumbnail) : null,
-      images: values.images?.map(mapImage).filter(Boolean) || [],
-      specifications: transformToMap(values.specifications as any),
-      variants: values.variants.map(v => ({
-        ...v,
-        image: v.image ? mapImage(v.image) : null,
-        attributes: transformToMap(v.attributes as any)
-      }))
     };
 
     if (initialData?.id) {

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { loginClient, getAccountInfo } from '@/services/auth.service';
 import { useAuthStore } from '@/store/authStore';
@@ -56,11 +56,9 @@ export default function LoginPage() {
         return;
       }
 
-      // 1. Tạm thời lưu accessToken trước để axiosClient có thể gửi kèm Bearer Token
       setAuth(response.data);
 
       try {
-        // 2. Gọi API /v1/users/account để lấy thông tin tài khoản chuẩn từ token
         const accountData = await getAccountInfo();
         setAuth({
           ...response.data,
@@ -77,8 +75,6 @@ export default function LoginPage() {
       }
 
       toast.success('Đăng nhập thành công!');
-
-      // Redirect về trang chủ
       router.push('/');
     } catch (err: any) {
       const msg = getErrorMessage(err);
@@ -89,39 +85,39 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] py-12 px-4 sm:px-6 lg:px-8">
+    <div className="flex flex-col items-center justify-center min-h-[80vh] py-12 px-4 sm:px-6 lg:px-8 bg-slate-50">
       <div className="w-full max-w-md my-auto">
         <div className="flex flex-col items-center mb-6 text-center">
           <Link href="/" className="inline-flex items-center gap-2 mb-3">
-            <div className="w-14 h-14 rounded-2xl bg-[#F5C542] overflow-hidden flex items-center justify-center shadow-lg border-2 border-white/60">
+            <div className="w-12 h-12 rounded-xl bg-blue-600 border border-blue-500 overflow-hidden flex items-center justify-center shadow-xs">
               <Image
                 src="/logo/z7862984783113_196fdab6026e07fc4a13a745f502233b.jpg"
                 alt="Cacao Thai Logo"
-                width={56}
-                height={56}
+                width={48}
+                height={48}
                 className="w-full h-full object-cover"
               />
             </div>
           </Link>
 
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight">
             Đăng nhập tài khoản
           </h2>
           <p className="mt-1 text-xs text-slate-500">
-            Nhập thông tin cá nhân để truy cập vào <span className="font-semibold text-slate-900">Cacao Thai Snack Shop</span>
+            Nhập thông tin cá nhân để truy cập <span className="font-semibold text-slate-900">Cacao Thai Snack Shop</span>
           </p>
         </div>
 
-        <div className="bg-white/95 backdrop-blur-sm py-6 px-6 sm:px-8 shadow-xl rounded-2xl border border-slate-200/80 overflow-hidden">
+        <div className="bg-white py-6 px-6 sm:px-8 shadow-xs rounded-2xl border border-slate-200/80 overflow-hidden">
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email Field */}
             <div>
-              <label className="block text-xs font-medium text-zinc-700 mb-1">
+              <label className="block text-xs font-medium text-slate-700 mb-1">
                 Địa chỉ Email
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
@@ -131,18 +127,18 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
                   disabled={isLoading}
-                  className="w-full pl-9 pr-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#F5C542] focus:bg-white transition-all disabled:opacity-60"
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 focus:bg-white transition-all disabled:opacity-60"
                 />
               </div>
             </div>
 
             {/* Password Field */}
             <div>
-              <label className="block text-xs font-medium text-zinc-700 mb-1">
+              <label className="block text-xs font-medium text-slate-700 mb-1">
                 Mật khẩu
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -152,12 +148,12 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   disabled={isLoading}
-                  className="w-full pl-9 pr-9 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#F5C542] focus:bg-white transition-all disabled:opacity-60"
+                  className="w-full pl-9 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 focus:bg-white transition-all disabled:opacity-60"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-zinc-600"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -170,16 +166,16 @@ export default function LoginPage() {
                 <input
                   id="remember-me"
                   type="checkbox"
-                  className="h-3.5 w-3.5 text-zinc-900 focus:ring-zinc-900 border-zinc-300 rounded cursor-pointer"
+                  className="h-3.5 w-3.5 text-blue-600 focus:ring-blue-600 border-slate-300 rounded cursor-pointer"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-xs text-zinc-600 cursor-pointer select-none">
+                <label htmlFor="remember-me" className="ml-2 block text-xs text-slate-600 cursor-pointer select-none">
                   Ghi nhớ đăng nhập
                 </label>
               </div>
 
               <Link
                 href="/forgot-password"
-                className="text-xs text-zinc-500 hover:text-zinc-900 font-medium transition-colors"
+                className="text-xs text-slate-500 hover:text-blue-600 font-medium transition-colors"
               >
                 Quên mật khẩu?
               </Link>
@@ -189,17 +185,17 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2.5 px-4 bg-[#1e293b] hover:bg-slate-700 text-[#F5C542] font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm border border-amber-500/30 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 shadow-2xs border border-blue-600 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
                   Đang đăng nhập...
                 </>
               ) : (
                 <>
                   Đăng nhập ngay
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-3.5 h-3.5 text-white" />
                 </>
               )}
             </button>
@@ -209,10 +205,10 @@ export default function LoginPage() {
           <SocialLoginButtons />
 
           {/* Footer Register Link */}
-          <div className="mt-6 text-center border-t border-zinc-100 pt-4">
-            <p className="text-xs text-zinc-500">
+          <div className="mt-6 text-center border-t border-slate-100 pt-4">
+            <p className="text-xs text-slate-500">
               Chưa có tài khoản?{' '}
-              <Link href="/register" className="font-semibold text-zinc-900 hover:underline">
+              <Link href="/register" className="font-semibold text-blue-600 hover:underline">
                 Đăng ký tài khoản mới
               </Link>
             </p>

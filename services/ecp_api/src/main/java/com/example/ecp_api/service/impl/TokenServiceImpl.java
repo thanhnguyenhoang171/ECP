@@ -48,8 +48,13 @@ public class TokenServiceImpl implements TokenService {
     }
 
     @Override
-    public String getUsernameFromRefreshToken(String token) {
+    public String getEmailFromRefreshToken(String token) {
         return redisTemplate.opsForValue().get(REFRESH_TOKEN_PREFIX + token);
+    }
+
+    @Override
+    public String getUsernameFromRefreshToken(String token) {
+        return getEmailFromRefreshToken(token);
     }
 
     @Override

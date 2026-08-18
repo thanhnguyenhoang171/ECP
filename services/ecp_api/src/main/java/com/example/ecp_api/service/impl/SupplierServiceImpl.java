@@ -51,7 +51,7 @@ public class SupplierServiceImpl implements SupplierService {
 
         Supplier supplier = supplierMapper.toEntity(request);
         supplier = supplierRepository.save(supplier);
-        auditLogService.log("CREATE_SUPPLIER", SecurityUtils.getCurrentUsername(), "Created supplier: " + supplier.getName());
+        auditLogService.log("SUPPLIER_CREATE", SecurityUtils.getCurrentUserEmail(), "Created supplier: " + supplier.getName());
         return supplierMapper.toResponse(supplier);
     }
 
@@ -69,7 +69,7 @@ public class SupplierServiceImpl implements SupplierService {
         }
         Supplier supplier = supplierMapper.toEntity(request);
         supplier = supplierRepository.save(supplier);
-        auditLogService.log("CREATE_SUPPLIER", SecurityUtils.getCurrentUsername(), "Created supplier: " + supplier.getName());
+        auditLogService.log("SUPPLIER_CREATE", SecurityUtils.getCurrentUserEmail(), "Created supplier: " + supplier.getName());
         return supplierMapper.toAdminResponse(supplier);
     }
 
@@ -91,7 +91,7 @@ public class SupplierServiceImpl implements SupplierService {
 
         supplierMapper.updateSupplierFromRequest(request, supplier);
         supplier = supplierRepository.save(supplier);
-        auditLogService.log("UPDATE_SUPPLIER", SecurityUtils.getCurrentUsername(), "Updated supplier: " + supplier.getName());
+        auditLogService.log("SUPPLIER_UPDATE", SecurityUtils.getCurrentUserEmail(), "Updated supplier: " + supplier.getName());
         return supplierMapper.toResponse(supplier);
     }
 
@@ -111,7 +111,7 @@ public class SupplierServiceImpl implements SupplierService {
         }
         supplierMapper.updateSupplierFromRequest(request, supplier);
         supplier = supplierRepository.save(supplier);
-        auditLogService.log("UPDATE_SUPPLIER", SecurityUtils.getCurrentUsername(), "Updated supplier: " + supplier.getName());
+        auditLogService.log("SUPPLIER_UPDATE", SecurityUtils.getCurrentUserEmail(), "Updated supplier: " + supplier.getName());
         return supplierMapper.toAdminResponse(supplier);
     }
 
@@ -178,6 +178,6 @@ public class SupplierServiceImpl implements SupplierService {
         }
 
         supplierRepository.delete(supplier);
-        auditLogService.log("DELETE_SUPPLIER", SecurityUtils.getCurrentUsername(), "Deleted supplier: " + supplier.getName());
+        auditLogService.log("SUPPLIER_DELETE", SecurityUtils.getCurrentUserEmail(), "Deleted supplier: " + supplier.getName());
     }
 }

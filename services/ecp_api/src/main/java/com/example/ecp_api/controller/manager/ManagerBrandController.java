@@ -23,6 +23,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+
 @RestController
 @RequestMapping("/v1/manager/brands")
 @RequiredArgsConstructor
@@ -32,12 +35,22 @@ public class ManagerBrandController {
 
     private final BrandService brandService;
 
-    @PostMapping
-    @Operation(summary = "Create a new brand")
-    public ResponseEntity<ApiResponse<BrandResponse>> createBrand(@Valid @RequestBody BrandRequest request) {
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Create a new brand (JSON)")
+    public ResponseEntity<ApiResponse<BrandResponse>> createBrandJson(@Valid @RequestBody BrandRequest request) {
         return new ResponseEntity<>(ApiResponse.<BrandResponse>builder()
                 .success(true).message("Brand created successfully")
-                .data(brandService.createBrand(request)).build(), HttpStatus.CREATED);
+                .data(brandService.createBrand(request, null)).build(), HttpStatus.CREATED);
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Create a new brand (Multipart)")
+    public ResponseEntity<ApiResponse<BrandResponse>> createBrandMultipart(
+            @RequestPart("brand") @Valid BrandRequest request,
+            @RequestPart(value = "logoFile", required = false) MultipartFile logoFile) {
+        return new ResponseEntity<>(ApiResponse.<BrandResponse>builder()
+                .success(true).message("Brand created successfully")
+                .data(brandService.createBrand(request, logoFile)).build(), HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -69,13 +82,24 @@ public class ManagerBrandController {
                 .data(brandService.getBrandById(id)).build());
     }
 
-    @PatchMapping("/{id}")
-    @Operation(summary = "Update a brand")
-    public ResponseEntity<ApiResponse<BrandResponse>> updateBrand(
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Update a brand (JSON)")
+    public ResponseEntity<ApiResponse<BrandResponse>> updateBrandJson(
             @PathVariable String id, @RequestBody BrandRequest request) {
         return ResponseEntity.ok(ApiResponse.<BrandResponse>builder()
                 .success(true).message("Brand updated successfully")
-                .data(brandService.updateBrand(id, request)).build());
+                .data(brandService.updateBrand(id, request, null)).build());
+    }
+
+    @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Update a brand (Multipart)")
+    public ResponseEntity<ApiResponse<BrandResponse>> updateBrandMultipart(
+            @PathVariable String id,
+            @RequestPart("brand") BrandRequest request,
+            @RequestPart(value = "logoFile", required = false) MultipartFile logoFile) {
+        return ResponseEntity.ok(ApiResponse.<BrandResponse>builder()
+                .success(true).message("Brand updated successfully")
+                .data(brandService.updateBrand(id, request, logoFile)).build());
     }
 
     @DeleteMapping("/{id}")

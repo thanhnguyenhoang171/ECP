@@ -39,12 +39,22 @@ public class ManagerCategoryController {
 
     private final CategoryService categoryService;
 
-    @PostMapping
-    @Operation(summary = "Create a new category")
-    public ResponseEntity<ApiResponse<CategoryResponse>> createCategory(@Valid @RequestBody CategoryRequest request) {
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Create a new category (JSON)")
+    public ResponseEntity<ApiResponse<CategoryResponse>> createCategoryJson(@Valid @RequestBody CategoryRequest request) {
         return new ResponseEntity<>(ApiResponse.<CategoryResponse>builder()
                 .success(true).message("Category created successfully")
-                .data(categoryService.createCategory(request)).build(), HttpStatus.CREATED);
+                .data(categoryService.createCategory(request, null)).build(), HttpStatus.CREATED);
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Create a new category (Multipart)")
+    public ResponseEntity<ApiResponse<CategoryResponse>> createCategoryMultipart(
+            @RequestPart("category") @Valid CategoryRequest request,
+            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
+        return new ResponseEntity<>(ApiResponse.<CategoryResponse>builder()
+                .success(true).message("Category created successfully")
+                .data(categoryService.createCategory(request, imageFile)).build(), HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -76,13 +86,24 @@ public class ManagerCategoryController {
                 .data(categoryService.getCategoryById(id)).build());
     }
 
-    @PatchMapping("/{id}")
-    @Operation(summary = "Update a category")
-    public ResponseEntity<ApiResponse<CategoryResponse>> updateCategory(
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Update a category (JSON)")
+    public ResponseEntity<ApiResponse<CategoryResponse>> updateCategoryJson(
             @PathVariable String id, @RequestBody CategoryRequest request) {
         return ResponseEntity.ok(ApiResponse.<CategoryResponse>builder()
                 .success(true).message("Category updated successfully")
-                .data(categoryService.updateCategory(id, request)).build());
+                .data(categoryService.updateCategory(id, request, null)).build());
+    }
+
+    @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Update a category (Multipart)")
+    public ResponseEntity<ApiResponse<CategoryResponse>> updateCategoryMultipart(
+            @PathVariable String id,
+            @RequestPart("category") CategoryRequest request,
+            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
+        return ResponseEntity.ok(ApiResponse.<CategoryResponse>builder()
+                .success(true).message("Category updated successfully")
+                .data(categoryService.updateCategory(id, request, imageFile)).build());
     }
 
     @DeleteMapping("/{id}")

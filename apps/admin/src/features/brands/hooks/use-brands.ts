@@ -11,6 +11,7 @@ export const useBrands = (params: {
   return useQuery({
     queryKey: ['brands', params],
     queryFn: () => brandApi.getPaged(params),
+    placeholderData: (previousData) => previousData,
   });
 };
 

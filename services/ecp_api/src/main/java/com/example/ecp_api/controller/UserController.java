@@ -17,9 +17,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import com.example.ecp_api.exception.AppException;
 import com.example.ecp_api.util.SecurityUtils;
 
 import java.util.UUID;
@@ -71,12 +75,27 @@ public class UserController {
         return ResponseEntity.ok(userService.searchUsers(filter, pageable));
     }
 
-    @PutMapping("/{id}")
-    @Operation(summary = "Update user profile", description = "Updates user profile information. Password updates should be handled separately.")
-    public ResponseEntity<ApiResponse<UserResponse>> updateUser(
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Update user profile (JSON)")
+    public ResponseEntity<ApiResponse<UserResponse>> updateUserJson(
             @PathVariable("id") UUID id,
             @Valid @RequestBody UserUpdateRequest request) {
-        UserResponse response = userService.updateUser(id, request);
+        UserResponse response = userService.updateUser(id, request, null);
+        ApiResponse<UserResponse> apiResponse = ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message("User updated successfully")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Update user profile (Multipart)")
+    public ResponseEntity<ApiResponse<UserResponse>> updateUserMultipart(
+            @PathVariable("id") UUID id,
+            @RequestPart(value = "user") @Valid UserUpdateRequest request,
+            @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile) {
+        UserResponse response = userService.updateUser(id, request, avatarFile);
         ApiResponse<UserResponse> apiResponse = ApiResponse.<UserResponse>builder()
                 .success(true)
                 .message("User updated successfully")

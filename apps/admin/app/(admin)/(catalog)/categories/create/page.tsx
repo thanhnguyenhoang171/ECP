@@ -1,15 +1,17 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Layers } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import CategoryForm from '@/features/categories/components/CategoryForm';
 import { PageHeader, Breadcrumbs } from '@/components/common';
 import { toast } from 'sonner';
 import { useParentCategories } from '@/features/categories/hooks/use-categories';
 
-export default function CreateCategoryPage() {
+function CreateCategoryFormWrapper() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const parentIdParam = searchParams.get('parentId') || '';
   const { data: parentCategories } = useParentCategories();
 
   const breadcrumbItems = [
@@ -28,6 +30,8 @@ export default function CreateCategoryPage() {
 
       <CategoryForm 
         parentCategories={parentCategories || []}
+        initialData={parentIdParam ? ({ parentId: parentIdParam } as any) : undefined}
+        isParentLocked={!!parentIdParam}
         onSuccess={() => {
           toast.success('Tạo danh mục mới thành công');
           router.push('/categories');
@@ -35,5 +39,13 @@ export default function CreateCategoryPage() {
         }} 
       />
     </div>
+  );
+}
+
+export default function CreateCategoryPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-400">Đang tải biểu mẫu...</div>}>
+      <CreateCategoryFormWrapper />
+    </Suspense>
   );
 }

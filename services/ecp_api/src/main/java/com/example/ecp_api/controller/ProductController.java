@@ -20,6 +20,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
+import com.example.ecp_api.exception.AppException;
+
 @RestController
 @RequestMapping("/v1/products")
 @RequiredArgsConstructor
@@ -28,10 +33,26 @@ public class ProductController {
 
         private final ProductService productService;
 
-        @PostMapping
-        @Operation(summary = "Create a new product", description = "Creates a product with variants. SKU and Slug are auto-generated if not provided.")
-        public ResponseEntity<ApiResponse<ProductResponse>> createProduct(@Valid @RequestBody ProductRequest request) {
-                ProductResponse response = productService.createProduct(request);
+        @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+        @Operation(summary = "Create a new product (JSON)")
+        public ResponseEntity<ApiResponse<ProductResponse>> createProductJson(
+                        @Valid @RequestBody ProductRequest request) {
+                ProductResponse response = productService.createProduct(request, null, null);
+                ApiResponse<ProductResponse> apiResponse = ApiResponse.<ProductResponse>builder()
+                                .success(true)
+                                .message("Product created successfully")
+                                .data(response)
+                                .build();
+                return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
+        }
+
+        @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        @Operation(summary = "Create a new product (Multipart)")
+        public ResponseEntity<ApiResponse<ProductResponse>> createProductMultipart(
+                        @RequestPart(value = "product") @Valid ProductRequest request,
+                        @RequestPart(value = "thumbnailFile", required = false) MultipartFile thumbnailFile,
+                        @RequestPart(value = "imageFiles", required = false) List<MultipartFile> imageFiles) {
+                ProductResponse response = productService.createProduct(request, thumbnailFile, imageFiles);
                 ApiResponse<ProductResponse> apiResponse = ApiResponse.<ProductResponse>builder()
                                 .success(true)
                                 .message("Product created successfully")

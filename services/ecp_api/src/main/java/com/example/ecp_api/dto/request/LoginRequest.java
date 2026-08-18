@@ -20,9 +20,4 @@ public class LoginRequest {
     @NotBlank(message = "Password cannot be blank")
     @Schema(description = "Account password", example = "admin123", requiredMode = Schema.RequiredMode.REQUIRED)
     private String password;
-
-    // Helper for backward compatibility with Spring Security loadUserByUsername
-    public String getUsername() {
-        return email;
-    }
 }

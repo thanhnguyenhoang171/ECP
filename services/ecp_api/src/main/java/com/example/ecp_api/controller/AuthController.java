@@ -32,6 +32,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.example.ecp_api.dto.request.GoogleLoginRequest;
@@ -272,10 +273,11 @@ public class AuthController {
                                 .build());
         }
 
-        @GetMapping("/status/{username}")
-        @Operation(summary = "Check user online status", description = "Checks if a user is currently active in the system (online) based on Redis presence.")
-        public ResponseEntity<ApiResponse<Boolean>> checkUserStatus(@PathVariable String username) {
-                boolean isOnline = tokenService.isUserOnline(username);
+        @GetMapping("/status/{id}")
+        @Operation(summary = "Check user online status by User ID", description = "Checks if a user is currently active in the system (online) based on Redis presence by User ID.")
+        public ResponseEntity<ApiResponse<Boolean>> checkUserStatus(@PathVariable String id) {
+                UserResponse user = userService.getUserById(UUID.fromString(id));
+                boolean isOnline = tokenService.isUserOnline(user.getEmail());
                 return ResponseEntity.ok(ApiResponse.<Boolean>builder()
                                 .success(true)
                                 .message("User status fetched successfully")

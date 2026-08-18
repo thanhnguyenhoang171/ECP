@@ -168,11 +168,11 @@ body {
 }
 
 /* Base styles for modern clean UI with subtle gray & dot pattern */
-body {
-  background-color: #f1f5f9;
-  background-image: radial-gradient(rgba(100, 116, 139, 0.35) 1.2px, transparent 1.2px);
-  background-size: 24px 24px;
-  background-attachment: fixed;
+html, body {
+  background-color: #ffffff !important;
+  background-image: radial-gradient(rgba(37, 99, 235, 0.18) 1.2px, transparent 1.2px) !important;
+  background-size: 24px 24px !important;
+  background-attachment: fixed !important;
   color: hsl(var(--foreground));
 }
 

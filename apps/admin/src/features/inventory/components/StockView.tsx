@@ -390,7 +390,7 @@ export default function StockView() {
         <DataTable
           columns={columns as any}
           data={filteredItems}
-          isLoading={isLoading}
+          isLoading={isLoading && !filteredItems.length}
           emptyState={{
             title: 'Không tìm thấy dòng tồn kho nào',
             description: 'Hãy kiểm tra lại điều kiện lọc hoặc nhập thêm hàng hóa.',

@@ -30,7 +30,6 @@ import {
   useCreateCategory,
   useUpdateCategory,
 } from '../hooks/use-category-mutation';
-import { useUploadFile } from '@/features/files/hooks/use-file-upload';
 import { toast } from 'sonner';
 
 import { 
@@ -49,9 +48,8 @@ interface CategoryFormProps {
   parentCategories?: Category[];
   id?: string;
   isDialog?: boolean;
+  isParentLocked?: boolean;
 }
-
-
 
 export default function CategoryForm({
   onSuccess,
@@ -59,29 +57,35 @@ export default function CategoryForm({
   parentCategories = [],
   id,
   isDialog = false,
+  isParentLocked = false,
 }: CategoryFormProps) {
   const createMutation = useCreateCategory();
   const updateMutation = useUpdateCategory();
-  const uploadFileMutation = useUploadFile();
   const isSlugEdited = useRef(false);
   const [isImageUploading, setIsImageUploading] = useState(false);
 
+  const defaultFormValues: CategoryFormValues = {
+    name: '',
+    slug: '',
+    parentId: '',
+    active: true,
+    isFeatured: false,
+    imageUrl: undefined,
+    imagePublicId: undefined,
+    description: '',
+    order: 0,
+    sortOrder: 0,
+    metaTitle: '',
+    metaDescription: '',
+    metaKeywords: '',
+  };
+
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categorySchema),
-    defaultValues: initialData || {
-      name: '',
-      slug: '',
-      parentId: '',
-      active: true,
-      isFeatured: false,
-      imageUrl: undefined,
-      imagePublicId: undefined,
-      description: '',
-      order: 0,
-      sortOrder: 0,
-      metaTitle: '',
-      metaDescription: '',
-      metaKeywords: '',
+    defaultValues: {
+      ...defaultFormValues,
+      ...(initialData || {}),
+      parentId: initialData?.parentId || '',
     },
   });
 
@@ -141,27 +145,8 @@ export default function CategoryForm({
       return;
     }
 
-    let uploadedImageUrl = values.imageUrl;
-    let uploadedPublicId = values.imagePublicId;
-
-    // Handle deferred file upload if the user selected a new local file
-    if (values.imageUrl instanceof File) {
-       try {
-         const res = await uploadFileMutation.mutateAsync({ file: values.imageUrl, folder: 'categories' });
-         if (res.success && res.data) {
-           uploadedImageUrl = res.data.secure_url;
-           uploadedPublicId = res.data.public_id;
-         }
-       } catch (err) {
-         toast.error("Lỗi khi tải ảnh lên máy chủ, vui lòng thử lại.");
-         return; // Stop submission on failure
-       }
-    }
-
     const payload = {
       ...values,
-      imageUrl: typeof uploadedImageUrl === 'string' ? uploadedImageUrl : undefined,
-      imagePublicId: uploadedPublicId || undefined,
       parentId: (values.parentId === '' || values.parentId === 'none') ? null : values.parentId
     };
 
@@ -181,7 +166,7 @@ export default function CategoryForm({
     }
   }
 
-  const isLoading = createMutation.isPending || updateMutation.isPending || uploadFileMutation.isPending;
+  const isLoading = createMutation.isPending || updateMutation.isPending;
 
   // Filter out current category from parent categories to avoid circular references
   const filteredParentCategories = parentCategories.filter(
@@ -322,9 +307,9 @@ export default function CategoryForm({
                     render={({ field }) => (
                       <FormItem>
                         <AdminFormLabel>Danh mục cha</AdminFormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || 'none'}>
+                        <Select onValueChange={field.onChange} value={field.value || 'none'} disabled={isParentLocked}>
                           <FormControl>
-                            <SelectTrigger className='h-11 bg-white border-slate-200'>
+                            <SelectTrigger className='h-11 bg-white border-slate-200 disabled:opacity-80 disabled:bg-slate-100'>
                               <SelectValue placeholder='Chọn danh mục cha' />
                             </SelectTrigger>
                           </FormControl>
@@ -356,6 +341,7 @@ export default function CategoryForm({
                             placeholder="Số nhỏ hiển thị trước (Vd: 0, 1, 2...)"
                             className="h-11 border-slate-200"
                             {...field}
+                            value={field.value ?? 0}
                             onChange={(e) => field.onChange(Number(e.target.value))}
                           />
                         </FormControl>
@@ -376,6 +362,7 @@ export default function CategoryForm({
                             placeholder="Vd: 0, 1, 2..."
                             className="h-11 border-slate-200"
                             {...field}
+                            value={field.value ?? 0}
                             onChange={(e) => field.onChange(Number(e.target.value))}
                           />
                         </FormControl>
@@ -429,10 +416,7 @@ export default function CategoryForm({
 
             {/* Cột phải: Hình ảnh (4 cột) */}
             <div className="lg:col-span-4 space-y-6">
-              <FormSection 
-                title="Hình ảnh danh mục" 
-                description="Ảnh đại diện đại diện cho danh mục sản phẩm này."
-              >
+              <FormSection title="Hình ảnh danh mục">
                 <FormField
                   control={form.control}
                   name='imageUrl'
@@ -444,16 +428,12 @@ export default function CategoryForm({
                           onChange={field.onChange}
                           onUploadingChange={setIsImageUploading}
                           folder="categories"
-                          description="Ảnh danh mục"
-                          className="w-32 h-32 mx-auto"
                           reqWidth={128}
                           reqHeight={128}
+                          className="w-full aspect-square max-w-[200px] mx-auto"
                         />
                       </FormControl>
                       <FormMessage />
-                      <p className="text-[10px] text-slate-400 mt-4 text-center leading-relaxed">
-                        Kích thước ảnh sẽ được <span className="font-bold text-slate-600">tự động cắt về 128 × 128px</span>. Sử dụng định dạng JPG, PNG hoặc WebP.
-                      </p>
                     </FormItem>
                   )}
                 />

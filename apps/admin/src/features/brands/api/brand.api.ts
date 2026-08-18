@@ -47,13 +47,39 @@ export const brandApi = {
 
   // Create brand
   create: async (values: BrandFormValues): Promise<{ success: boolean; data: Brand }> => {
-    const res = await clientFetch('v1/brands', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(values),
-    });
+    let logoFile: File | undefined = undefined;
+    let logoUrl: string | undefined = undefined;
+    if (values.logo instanceof File) {
+      logoFile = values.logo;
+    } else if (typeof values.logo === 'string') {
+      logoUrl = values.logo;
+    }
+
+    const payload = {
+      ...values,
+      logo: logoUrl,
+    };
+
+    let res: Response;
+    if (logoFile) {
+      const formData = new FormData();
+      formData.append('brand', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+      formData.append('logoFile', logoFile);
+
+      res = await clientFetch('v1/brands', {
+        method: 'POST',
+        body: formData,
+      });
+    } else {
+      res = await clientFetch('v1/brands', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+    }
+
     const result = await res.json();
     if (!res.ok) throw new Error(result.message || 'Failed to create brand');
     return result;
@@ -61,13 +87,39 @@ export const brandApi = {
 
   // Update brand
   update: async (id: string, values: Partial<BrandFormValues>): Promise<{ success: boolean; data: Brand }> => {
-    const res = await clientFetch(`v1/brands/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(values),
-    });
+    let logoFile: File | undefined = undefined;
+    let logoUrl: string | undefined = undefined;
+    if (values.logo instanceof File) {
+      logoFile = values.logo;
+    } else if (typeof values.logo === 'string') {
+      logoUrl = values.logo;
+    }
+
+    const payload = {
+      ...values,
+      logo: logoUrl,
+    };
+
+    let res: Response;
+    if (logoFile) {
+      const formData = new FormData();
+      formData.append('brand', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+      formData.append('logoFile', logoFile);
+
+      res = await clientFetch(`v1/brands/${id}`, {
+        method: 'PATCH',
+        body: formData,
+      });
+    } else {
+      res = await clientFetch(`v1/brands/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+    }
+
     const result = await res.json();
     if (!res.ok) throw new Error(result.message || 'Failed to update brand');
     return result;
