@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MessageCircle, 
@@ -41,7 +41,7 @@ export default function FloatingCTA() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleSendMessage = (textToSend?: string) => {
+  const handleSendMessage = useCallback((textToSend?: string) => {
     const query = textToSend || inputText;
     if (!query.trim()) return;
 
@@ -69,7 +69,7 @@ export default function FloatingCTA() {
         },
       ]);
     }, 500);
-  };
+  }, [inputText]);
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex items-end gap-3 pointer-events-none">
