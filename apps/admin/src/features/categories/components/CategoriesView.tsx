@@ -117,7 +117,7 @@ export default function CategoriesView({
   handleSearch,
  );
 
- const [viewMode, setViewMode] = useState<'tree' | 'table'>('tree');
+ const [viewMode, setViewMode] = useState<'tree' | 'table'>('table');
 
  const deleteMutation = useDeleteCategory();
  const updateMutation = useUpdateCategory();
@@ -506,7 +506,7 @@ export default function CategoriesView({
           <DataTable
            columns={columns}
            data={categories}
-           isLoading={isLoading || isFetching}
+           isLoading={isLoading || (isFetching && !categories.length)}
            emptyState={{
             title: 'Không tìm thấy danh mục',
             description:

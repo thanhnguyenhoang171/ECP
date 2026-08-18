@@ -108,9 +108,9 @@ export default function LoginView() {
       {/* Background Image with Overlay */}
       <div 
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/background/default.jpg')" }}
+        style={{ backgroundImage: "url('/background/dark-space.jpg')" }}
       >
-        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]" />
+        <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]" />
       </div>
 
       <div className="relative z-10 w-full max-w-md my-auto">

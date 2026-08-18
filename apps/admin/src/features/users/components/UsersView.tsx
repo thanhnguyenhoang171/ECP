@@ -666,7 +666,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
             <DataTable
               columns={staffColumns}
               data={staffUsers}
-              isLoading={isStaffLoading}
+              isLoading={isStaffLoading && !staffUsers.length}
               emptyState={{
                 title: 'Không tìm thấy nhân sự',
                 description: 'Không có tài khoản quản trị nào khớp với tìm kiếm.',
@@ -744,7 +744,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
             <DataTable
               columns={customerColumns}
               data={customerUsers}
-              isLoading={isCustomerLoading}
+              isLoading={isCustomerLoading && !customerUsers.length}
               emptyState={{
                 title: 'Không tìm thấy khách hàng',
                 description: 'Chưa có tài khoản khách hàng nào khớp với tìm kiếm.',

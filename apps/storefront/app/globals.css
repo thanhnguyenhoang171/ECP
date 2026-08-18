@@ -1,22 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #1c1917;
-  --brand-yellow: #f5c542;
-  --brand-yellow-hover: #e5b32e;
-  --brand-dark: #1e293b;
-  --brand-pink: #e8a29a;
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --foreground: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --accent: #0284c7;
+  
   /* Prevent browser dark-mode extensions from forcing dark theme */
   color-scheme: light;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
-  --color-brand-yellow: var(--brand-yellow);
-  --color-brand-dark: var(--brand-dark);
-  --color-brand-pink: var(--brand-pink);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-accent: var(--accent);
   --font-sans: var(--font-inter);
 }
 
@@ -25,116 +30,84 @@ html {
 }
 
 body {
-  background-color: #ffffff !important;
-  background-image: radial-gradient(rgba(217, 119, 6, 0.15) 1.2px, transparent 1.2px) !important;
-  background-size: 24px 24px !important;
-  background-attachment: fixed !important;
+  background-color: var(--background) !important;
   color: var(--foreground);
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-8px); }
+  from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.2s ease-out forwards;
+  animation: fadeIn 0.15s ease-out forwards;
 }
 
-/* ─── Custom Sonner Toast Styles (6 Distinct States) ────────────────────────── */
+/* ─── Custom Sonner Toast Styles (Clean Blue Accent) ────────────────────────── */
 [data-sonner-toast] {
-  border-radius: 14px !important;
-  backdrop-filter: blur(10px) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(8px) !important;
   font-family: var(--font-inter), system-ui, sans-serif !important;
   font-size: 13px !important;
-  font-weight: 700 !important;
-  padding: 12px 20px !important;
-  box-shadow: 0 20px 25px -5px rgba(30, 27, 24, 0.12), 0 8px 10px -6px rgba(30, 27, 24, 0.08) !important;
+  font-weight: 600 !important;
+  padding: 12px 18px !important;
+  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04) !important;
 }
 
 /* 1. Default Toast */
 [data-sonner-toast][data-type="default"],
 [data-sonner-toast]:not([data-type]) {
-  background: rgba(30, 27, 24, 0.96) !important;
-  color: #F5C542 !important;
-  border: 1px solid rgba(245, 197, 66, 0.5) !important;
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border: 1px solid #1e293b !important;
 }
 
 /* 2. Success Toast */
 [data-sonner-toast][data-type="success"] {
-  background: rgba(240, 253, 244, 0.96) !important;
-  color: #14532D !important;
-  border: 1px solid rgba(74, 222, 128, 0.7) !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #e2e8f0 !important;
 }
 [data-sonner-toast][data-type="success"] [data-icon] {
-  color: #16A34A !important;
+  color: #2563eb !important;
 }
 
 /* 3. Error Toast */
 [data-sonner-toast][data-type="error"] {
-  background: rgba(254, 242, 242, 0.96) !important;
-  color: #7F1D1D !important;
-  border: 1px solid rgba(248, 113, 113, 0.7) !important;
+  background: #ffffff !important;
+  color: #991b1b !important;
+  border: 1px solid #fecaca !important;
 }
 [data-sonner-toast][data-type="error"] [data-icon] {
-  color: #DC2626 !important;
+  color: #dc2626 !important;
 }
 
 /* 4. Warning Toast */
 [data-sonner-toast][data-type="warning"] {
-  background: rgba(255, 251, 235, 0.96) !important;
-  color: #78350F !important;
-  border: 1px solid rgba(245, 158, 11, 0.7) !important;
+  background: #ffffff !important;
+  color: #9a3412 !important;
+  border: 1px solid #fed7aa !important;
 }
 [data-sonner-toast][data-type="warning"] [data-icon] {
-  color: #D97706 !important;
+  color: #d97706 !important;
 }
 
 /* 5. Info Toast */
 [data-sonner-toast][data-type="info"] {
-  background: rgba(240, 249, 255, 0.96) !important;
-  color: #0C4A6E !important;
-  border: 1px solid rgba(56, 189, 248, 0.7) !important;
+  background: #ffffff !important;
+  color: #075985 !important;
+  border: 1px solid #bae6fd !important;
 }
 [data-sonner-toast][data-type="info"] [data-icon] {
-  color: #0284C7 !important;
+  color: #0284c7 !important;
 }
 
 /* 6. Loading Toast */
 [data-sonner-toast][data-type="loading"] {
-  background: rgba(255, 253, 247, 0.96) !important;
-  color: #1E1B18 !important;
-  border: 1px solid rgba(245, 197, 66, 0.8) !important;
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border: 1px solid #1e293b !important;
 }
-[data-sonner-toast][data-type="loading"] [data-icon] {
-  color: #F5C542 !important;
-}
-
-/* 7. Prevent Dark Mode browser extensions from forcing white text on yellow buttons/badges */
-/* Scope to interactive & inline elements only — never div/section containers */
-button[class*="bg-[#F5C542]"],
-button[class*="bg-[#f5c542]"],
-button[class*="bg-amber-400"],
-a[class*="bg-[#F5C542]"],
-a[class*="bg-[#f5c542]"],
-a[class*="bg-amber-400"],
-span[class*="bg-[#F5C542]"],
-span[class*="bg-[#f5c542]"],
-span[class*="bg-amber-400"] {
-  color: #09090b !important;
-}
-
-button[class*="bg-[#F5C542]"] *,
-button[class*="bg-[#f5c542]"] *,
-button[class*="bg-amber-400"] *,
-a[class*="bg-[#F5C542]"] *,
-a[class*="bg-[#f5c542]"] *,
-a[class*="bg-amber-400"] *,
-span[class*="bg-[#F5C542]"] *,
-span[class*="bg-[#f5c542]"] *,
-span[class*="bg-amber-400"] * {
-  color: #09090b !important;
-  stroke: #09090b !important;
-}
-

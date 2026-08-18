@@ -12,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -102,6 +103,22 @@ public class GlobalExceptionHandler {
                 .code(ex.getCode())
                 .message(ex.getMessage())
                 .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+        return new ResponseEntity<>(err, HttpStatus.NOT_FOUND);
+    }
+
+    // Handle Static Resource Not Found (404 Not Found)
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(NoResourceFoundException ex, WebRequest request) {
+        String path = request.getDescription(false).replace("uri=", "");
+        log.warn("Resource not found: {}", path);
+        ErrorResponse err = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.NOT_FOUND.value())
+                .error("Not Found")
+                .code("SYS_RESOURCE_NOT_FOUND")
+                .message(ex.getMessage())
+                .path(path)
                 .build();
         return new ResponseEntity<>(err, HttpStatus.NOT_FOUND);
     }

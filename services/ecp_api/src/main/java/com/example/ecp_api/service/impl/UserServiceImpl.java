@@ -43,6 +43,9 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
 
+import com.example.ecp_api.service.CloudinaryService;
+import org.springframework.web.multipart.MultipartFile;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -53,6 +56,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final AuditLogService auditLogService;
     private final TokenService tokenService;
+    private final CloudinaryService cloudinaryService;
 
     @Value("${google.client-id:}")
     private String googleClientId;
@@ -275,45 +279,73 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse updateUser(UUID id, UserUpdateRequest request) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
+        return updateUser(id, request, null);
+    }
 
-        UserRole oldRole = user.getRole();
-        boolean oldActive = user.isActive();
-
-        // Khởi tạo sẵn profile nếu null trước khi Mapper cập nhật
-        if (user.getProfile() == null) {
-            user.setProfile(UserProfile.builder().user(user).build());
-        }
-
-        userMapper.updateUserFromRequest(request, user);
-
-        if (user.getProfile() != null && user.getProfile().getUser() == null) {
-            user.getProfile().setUser(user);
-        }
-
-        String operatorEmail = SecurityUtils.getCurrentUserEmail();
-        if (StringUtils.hasText(operatorEmail) && !"SYSTEM".equals(operatorEmail)) {
-            User operator = userRepository.findByEmail(operatorEmail).orElse(null);
-            if (operator != null) {
-                user.setUpdatedBy(operator);
+    @Override
+    @Transactional
+    public UserResponse updateUser(UUID id, UserUpdateRequest request, MultipartFile avatarFile) {
+        String uploadedPublicId = null;
+        try {
+            if (avatarFile != null && !avatarFile.isEmpty()) {
+                Map result = cloudinaryService.upload(avatarFile, "avatars");
+                if (result != null && result.containsKey("secure_url")) {
+                    String url = (String) result.get("secure_url");
+                    uploadedPublicId = (String) result.get("public_id");
+                    request.setAvatarUrl(url);
+                    request.setAvatarPublicId(uploadedPublicId);
+                }
             }
+
+            User user = userRepository.findById(id)
+                    .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
+
+            UserRole oldRole = user.getRole();
+            boolean oldActive = user.isActive();
+
+            // Khởi tạo sẵn profile nếu null trước khi Mapper cập nhật
+            if (user.getProfile() == null) {
+                user.setProfile(UserProfile.builder().user(user).build());
+            }
+
+            userMapper.updateUserFromRequest(request, user);
+
+            if (user.getProfile() != null && user.getProfile().getUser() == null) {
+                user.getProfile().setUser(user);
+            }
+
+            String operatorEmail = SecurityUtils.getCurrentUserEmail();
+            if (StringUtils.hasText(operatorEmail) && !"SYSTEM".equals(operatorEmail)) {
+                User operator = userRepository.findByEmail(operatorEmail).orElse(null);
+                if (operator != null) {
+                    user.setUpdatedBy(operator);
+                }
+            }
+
+            user = userRepository.save(user);
+
+            // Chỉ thu hồi token khi vai trò THỰC SỰ bị thay đổi HOẶC tài khoản bị khóa (active -> false)
+            boolean roleChanged = oldRole != user.getRole();
+            boolean deactivated = oldActive && !user.isActive();
+
+            if (roleChanged || deactivated) {
+                log.info("Revoking tokens for user {} (roleChanged={}, deactivated={})", user.getEmail(), roleChanged, deactivated);
+                tokenService.revokeUserTokens(user.getEmail());
+            }
+
+            auditLogService.log("USER_UPDATE", operatorEmail, "Updated user with ID: " + user.getId());
+
+            return userMapper.toResponse(user);
+        } catch (Exception e) {
+            if (uploadedPublicId != null) {
+                try {
+                    cloudinaryService.delete(uploadedPublicId);
+                } catch (Exception delEx) {
+                    log.error("Failed to delete orphaned Cloudinary asset {}: {}", uploadedPublicId, delEx.getMessage());
+                }
+            }
+            throw e;
         }
-
-        user = userRepository.save(user);
-
-        // Chỉ thu hồi token khi vai trò THỰC SỰ bị thay đổi HOẶC tài khoản bị khóa (active -> false)
-        boolean roleChanged = oldRole != user.getRole();
-        boolean deactivated = oldActive && !user.isActive();
-
-        if (roleChanged || deactivated) {
-            log.info("Revoking tokens for user {} (roleChanged={}, deactivated={})", user.getEmail(), roleChanged, deactivated);
-            tokenService.revokeUserTokens(user.getEmail());
-        }
-
-        auditLogService.log("USER_UPDATE", operatorEmail, "Updated user with ID: " + user.getId());
-
-        return userMapper.toResponse(user);
     }
 
     @Override

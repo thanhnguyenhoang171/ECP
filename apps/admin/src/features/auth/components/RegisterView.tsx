@@ -48,7 +48,7 @@ export default function RegisterView() {
       {/* Background Image with Overlay */}
       <div 
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/background/ocean.jpg')" }}
+        style={{ backgroundImage: "url('/background/moutain.jpg')" }}
       >
         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]" />
       </div>

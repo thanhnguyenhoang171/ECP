@@ -40,8 +40,15 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
+import com.example.ecp_api.service.CloudinaryService;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+
+import com.example.ecp_api.entity.mongodb.embedded.ProductImage;
+
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CategoryServiceImpl implements CategoryService {
 
 
@@ -51,47 +58,75 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryHelper categoryHelper;
     private final CategoryExcelHelper categoryExcelHelper;
     private final AuditLogService auditLogService;
+    private final CloudinaryService cloudinaryService;
 
     // CREATE A NEW CATEGORY
     @Override
     @Transactional
     public CategoryResponse createCategory(CategoryRequest request) {
-        // Auto generate Slug,
-        String slugGenerated = StringUtils.hasText(request.getSlug())
-                ? request.getSlug()
-                : SlugUtils.toSlug(request.getName());
+        return createCategory(request, null);
+    }
 
-        if (categoryRepository.existsBySlugAndDeletedFalse(slugGenerated)) {
-            throw new AppException("CATEGORY_SLUG_EXISTS", "Category with Slug already exists", HttpStatus.BAD_REQUEST);
+    @Override
+    @Transactional
+    public CategoryResponse createCategory(CategoryRequest request, MultipartFile imageFile) {
+        String uploadedPublicId = null;
+        try {
+            if (imageFile != null && !imageFile.isEmpty()) {
+                Map result = cloudinaryService.upload(imageFile, "categories");
+                if (result != null && result.containsKey("secure_url")) {
+                    String url = (String) result.get("secure_url");
+                    uploadedPublicId = (String) result.get("public_id");
+                    request.setImage(ProductImage.builder().url(url).publicId(uploadedPublicId).build());
+                }
+            }
+
+            // Auto generate Slug,
+            String slugGenerated = StringUtils.hasText(request.getSlug())
+                    ? request.getSlug()
+                    : SlugUtils.toSlug(request.getName());
+
+            if (categoryRepository.existsBySlugAndDeletedFalse(slugGenerated)) {
+                throw new AppException("CATEGORY_SLUG_EXISTS", "Category with Slug already exists", HttpStatus.BAD_REQUEST);
+            }
+
+            Category category = categoryMapper.toEntity(request);
+            category.setSlug(slugGenerated);
+
+            // Ensure we use the value from request if provided, otherwise default to true
+            if (request.getActive() != null) {
+                category.setActive(request.getActive());
+            } else {
+                category.setActive(true);
+            }
+
+            // Hierarchy validation and path/level setup
+            if (StringUtils.hasText(request.getParentId())) {
+                categoryHelper.validateHierarchy(null, request.getParentId());
+                Category parent = categoryRepository.findById(request.getParentId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Parent category not found"));
+                category.setLevel(parent.getLevel() + 1);
+            } else {
+                category.setParentId(null);
+                category.setLevel(1);
+            }
+
+            Category savedCategory = categoryRepository.save(category);
+
+            auditLogService.log("CATEGORY_CREATE", SecurityUtils.getCurrentUserEmail(),
+                    "Created category: " + savedCategory.getName());
+
+            return categoryMapper.toResponse(savedCategory);
+        } catch (Exception e) {
+            if (uploadedPublicId != null) {
+                try {
+                    cloudinaryService.delete(uploadedPublicId);
+                } catch (Exception delEx) {
+                    log.error("Failed to delete orphaned Cloudinary asset {}: {}", uploadedPublicId, delEx.getMessage());
+                }
+            }
+            throw e;
         }
-
-        Category category = categoryMapper.toEntity(request);
-        category.setSlug(slugGenerated);
-
-        // Ensure we use the value from request if provided, otherwise default to true
-        if (request.getActive() != null) {
-            category.setActive(request.getActive());
-        } else {
-            category.setActive(true);
-        }
-
-        // Hierarchy validation and path/level setup
-        if (StringUtils.hasText(request.getParentId())) {
-            categoryHelper.validateHierarchy(null, request.getParentId());
-
-            Category parent = categoryRepository.findById(request.getParentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Parent Category not found with id: " + request.getParentId()));
-
-            category.setLevel(parent.getLevel() + 1);
-        } else {
-            category.setLevel(1);
-        }
-
-        Category savedCategory = categoryRepository.save(category);
-
-        auditLogService.log("CATEGORY_CREATE", SecurityUtils.getCurrentUserEmail(), "Created category: " + savedCategory.getName());
-
-        return categoryMapper.toResponse(savedCategory);
     }
 
     // GET LIST CATEGORIES WITH PAGINATION
@@ -145,15 +180,42 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional
     public CategoryResponse updateCategory(String id, CategoryRequest request) {
-        Category category = categoryRepository.findById(id)
-                .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
+        return updateCategory(id, request, null);
+    }
 
-        String oldParentId = category.getParentId();
-        String oldName = category.getName();
-        String oldSlug = category.getSlug();
+    @Override
+    @Transactional
+    public CategoryResponse updateCategory(String id, CategoryRequest request, MultipartFile imageFile) {
+        String uploadedPublicId = null;
+        try {
+            if (imageFile != null && !imageFile.isEmpty()) {
+                Map result = cloudinaryService.upload(imageFile, "categories");
+                if (result != null && result.containsKey("secure_url")) {
+                    String url = (String) result.get("secure_url");
+                    uploadedPublicId = (String) result.get("public_id");
+                    request.setImage(ProductImage.builder().url(url).publicId(uploadedPublicId).build());
+                }
+            }
 
-        categoryMapper.updateCategoryFromRequest(request, category);
+            Category category = categoryRepository.findById(id)
+                    .filter(c -> !c.isDeleted())
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
+
+            String oldPublicId = (category.getImage() != null) ? category.getImage().getPublicId() : null;
+            String oldParentId = category.getParentId();
+            String oldName = category.getName();
+            String oldSlug = category.getSlug();
+
+            categoryMapper.updateCategoryFromRequest(request, category);
+
+            // Delete old image from Cloudinary if replaced
+            if (uploadedPublicId != null && StringUtils.hasText(oldPublicId)) {
+                try {
+                    cloudinaryService.delete(oldPublicId);
+                } catch (Exception e) {
+                    log.warn("Could not delete previous category image {}: {}", oldPublicId, e.getMessage());
+                }
+            }
 
         // Handle Slug Update (if not provided, check if name changed to regenerate)
         if (!StringUtils.hasText(request.getSlug())) {
@@ -202,6 +264,16 @@ public class CategoryServiceImpl implements CategoryService {
         auditLogService.log("CATEGORY_UPDATE", SecurityUtils.getCurrentUserEmail(), "Updated category with ID: " + updatedCategory.getId());
 
         return categoryMapper.toResponse(updatedCategory);
+        } catch (Exception e) {
+            if (uploadedPublicId != null) {
+                try {
+                    cloudinaryService.delete(uploadedPublicId);
+                } catch (Exception delEx) {
+                    log.error("Failed to delete orphaned Cloudinary asset {}: {}", uploadedPublicId, delEx.getMessage());
+                }
+            }
+            throw e;
+        }
     }
 
     // DELETE A CATEGORY

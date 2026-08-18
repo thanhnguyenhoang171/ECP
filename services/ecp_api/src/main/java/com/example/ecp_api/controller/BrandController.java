@@ -21,6 +21,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+import com.example.ecp_api.exception.AppException;
 import java.util.List;
 
 @RestController
@@ -31,11 +34,27 @@ public class BrandController {
 
     private final BrandService brandService;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
-    @Operation(summary = "Create a new brand")
-    public ResponseEntity<ApiResponse<BrandResponse>> createBrand(@Valid @RequestBody BrandRequest request) {
-        BrandResponse response = brandService.createBrand(request);
+    @Operation(summary = "Create a new brand (JSON)")
+    public ResponseEntity<ApiResponse<BrandResponse>> createBrandJson(
+            @Valid @RequestBody BrandRequest request) {
+        BrandResponse response = brandService.createBrand(request, null);
+        ApiResponse<BrandResponse> apiResponse = ApiResponse.<BrandResponse>builder()
+                .success(true)
+                .message("Brand created successfully")
+                .data(response)
+                .build();
+        return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
+    @Operation(summary = "Create a new brand (Multipart)")
+    public ResponseEntity<ApiResponse<BrandResponse>> createBrandMultipart(
+            @RequestPart(value = "brand") @Valid BrandRequest request,
+            @RequestPart(value = "logoFile", required = false) MultipartFile logoFile) {
+        BrandResponse response = brandService.createBrand(request, logoFile);
         ApiResponse<BrandResponse> apiResponse = ApiResponse.<BrandResponse>builder()
                 .success(true)
                 .message("Brand created successfully")
@@ -84,13 +103,29 @@ public class BrandController {
         return ResponseEntity.ok(apiResponse);
     }
 
-    @PatchMapping("/{id}")
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
-    @Operation(summary = "Update a brand")
-    public ResponseEntity<ApiResponse<BrandResponse>> updateBrand(
+    @Operation(summary = "Update a brand (JSON)")
+    public ResponseEntity<ApiResponse<BrandResponse>> updateBrandJson(
             @PathVariable("id") String id,
             @RequestBody BrandRequest request) {
-        BrandResponse response = brandService.updateBrand(id, request);
+        BrandResponse response = brandService.updateBrand(id, request, null);
+        ApiResponse<BrandResponse> apiResponse = ApiResponse.<BrandResponse>builder()
+                .success(true)
+                .message("Brand updated successfully")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
+    @Operation(summary = "Update a brand (Multipart)")
+    public ResponseEntity<ApiResponse<BrandResponse>> updateBrandMultipart(
+            @PathVariable("id") String id,
+            @RequestPart(value = "brand") BrandRequest request,
+            @RequestPart(value = "logoFile", required = false) MultipartFile logoFile) {
+        BrandResponse response = brandService.updateBrand(id, request, logoFile);
         ApiResponse<BrandResponse> apiResponse = ApiResponse.<BrandResponse>builder()
                 .success(true)
                 .message("Brand updated successfully")

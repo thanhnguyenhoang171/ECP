@@ -18,21 +18,21 @@ export default function CategoryGrid() {
   }, []);
 
   return (
-    <section className="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12">
+    <section className="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12 py-4">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-bold text-zinc-900 tracking-tight">
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight">
             Danh mục sản phẩm Cacao & Socola nổi bật
           </h2>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             Khám phá nguồn hương vị cacao nguyên chất hảo hạng và socola craft tuyển chọn
           </p>
         </div>
         <Link
           href="/categories"
-          className="flex items-center gap-1 text-zinc-900 font-semibold text-xs hover:text-amber-600 transition-colors cursor-pointer"
+          className="flex items-center gap-1 text-blue-600 font-semibold text-xs hover:text-blue-700 transition-colors cursor-pointer"
         >
-          Xem tất cả danh mục <ArrowRight className="w-3.5 h-3.5" />
+          <span>Xem tất cả</span> <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
 
@@ -43,16 +43,16 @@ export default function CategoryGrid() {
             <Link
               key={cat.id || idx}
               href={`/categories/${cat.slug}`}
-              className="group p-5 bg-gradient-to-b from-[#FFFDF9] via-[#FAF6ED] to-[#FFF8EE] rounded-2xl border border-amber-200/60 hover:border-amber-400 hover:shadow-md transition-all flex flex-col justify-between"
+              className="group p-5 bg-white rounded-2xl border border-slate-200/80 hover:border-blue-300 hover:shadow-xs transition-all flex flex-col justify-between"
             >
-              <div className="w-12 h-12 rounded-xl bg-amber-100/60 group-hover:bg-[#F5C542] text-amber-900 group-hover:text-zinc-900 flex items-center justify-center transition-colors mb-4 shadow-xs">
-                {typeof IconComponent === 'function' ? <IconComponent className="w-6 h-6" /> : <Cookie className="w-6 h-6" />}
+              <div className="w-10 h-10 rounded-xl bg-blue-50 group-hover:bg-blue-600 text-blue-600 group-hover:text-white flex items-center justify-center transition-colors mb-4 border border-blue-100/80 shadow-2xs">
+                {typeof IconComponent === 'function' ? <IconComponent className="w-5 h-5" /> : <Cookie className="w-5 h-5" />}
               </div>
               <div>
-                <h3 className="font-bold text-zinc-900 text-sm group-hover:text-amber-800 transition-colors">
+                <h3 className="font-semibold text-slate-900 text-xs group-hover:text-blue-600 transition-colors">
                   {cat.name}
                 </h3>
-                <p className="text-[11px] text-zinc-400 mt-0.5">{cat.description || `${cat.itemCount || 10} sản phẩm`}</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">{cat.description || `${cat.itemCount || 10} sản phẩm`}</p>
               </div>
             </Link>
           );
@@ -61,4 +61,3 @@ export default function CategoryGrid() {
     </section>
   );
 }
-

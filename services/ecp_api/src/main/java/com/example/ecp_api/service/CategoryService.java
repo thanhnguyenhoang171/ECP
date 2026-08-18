@@ -12,7 +12,9 @@ import java.util.List;
 
 public interface CategoryService {
     CategoryResponse createCategory(CategoryRequest request);
+    CategoryResponse createCategory(CategoryRequest request, MultipartFile imageFile);
     CategoryResponse updateCategory(String id, CategoryRequest request);
+    CategoryResponse updateCategory(String id, CategoryRequest request, MultipartFile imageFile);
     CategoryResponse getCategoryById(String id);
     PageResponse<CategoryResponse> getAllCategories(CategoryFilterRequest filter, Pageable pageable);
     List<CategoryResponse> getParentCategories();

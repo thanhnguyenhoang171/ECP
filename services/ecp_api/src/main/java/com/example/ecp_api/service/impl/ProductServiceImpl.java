@@ -36,8 +36,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.example.ecp_api.service.CloudinaryService;
+import com.example.ecp_api.entity.mongodb.embedded.ProductImage;
+import org.springframework.web.multipart.MultipartFile;
+import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
@@ -48,6 +55,7 @@ public class ProductServiceImpl implements ProductService {
     private final SkuRepository skuRepository;
     private final com.example.ecp_api.repository.jpa.InventoryRepository inventoryRepository;
     private final AuditLogService auditLogService;
+    private final CloudinaryService cloudinaryService;
 
     @Override
     public PageResponse<ProductResponse> getAllProducts(ProductFilterRequest filter, Pageable pageable) {
@@ -98,15 +106,53 @@ public class ProductServiceImpl implements ProductService {
         return productMapper.toPageResponse(productPage);
     }
 
-    // TODO: Implement API create a new product
     @Override
     @Transactional
     public ProductResponse createProduct(ProductRequest request) {
-        // Validate Category
-        if (StringUtils.hasText(request.getCategoryId())) {
-            categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Category Not Found", "CATEGORY_NOT_FOUND"));
-        }
+        return createProduct(request, null, null);
+    }
+
+    @Override
+    @Transactional
+    public ProductResponse createProduct(ProductRequest request, MultipartFile thumbnailFile, List<MultipartFile> imageFiles) {
+        List<String> uploadedPublicIds = new ArrayList<>();
+        try {
+            // Upload thumbnail file if provided
+            if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
+                Map result = cloudinaryService.upload(thumbnailFile, "products");
+                if (result != null && result.containsKey("secure_url")) {
+                    String url = (String) result.get("secure_url");
+                    String publicId = (String) result.get("public_id");
+                    if (publicId != null) uploadedPublicIds.add(publicId);
+                    request.setThumbnail(ProductImage.builder().url(url).publicId(publicId).build());
+                }
+            }
+
+            // Upload gallery files if provided
+            if (imageFiles != null && !imageFiles.isEmpty()) {
+                List<ProductImage> galleryImages = new ArrayList<>();
+                if (request.getImages() != null) {
+                    galleryImages.addAll(request.getImages());
+                }
+                for (MultipartFile imgFile : imageFiles) {
+                    if (imgFile != null && !imgFile.isEmpty()) {
+                        Map result = cloudinaryService.upload(imgFile, "products");
+                        if (result != null && result.containsKey("secure_url")) {
+                            String url = (String) result.get("secure_url");
+                            String publicId = (String) result.get("public_id");
+                            if (publicId != null) uploadedPublicIds.add(publicId);
+                            galleryImages.add(ProductImage.builder().url(url).publicId(publicId).build());
+                        }
+                    }
+                }
+                request.setImages(galleryImages);
+            }
+
+            // Validate Category
+            if (StringUtils.hasText(request.getCategoryId())) {
+                categoryRepository.findById(request.getCategoryId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Category Not Found", "CATEGORY_NOT_FOUND"));
+            }
 
         // Validate & Resolve Brand
         String brandName = request.getBrand();
@@ -199,6 +245,16 @@ public class ProductServiceImpl implements ProductService {
                 "Created product: " + product.getName());
 
         return productMapper.toResponse(product);
+        } catch (Exception e) {
+            for (String publicId : uploadedPublicIds) {
+                try {
+                    cloudinaryService.delete(publicId);
+                } catch (Exception delEx) {
+                    log.error("Failed to cleanup Cloudinary file {}: {}", publicId, delEx.getMessage());
+                }
+            }
+            throw e;
+        }
     }
 
     @Override

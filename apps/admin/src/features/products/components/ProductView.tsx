@@ -19,6 +19,7 @@ import {
   DataCard,
   Breadcrumbs,
 } from '@/components/common';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   SearchInput,
   ExportButton,
@@ -123,6 +124,15 @@ export default function ProductView({
   const columns: ColumnDef<Product>[] = [
     {
       header: 'Sản phẩm',
+      skeleton: (
+        <div className="flex items-center gap-3 py-1">
+          <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
+          <div className="flex flex-col gap-1.5 flex-1">
+            <Skeleton className="h-4 w-40 rounded-md" />
+            <Skeleton className="h-3 w-24 rounded-md" />
+          </div>
+        </div>
+      ),
       cell: (product) => {
         const thumbObj = product.thumbnail as any;
         const thumbUrl = typeof thumbObj === 'string' ? thumbObj : thumbObj?.url;
@@ -186,6 +196,7 @@ export default function ProductView({
       header: 'Danh mục',
       className: 'text-sm hidden md:table-cell',
       headerClassName: 'hidden md:table-cell',
+      skeleton: <Skeleton className="h-4 w-28 rounded-md" />,
       cell: (product) => {
         const cat = categoriesList.find((c) => c.id === product.categoryId);
         const name = cat ? cat.name : ((product as any).categoryName || 'Chưa phân loại');
@@ -200,6 +211,7 @@ export default function ProductView({
     {
       header: 'Biến thể SKU',
       align: 'center',
+      skeleton: <Skeleton className="h-6 w-16 mx-auto rounded-lg" />,
       cell: (product) => {
         const variants = product.variants || [];
         const count = variants.length > 0 ? variants.length : 1;
@@ -218,6 +230,7 @@ export default function ProductView({
     {
       header: 'Giá bán',
       align: 'right',
+      skeleton: <Skeleton className="h-5 w-24 ml-auto rounded-md" />,
       cell: (product) => {
         const variants = product.variants || [];
         const minPrice =
@@ -235,6 +248,7 @@ export default function ProductView({
     {
       header: 'Trạng thái',
       align: 'center',
+      skeleton: <Skeleton className="h-6 w-20 mx-auto rounded-full" />,
       cell: (product) => {
         const isPublished = product.isPublished ?? (product as any).published;
 
@@ -255,6 +269,13 @@ export default function ProductView({
     {
       header: 'Thao tác',
       align: 'right',
+      skeleton: (
+        <div className="flex justify-end gap-1">
+          <Skeleton className="h-8 w-8 rounded-lg" />
+          <Skeleton className="h-8 w-8 rounded-lg" />
+          <Skeleton className="h-8 w-8 rounded-lg" />
+        </div>
+      ),
       cell: (product) => (
         <div className="flex justify-end gap-1">
           <ViewActionButton onClick={() => handleNavigateDetail(product.id)} disabled={isExporting} />

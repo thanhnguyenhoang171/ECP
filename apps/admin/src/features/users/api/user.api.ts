@@ -139,9 +139,16 @@ export const userApi = {
     return mapBackendUserToFrontend(result.data);
   },
 
-  // Chỉnh sửa nhân viên / người dùng (Hỗ trợ Partial Update)
+  // Chỉnh sửa nhân viên / người dùng (Hỗ trợ Partial Update & Avatar File Upload)
   update: async (id: string, data: any): Promise<User> => {
     const payload: Record<string, any> = {};
+
+    let avatarFile: File | undefined = undefined;
+    if (data.avatarFile instanceof File) {
+      avatarFile = data.avatarFile;
+    } else if (data.avatarUrl instanceof File) {
+      avatarFile = data.avatarUrl;
+    }
 
     if (data.email !== undefined && data.email !== '') payload.email = data.email;
 
@@ -163,14 +170,26 @@ export const userApi = {
     if (data.active !== undefined) payload.active = data.active;
     else if (data.status !== undefined) payload.active = data.status === 'active';
 
-    if (data.avatarUrl !== undefined && data.avatarUrl !== '') payload.avatarUrl = data.avatarUrl;
+    if (typeof data.avatarUrl === 'string' && data.avatarUrl !== '') payload.avatarUrl = data.avatarUrl;
     if (data.avatarPublicId !== undefined && data.avatarPublicId !== '') payload.avatarPublicId = data.avatarPublicId;
 
-    const res = await clientFetch(`v1/users/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    let res: Response;
+    if (avatarFile) {
+      const formData = new FormData();
+      formData.append('user', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+      formData.append('avatarFile', avatarFile);
+
+      res = await clientFetch(`v1/users/${id}`, {
+        method: 'PUT',
+        body: formData,
+      });
+    } else {
+      res = await clientFetch(`v1/users/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    }
 
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));

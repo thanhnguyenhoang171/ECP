@@ -12,7 +12,9 @@ import {
   DataTable,
   type ColumnDef,
   Breadcrumbs,
+  DataCard,
 } from '@/components/common';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   SearchInput,
   AddNewButton,
@@ -58,7 +60,7 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
   const activeFilter =
     activeParam === 'true' ? true : activeParam === 'false' ? false : undefined;
 
-  const { data: queryData, isFetching } = useBrands({
+  const { data: queryData, isFetching, isLoading } = useBrands({
     page,
     size,
     sort,
@@ -125,6 +127,15 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
   const columns: ColumnDef<Brand>[] = [
     {
       header: 'Thương hiệu',
+      skeleton: (
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+          <div className="flex flex-col gap-1.5">
+            <Skeleton className="h-4 w-32 rounded-md" />
+            <Skeleton className="h-3 w-20 rounded-md" />
+          </div>
+        </div>
+      ),
       cell: (brand) => (
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg border border-slate-200 overflow-hidden flex-shrink-0 bg-slate-100 flex items-center justify-center p-1 text-xs font-bold text-slate-600">
@@ -164,6 +175,7 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
       header: 'Slug',
       className: 'hidden md:table-cell',
       headerClassName: 'hidden md:table-cell',
+      skeleton: <Skeleton className="h-5 w-24 rounded-md" />,
       cell: (brand) => (
         <span className="font-mono text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
           {brand.slug}
@@ -172,6 +184,7 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
     },
     {
       header: 'Trạng thái',
+      skeleton: <Skeleton className="h-5 w-20 rounded-full" />,
       cell: (brand) => {
         const isPending = togglingId === brand.id;
         return (
@@ -196,11 +209,19 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
       header: 'Ngày tạo',
       className: 'hidden lg:table-cell text-slate-500 text-xs',
       headerClassName: 'hidden lg:table-cell',
+      skeleton: <Skeleton className="h-4 w-20 rounded-md" />,
       cell: (brand) => (brand.createdAt ? formatDate(brand.createdAt) : '---'),
     },
     {
       header: 'Thao tác',
       align: 'right',
+      skeleton: (
+        <div className="flex justify-end gap-1">
+          <Skeleton className="h-8 w-8 rounded-lg" />
+          <Skeleton className="h-8 w-8 rounded-lg" />
+          <Skeleton className="h-8 w-8 rounded-lg" />
+        </div>
+      ),
       cell: (brand) => (
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           <ViewActionButton onClick={() => handleViewDetail(brand)} />
@@ -228,179 +249,93 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
         }
       />
 
-      {/* Control Bar: Search & Filter */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex-1 max-w-md">
+      <DataCard
+        isLoading={isLoading}
+        isFetching={isFetching}
+        search={
           <SearchInput
             value={searchTerm}
             onChange={(val) => setSearchTerm(val)}
             placeholder="Tìm kiếm thương hiệu..."
           />
-        </div>
-
-        <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
-          <FilterPopover
-            activeCount={activeFilter !== undefined ? 1 : 0}
-            onClear={() => updateUrl({ active: undefined, page: 1 })}
-          >
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold text-slate-600">Trạng thái</Label>
-              <div className="flex flex-col gap-1.5">
-                {[
-                  { label: 'Tất cả', value: '' },
-                  { label: 'Hoạt động', value: 'true' },
-                  { label: 'Đã khóa', value: 'false' },
-                ].map((opt) => (
-                  <label
-                    key={opt.value}
-                    className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer hover:text-blue-600"
-                  >
-                    <input
-                      type="radio"
-                      name="active-filter"
-                      checked={(activeParam || '') === opt.value}
-                      onChange={() => updateUrl({ active: opt.value || undefined, page: 1 })}
-                      className="text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
-                    />
-                    {opt.label}
-                  </label>
-                ))}
+        }
+        extra={
+          <>
+            <FilterPopover
+              activeCount={activeFilter !== undefined ? 1 : 0}
+              onClear={() => updateUrl({ active: undefined, page: 1 })}
+            >
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-slate-600">Trạng thái</Label>
+                <div className="flex flex-col gap-1.5">
+                  {[
+                    { label: 'Tất cả', value: '' },
+                    { label: 'Hoạt động', value: 'true' },
+                    { label: 'Đã khóa', value: 'false' },
+                  ].map((opt) => (
+                    <label
+                      key={opt.value}
+                      className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer hover:text-blue-600"
+                    >
+                      <input
+                        type="radio"
+                        name="active-filter"
+                        checked={(activeParam || '') === opt.value}
+                        onChange={() => updateUrl({ active: opt.value || undefined, page: 1 })}
+                        className="text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
-          </FilterPopover>
+            </FilterPopover>
 
-          <SortPopover
-            options={sortOptions}
-            currentValue={sort}
-            onSelect={(newSort) => setSort(newSort)}
-          />
-
-          {(Boolean(name) || activeFilter !== undefined || sort !== 'name,asc') && (
-            <ResetFiltersButton
-              onClick={() => {
-                setSearchTerm('');
-                updateUrl({
-                  name: undefined,
-                  active: undefined,
-                  sort: 'name,asc',
-                  page: 1,
-                });
-              }}
+            <SortPopover
+              options={sortOptions}
+              currentValue={sort}
+              onSelect={(newSort) => setSort(newSort)}
             />
-          )}
-        </div>
-      </div>
 
-      {/* Main Table View (Desktop) */}
-      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+            {(Boolean(name) || activeFilter !== undefined || sort !== 'name,asc') && (
+              <ResetFiltersButton
+                onClick={() => {
+                  setSearchTerm('');
+                  updateUrl({
+                    name: undefined,
+                    active: undefined,
+                    sort: 'name,asc',
+                    page: 1,
+                  });
+                }}
+              />
+            )}
+          </>
+        }
+        footer={
+          totalPages > 0 && (
+            <NextPagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={totalElements}
+              itemsPerPage={size}
+              onPageChange={(p) => setPage(p)}
+              onItemsPerPageChange={(s) => setSize(s)}
+            />
+          )
+        }
+      >
         <DataTable
           columns={columns}
           data={brands}
-          isLoading={isFetching}
+          isLoading={isLoading && !brands.length}
           onRowClick={(brand) => handleViewDetail(brand)}
           emptyState={{
             title: 'Không có thương hiệu nào',
             description: 'Không tìm thấy dữ liệu thương hiệu phù hợp với bộ lọc.',
           }}
         />
-      </div>
-
-      {/* Mobile Card List View */}
-      <div className="grid grid-cols-1 gap-3 md:hidden">
-        {isFetching ? (
-          <div className="p-8 text-center text-slate-400">Đang tải dữ liệu...</div>
-        ) : brands.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 bg-white rounded-xl border border-slate-200">
-            Không tìm thấy thương hiệu nào.
-          </div>
-        ) : (
-          brands.map((brand) => (
-            <div
-              key={brand.id}
-              onClick={() => handleViewDetail(brand)}
-              className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3 cursor-pointer hover:border-blue-200 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg border border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center p-1">
-                    {brand.logo ? (
-                      <Image
-                        src={brand.logo}
-                        alt={brand.name}
-                        width={40}
-                        height={40}
-                        className="w-full h-full object-contain"
-                        unoptimized
-                      />
-                    ) : (
-                      <Tag className="w-5 h-5 text-slate-400" />
-                    )}
-                  </div>
-                  <div>
-                    <span className="font-bold text-slate-900 block">{brand.name}</span>
-                    <span className="font-mono text-xs text-slate-400">{brand.slug}</span>
-                  </div>
-                </div>
-                <Badge
-                  className={
-                    brand.active
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]'
-                      : 'bg-slate-100 text-slate-500 border-slate-200 text-[10px]'
-                  }
-                >
-                  {brand.active ? 'Hoạt động' : 'Đã khóa'}
-                </Badge>
-              </div>
-
-              {brand.website && (
-                <a
-                  href={brand.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 flex items-center gap-1 hover:underline"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Globe size={12} /> {brand.website}
-                </a>
-              )}
-
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                  <Badge
-                    className={cn(
-                      'cursor-pointer select-none transition-all text-xs font-medium hover:opacity-80',
-                      brand.active
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-slate-100 text-slate-500 border-slate-200',
-                      togglingId === brand.id && 'pointer-events-none opacity-50'
-                    )}
-                    onClick={() => handleToggleActive(brand)}
-                  >
-                    {brand.active ? 'Hoạt động' : 'Đã khóa'}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                  <ViewActionButton onClick={() => handleViewDetail(brand)} />
-                  <EditActionButton onClick={() => handleEdit(brand)} />
-                  <DeleteActionButton onClick={() => handleDelete(brand.id)} />
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 0 && (
-        <NextPagination
-          currentPage={page}
-          totalPages={totalPages}
-          totalItems={totalElements}
-          itemsPerPage={size}
-          onPageChange={(p) => setPage(p)}
-          onItemsPerPageChange={(s) => setSize(s)}
-        />
-      )}
+      </DataCard>
 
       {/* Brand Detail Modal */}
       <BrandDetailDialog

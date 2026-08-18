@@ -40,12 +40,27 @@ public class CategoryController {
 
     private final CategoryService categoryService;
 
-    // API CREATE A NEW CATEGORY
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
-    @Operation(summary = "Create a new category", description = "Creates a new category. Slug is auto-generated if not provided.")
-    public ResponseEntity<ApiResponse<CategoryResponse>> createCategory(@Valid @RequestBody CategoryRequest request) {
-        CategoryResponse response = categoryService.createCategory(request);
+    @Operation(summary = "Create a new category (JSON)")
+    public ResponseEntity<ApiResponse<CategoryResponse>> createCategoryJson(
+            @Valid @RequestBody CategoryRequest request) {
+        CategoryResponse response = categoryService.createCategory(request, null);
+        ApiResponse<CategoryResponse> apiResponse = ApiResponse.<CategoryResponse>builder()
+                .success(true)
+                .message("Category created successfully")
+                .data(response)
+                .build();
+        return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
+    @Operation(summary = "Create a new category (Multipart)")
+    public ResponseEntity<ApiResponse<CategoryResponse>> createCategoryMultipart(
+            @RequestPart(value = "category") @Valid CategoryRequest request,
+            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
+        CategoryResponse response = categoryService.createCategory(request, imageFile);
         ApiResponse<CategoryResponse> apiResponse = ApiResponse.<CategoryResponse>builder()
                 .success(true)
                 .message("Category created successfully")
@@ -101,14 +116,29 @@ public class CategoryController {
         return ResponseEntity.ok(apiResponse);
     }
 
-    // API UPDATE A CATEGORY
-    @PatchMapping("/{id}")
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
-    @Operation(summary = "Update a category", description = "Updates category fields. Only provided fields will be updated.")
-    public ResponseEntity<ApiResponse<CategoryResponse>> updateCategory(
+    @Operation(summary = "Update a category (JSON)")
+    public ResponseEntity<ApiResponse<CategoryResponse>> updateCategoryJson(
             @PathVariable("id") String id,
             @RequestBody CategoryRequest request) {
-        CategoryResponse response = categoryService.updateCategory(id, request);
+        CategoryResponse response = categoryService.updateCategory(id, request, null);
+        ApiResponse<CategoryResponse> apiResponse = ApiResponse.<CategoryResponse>builder()
+                .success(true)
+                .message("Category updated successfully")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
+    @Operation(summary = "Update a category (Multipart)")
+    public ResponseEntity<ApiResponse<CategoryResponse>> updateCategoryMultipart(
+            @PathVariable("id") String id,
+            @RequestPart(value = "category") CategoryRequest request,
+            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
+        CategoryResponse response = categoryService.updateCategory(id, request, imageFile);
         ApiResponse<CategoryResponse> apiResponse = ApiResponse.<CategoryResponse>builder()
                 .success(true)
                 .message("Category updated successfully")

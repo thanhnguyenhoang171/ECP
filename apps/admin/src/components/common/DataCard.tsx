@@ -55,24 +55,26 @@ export function DataCard({
   contentClassName,
 }: DataCardProps) {
   return (
-    <Card className={cn('overflow-hidden border border-slate-200 bg-white shadow-sm', className)}>
+    <div className="space-y-6">
+      {/* 1. Control Bar: Search & Filter Card */}
       {(search || extra) && (
-        <CardHeader className={cn('pb-4 bg-slate-50/50 border-b border-slate-200', headerClassName)}>
-          <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
-            <div className="flex-1 max-w-md">
-              {search}
-            </div>
-            {extra && <div className='flex items-center gap-2'>{extra}</div>}
+        <div className={cn('flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-100 p-4 rounded-2xl border border-slate-300/80 shadow-md', headerClassName)}>
+          <div className="flex-1 max-w-md">
+            {search}
           </div>
-        </CardHeader>
+          {extra && <div className='flex items-center gap-2 flex-wrap'>{extra}</div>}
+        </div>
       )}
-      <CardContent className={cn('p-0 relative', contentClassName)}>
-        {isFetching && !isLoading && (
-          <div className='absolute inset-0 bg-white/40 z-10 flex items-center justify-center backdrop-blur-[1px] transition-all' />
-        )}
-        {children}
-        {footer && <div className='border-t border-border'>{footer}</div>}
-      </CardContent>
-    </Card>
+
+      {/* 2. Main Content / Table Card */}
+      <Card className={cn('overflow-hidden border border-slate-300/80 bg-slate-100 shadow-md rounded-2xl transition-all', className)}>
+        <CardContent className={cn('p-0 relative', contentClassName)}>
+          {children}
+        </CardContent>
+      </Card>
+
+      {/* 3. Pagination Card */}
+      {footer}
+    </div>
   );
 }

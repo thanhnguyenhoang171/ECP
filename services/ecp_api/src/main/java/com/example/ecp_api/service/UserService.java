@@ -19,6 +19,7 @@ public interface UserService {
     PageResponse<UserResponse> getAllUsers(Pageable pageable);
     PageResponse<UserResponse> searchUsers(UserFilterRequest filter, Pageable pageable);
     UserResponse updateUser(UUID id, UserUpdateRequest request);
+    UserResponse updateUser(UUID id, UserUpdateRequest request, org.springframework.web.multipart.MultipartFile avatarFile);
     void deleteUser(UUID id);
     
     // Auth helpers

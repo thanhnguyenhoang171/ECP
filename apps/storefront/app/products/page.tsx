@@ -1,68 +1,13 @@
-'use client';
-
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
-import ProductCard from '@/components/product/ProductCard';
-import { Product } from '@/types/product';
-import { ChevronRight, Filter, Loader2, CheckCircle2 } from 'lucide-react';
-import { getProductsServer } from '@/services/product.service';
+import { ChevronRight } from 'lucide-react';
+import ProductCatalogClient from '@/components/product/ProductCatalogClient';
+import { getProductsServer } from '@/services/server/product.server';
 
-const categoryList = [
-  'Tất cả',
-  'Cacao & Socola',
-  'Bột Cacao Nguyên Chất',
-  'Socola Thanh Craft',
-];
+export const revalidate = 60; // ISR 60 seconds
 
-export default function ProductsPage() {
-  const [productsList, setProductsList] = useState<Product[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('Tất cả');
-  const [displayedCount, setDisplayedCount] = useState(8);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const observerTarget = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    getProductsServer().then((data) => {
-      if (data && data.length > 0) {
-        setProductsList(data);
-      }
-    });
-  }, []);
-
-  const filteredProducts = selectedCategory === 'Tất cả'
-    ? productsList
-    : productsList.filter(p => p.category === selectedCategory);
-
-  const visibleProducts = filteredProducts.slice(0, displayedCount);
-  const hasMore = displayedCount < filteredProducts.length;
-
-  // Infinite Scroll IntersectionObserver
-  useEffect(() => {
-    const target = observerTarget.current;
-    if (!target) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isFetchingMore) {
-          setIsFetchingMore(true);
-          setTimeout(() => {
-            setDisplayedCount((prev) => Math.min(filteredProducts.length, prev + 4));
-            setIsFetchingMore(false);
-          }, 400);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [displayedCount, filteredProducts.length, hasMore, isFetchingMore]);
-
-  const handleCategoryChange = (cat: string) => {
-    setSelectedCategory(cat);
-    setDisplayedCount(8);
-  };
+export default async function ProductsPage() {
+  const initialProducts = await getProductsServer();
 
   return (
     <div className="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12 py-8 space-y-8 min-h-[75vh]">
@@ -73,69 +18,8 @@ export default function ProductsPage() {
         <span className="text-zinc-900 font-semibold">Tất cả sản phẩm</span>
       </nav>
 
-      {/* Title & Category Filter Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">
-            Tất cả sản phẩm Thái Lan
-          </h1>
-          <p className="text-xs text-zinc-500 mt-1">
-            Hiển thị {visibleProducts.length} / {filteredProducts.length} sản phẩm (Cuộn xuống để tải thêm)
-          </p>
-        </div>
-
-        {/* Filter Badges */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <Filter className="w-4 h-4 text-zinc-400 shrink-0 mr-1" />
-          {categoryList.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => handleCategoryChange(cat)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border cursor-pointer ${
-                selectedCategory === cat
-                  ? 'bg-[#1e293b] text-[#F5C542] border-[#1e293b] shadow-xs font-bold'
-                  : 'bg-white text-zinc-700 border-zinc-200 hover:border-zinc-400'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Products Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-        <AnimatePresence>
-          {visibleProducts.map((product) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ProductCard product={product} />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-
-      {/* Bottom Sentinel & Infinite Scroll Loader */}
-      <div ref={observerTarget} className="py-8 flex flex-col items-center justify-center">
-        {isFetchingMore && (
-          <div className="flex items-center gap-2 text-xs font-bold text-zinc-700 bg-white px-4 py-2 rounded-xl border border-zinc-200 shadow-xs">
-            <Loader2 className="w-4 h-4 animate-spin text-[#F5C542]" /> Đang tải thêm sản phẩm...
-          </div>
-        )}
-
-        {!hasMore && (
-          <div className="flex items-center gap-1.5 text-xs text-zinc-500 font-medium bg-zinc-100 px-4 py-2 rounded-xl border border-zinc-200">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>Đã hiển thị toàn bộ {filteredProducts.length} sản phẩm</span>
-          </div>
-        )}
-      </div>
-
+      {/* Interactive Catalog Container */}
+      <ProductCatalogClient initialProducts={initialProducts} />
     </div>
   );
 }

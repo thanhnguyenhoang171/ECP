@@ -374,11 +374,11 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
       </aside>
 
       <div className="flex flex-col flex-1 overflow-hidden relative">
-        <header className="h-16 flex items-center justify-between px-4 sm:px-8 z-20 bg-white border-b border-slate-200 shadow-sm shrink-0">
+        <header className="h-16 flex items-center justify-between px-4 sm:px-8 z-20 bg-slate-900 border-b border-slate-800 shadow-md shrink-0 text-white">
           <div className="flex items-center gap-4">
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden text-slate-600">
+                <Button variant="ghost" size="icon" className="lg:hidden text-slate-400 hover:text-white hover:bg-slate-800">
                   <MenuIcon size={20} />
                 </Button>
               </SheetTrigger>
@@ -387,7 +387,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
               </SheetContent>
             </Sheet>
             
-            <Button variant="ghost" size="icon" className="hidden lg:flex text-slate-400 hover:text-slate-600" onClick={toggleSidebar}>
+            <Button variant="ghost" size="icon" className="hidden lg:flex text-slate-400 hover:text-white hover:bg-slate-800" onClick={toggleSidebar}>
               <MenuIcon size={20} />
             </Button>
           </div>
@@ -395,8 +395,8 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-2 sm:gap-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <div className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-100/80 p-1.5 px-2.5 rounded-xl transition-all group border border-transparent hover:border-slate-200">
-                  <Avatar className="h-9 w-9 border border-slate-200/80 shadow-sm overflow-hidden ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
+                <div className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-800 p-1.5 px-2.5 rounded-xl transition-all group border border-transparent hover:border-slate-700">
+                  <Avatar className="h-9 w-9 border border-slate-700 shadow-sm overflow-hidden ring-2 ring-transparent group-hover:ring-primary/40 transition-all">
                     {user?.avatarUrl && (
                       <AvatarImage
                         src={user.avatarUrl}
@@ -404,35 +404,35 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
                         className="object-cover"
                       />
                     )}
-                    <AvatarFallback className="bg-slate-100 text-slate-700 font-bold text-xs">
+                    <AvatarFallback className="bg-slate-800 text-slate-200 font-bold text-xs">
                       {getInitials(user?.lastName ? `${user.lastName} ${user.firstName || ''}` : user?.email)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden sm:flex flex-col items-start leading-tight">
-                    <span className="text-sm font-semibold text-slate-800 group-hover:text-slate-950 transition-colors">
+                    <span className="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors">
                       {(user?.lastName || user?.firstName)
                         ? `${user.lastName || ''} ${user.firstName || ''}`.trim()
                         : (user?.email || 'Admin User')}
                     </span>
-                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full mt-0.5 tracking-wide">
+                    <span className="text-[10px] font-bold text-sky-400 bg-sky-500/15 px-2 py-0.5 rounded-full mt-0.5 tracking-wide">
                       {getRoleLabel(user?.roles?.[0])}
                     </span>
                   </div>
-                  <ChevronDown size={14} className="text-slate-400 group-hover:text-slate-600 transition-transform group-data-[state=open]:rotate-180" />
+                  <ChevronDown size={14} className="text-slate-400 group-hover:text-slate-200 transition-transform group-data-[state=open]:rotate-180" />
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 mt-2 p-1.5 shadow-xl border-slate-200 rounded-xl">
+              <DropdownMenuContent align="end" className="w-48 mt-2 p-1.5 shadow-2xl bg-slate-900 border-slate-800 text-white rounded-xl">
                 <DropdownMenuItem onClick={() => {
                   router.push('/profile');
                   handleNavigate();
-                }} className="cursor-pointer py-2 px-3 rounded-lg focus:bg-slate-100 font-medium text-slate-700">
+                }} className="cursor-pointer py-2 px-3 rounded-lg focus:bg-slate-800 focus:text-white font-medium text-slate-300">
                   <span className="text-sm font-medium">Hồ sơ cá nhân</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="my-1 bg-slate-100" />
+                <DropdownMenuSeparator className="my-1 bg-slate-800" />
                 <DropdownMenuItem onClick={() => {
                   handleLogout();
                   handleNavigate();
-                }} className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 cursor-pointer py-2 px-3 rounded-lg font-semibold">
+                }} className="text-rose-400 focus:text-rose-300 focus:bg-rose-950/40 cursor-pointer py-2 px-3 rounded-lg font-semibold">
                   <span className="text-sm font-bold">Đăng xuất</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>

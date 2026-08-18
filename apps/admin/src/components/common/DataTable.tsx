@@ -115,7 +115,14 @@ export function DataTable<T>({
                         j === columns.length - 1 && 'pr-6'
                       )}
                     >
-                      {column.skeleton || <Skeleton className='h-4 w-full' />}
+                      {column.skeleton || (
+                        <Skeleton className={cn(
+                          'h-5 rounded-lg',
+                          column.align === 'center' ? 'w-16 mx-auto' :
+                          column.align === 'right' ? 'w-20 ml-auto' :
+                          'w-28'
+                        )} />
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>

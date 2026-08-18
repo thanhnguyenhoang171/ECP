@@ -88,7 +88,7 @@ export const NextPagination = ({
 
   return (
     <div className={cn(
-      "flex flex-col md:flex-row items-center justify-between gap-4 px-4 py-4 border-t bg-white border-slate-100",
+      "flex flex-col md:flex-row items-center justify-between gap-4 px-5 py-3.5 bg-slate-100 border border-slate-300/80 shadow-md rounded-2xl transition-all",
       className
     )}>
       {/* Left side: Total items info */}
@@ -101,18 +101,18 @@ export const NextPagination = ({
 
         {/* Page size select */}
         {onItemsPerPageChange && (
-          <div className="flex items-center gap-2 border-l pl-4 border-slate-100">
+          <div className="flex items-center gap-2 border-l pl-4 border-slate-200/80">
             <span className="text-[11px] font-medium text-slate-400">Hiển thị:</span>
             <Select 
               value={String(itemsPerPage)}
               onValueChange={(value) => onItemsPerPageChange(Number(value))}
             >
-              <SelectTrigger className="h-7 w-[110px] text-[11px] font-bold bg-slate-50 border-slate-200 text-slate-700">
+              <SelectTrigger className="h-8 w-[115px] text-[11px] font-semibold bg-white border border-slate-200/90 rounded-xl shadow-xs text-slate-700 hover:border-blue-300 transition-all">
                 <SelectValue placeholder={`${itemsPerPage} / trang`} />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl border-slate-200 shadow-xl">
                 {pageSizeOptions.map(option => (
-                  <SelectItem key={option} value={String(option)} className="text-[11px] font-bold">
+                  <SelectItem key={option} value={String(option)} className="text-[11px] font-bold rounded-lg">
                     {option} / trang
                   </SelectItem>
                 ))}
@@ -124,7 +124,7 @@ export const NextPagination = ({
       
       {/* Right side: Pagination controls */}
       <Pagination className="w-auto mx-0 justify-end">
-        <PaginationContent className="gap-1">
+        <PaginationContent className="gap-1.5">
           <PaginationItem>
             <PaginationLink
               href="#"
@@ -133,7 +133,7 @@ export const NextPagination = ({
                 if (currentPage > 1) onPageChange(1);
               }}
               className={cn(
-                "h-8 w-8 p-0 text-[11px] font-bold transition-all cursor-pointer border-slate-200 text-slate-900 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100",
+                "h-8 w-8 p-0 text-[11px] font-bold transition-all duration-150 cursor-pointer rounded-xl bg-white border border-slate-200/90 border-b-2 border-b-slate-300 text-slate-700 shadow-xs hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 hover:-translate-y-0.5 active:translate-y-0.5 active:border-b-slate-200",
                 currentPage === 1 && "pointer-events-none opacity-40 grayscale"
               )}
             >
@@ -149,7 +149,7 @@ export const NextPagination = ({
               }}
               href="#"
               className={cn(
-                "h-8 w-8 text-[11px] font-bold transition-all cursor-pointer border-slate-200 text-slate-900 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100",
+                "h-8 w-8 text-[11px] font-bold transition-all duration-150 cursor-pointer rounded-xl bg-white border border-slate-200/90 border-b-2 border-b-slate-300 text-slate-700 shadow-xs hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 hover:-translate-y-0.5 active:translate-y-0.5 active:border-b-slate-200",
                 currentPage === 1 && "pointer-events-none opacity-40 grayscale"
               )}
             />
@@ -168,10 +168,10 @@ export const NextPagination = ({
                     onPageChange(page as number);
                   }}
                   className={cn(
-                    "h-8 w-8 min-w-8 text-[11px] font-bold transition-all cursor-pointer",
+                    "h-8 w-8 min-w-8 text-[11px] font-bold transition-all duration-150 cursor-pointer rounded-xl",
                     currentPage === page 
-                      ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 hover:text-white shadow-sm shadow-blue-100"
-                      : "border-slate-200 text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100"
+                      ? "bg-blue-600 text-white border-b-2 border-blue-800 shadow-md shadow-blue-500/30 font-extrabold hover:bg-blue-700 hover:-translate-y-0.5 active:translate-y-0.5 active:border-b-0"
+                      : "bg-white border border-slate-200/90 border-b-2 border-b-slate-300 text-slate-700 shadow-xs hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 hover:-translate-y-0.5 active:translate-y-0.5 active:border-b-slate-200"
                   )}
                 >
                   {page}
@@ -188,7 +188,7 @@ export const NextPagination = ({
               }}
               href="#"
               className={cn(
-                "h-8 w-8 text-[11px] font-bold transition-all cursor-pointer border-slate-200 text-slate-900 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100",
+                "h-8 w-8 text-[11px] font-bold transition-all duration-150 cursor-pointer rounded-xl bg-white border border-slate-200/90 border-b-2 border-b-slate-300 text-slate-700 shadow-xs hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 hover:-translate-y-0.5 active:translate-y-0.5 active:border-b-slate-200",
                 currentPage === totalPages && "pointer-events-none opacity-40 grayscale"
               )}
             />
@@ -202,7 +202,7 @@ export const NextPagination = ({
                 if (currentPage < totalPages) onPageChange(totalPages);
               }}
               className={cn(
-                "h-8 w-8 p-0 text-[11px] font-bold transition-all cursor-pointer border-slate-200 text-slate-900 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100",
+                "h-8 w-8 p-0 text-[11px] font-bold transition-all duration-150 cursor-pointer rounded-xl bg-white border border-slate-200/90 border-b-2 border-b-slate-300 text-slate-700 shadow-xs hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 hover:-translate-y-0.5 active:translate-y-0.5 active:border-b-slate-200",
                 currentPage === totalPages && "pointer-events-none opacity-40 grayscale"
               )}
             >

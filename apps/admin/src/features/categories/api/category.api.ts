@@ -78,7 +78,14 @@ export const categoryApi = {
     values: Partial<CategoryFormValues>,
   ): Promise<{ success: boolean; data: Category }> => {
     const { imageUrl, imagePublicId, ...rest } = values;
-    const mappedUrl = typeof imageUrl === 'string' ? imageUrl : undefined;
+
+    let imageFile: File | undefined = undefined;
+    let mappedUrl: string | undefined = undefined;
+    if (imageUrl instanceof File) {
+      imageFile = imageUrl;
+    } else if (typeof imageUrl === 'string') {
+      mappedUrl = imageUrl;
+    }
 
     const payload = {
       ...rest,
@@ -87,13 +94,26 @@ export const categoryApi = {
       image: mappedUrl ? { url: mappedUrl, publicId: imagePublicId } : undefined,
     };
 
-    const res = await clientFetch(`v1/categories/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
+    let res: Response;
+    if (imageFile) {
+      const formData = new FormData();
+      formData.append('category', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+      formData.append('imageFile', imageFile);
+
+      res = await clientFetch(`v1/categories/${id}`, {
+        method: 'PATCH',
+        body: formData,
+      });
+    } else {
+      res = await clientFetch(`v1/categories/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+    }
+
     const result = await res.json();
     if (!res.ok) throw new Error(result.message || 'Failed to update category');
     if (result.data) {
@@ -107,7 +127,14 @@ export const categoryApi = {
     values: CategoryFormValues,
   ): Promise<{ success: boolean; data: Category }> => {
     const { imageUrl, imagePublicId, ...rest } = values;
-    const mappedUrl = typeof imageUrl === 'string' ? imageUrl : undefined;
+
+    let imageFile: File | undefined = undefined;
+    let mappedUrl: string | undefined = undefined;
+    if (imageUrl instanceof File) {
+      imageFile = imageUrl;
+    } else if (typeof imageUrl === 'string') {
+      mappedUrl = imageUrl;
+    }
 
     const payload = {
       ...rest,
@@ -116,13 +143,26 @@ export const categoryApi = {
       image: mappedUrl ? { url: mappedUrl, publicId: imagePublicId } : undefined,
     };
 
-    const res = await clientFetch('v1/categories', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
+    let res: Response;
+    if (imageFile) {
+      const formData = new FormData();
+      formData.append('category', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+      formData.append('imageFile', imageFile);
+
+      res = await clientFetch('v1/categories', {
+        method: 'POST',
+        body: formData,
+      });
+    } else {
+      res = await clientFetch('v1/categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+    }
+
     const result = await res.json();
     if (!res.ok) throw new Error(result.message || 'Failed to create category');
     if (result.data) {

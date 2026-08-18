@@ -21,6 +21,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
+
 @RestController
 @RequestMapping("/v1/admin/products")
 @RequiredArgsConstructor
@@ -30,12 +34,23 @@ public class AdminProductController {
 
     private final ProductService productService;
 
-    @PostMapping
-    @Operation(summary = "Create a new product")
-    public ResponseEntity<ApiResponse<ProductResponse>> createProduct(@Valid @RequestBody ProductRequest request) {
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Create a new product (JSON)")
+    public ResponseEntity<ApiResponse<ProductResponse>> createProductJson(@Valid @RequestBody ProductRequest request) {
         return new ResponseEntity<>(ApiResponse.<ProductResponse>builder()
                 .success(true).message("Product created successfully")
-                .data(productService.createProduct(request)).build(), HttpStatus.CREATED);
+                .data(productService.createProduct(request, null, null)).build(), HttpStatus.CREATED);
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Create a new product (Multipart)")
+    public ResponseEntity<ApiResponse<ProductResponse>> createProductMultipart(
+            @RequestPart("product") @Valid ProductRequest request,
+            @RequestPart(value = "thumbnailFile", required = false) MultipartFile thumbnailFile,
+            @RequestPart(value = "imageFiles", required = false) List<MultipartFile> imageFiles) {
+        return new ResponseEntity<>(ApiResponse.<ProductResponse>builder()
+                .success(true).message("Product created successfully")
+                .data(productService.createProduct(request, thumbnailFile, imageFiles)).build(), HttpStatus.CREATED);
     }
 
     @GetMapping

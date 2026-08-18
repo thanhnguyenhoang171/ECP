@@ -5,11 +5,76 @@ import { ProductFormValues } from '../schemas/product.schema';
 export const productApi = {
   create: async (data: ProductFormValues): Promise<Product> => {
     try {
-      const res = await clientFetch('v1/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+      const formData = new FormData();
+      let hasFiles = false;
+
+      // Process Thumbnail
+      let thumbnailFile: File | undefined = undefined;
+      let thumbnailObj: any = undefined;
+      if (data.thumbnail instanceof File) {
+        thumbnailFile = data.thumbnail;
+        hasFiles = true;
+      } else if (typeof data.thumbnail === 'string' && data.thumbnail.trim() !== '') {
+        thumbnailObj = { url: data.thumbnail };
+      } else if (data.thumbnail && typeof data.thumbnail === 'object' && data.thumbnail.url) {
+        thumbnailObj = data.thumbnail;
+      }
+
+      // Process Gallery Images
+      const imageFiles: File[] = [];
+      const imageObjs: any[] = [];
+      if (Array.isArray(data.images)) {
+        data.images.forEach(img => {
+          if (img instanceof File) {
+            imageFiles.push(img);
+            hasFiles = true;
+          } else if (typeof img === 'string' && img.trim() !== '') {
+            imageObjs.push({ url: img });
+          } else if (img && typeof img === 'object' && img.url) {
+            imageObjs.push(img);
+          }
+        });
+      }
+
+      // Build JSON Payload
+      const payload: any = {
+        ...data,
+        thumbnail: thumbnailObj,
+        images: imageObjs,
+        specifications: Array.isArray(data.specifications) ? data.specifications.reduce((acc: any, curr: any) => {
+          if (curr.key) acc[curr.key] = curr.value;
+          return acc;
+        }, {}) : (data.specifications || {}),
+        variants: (data.variants || []).map(v => ({
+          ...v,
+          attributes: Array.isArray(v.attributes) ? v.attributes.reduce((acc: any, curr: any) => {
+            if (curr.key) acc[curr.key] = curr.value;
+            return acc;
+          }, {}) : (v.attributes || {})
+        }))
+      };
+
+      let res: Response;
+      if (hasFiles) {
+        formData.append('product', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+        if (thumbnailFile) {
+          formData.append('thumbnailFile', thumbnailFile);
+        }
+        imageFiles.forEach(f => {
+          formData.append('imageFiles', f);
+        });
+
+        res = await clientFetch('v1/products', {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        res = await clientFetch('v1/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
 
       if (res.ok) {
         const result = await res.json();

@@ -25,12 +25,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BrandServiceImpl implements BrandService {
 
     private final BrandRepository brandRepository;
@@ -113,7 +117,32 @@ public class BrandServiceImpl implements BrandService {
     @Override
     @Transactional
     public BrandResponse createBrand(BrandRequest request) {
-        return brandMapper.toResponse(doSaveBrand(request));
+        return createBrand(request, null);
+    }
+
+    @Override
+    @Transactional
+    public BrandResponse createBrand(BrandRequest request, MultipartFile logoFile) {
+        String uploadedPublicId = null;
+        try {
+            if (logoFile != null && !logoFile.isEmpty()) {
+                Map result = cloudinaryService.upload(logoFile, "brands");
+                if (result != null && result.containsKey("secure_url")) {
+                    request.setLogo((String) result.get("secure_url"));
+                    uploadedPublicId = (String) result.get("public_id");
+                }
+            }
+            return brandMapper.toResponse(doSaveBrand(request));
+        } catch (Exception e) {
+            if (uploadedPublicId != null) {
+                try {
+                    cloudinaryService.delete(uploadedPublicId);
+                } catch (Exception delEx) {
+                    log.error("Failed to delete orphaned Cloudinary asset {}: {}", uploadedPublicId, delEx.getMessage());
+                }
+            }
+            throw e;
+        }
     }
 
     @Override
@@ -139,7 +168,32 @@ public class BrandServiceImpl implements BrandService {
     @Override
     @Transactional
     public BrandResponse updateBrand(String id, BrandRequest request) {
-        return brandMapper.toResponse(doUpdateBrand(id, request));
+        return updateBrand(id, request, null);
+    }
+
+    @Override
+    @Transactional
+    public BrandResponse updateBrand(String id, BrandRequest request, MultipartFile logoFile) {
+        String uploadedPublicId = null;
+        try {
+            if (logoFile != null && !logoFile.isEmpty()) {
+                Map result = cloudinaryService.upload(logoFile, "brands");
+                if (result != null && result.containsKey("secure_url")) {
+                    request.setLogo((String) result.get("secure_url"));
+                    uploadedPublicId = (String) result.get("public_id");
+                }
+            }
+            return brandMapper.toResponse(doUpdateBrand(id, request));
+        } catch (Exception e) {
+            if (uploadedPublicId != null) {
+                try {
+                    cloudinaryService.delete(uploadedPublicId);
+                } catch (Exception delEx) {
+                    log.error("Failed to delete orphaned Cloudinary asset {}: {}", uploadedPublicId, delEx.getMessage());
+                }
+            }
+            throw e;
+        }
     }
 
     @Override
@@ -160,7 +214,32 @@ public class BrandServiceImpl implements BrandService {
     @Override
     @Transactional
     public BrandAdminResponse createBrandAdmin(BrandRequest request) {
-        return brandMapper.toAdminResponse(doSaveBrand(request));
+        return createBrandAdmin(request, null);
+    }
+
+    @Override
+    @Transactional
+    public BrandAdminResponse createBrandAdmin(BrandRequest request, MultipartFile logoFile) {
+        String uploadedPublicId = null;
+        try {
+            if (logoFile != null && !logoFile.isEmpty()) {
+                Map result = cloudinaryService.upload(logoFile, "brands");
+                if (result != null && result.containsKey("secure_url")) {
+                    request.setLogo((String) result.get("secure_url"));
+                    uploadedPublicId = (String) result.get("public_id");
+                }
+            }
+            return brandMapper.toAdminResponse(doSaveBrand(request));
+        } catch (Exception e) {
+            if (uploadedPublicId != null) {
+                try {
+                    cloudinaryService.delete(uploadedPublicId);
+                } catch (Exception delEx) {
+                    log.error("Failed to delete orphaned Cloudinary asset {}: {}", uploadedPublicId, delEx.getMessage());
+                }
+            }
+            throw e;
+        }
     }
 
     @Override
@@ -186,6 +265,31 @@ public class BrandServiceImpl implements BrandService {
     @Override
     @Transactional
     public BrandAdminResponse updateBrandAdmin(String id, BrandRequest request) {
-        return brandMapper.toAdminResponse(doUpdateBrand(id, request));
+        return updateBrandAdmin(id, request, null);
+    }
+
+    @Override
+    @Transactional
+    public BrandAdminResponse updateBrandAdmin(String id, BrandRequest request, MultipartFile logoFile) {
+        String uploadedPublicId = null;
+        try {
+            if (logoFile != null && !logoFile.isEmpty()) {
+                Map result = cloudinaryService.upload(logoFile, "brands");
+                if (result != null && result.containsKey("secure_url")) {
+                    request.setLogo((String) result.get("secure_url"));
+                    uploadedPublicId = (String) result.get("public_id");
+                }
+            }
+            return brandMapper.toAdminResponse(doUpdateBrand(id, request));
+        } catch (Exception e) {
+            if (uploadedPublicId != null) {
+                try {
+                    cloudinaryService.delete(uploadedPublicId);
+                } catch (Exception delEx) {
+                    log.error("Failed to delete orphaned Cloudinary asset {}: {}", uploadedPublicId, delEx.getMessage());
+                }
+            }
+            throw e;
+        }
     }
 }

@@ -72,7 +72,7 @@ export const ImageUpload = ({
   variant = 'default',
   reqWidth,
   reqHeight,
-  deferUpload = false
+  deferUpload = true
 }: ImageUploadProps) => {
   const [internalImages, setInternalImages] = useState<ImageValue[]>([]);
 
@@ -296,12 +296,13 @@ export const ImageUpload = ({
   const handleRemove = (url: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // Lấy publicId đã được lưu trước đó từ response của upload API, hoặc trích xuất từ URL làm phương án dự phòng
-    const item = internalImages.find(img => img.url === url);
-    const publicId = item?.publicId || getCloudinaryPublicId(url);
-    
-    if (publicId) {
-      deleteFile(publicId);
+    if (!deferUpload && !url.startsWith('blob:')) {
+      const item = internalImages.find(img => img.url === url);
+      const publicId = item?.publicId || getCloudinaryPublicId(url);
+      
+      if (publicId) {
+        deleteFile(publicId);
+      }
     }
 
     const updatedImages = internalImages.filter(img => img.url !== url);
@@ -318,7 +319,7 @@ export const ImageUpload = ({
 
   const renderSinglePreview = () => {
     const currentImage = internalImages[0];
-    const isItemUploading = currentImage?.isUploading || currentImage?.url?.startsWith('blob:');
+    const isItemUploading = Boolean(currentImage?.isUploading);
 
     return (
       <div className={cn(
@@ -393,7 +394,7 @@ export const ImageUpload = ({
   const renderMultiPreview = () => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
       {internalImages.map((img, i) => {
-        const isItemUploading = img.isUploading || img.url.startsWith('blob:');
+        const isItemUploading = Boolean(img.isUploading);
 
         return (
           <div key={img.url} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-slate-50 group shadow-md animate-in zoom-in-95 duration-200">

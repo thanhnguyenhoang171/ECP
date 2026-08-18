@@ -25,17 +25,17 @@ import {
 } from '@/components/ui/select';
 import { userSchema, UserFormValues } from '../schemas/user.schema';
 import { useCreateUser, useUpdateUser } from '../hooks/use-users';
-import { useUploadFile } from '@/features/files/hooks/use-file-upload';
 import { FormSection, FormGrid, AdminFormLabel, FormActionsBar } from '@/components/common';
 import { useAuthStore } from '@/store/authStore';
+import AvatarCropModal from '@/components/common/AvatarCropModal';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import AvatarCropModal from '@/components/common/AvatarCropModal';
+import { User } from '../types/user.interface';
 
 interface UserFormProps {
   onSuccess: () => void;
-  onCancel?: () => void;
-  initialData?: UserFormValues;
+  onCancel: () => void;
+  initialData?: User | null;
   userId?: string;
   isDialog?: boolean;
 }
@@ -47,7 +47,6 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
 
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
-  const uploadFileMutation = useUploadFile();
   const [isUploading, setIsUploading] = useState(false);
   const isEdit = !!initialData;
   const [activeTab, setActiveTab] = useState<'general'>('general');
@@ -139,22 +138,10 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
     e.target.value = '';
   };
 
-  const handleCropComplete = async (croppedFile: File) => {
-    try {
-      setIsUploading(true);
-      toast.info("Đang tải ảnh đã cắt lên Cloudinary...");
-      const res = await uploadFileMutation.mutateAsync({ file: croppedFile, folder: 'avatars' });
-      if (res.success && res.data) {
-        form.setValue('avatarUrl', res.data.secure_url, { shouldValidate: true, shouldDirty: true });
-        form.setValue('avatarPublicId' as any, res.data.public_id, { shouldValidate: true, shouldDirty: true });
-        toast.success("Đã tải ảnh đại diện đã cắt lên Cloudinary thành công!");
-      }
-    } catch (err: any) {
-      console.error("Upload error:", err);
-      toast.error("Lỗi khi tải ảnh lên Cloudinary, vui lòng thử lại.");
-    } finally {
-      setIsUploading(false);
-    }
+  const handleCropComplete = (croppedFile: File) => {
+    form.setValue('avatarUrl', croppedFile as any, { shouldValidate: true, shouldDirty: true });
+    setIsCropOpen(false);
+    toast.success("Đã chọn và cắt ảnh đại diện!");
   };
 
   const tabs = [
@@ -356,7 +343,13 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
               <div className="space-y-4">
                 <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 hover:bg-slate-50 transition-all text-center group">
                   <Avatar className="h-28 w-28 border-4 border-white shadow-lg ring-1 ring-slate-200/80 mb-4">
-                    {currentAvatarUrl && <AvatarImage src={currentAvatarUrl} alt={currentFullName || 'Avatar'} className="object-cover" />}
+                    {currentAvatarUrl && (
+                      <AvatarImage 
+                        src={typeof currentAvatarUrl === 'string' ? currentAvatarUrl : ((currentAvatarUrl as any) instanceof File ? URL.createObjectURL(currentAvatarUrl as any) : '')} 
+                        alt={currentFullName || 'Avatar'} 
+                        className="object-cover" 
+                      />
+                    )}
                     <AvatarFallback className="bg-blue-100 text-blue-700 font-black text-2xl">
                       {getInitials(currentFullName)}
                     </AvatarFallback>
