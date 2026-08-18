@@ -160,6 +160,9 @@ jobs:
           CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          # Secrets cho Swagger Auth
+          SWAGGER_USERNAME: ${{ secrets.SWAGGER_USERNAME }}
+          SWAGGER_PASSWORD: ${{ secrets.SWAGGER_PASSWORD }}
           # Secrets cho Frontend & Admin
           NEXT_PUBLIC_ADMIN_API_URL: ${{ secrets.NEXT_PUBLIC_ADMIN_API_URL }}
           NEXT_PUBLIC_STOREFRONT_API_URL: ${{ secrets.NEXT_PUBLIC_STOREFRONT_API_URL }}
@@ -207,6 +210,8 @@ jobs:
           echo "CLOUDINARY_CLOUD_NAME=$CLOUDINARY_CLOUD_NAME" >> .env
           echo "CLOUDINARY_API_KEY=$CLOUDINARY_API_KEY" >> .env
           echo "CLOUDINARY_API_SECRET=$CLOUDINARY_API_SECRET" >> .env
+          echo "SWAGGER_USERNAME=$SWAGGER_USERNAME" >> .env
+          echo "SWAGGER_PASSWORD=$SWAGGER_PASSWORD" >> .env
           echo "NEXT_PUBLIC_ADMIN_API_URL=$NEXT_PUBLIC_ADMIN_API_URL" >> .env
           echo "NEXT_PUBLIC_STOREFRONT_API_URL=$NEXT_PUBLIC_STOREFRONT_API_URL" >> .env
           echo "STOREFRONT_INTERNAL_API_URL=$STOREFRONT_INTERNAL_API_URL" >> .env
