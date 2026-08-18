@@ -12,6 +12,7 @@ import com.example.ecp_api.service.UserService;
 import com.example.ecp_api.util.IpUtils;
 import com.example.ecp_api.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -171,20 +172,22 @@ public class AuthController {
         }
 
         @PostMapping("/refresh")
-        @Operation(summary = "Refresh Access Token", description = "Generates a new Access Token using a valid Refresh Token.")
+        @Operation(summary = "Refresh Access Token", description = "Generates a new Access Token using a valid Refresh Token. Accepts token via HttpOnly Cookie (Web Browsers) or JSON Request Body (Mobile/Postman).")
         public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
-                        @CookieValue(name = "refreshToken", required = false) String cookieRefreshToken,
+                        @Parameter(hidden = true) @CookieValue(name = "refreshToken", required = false) String cookieRefreshToken,
                         @RequestBody(required = false) RefreshTokenRequest request) {
 
-                String requestRefreshToken = cookieRefreshToken;
-                if (!StringUtils.hasText(requestRefreshToken) && request != null) {
+                String requestRefreshToken = null;
+                if (request != null && StringUtils.hasText(request.getRefreshToken())) {
                         requestRefreshToken = request.getRefreshToken();
+                } else {
+                        requestRefreshToken = cookieRefreshToken;
                 }
 
                 if (!StringUtils.hasText(requestRefreshToken)) {
                         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                                         ApiResponse.<AuthResponse>builder().success(false)
-                                                        .message("Refresh token is missing").build());
+                                                         .message("Refresh token is missing").build());
                 }
 
                 if (jwtTokenProvider.validateJwtToken(requestRefreshToken)
@@ -223,9 +226,9 @@ public class AuthController {
         }
 
         @PostMapping("/logout")
-        @Operation(summary = "Logout", description = "Invalidates tokens in Redis and clears the Refresh Token cookie.")
+        @Operation(summary = "Logout", description = "Invalidates tokens in Redis and clears the Refresh Token cookie. Accepts token via HttpOnly Cookie (Web Browsers) or JSON Request Body (Mobile/Postman).")
         public ResponseEntity<ApiResponse<Void>> logout(
-                        @CookieValue(name = "refreshToken", required = false) String cookieRefreshToken,
+                        @Parameter(hidden = true) @CookieValue(name = "refreshToken", required = false) String cookieRefreshToken,
                         @RequestBody(required = false) RefreshTokenRequest logoutRequest,
                         HttpServletRequest request,
                         HttpServletResponse response) {
@@ -237,9 +240,11 @@ public class AuthController {
                         accessToken = headerAuth.substring(7);
                 }
 
-                String refreshToken = cookieRefreshToken;
-                if (!StringUtils.hasText(refreshToken) && logoutRequest != null) {
+                String refreshToken = null;
+                if (logoutRequest != null && StringUtils.hasText(logoutRequest.getRefreshToken())) {
                         refreshToken = logoutRequest.getRefreshToken();
+                } else {
+                        refreshToken = cookieRefreshToken;
                 }
 
                 // Delete tokens from Redis

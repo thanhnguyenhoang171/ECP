@@ -23,6 +23,13 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+
 import java.util.List;
 
 @Configuration
@@ -30,6 +37,12 @@ import java.util.List;
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+
+    @Value("${swagger.auth.username:admin}")
+    private String swaggerUsername;
+
+    @Value("${swagger.auth.password:swagger@123}")
+    private String swaggerPassword;
 
     private final CustomUserDetailsService userDetailsService;
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
@@ -51,6 +64,28 @@ public class SecurityConfig {
     }
 
     @Bean
+    @Order(1)
+    public SecurityFilterChain swaggerSecurityFilterChain(HttpSecurity http) throws Exception {
+        UserDetails swaggerUser = User.builder()
+                .username(swaggerUsername)
+                .password(passwordEncoder.encode(swaggerPassword))
+                .roles("SWAGGER_ADMIN")
+                .build();
+        UserDetailsService inMemoryManager = new InMemoryUserDetailsManager(swaggerUser);
+
+        http
+                .securityMatcher("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+                .cors(Customizer.withDefaults())
+                .csrf(csrf -> csrf.disable())
+                .userDetailsService(inMemoryManager)
+                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .httpBasic(Customizer.withDefaults());
+
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults())
@@ -63,8 +98,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public Auth Endpoints
                         .requestMatchers("/v1/auth/**", "/auth/**").permitAll()
-                        // Public Swagger OpenAPI Endpoints
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         // Public Storefront Catalog Read Access
                         .requestMatchers(HttpMethod.GET, "/v1/storefront/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/products/**", "/v1/categories/**", "/v1/brands/**").permitAll()
