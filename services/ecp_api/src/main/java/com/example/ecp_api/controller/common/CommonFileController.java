@@ -98,4 +98,17 @@ public class CommonFileController {
                         .build()
         );
     }
+
+    @DeleteMapping("/delete-by-url")
+    @Operation(summary = "Delete a file by URL")
+    public ResponseEntity<ApiResponse<Void>> deleteFileByUrl(@RequestParam("url") String url) {
+        cloudinaryService.deleteByUrl(url);
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .success(true)
+                        .code("FILE_DELETED_SUCCESS")
+                        .message("File deleted successfully")
+                        .build()
+        );
+    }
 }

@@ -273,16 +273,4 @@ public class AuthController {
                                 .message("Logout successful")
                                 .build());
         }
-
-        @GetMapping("/status/{id}")
-        @Operation(summary = "Check user online status by User ID", description = "Checks if a user is currently active in the system (online) based on Redis presence by User ID.")
-        public ResponseEntity<ApiResponse<Boolean>> checkUserStatus(@PathVariable String id) {
-                UserResponse user = userService.getUserById(UUID.fromString(id));
-                boolean isOnline = tokenService.isUserOnline(user.getEmail());
-                return ResponseEntity.ok(ApiResponse.<Boolean>builder()
-                                .success(true)
-                                .message("User status fetched successfully")
-                                .data(isOnline)
-                                .build());
-        }
 }

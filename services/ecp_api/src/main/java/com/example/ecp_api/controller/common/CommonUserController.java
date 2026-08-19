@@ -1,6 +1,5 @@
 package com.example.ecp_api.controller.common;
 
-import com.example.ecp_api.dto.request.UserUpdateRequest;
 import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.dto.response.UserResponse;
 import com.example.ecp_api.service.UserService;
@@ -12,13 +11,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/v1/common/users")
 @RequiredArgsConstructor
 @PreAuthorize("isAuthenticated()")
-@Tag(name = "[COMMON] User Account", description = "Authenticated users: View own account and update profile. Accessible by SUPER_ADMIN, MANAGER, and USER.")
+@Tag(name = "[COMMON] User Account", description = "Authenticated users: View own account details. Accessible by SUPER_ADMIN, MANAGER, and USER.")
 public class CommonUserController {
 
     private final UserService userService;
@@ -30,14 +27,5 @@ public class CommonUserController {
         return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
                 .success(true).message("Account fetched successfully")
                 .data(userService.getCurrentUserAccount(email)).build());
-    }
-
-    @PutMapping("/{id}")
-    @Operation(summary = "Update user profile")
-    public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
-            @PathVariable UUID id, @RequestBody UserUpdateRequest request) {
-        return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
-                .success(true).message("Profile updated successfully")
-                .data(userService.updateUser(id, request)).build());
     }
 }

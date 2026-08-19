@@ -6,6 +6,7 @@ import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.UserResponse;
 import com.example.ecp_api.dto.response.UserStatisticsResponse;
+import com.example.ecp_api.service.TokenService;
 import com.example.ecp_api.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -32,6 +33,7 @@ import java.util.UUID;
 public class AdminUserController {
 
     private final UserService userService;
+    private final TokenService tokenService;
 
     @PostMapping
     @Operation(summary = "Create a new user (any role)")
@@ -76,5 +78,17 @@ public class AdminUserController {
         return ResponseEntity.ok(ApiResponse.<UserStatisticsResponse>builder()
                 .success(true).message("Statistics fetched successfully")
                 .data(userService.getStatistics()).build());
+    }
+
+    @GetMapping("/status/{id}")
+    @Operation(summary = "Check user online status by User ID", description = "Checks if a user is currently active in the system (online) based on Redis presence by User ID. Accessible only by SUPER_ADMIN.")
+    public ResponseEntity<ApiResponse<Boolean>> checkUserStatus(@PathVariable String id) {
+        UserResponse user = userService.getUserById(UUID.fromString(id));
+        boolean isOnline = tokenService.isUserOnline(user.getEmail());
+        return ResponseEntity.ok(ApiResponse.<Boolean>builder()
+                .success(true)
+                .message("User status fetched successfully")
+                .data(isOnline)
+                .build());
     }
 }
