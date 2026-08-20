@@ -6,9 +6,12 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class OpenAPIConfig {
@@ -17,6 +20,9 @@ public class OpenAPIConfig {
     public OpenAPI customOpenAPI() {
         final String securitySchemeName = "bearerAuth";
         return new OpenAPI()
+                .servers(List.of(
+                        new Server().url("/api").description("Default API URL")
+                ))
                 .info(new Info()
                         .title("ECP E-Commerce Platform API Documentation")
                         .version("1.0.0")
