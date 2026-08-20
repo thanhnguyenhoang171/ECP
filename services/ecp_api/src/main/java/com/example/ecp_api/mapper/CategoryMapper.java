@@ -25,6 +25,7 @@ public interface CategoryMapper {
     @Mapping(target = "updatedBy", ignore = true)
     Category toEntity(CategoryRequest request);
 
+    @Mapping(target = "isFeatured", source = "featured")
     CategoryResponse toResponse(Category category);
 
     default PageResponse<CategoryResponse> toPageResponse(Page<Category> page) {
@@ -51,8 +52,11 @@ public interface CategoryMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "level", ignore = true)
+    @Mapping(target = "featured", source = "isFeatured")
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
     void updateCategoryFromRequest(CategoryRequest request, @MappingTarget Category category);
 }
