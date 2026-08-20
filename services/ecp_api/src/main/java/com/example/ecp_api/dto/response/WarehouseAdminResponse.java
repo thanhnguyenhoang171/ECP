@@ -37,6 +37,9 @@ public class WarehouseAdminResponse {
     @Schema(description = "Last update timestamp")
     private LocalDateTime updatedAt;
 
+    @Schema(description = "Assigned Manager email")
+    private String managerEmail;
+
     @Schema(description = "Creator email")
     private String createdBy;
 

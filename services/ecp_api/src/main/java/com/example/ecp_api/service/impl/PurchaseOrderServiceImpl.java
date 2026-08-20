@@ -55,6 +55,13 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         Warehouse warehouse = warehouseRepository.findById(UUID.fromString(request.getWarehouseId()))
                 .orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Không tìm thấy kho hàng với ID: " + request.getWarehouseId(), HttpStatus.NOT_FOUND));
 
+        if (!SecurityUtils.isSuperAdmin() && SecurityUtils.isManager()) {
+            String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+            if (warehouse.getCreatedBy() != null && !warehouse.getCreatedBy().equalsIgnoreCase(currentUserEmail)) {
+                throw new AppException("FORBIDDEN", "Bạn không có quyền tạo đơn mua hàng cho kho hàng của Manager khác.", HttpStatus.FORBIDDEN);
+            }
+        }
+
         Supplier supplier = supplierRepository.findById(UUID.fromString(request.getSupplierId()))
                 .orElseThrow(() -> new AppException("SUPPLIER_NOT_FOUND", "Không tìm thấy nhà cung cấp với ID: " + request.getSupplierId(), HttpStatus.NOT_FOUND));
 
@@ -102,6 +109,13 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     public PurchaseOrderResponse updatePurchaseOrder(String id, PurchaseOrderRequest request) {
         PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("PURCHASE_ORDER_NOT_FOUND", "Không tìm thấy đơn mua hàng với ID: " + id, HttpStatus.NOT_FOUND));
+
+        if (!SecurityUtils.isSuperAdmin() && SecurityUtils.isManager()) {
+            String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+            if (purchaseOrder.getCreatedBy() != null && !purchaseOrder.getCreatedBy().equalsIgnoreCase(currentUserEmail)) {
+                throw new AppException("FORBIDDEN", "Bạn không có quyền sửa đơn mua hàng của Manager khác.", HttpStatus.FORBIDDEN);
+            }
+        }
 
         if (!purchaseOrder.getPoCode().equals(request.getPoCode()) && purchaseOrderRepository.existsByPoCode(request.getPoCode())) {
             throw new AppException("PO_CODE_EXISTS", "Mã đơn mua hàng đã tồn tại: " + request.getPoCode(), HttpStatus.BAD_REQUEST);
@@ -160,6 +174,13 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("PURCHASE_ORDER_NOT_FOUND", "Không tìm thấy đơn mua hàng với ID: " + id, HttpStatus.NOT_FOUND));
 
+        if (!SecurityUtils.isSuperAdmin() && SecurityUtils.isManager()) {
+            String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+            if (purchaseOrder.getCreatedBy() != null && !purchaseOrder.getCreatedBy().equalsIgnoreCase(currentUserEmail)) {
+                throw new AppException("FORBIDDEN", "Bạn không có quyền xem đơn mua hàng của Manager khác.", HttpStatus.FORBIDDEN);
+            }
+        }
+
         return purchaseOrderMapper.toResponse(purchaseOrder);
     }
 
@@ -202,6 +223,13 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
+            if (!SecurityUtils.isSuperAdmin() && SecurityUtils.isManager()) {
+                String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+                if (StringUtils.hasText(currentUserEmail)) {
+                    predicates.add(cb.equal(root.get("createdBy"), currentUserEmail));
+                }
+            }
+
             if (filter != null) {
                 if (StringUtils.hasText(filter.getKeyword())) {
                     String searchPattern = "%" + filter.getKeyword().toLowerCase() + "%";
@@ -241,6 +269,13 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     public void deletePurchaseOrder(String id) {
         PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("PURCHASE_ORDER_NOT_FOUND", "Không tìm thấy đơn mua hàng với ID: " + id, HttpStatus.NOT_FOUND));
+
+        if (!SecurityUtils.isSuperAdmin() && SecurityUtils.isManager()) {
+            String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+            if (purchaseOrder.getCreatedBy() != null && !purchaseOrder.getCreatedBy().equalsIgnoreCase(currentUserEmail)) {
+                throw new AppException("FORBIDDEN", "Bạn không có quyền xóa đơn mua hàng của Manager khác.", HttpStatus.FORBIDDEN);
+            }
+        }
 
         purchaseOrderRepository.delete(purchaseOrder);
 

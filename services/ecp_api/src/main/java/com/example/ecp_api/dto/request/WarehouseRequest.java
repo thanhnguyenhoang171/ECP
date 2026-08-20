@@ -24,6 +24,9 @@ public class WarehouseRequest {
     @Schema(description = "Physical address of the warehouse", example = "123 Đường ABC, Quận 1, TP.HCM")
     private String address;
 
+    @Schema(description = "Assigned Manager email (optional, for Admin assignment)", example = "yen@gmail.com")
+    private String managerEmail;
+
     @Schema(description = "Active status", example = "true")
     private Boolean isActive;
 }

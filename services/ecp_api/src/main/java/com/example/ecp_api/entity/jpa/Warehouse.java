@@ -52,6 +52,9 @@ public class Warehouse {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "manager_email")
+    private String managerEmail;
+
     @CreatedBy
     @Column(name = "created_by", updatable = false)
     private String createdBy;
