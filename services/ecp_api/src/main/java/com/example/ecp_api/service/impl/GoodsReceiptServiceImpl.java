@@ -64,6 +64,14 @@ public class GoodsReceiptServiceImpl implements GoodsReceiptService {
 
         Warehouse warehouse = warehouseRepository.findById(UUID.fromString(request.getWarehouseId()))
                 .orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Không tìm thấy kho hàng.", HttpStatus.NOT_FOUND));
+
+        if (!SecurityUtils.isSuperAdmin() && SecurityUtils.isManager()) {
+            String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+            if (warehouse.getCreatedBy() != null && !warehouse.getCreatedBy().equalsIgnoreCase(currentUserEmail)) {
+                throw new AppException("FORBIDDEN", "Bạn không có quyền nhập kho vào kho hàng của Manager khác.", HttpStatus.FORBIDDEN);
+            }
+        }
+
         receipt.setWarehouse(warehouse);
 
         goodsReceiptHelper.processGoodsReceiptItems(request, receipt);
@@ -105,6 +113,13 @@ public class GoodsReceiptServiceImpl implements GoodsReceiptService {
     public GoodsReceiptResponse updateGoodsReceipt(String id, GoodsReceiptRequest request) {
         GoodsReceipt receipt = goodsReceiptRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("RECEIPT_NOT_FOUND", "Không tìm thấy phiếu nhập.", HttpStatus.NOT_FOUND));
+
+        if (!SecurityUtils.isSuperAdmin() && SecurityUtils.isManager()) {
+            String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+            if (receipt.getCreatedBy() != null && !receipt.getCreatedBy().equalsIgnoreCase(currentUserEmail)) {
+                throw new AppException("FORBIDDEN", "Bạn không có quyền sửa phiếu nhập của Manager khác.", HttpStatus.FORBIDDEN);
+            }
+        }
 
         if (receipt.getStatus() != ReceiptStatus.DRAFT) {
             throw new AppException("INVALID_STATUS", "Chỉ có thể cập nhật phiếu ở trạng thái DRAFT.", HttpStatus.BAD_REQUEST);
@@ -155,6 +170,14 @@ public class GoodsReceiptServiceImpl implements GoodsReceiptService {
     public GoodsReceiptResponse getGoodsReceiptById(String id) {
         GoodsReceipt receipt = goodsReceiptRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("RECEIPT_NOT_FOUND", "Không tìm thấy phiếu nhập.", HttpStatus.NOT_FOUND));
+
+        if (!SecurityUtils.isSuperAdmin() && SecurityUtils.isManager()) {
+            String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+            if (receipt.getCreatedBy() != null && !receipt.getCreatedBy().equalsIgnoreCase(currentUserEmail)) {
+                throw new AppException("FORBIDDEN", "Bạn không có quyền xem phiếu nhập của Manager khác.", HttpStatus.FORBIDDEN);
+            }
+        }
+
         return goodsReceiptMapper.toResponse(receipt);
     }
 
@@ -171,6 +194,14 @@ public class GoodsReceiptServiceImpl implements GoodsReceiptService {
     public PageResponse<GoodsReceiptResponse> getAllGoodsReceipts(com.example.ecp_api.dto.request.GoodsReceiptFilterRequest filter, Pageable pageable) {
         org.springframework.data.jpa.domain.Specification<GoodsReceipt> spec = (root, query, cb) -> {
             java.util.List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+
+            if (!SecurityUtils.isSuperAdmin() && SecurityUtils.isManager()) {
+                String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+                if (StringUtils.hasText(currentUserEmail)) {
+                    predicates.add(cb.equal(root.get("createdBy"), currentUserEmail));
+                }
+            }
+
             if (filter != null) {
                 if (org.springframework.util.StringUtils.hasText(filter.getReceiptCode())) {
                     predicates.add(cb.like(root.get("receiptCode"), "%" + filter.getReceiptCode() + "%"));
@@ -223,6 +254,13 @@ public class GoodsReceiptServiceImpl implements GoodsReceiptService {
     public void deleteGoodsReceipt(String id) {
         GoodsReceipt receipt = goodsReceiptRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("RECEIPT_NOT_FOUND", "Không tìm thấy phiếu nhập.", HttpStatus.NOT_FOUND));
+
+        if (!SecurityUtils.isSuperAdmin() && SecurityUtils.isManager()) {
+            String currentUserEmail = SecurityUtils.getCurrentUserEmail();
+            if (receipt.getCreatedBy() != null && !receipt.getCreatedBy().equalsIgnoreCase(currentUserEmail)) {
+                throw new AppException("FORBIDDEN", "Bạn không có quyền xóa phiếu nhập của Manager khác.", HttpStatus.FORBIDDEN);
+            }
+        }
         
         if (receipt.getStatus() == ReceiptStatus.RECEIVED) {
             throw new AppException("INVALID_STATUS", "Không thể xóa phiếu đã nhập kho.", HttpStatus.BAD_REQUEST);
