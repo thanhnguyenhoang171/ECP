@@ -29,6 +29,9 @@ public interface ProductMapper {
     Product toEntity(ProductRequest request);
 
     @Mapping(target = "isPublished", source = "published")
+    @Mapping(target = "isFeatured", source = "featured")
+    @Mapping(target = "isNew", source = "new")
+    @Mapping(target = "isBestSeller", source = "bestSeller")
     ProductResponse toResponse(Product product);
 
     default PageResponse<ProductResponse> toPageResponse(Page<Product> page) {
@@ -55,9 +58,14 @@ public interface ProductMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "published", source = "isPublished")
+    @Mapping(target = "featured", source = "isFeatured")
+    @Mapping(target = "new", source = "isNew")
+    @Mapping(target = "bestSeller", source = "isBestSeller")
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
     void updateProductFromRequest(ProductRequest request, @MappingTarget Product product);
 
     // --- Product Variant Mappings ---

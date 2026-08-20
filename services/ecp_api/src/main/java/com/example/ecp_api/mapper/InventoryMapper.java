@@ -22,6 +22,9 @@ public interface InventoryMapper {
     @Mapping(source = "sku.id", target = "skuId")
     @Mapping(source = "sku.skuCode", target = "skuCode")
     @Mapping(source = "sku.productName", target = "productName")
+    @Mapping(target = "costPrice", ignore = true)
+    @Mapping(target = "sellingPrice", ignore = true)
+    @Mapping(target = "price", ignore = true)
     InventoryResponse toResponse(Inventory entity);
 
     List<InventoryResponse> toResponseList(List<Inventory> entities);
