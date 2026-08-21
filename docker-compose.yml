@@ -60,6 +60,8 @@ services:
       GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
       SWAGGER_USERNAME: ${SWAGGER_USERNAME:-admin}
       SWAGGER_PASSWORD: ${SWAGGER_PASSWORD:-swagger@123}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
     networks:
       - ecp_network
     depends_on:
