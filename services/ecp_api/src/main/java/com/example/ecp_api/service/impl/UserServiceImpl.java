@@ -38,7 +38,7 @@ import java.util.UUID;
 
 import com.example.ecp_api.dto.request.GoogleLoginRequest;
 import com.example.ecp_api.entity.jpa.UserProfile;
-import com.example.ecp_api.enums.users.MembershipTier;
+//import com.example.ecp_api.enums.users.MembershipTier;
 import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
@@ -218,7 +218,12 @@ public class UserServiceImpl implements UserService {
         String lastName = familyName;
 
         User user = userRepository.findByEmail(email).map(existingUser -> {
+            if (!existingUser.isActive()) {
+                throw new AppException("ACCOUNT_DISABLED", "Your account has been locked. Please contact the administrator.", HttpStatus.FORBIDDEN);
+            }
+
             log.info("Account linking for Google login on existing email: {}", email);
+
             if (!StringUtils.hasText(existingUser.getProviderId())) {
                 existingUser.setProviderId(googleId);
             }
@@ -234,7 +239,7 @@ public class UserServiceImpl implements UserService {
                         .firstName(firstName)
                         .lastName(lastName)
                         .avatarUrl(picture)
-                        .membershipTier(MembershipTier.MEMBER)
+//                        .membershipTier(MembershipTier.MEMBER)
                         .build();
                 existingUser.setProfile(profile);
             } else {
@@ -267,7 +272,7 @@ public class UserServiceImpl implements UserService {
                     .firstName(firstName)
                     .lastName(lastName)
                     .avatarUrl(picture)
-                    .membershipTier(MembershipTier.MEMBER)
+//                    .membershipTier(MembershipTier.MEMBER)
                     .build();
 
             newUser.setProfile(profile);

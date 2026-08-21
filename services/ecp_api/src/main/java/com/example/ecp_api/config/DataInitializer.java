@@ -8,7 +8,7 @@ import com.example.ecp_api.enums.common.PurchaseOrderStatus;
 import com.example.ecp_api.enums.common.ReceiptStatus;
 import com.example.ecp_api.enums.common.TransactionType;
 import com.example.ecp_api.enums.users.AuthProvider;
-import com.example.ecp_api.enums.users.MembershipTier;
+//import com.example.ecp_api.enums.users.MembershipTier;
 import com.example.ecp_api.enums.users.UserRole;
 import com.example.ecp_api.repository.jpa.*;
 import com.example.ecp_api.repository.mongodb.*;
@@ -87,7 +87,7 @@ public class DataInitializer implements CommandLineRunner {
                     .firstName("Quản trị")
                     .lastName("Viên")
                     .phoneNumber("0912345678")
-                    .membershipTier(MembershipTier.MEMBER)
+//                    .membershipTier(MembershipTier.MEMBER)
                     .build();
 
             admin.setProfile(profile);
@@ -112,7 +112,7 @@ public class DataInitializer implements CommandLineRunner {
                     .firstName("Quản Lý")
                     .lastName("Kho")
                     .phoneNumber("0987654321")
-                    .membershipTier(MembershipTier.MEMBER)
+//                    .membershipTier(MembershipTier.MEMBER)
                     .build();
 
             manager.setProfile(profile);
@@ -137,7 +137,7 @@ public class DataInitializer implements CommandLineRunner {
                     .firstName("Khách Hàng")
                     .lastName("Thân Thiết")
                     .phoneNumber("0905123456")
-                    .membershipTier(MembershipTier.SILVER)
+//                    .membershipTier(MembershipTier.SILVER)
                     .build();
 
             user.setProfile(profile);

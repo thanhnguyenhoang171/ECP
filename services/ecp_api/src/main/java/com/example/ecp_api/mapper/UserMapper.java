@@ -73,10 +73,12 @@ public interface UserMapper {
     @Mapping(target = "avatarPublicId", source = "profile.avatarPublicId")
     @Mapping(target = "dob", source = "profile.dob")
     @Mapping(target = "gender", source = "profile.gender")
-    @Mapping(target = "loyaltyPoints", source = "profile.loyaltyPoints")
-    @Mapping(target = "membershipTier", source = "profile.membershipTier")
+//    @Mapping(target = "loyaltyPoints", source = "profile.loyaltyPoints")
+//    @Mapping(target = "membershipTier", source = "profile.membershipTier")
     @Mapping(target = "createdBy", source = "createdBy.email")
     @Mapping(target = "updatedBy", source = "updatedBy.email")
+    @Mapping(target = "isEmailVerified", source = "emailVerified")
+    @Mapping(target = "isPhoneVerified", source = "phoneVerified")
     UserResponse toResponse(User user);
 
     default PageResponse<UserResponse> toPageResponse(Page<User> page) {
