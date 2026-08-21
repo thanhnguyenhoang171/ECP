@@ -9,9 +9,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +23,15 @@ import java.util.Map;
 @Slf4j
 public class CloudinaryServiceImpl implements CloudinaryService {
     private final Cloudinary cloudinary;
+
+    @Value("${cloudinary.cloud-name:}")
+    private String cloudName;
+
+    @Value("${cloudinary.api-key:}")
+    private String apiKey;
+
+    @Value("${cloudinary.api-secret:}")
+    private String apiSecret;
 
     @Override
     public Map upload(MultipartFile file, String folder) {
@@ -104,5 +116,40 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         } else {
             log.warn("Could not extract public_id from URL: {}", url);
         }
+    }
+
+    @Override
+    public Map<String, Object> generateUploadSignature(String folder) {
+        long timestamp = System.currentTimeMillis() / 1000L;
+
+        String folderPath = "ecp_uploads";
+        if (folder != null && !folder.trim().isEmpty()) {
+            String subFolder = folder.trim();
+            while (subFolder.startsWith("/")) {
+                subFolder = subFolder.substring(1);
+            }
+            while (subFolder.endsWith("/")) {
+                subFolder = subFolder.substring(0, subFolder.length() - 1);
+            }
+            if (!subFolder.isEmpty()) {
+                folderPath = folderPath + "/" + subFolder;
+            }
+        }
+
+        Map<String, Object> paramsToSign = new HashMap<>();
+        paramsToSign.put("timestamp", timestamp);
+        paramsToSign.put("folder", folderPath);
+
+        String signature = cloudinary.apiSignRequest(paramsToSign, apiSecret);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("signature", signature);
+        result.put("timestamp", timestamp);
+        result.put("apiKey", apiKey);
+        result.put("cloudName", cloudName);
+        result.put("folder", folderPath);
+
+        log.info("Generated upload signature for folder: {}", folderPath);
+        return result;
     }
 }

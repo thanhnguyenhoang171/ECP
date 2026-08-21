@@ -26,15 +26,31 @@ public class CommonFileController {
 
     private final CloudinaryService cloudinaryService;
 
+    @GetMapping("/signature")
+    @Operation(summary = "Generate upload signature for direct client-to-cloud file/video upload",
+               description = "Returns signature, timestamp, apiKey, and cloudName for uploading directly from frontend to Cloudinary without going through backend server.")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getUploadSignature(
+            @RequestParam(value = "folder", required = false) String folder) {
+        Map<String, Object> result = cloudinaryService.generateUploadSignature(folder);
+        return ResponseEntity.ok(
+                ApiResponse.<Map<String, Object>>builder()
+                        .success(true)
+                        .code("SIGNATURE_GENERATED_SUCCESS")
+                        .message("Upload signature generated successfully")
+                        .data(result)
+                        .build()
+        );
+    }
+
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload a single file")
     public ResponseEntity<ApiResponse<Map>> uploadFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "folder", required = false) String folder,
-            @Parameter(description = "Maximum allowed file size in bytes (optional). Default: 10MB, Max cap: 50MB", example = "10485760")
+            @Parameter(description = "Maximum allowed file size in bytes (optional). Default: 50MB, Max cap: 500MB", example = "52428800")
             @RequestParam(value = "maxSize", required = false) Long maxSize) {
 
-        long limit = (maxSize != null) ? Math.min(maxSize, 50L * 1024 * 1024) : 10L * 1024 * 1024;
+        long limit = (maxSize != null) ? Math.min(maxSize, 500L * 1024 * 1024) : 50L * 1024 * 1024;
 
         if (file.getSize() > limit) {
             throw new AppException(
@@ -61,10 +77,10 @@ public class CommonFileController {
     public ResponseEntity<ApiResponse<List<Map>>> uploadMultipleFiles(
             @RequestPart("files") MultipartFile[] files,
             @RequestParam(value = "folder", required = false) String folder,
-            @Parameter(description = "Maximum allowed file size in bytes per file (optional). Default: 10MB, Max cap: 50MB", example = "10485760")
+            @Parameter(description = "Maximum allowed file size in bytes per file (optional). Default: 50MB, Max cap: 500MB", example = "52428800")
             @RequestParam(value = "maxSize", required = false) Long maxSize) {
 
-        long limit = (maxSize != null) ? Math.min(maxSize, 50L * 1024 * 1024) : 10L * 1024 * 1024;
+        long limit = (maxSize != null) ? Math.min(maxSize, 500L * 1024 * 1024) : 50L * 1024 * 1024;
 
         for (MultipartFile file : files) {
             if (file.getSize() > limit) {

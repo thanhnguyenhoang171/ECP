@@ -10,4 +10,5 @@ public interface CloudinaryService {
     List<Map> uploadMultiple(MultipartFile[] files, String folder);
     void delete(String publicId);
     void deleteByUrl(String url);
+    Map<String, Object> generateUploadSignature(String folder);
 }
