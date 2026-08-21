@@ -38,7 +38,7 @@ import java.util.UUID;
 
 import com.example.ecp_api.dto.request.GoogleLoginRequest;
 import com.example.ecp_api.entity.jpa.UserProfile;
-import com.example.ecp_api.enums.users.MembershipTier;
+//import com.example.ecp_api.enums.users.MembershipTier;
 import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
@@ -239,7 +239,7 @@ public class UserServiceImpl implements UserService {
                         .firstName(firstName)
                         .lastName(lastName)
                         .avatarUrl(picture)
-                        .membershipTier(MembershipTier.MEMBER)
+//                        .membershipTier(MembershipTier.MEMBER)
                         .build();
                 existingUser.setProfile(profile);
             } else {
@@ -272,7 +272,7 @@ public class UserServiceImpl implements UserService {
                     .firstName(firstName)
                     .lastName(lastName)
                     .avatarUrl(picture)
-                    .membershipTier(MembershipTier.MEMBER)
+//                    .membershipTier(MembershipTier.MEMBER)
                     .build();
 
             newUser.setProfile(profile);

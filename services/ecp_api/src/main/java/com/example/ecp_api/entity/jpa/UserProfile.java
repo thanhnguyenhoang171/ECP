@@ -50,19 +50,19 @@ public class UserProfile {
     @Enumerated(EnumType.STRING)
     private UserGender gender;
 
-    @Builder.Default
-    @Column(name = "loyalty_points")
-    private Integer loyaltyPoints = 0;
+//    @Builder.Default
+//    @Column(name = "loyalty_points")
+//    private Integer loyaltyPoints = 0;
+//
+//    @Builder.Default
+//    @Enumerated(EnumType.STRING)
+//    @Column(name = "membership_tier")
+//    private MembershipTier membershipTier = MembershipTier.MEMBER;
 
-    @Builder.Default
-    @Enumerated(EnumType.STRING)
-    @Column(name = "membership_tier")
-    private MembershipTier membershipTier = MembershipTier.MEMBER;
-
-    // Convert JSON-based maps in MySQL to Java maps (or create a separate DTO) in Java.
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "JSON")
-    private Map<String, Object> preferences;
+//    // Convert JSON-based maps in MySQL to Java maps (or create a separate DTO) in Java.
+//    @JdbcTypeCode(SqlTypes.JSON)
+//    @Column(columnDefinition = "JSON")
+//    private Map<String, Object> preferences;
 
     @UpdateTimestamp
     @Column(name = "updated_at")

@@ -56,11 +56,11 @@ public class UserResponse {
     @Schema(description = "Phone verification status", example = "false")
     private boolean isPhoneVerified;
 
-    @Schema(description = "Cumulative loyalty points", example = "150")
-    private Integer loyaltyPoints;
-
-    @Schema(description = "User's membership tier")
-    private MembershipTier membershipTier;
+//    @Schema(description = "Cumulative loyalty points", example = "150")
+//    private Integer loyaltyPoints;
+//
+//    @Schema(description = "User's membership tier")
+//    private MembershipTier membershipTier;
 
     @Schema(description = "Account creation timestamp")
     private LocalDateTime createdAt;
