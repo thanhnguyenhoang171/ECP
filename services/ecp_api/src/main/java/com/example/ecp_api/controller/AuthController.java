@@ -196,6 +196,16 @@ public class AuthController {
 
                         CustomUserDetails userDetails = (CustomUserDetails) customUserDetailsService
                                         .loadUserByUsername(username);
+
+                        // Check account blocked?
+                        if (!userDetails.isEnabled()) {
+                                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                                        ApiResponse.<AuthResponse>builder()
+                                                .success(false)
+                                                .message("Your account has been locked.")
+                                                .build());
+                        }
+
                         String newAccessToken = jwtTokenProvider.generateAccessToken(userDetails);
 
                         // Save new access token to Redis

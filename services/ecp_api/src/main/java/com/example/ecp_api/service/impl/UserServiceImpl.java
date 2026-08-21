@@ -218,7 +218,12 @@ public class UserServiceImpl implements UserService {
         String lastName = familyName;
 
         User user = userRepository.findByEmail(email).map(existingUser -> {
+            if (!existingUser.isActive()) {
+                throw new AppException("ACCOUNT_DISABLED", "Your account has been locked. Please contact the administrator.", HttpStatus.FORBIDDEN);
+            }
+
             log.info("Account linking for Google login on existing email: {}", email);
+
             if (!StringUtils.hasText(existingUser.getProviderId())) {
                 existingUser.setProviderId(googleId);
             }

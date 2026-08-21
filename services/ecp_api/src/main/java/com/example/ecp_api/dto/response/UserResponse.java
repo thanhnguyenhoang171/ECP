@@ -3,6 +3,7 @@ package com.example.ecp_api.dto.response;
 import com.example.ecp_api.enums.users.MembershipTier;
 import com.example.ecp_api.enums.users.UserGender;
 import com.example.ecp_api.enums.users.UserRole;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
@@ -28,9 +29,6 @@ public class UserResponse {
     @Schema(description = "User role in the system")
     private UserRole role;
 
-    @Schema(description = "Account status", example = "true")
-    private boolean isActive;
-
     @Schema(description = "User's first name", example = "John")
     private String firstName;
 
@@ -48,6 +46,15 @@ public class UserResponse {
 
     @Schema(description = "User gender")
     private UserGender gender;
+
+    @Schema(description = "Account status", example = "true")
+    private boolean isActive;
+
+    @Schema(description = "Email verified?", example = "true")
+    private boolean isEmailVerified;
+
+    @Schema(description = "Phone verification status", example = "false")
+    private boolean isPhoneVerified;
 
     @Schema(description = "Cumulative loyalty points", example = "150")
     private Integer loyaltyPoints;
