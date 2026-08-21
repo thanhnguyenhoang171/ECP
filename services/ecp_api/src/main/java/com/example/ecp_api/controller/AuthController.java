@@ -236,9 +236,11 @@ public class AuthController {
         }
 
         @PostMapping("/logout")
-        @Operation(summary = "Logout", description = "Invalidates tokens in Redis and clears the Refresh Token cookie. Accepts token via HttpOnly Cookie (Web Browsers) or JSON Request Body (Mobile/Postman).")
+        @Operation(summary = "Logout user", 
+                   description = "Invalidates tokens in Redis and clears the Refresh Token cookie. Accepts Access Token via Authorization header, and Refresh Token via HttpOnly Cookie (Web) or optional JSON Request Body (Mobile).")
         public ResponseEntity<ApiResponse<Void>> logout(
                         @Parameter(hidden = true) @CookieValue(name = "refreshToken", required = false) String cookieRefreshToken,
+                        @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Optional for Mobile/Postman apps. Web apps use HttpOnly cookie or Bearer token.", required = false)
                         @RequestBody(required = false) RefreshTokenRequest logoutRequest,
                         HttpServletRequest request,
                         HttpServletResponse response) {
@@ -257,18 +259,28 @@ public class AuthController {
                         refreshToken = cookieRefreshToken;
                 }
 
+                // Get current username if available
+                String username = SecurityUtils.getCurrentUserEmail();
+                if (!StringUtils.hasText(username) || "anonymousUser".equalsIgnoreCase(username)) {
+                        if (StringUtils.hasText(accessToken) && jwtTokenProvider.validateJwtToken(accessToken)) {
+                                username = jwtTokenProvider.getUsernameFromJwtToken(accessToken);
+                        }
+                }
+
                 // Delete tokens from Redis
-                tokenService.deleteTokens(accessToken, refreshToken);
+                if (StringUtils.hasText(accessToken) || StringUtils.hasText(refreshToken)) {
+                        tokenService.deleteTokens(accessToken, refreshToken);
+                } else if (StringUtils.hasText(username) && !"anonymousUser".equalsIgnoreCase(username)) {
+                        tokenService.revokeUserTokens(username);
+                }
 
-                // Clear presence from Redis
-                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-                String username = (auth != null) ? auth.getName() : "UNKNOWN";
-                tokenService.clearUserPresence(username);
+                // Clear user online status
+                if (StringUtils.hasText(username) && !"anonymousUser".equalsIgnoreCase(username)) {
+                        tokenService.clearUserPresence(username);
+                        auditLogService.log("LOGOUT", username, "User logged out successfully", "SUCCESS");
+                }
 
-                // Log logout
-                auditLogService.log("LOGOUT", username, "User logged out", "SUCCESS");
-
-                // Xóa Refresh Token Cookie
+                // Clear Refresh Token Cookie
                 ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
                                 .httpOnly(true)
                                 .secure(true)
