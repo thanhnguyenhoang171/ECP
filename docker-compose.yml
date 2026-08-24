@@ -43,6 +43,8 @@ services:
   api:
     image: ghcr.io/thanhnguyenhoang171/ecp/ecp-api:latest
     container_name: ecp_api
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - '9091:9090'
     environment:
@@ -52,6 +54,8 @@ services:
       SPRING_MONGODB_URI: ${SPRING_MONGODB_URI:-mongodb://admin:142857@mongodb:27017/ecp_mongo?authSource=admin}
       SPRING_REDIS_HOST: ${SPRING_REDIS_HOST:-redis}
       SPRING_REDIS_PORT: ${SPRING_REDIS_PORT:-6379}
+      SPRING_REDIS_USERNAME: ${SPRING_REDIS_USERNAME:-}
+      SPRING_REDIS_PASSWORD: ${SPRING_REDIS_PASSWORD:-}
       SPRING_PROFILES_ACTIVE: prod
       JWT_SECRET: ${JWT_SECRET}
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
