@@ -80,16 +80,28 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         if (files == null || files.length == 0) {
             return Collections.emptyList();
         }
-        List<Map> uploadResults = new ArrayList<>();
-        for (MultipartFile file : files) {
-            if (file != null && !file.isEmpty()) {
-                uploadResults.add(this.upload(file, folder));
-            }
+
+        List<MultipartFile> validFiles = java.util.Arrays.stream(files)
+                .filter(f -> f != null && !f.isEmpty())
+                .toList();
+
+        if (validFiles.isEmpty()) {
+            return Collections.emptyList();
         }
 
-        log.info("Upload multiple files successfully : {}", uploadResults);
+        // Parallel asynchronous upload using Virtual Threads (Java 21+)
+        try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            List<java.util.concurrent.CompletableFuture<Map>> futures = validFiles.stream()
+                    .map(file -> java.util.concurrent.CompletableFuture.supplyAsync(() -> this.upload(file, folder), executor))
+                    .toList();
 
-        return uploadResults;
+            List<Map> uploadResults = futures.stream()
+                    .map(java.util.concurrent.CompletableFuture::join)
+                    .toList();
+
+            log.info("Uploaded {} files in parallel successfully", uploadResults.size());
+            return uploadResults;
+        }
     }
 
     @Override

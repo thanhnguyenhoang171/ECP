@@ -1,4 +1,4 @@
-package com.example.ecp_api.controller.common;
+package com.example.ecp_api.controller.user;
 
 import com.example.ecp_api.dto.request.UserUpdateRequest;
 import com.example.ecp_api.dto.response.ApiResponse;
@@ -17,8 +17,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/v1/users/me")
 @RequiredArgsConstructor
 @PreAuthorize("isAuthenticated()")
-@Tag(name = "Account", description = "Current User Profile APIs")
-public class CommonUserController {
+@Tag(name = "Account", description = "Current Logged-in User Profile APIs")
+public class AccountController {
 
     private final UserService userService;
 
