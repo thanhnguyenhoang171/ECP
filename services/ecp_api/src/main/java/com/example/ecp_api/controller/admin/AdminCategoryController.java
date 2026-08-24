@@ -31,10 +31,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
-@RequestMapping("/v1/admin/categories")
+@RequestMapping("/v1/categories")
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('category:read') or hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Category Management", description = "Management API: Full CRUD on categories")
+@Tag(name = "Categories", description = "Category Management APIs")
 public class AdminCategoryController {
 
     private final CategoryService categoryService;

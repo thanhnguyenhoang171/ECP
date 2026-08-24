@@ -22,10 +22,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/v1/admin/warehouses")
+@RequestMapping("/v1/warehouses")
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('warehouse:read') or hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Warehouse Management", description = "Management API: Warehouse management")
+@Tag(name = "Warehouses", description = "Warehouse Management APIs")
 public class AdminWarehouseController {
 
     private final WarehouseService warehouseService;

@@ -11,10 +11,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/v1/admin/files")
+@RequestMapping("/v1/files")
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
-@Tag(name = "[ADMIN] File & Media Management", description = "Admin & Manager: View and audit stored images and files across the system.")
+@Tag(name = "Files", description = "File & Media Management APIs")
 public class AdminFileController {
 
     private final AdminFileService adminFileService;

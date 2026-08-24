@@ -10,10 +10,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/v1/admin/system")
+@RequestMapping("/v1/system")
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('system:purge') or hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] System Management", description = "Management API: System maintenance operations.")
+@Tag(name = "System", description = "System Maintenance APIs")
 public class AdminSystemController {
 
     private final SystemService systemService;

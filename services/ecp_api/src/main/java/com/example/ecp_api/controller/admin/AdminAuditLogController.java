@@ -25,10 +25,10 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/v1/admin/audit-logs")
+@RequestMapping("/v1/audit-logs")
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('audit:read') or hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Audit Logs", description = "Management API: Query audit logs.")
+@Tag(name = "Audit Logs", description = "Audit Log Management APIs")
 public class AdminAuditLogController {
 
     private final AuditLogService auditLogService;

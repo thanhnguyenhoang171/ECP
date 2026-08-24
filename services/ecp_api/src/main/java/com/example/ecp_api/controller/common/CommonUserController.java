@@ -14,15 +14,15 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/v1/common/users")
+@RequestMapping("/v1/users/me")
 @RequiredArgsConstructor
 @PreAuthorize("isAuthenticated()")
-@Tag(name = "[COMMON] User Account", description = "Authenticated users: View and update own account details. Accessible by SUPER_ADMIN, MANAGER, and USER.")
+@Tag(name = "Account", description = "Current User Profile APIs")
 public class CommonUserController {
 
     private final UserService userService;
 
-    @GetMapping("/account")
+    @GetMapping
     @Operation(summary = "Get current logged-in user account details")
     public ResponseEntity<ApiResponse<UserResponse>> getMyAccount() {
         String email = SecurityUtils.getCurrentUsername();
@@ -34,7 +34,7 @@ public class CommonUserController {
                 .build());
     }
 
-    @PutMapping("/account")
+    @PutMapping
     @Operation(summary = "Update current logged-in user account details", 
                description = "Updates profile details for current logged-in user including phoneNumber, firstName, lastName, avatarUrl, avatarPublicId, dob, and gender.")
     public ResponseEntity<ApiResponse<UserResponse>> updateMyAccount(

@@ -27,17 +27,16 @@ public class OpenAPIConfig {
                         .title("ECP E-Commerce Platform API Documentation")
                         .version("1.0.0")
                         .description("""
-                                ## Role-Based Access Control (RBAC) API Specification
+                                ## Clean RESTful PBAC & Multi-Role API Specification
                                 
-                                This API documentation is organized strictly by User Role and Functional Scope using RESTful versioning (`/v1/...`).
+                                This API documentation is organized by clean domain resources (`/v1/...`).
                                 
-                                | Group | Scope | Base Path | Target Audience |
-                                |-------|-------|-----------|-----------------|
-                                | **0-common** | Public Auth & Common Profile | `/v1/auth/**`, `/v1/common/**` | Public & All Authenticated Users |
-                                | **1-super-admin** | System Administration | `/v1/admin/**` | `SUPER_ADMIN` Only |
-                                | **2-manager** | Business Management | `/v1/manager/**` | `MANAGER` & `SUPER_ADMIN` |
-                                | **3-storefront** | E-Commerce Storefront | `/v1/storefront/**` | End Users & Customers |
-                                | **4-all-apis** | Full System Reference | `/**` | All Endpoints |
+                                | Group | Scope | Base Path | Description |
+                                |-------|-------|-----------|-------------|
+                                | **0-auth** | Public Authentication | `/v1/auth/**` | Register, Login, Refresh Token, Google OAuth |
+                                | **1-management** | Business & System Management | `/v1/products/**`, `/v1/categories/**`, `/v1/brands/**`, `/v1/skus/**`, `/v1/users/**`, `/v1/roles/**`, `/v1/inventory/**`, `/v1/suppliers/**`, `/v1/warehouses/**`, `/v1/purchase-orders/**`, `/v1/goods-receipts/**`, `/v1/audit-logs/**`, `/v1/system/**`, `/v1/files/**` | Granular PBAC protected management APIs |
+                                | **2-storefront** | E-Commerce Storefront | `/v1/storefront/**` | End Users & Customers catalog features |
+                                | **3-all-apis** | Full System Reference | `/**` | All Endpoints |
                                 
                                 ### Authentication Instructions
                                 1. Login via `POST /v1/auth/login` to obtain an Access Token.
@@ -55,60 +54,60 @@ public class OpenAPIConfig {
     }
 
     /**
-     * Group 0: Common APIs (Auth, User Profile, File Operations)
-     * Paths: /v1/auth/**, /v1/common/**
+     * Group 0: Auth APIs
      */
     @Bean
-    public GroupedOpenApi commonApi() {
+    public GroupedOpenApi authApi() {
         return GroupedOpenApi.builder()
-                .group("0-common")
-                .pathsToMatch("/v1/auth/**", "/v1/common/**")
+                .group("0-auth")
+                .pathsToMatch("/v1/auth/**")
                 .build();
     }
 
     /**
-     * Group 1: Super Admin APIs (Full system access, includes audit info)
-     * Paths: /v1/admin/**
+     * Group 1: Management APIs (Products, Categories, Brands, SKUs, Users, Roles, Inventory, etc.)
      */
     @Bean
-    public GroupedOpenApi superAdminApi() {
+    public GroupedOpenApi managementApi() {
         return GroupedOpenApi.builder()
-                .group("1-super-admin")
-                .pathsToMatch("/v1/admin/**")
+                .group("1-management")
+                .pathsToMatch(
+                        "/v1/products/**",
+                        "/v1/categories/**",
+                        "/v1/brands/**",
+                        "/v1/skus/**",
+                        "/v1/users/**",
+                        "/v1/roles/**",
+                        "/v1/inventory/**",
+                        "/v1/suppliers/**",
+                        "/v1/warehouses/**",
+                        "/v1/purchase-orders/**",
+                        "/v1/goods-receipts/**",
+                        "/v1/audit-logs/**",
+                        "/v1/system/**",
+                        "/v1/files/**"
+                )
                 .build();
     }
 
     /**
-     * Group 2: Manager APIs (Business management, hides createdBy/updatedBy)
-     * Paths: /v1/manager/**
-     */
-    @Bean
-    public GroupedOpenApi managerApi() {
-        return GroupedOpenApi.builder()
-                .group("2-manager")
-                .pathsToMatch("/v1/manager/**")
-                .build();
-    }
-
-    /**
-     * Group 3: Storefront APIs (Public catalog & customer features)
-     * Paths: /v1/storefront/**
+     * Group 2: Storefront APIs
      */
     @Bean
     public GroupedOpenApi storefrontApi() {
         return GroupedOpenApi.builder()
-                .group("3-storefront")
+                .group("2-storefront")
                 .pathsToMatch("/v1/storefront/**")
                 .build();
     }
 
     /**
-     * Group 4: All APIs (Complete Reference)
+     * Group 3: All APIs
      */
     @Bean
     public GroupedOpenApi allApi() {
         return GroupedOpenApi.builder()
-                .group("4-all-apis")
+                .group("3-all-apis")
                 .pathsToMatch("/**")
                 .build();
     }

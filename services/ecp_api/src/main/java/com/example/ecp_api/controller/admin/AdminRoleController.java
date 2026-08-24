@@ -18,9 +18,9 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/v1/admin/roles")
+@RequestMapping("/v1/roles")
 @RequiredArgsConstructor
-@Tag(name = "[ADMIN] Role & Permission Management", description = "Super Admin / Management: Full CRUD on custom system roles and granular permissions.")
+@Tag(name = "Roles", description = "Role & Permission Management APIs")
 public class AdminRoleController {
 
     private final RoleService roleService;
