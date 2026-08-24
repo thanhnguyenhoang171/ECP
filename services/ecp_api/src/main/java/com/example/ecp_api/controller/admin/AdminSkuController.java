@@ -19,10 +19,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/v1/admin/skus")
+@RequestMapping("/v1/skus")
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('sku:read') or hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] SKU Management", description = "Management API: SKU management")
+@Tag(name = "SKUs", description = "SKU Management APIs")
 public class AdminSkuController {
 
     private final SkuService skuService;

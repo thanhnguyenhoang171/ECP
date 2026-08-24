@@ -14,9 +14,14 @@ import java.util.List;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PageResponse<T> {
-    private boolean success;
+    @Builder.Default
+    private boolean success = true;
+
     private String message;
-    private String code;
+
+    @Builder.Default
+    private String code = "SUCCESS";
+
     private List<T> data;
     private PaginationResponse pagination;
 }

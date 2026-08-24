@@ -18,10 +18,10 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/v1/common/files")
+@RequestMapping("/v1/files")
 @RequiredArgsConstructor
 @PreAuthorize("isAuthenticated()")
-@Tag(name = "[COMMON] File Management", description = "Common file upload and management endpoints accessible by all authenticated users.")
+@Tag(name = "Files", description = "File Upload & Management APIs")
 public class CommonFileController {
 
     private final CloudinaryService cloudinaryService;

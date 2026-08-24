@@ -27,10 +27,10 @@ import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/v1/admin/brands")
+@RequestMapping("/v1/brands")
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('brand:read') or hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Brand Management", description = "Management API: Full CRUD on brands")
+@Tag(name = "Brands", description = "Brand Management APIs")
 public class AdminBrandController {
 
     private final BrandService brandService;

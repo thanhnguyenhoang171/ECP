@@ -17,10 +17,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/v1/admin/goods-receipts")
+@RequestMapping("/v1/goods-receipts")
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('goods_receipt:read') or hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Goods Receipt Management", description = "Management API: Goods Receipt GR management")
+@Tag(name = "Goods Receipts", description = "Goods Receipt Management APIs")
 public class AdminGoodsReceiptController {
 
     private final GoodsReceiptService goodsReceiptService;

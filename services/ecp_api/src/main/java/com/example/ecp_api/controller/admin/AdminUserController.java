@@ -29,10 +29,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/v1/admin/users")
+@RequestMapping("/v1/users")
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('user:read') or hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] User Management", description = "Management API: User account management, role assignment, status checks, and statistics.")
+@Tag(name = "Users", description = "User Management APIs")
 public class AdminUserController {
 
     private final UserService userService;

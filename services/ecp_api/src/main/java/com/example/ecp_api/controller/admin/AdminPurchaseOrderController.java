@@ -22,10 +22,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/v1/admin/purchase-orders")
+@RequestMapping("/v1/purchase-orders")
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('purchase_order:read') or hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Purchase Order Management", description = "Management API: Purchase Order PO management")
+@Tag(name = "Purchase Orders", description = "Purchase Order Management APIs")
 public class AdminPurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;

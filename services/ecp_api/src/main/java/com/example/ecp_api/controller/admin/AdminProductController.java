@@ -26,10 +26,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@RequestMapping("/v1/admin/products")
+@RequestMapping("/v1/products")
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('product:read') or hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Product Management", description = "Management API: Product and variant management")
+@Tag(name = "Products", description = "Product and Variant Management APIs")
 public class AdminProductController {
 
     private final ProductService productService;

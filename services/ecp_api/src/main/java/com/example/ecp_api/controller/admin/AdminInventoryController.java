@@ -22,10 +22,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/v1/admin/inventory")
+@RequestMapping("/v1/inventory")
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('inventory:read') or hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Inventory Management", description = "Management API: Stock balances and ledgers")
+@Tag(name = "Inventory", description = "Inventory Management APIs")
 public class AdminInventoryController {
 
     private final InventoryService inventoryService;

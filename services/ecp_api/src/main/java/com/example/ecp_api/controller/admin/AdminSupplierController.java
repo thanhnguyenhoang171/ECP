@@ -22,10 +22,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/v1/admin/suppliers")
+@RequestMapping("/v1/suppliers")
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('supplier:read') or hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Supplier Management", description = "Management API: Supplier management")
+@Tag(name = "Suppliers", description = "Supplier Management APIs")
 public class AdminSupplierController {
 
     private final SupplierService supplierService;
