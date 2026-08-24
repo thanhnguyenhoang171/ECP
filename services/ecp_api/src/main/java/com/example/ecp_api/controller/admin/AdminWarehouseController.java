@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/v1/admin/warehouses")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Warehouse Management", description = "Super Admin: Full CRUD on warehouses with complete audit info")
+@PreAuthorize("hasAuthority('warehouse:read') or hasRole('SUPER_ADMIN')")
+@Tag(name = "[ADMIN] Warehouse Management", description = "Management API: Warehouse management")
 public class AdminWarehouseController {
 
     private final WarehouseService warehouseService;

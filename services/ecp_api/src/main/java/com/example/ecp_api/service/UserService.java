@@ -22,6 +22,7 @@ public interface UserService {
     
     // Auth helpers
     UserResponse getCurrentUserAccount(String email);
+    UserResponse updateCurrentUserAccount(String email, UserUpdateRequest request);
     void updateLastLogin(String identifier);
     UserStatisticsResponse getStatistics();
 }

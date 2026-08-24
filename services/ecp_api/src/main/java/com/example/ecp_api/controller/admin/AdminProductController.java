@@ -28,13 +28,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/v1/admin/products")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Product Management", description = "Super Admin: Full CRUD on products and variants")
+@PreAuthorize("hasAuthority('product:read') or hasRole('SUPER_ADMIN')")
+@Tag(name = "[ADMIN] Product Management", description = "Management API: Product and variant management")
 public class AdminProductController {
 
     private final ProductService productService;
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAuthority('product:create') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Create a new product (JSON)")
     public ResponseEntity<ApiResponse<ProductResponse>> createProductJson(@Valid @RequestBody ProductRequest request) {
         return new ResponseEntity<>(ApiResponse.<ProductResponse>builder()
@@ -43,6 +44,7 @@ public class AdminProductController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('product:create') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Create a new product (Multipart)")
     public ResponseEntity<ApiResponse<ProductResponse>> createProductMultipart(
             @RequestPart("product") @Valid ProductRequest request,

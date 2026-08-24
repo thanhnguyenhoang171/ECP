@@ -22,7 +22,7 @@ public interface UserMapper {
     // Convert Request -> Entity (CREATE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "passwordHash", ignore = true)
-    @Mapping(target = "role", ignore = true)
+    @Mapping(target = "roles", ignore = true)
     @Mapping(target = "active", ignore = true)
     @Mapping(target = "emailVerified", ignore = true)
     @Mapping(target = "phoneVerified", ignore = true)
@@ -45,7 +45,7 @@ public interface UserMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "passwordHash", ignore = true)
-    @Mapping(target = "role", ignore = true)
+    @Mapping(target = "roles", ignore = true)
     @Mapping(target = "active", ignore = true)
     @Mapping(target = "emailVerified", ignore = true)
     @Mapping(target = "phoneVerified", ignore = true)
@@ -79,7 +79,17 @@ public interface UserMapper {
     @Mapping(target = "updatedBy", source = "updatedBy.email")
     @Mapping(target = "isEmailVerified", source = "emailVerified")
     @Mapping(target = "isPhoneVerified", source = "phoneVerified")
+    @Mapping(target = "roles", ignore = true)
     UserResponse toResponse(User user);
+
+    @org.mapstruct.AfterMapping
+    default void mapRoles(User user, @org.mapstruct.MappingTarget UserResponse userResponse) {
+        if (user.getRoles() != null) {
+            userResponse.setRoles(user.getRoles().stream()
+                    .map(com.example.ecp_api.entity.jpa.Role::getCode)
+                    .collect(java.util.stream.Collectors.toSet()));
+        }
+    }
 
     default PageResponse<UserResponse> toPageResponse(Page<User> page) {
         List<UserResponse> list = page.getContent().stream()
@@ -121,6 +131,7 @@ public interface UserMapper {
     @Mapping(target = "deletedBy", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "roles", ignore = true)
     @Mapping(target = "profile.firstName", source = "firstName")
     @Mapping(target = "profile.lastName", source = "lastName")
     @Mapping(target = "profile.phoneNumber", source = "phoneNumber")

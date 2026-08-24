@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/v1/admin/suppliers")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Supplier Management", description = "Super Admin: Full CRUD on suppliers with complete audit info")
+@PreAuthorize("hasAuthority('supplier:read') or hasRole('SUPER_ADMIN')")
+@Tag(name = "[ADMIN] Supplier Management", description = "Management API: Supplier management")
 public class AdminSupplierController {
 
     private final SupplierService supplierService;

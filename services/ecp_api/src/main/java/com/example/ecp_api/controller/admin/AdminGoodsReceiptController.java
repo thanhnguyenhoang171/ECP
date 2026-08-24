@@ -19,8 +19,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/v1/admin/goods-receipts")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Goods Receipt Management", description = "Super Admin: Full CRUD on goods receipts with complete audit info")
+@PreAuthorize("hasAuthority('goods_receipt:read') or hasRole('SUPER_ADMIN')")
+@Tag(name = "[ADMIN] Goods Receipt Management", description = "Management API: Goods Receipt GR management")
 public class AdminGoodsReceiptController {
 
     private final GoodsReceiptService goodsReceiptService;

@@ -1,5 +1,6 @@
 package com.example.ecp_api.service.impl;
 
+import com.example.ecp_api.dto.request.GoogleLoginRequest;
 import com.example.ecp_api.dto.request.RegisterRequest;
 import com.example.ecp_api.dto.request.UserFilterRequest;
 import com.example.ecp_api.dto.request.UserRequest;
@@ -7,13 +8,16 @@ import com.example.ecp_api.dto.request.UserUpdateRequest;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.UserResponse;
 import com.example.ecp_api.dto.response.UserStatisticsResponse;
+import com.example.ecp_api.entity.jpa.Role;
 import com.example.ecp_api.entity.jpa.User;
+import com.example.ecp_api.entity.jpa.UserProfile;
 import com.example.ecp_api.enums.users.AuthProvider;
-import com.example.ecp_api.enums.users.UserRole;
 import com.example.ecp_api.exception.AppException;
 import com.example.ecp_api.mapper.UserMapper;
+import com.example.ecp_api.repository.jpa.RoleRepository;
 import com.example.ecp_api.repository.jpa.UserRepository;
 import com.example.ecp_api.service.AuditLogService;
+import com.example.ecp_api.service.CloudinaryService;
 import com.example.ecp_api.service.TokenService;
 import com.example.ecp_api.service.UserService;
 import com.example.ecp_api.util.PaginationUtils;
@@ -21,6 +25,7 @@ import com.example.ecp_api.util.SecurityUtils;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -30,22 +35,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
-import com.example.ecp_api.dto.request.GoogleLoginRequest;
-import com.example.ecp_api.entity.jpa.UserProfile;
-//import com.example.ecp_api.enums.users.MembershipTier;
-import org.springframework.web.client.RestTemplate;
-import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Value;
-
-import com.example.ecp_api.service.CloudinaryService;
-import org.springframework.web.multipart.MultipartFile;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -53,6 +48,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final AuditLogService auditLogService;
@@ -67,20 +63,20 @@ public class UserServiceImpl implements UserService {
     public UserResponse registerUserByEmail(RegisterRequest registerRequest) {
         String normalizedEmail = registerRequest.getEmail().toLowerCase().trim();
 
-        // Checking existed email
         if (userRepository.existsByEmail(normalizedEmail)) {
             throw new AppException("USER_ALREADY_EXISTS", "Email already registered", HttpStatus.BAD_REQUEST);
         }
 
-        // Map DTO to Entity
         User user = userMapper.toEntity(registerRequest);
         user.setEmail(normalizedEmail);
 
-        // Thiết lập thuộc tính mặc định
         user.setPasswordHash(passwordEncoder.encode(registerRequest.getPassword()));
         user.setProvider(AuthProvider.LOCAL);
-        user.setRole(UserRole.USER);
         user.setActive(true);
+
+        Set<Role> roles = new HashSet<>();
+        roleRepository.findByCode("USER").ifPresent(roles::add);
+        user.setRoles(roles);
 
         if (user.getProfile() == null) {
             user.setProfile(new UserProfile());
@@ -94,7 +90,6 @@ public class UserServiceImpl implements UserService {
             user.getProfile().setLastName(registerRequest.getLastName());
         }
 
-        // Gán createdBy và updatedBy nếu có người dùng đang thao tác
         String operatorEmail = SecurityUtils.getCurrentUserEmail();
         if (StringUtils.hasText(operatorEmail) && !"SYSTEM".equals(operatorEmail)) {
             User operator = userRepository.findByEmail(operatorEmail).orElse(null);
@@ -104,14 +99,12 @@ public class UserServiceImpl implements UserService {
             }
         }
 
-        // Lưu user (cascade save profile)
         user = userRepository.save(user);
 
-        // Ghi log hoạt động kiểm toán (Audit Log)
         auditLogService.log(
-            "USER_CREATE",
-            operatorEmail,
-            String.format("Tạo mới tài khoản user: %s (ID: %s, Role: %s)", user.getEmail(), user.getId(), user.getRole())
+                "USER_CREATE",
+                operatorEmail,
+                String.format("Created user account: %s (ID: %s)", user.getEmail(), user.getId())
         );
 
         return userMapper.toResponse(user);
@@ -122,20 +115,24 @@ public class UserServiceImpl implements UserService {
     public UserResponse createUser(UserRequest userRequest) {
         String normalizedEmail = userRequest.getEmail().toLowerCase().trim();
 
-        // Checking existed email
         if (userRepository.existsByEmail(normalizedEmail)) {
             throw new AppException("USER_ALREADY_EXISTS", "Email already registered", HttpStatus.BAD_REQUEST);
         }
 
-        // Map DTO to Entity
         User user = userMapper.toEntity(userRequest);
         user.setEmail(normalizedEmail);
 
-        // Thiết lập thuộc tính từ request hoặc mặc định
         user.setPasswordHash(passwordEncoder.encode(userRequest.getPassword()));
         user.setProvider(AuthProvider.LOCAL);
-        user.setRole(userRequest.getRole() != null ? userRequest.getRole() : UserRole.USER);
         user.setActive(userRequest.getActive() != null ? userRequest.getActive() : true);
+
+        Set<Role> roles = new HashSet<>();
+        if (userRequest.getRoles() != null && !userRequest.getRoles().isEmpty()) {
+            roles = roleRepository.findByCodeIn(userRequest.getRoles());
+        } else {
+            roleRepository.findByCode("USER").ifPresent(roles::add);
+        }
+        user.setRoles(roles);
 
         if (user.getProfile() == null) {
             user.setProfile(new UserProfile());
@@ -158,7 +155,6 @@ public class UserServiceImpl implements UserService {
             user.getProfile().setPhoneNumber(userRequest.getPhoneNumber());
         }
 
-        // Gán createdBy và updatedBy nếu có người dùng đang thao tác
         String operatorEmail = SecurityUtils.getCurrentUserEmail();
         if (StringUtils.hasText(operatorEmail) && !"SYSTEM".equals(operatorEmail)) {
             User operator = userRepository.findByEmail(operatorEmail).orElse(null);
@@ -168,14 +164,12 @@ public class UserServiceImpl implements UserService {
             }
         }
 
-        // Lưu user (cascade save profile)
         user = userRepository.save(user);
 
-        // Ghi log hoạt động kiểm toán (Audit Log)
         auditLogService.log(
-            "USER_CREATE",
-            operatorEmail,
-            String.format("Tạo mới tài khoản user: %s (ID: %s, Role: %s)", user.getEmail(), user.getId(), user.getRole())
+                "USER_CREATE",
+                operatorEmail,
+                String.format("Created user account: %s (ID: %s)", user.getEmail(), user.getId())
         );
 
         return userMapper.toResponse(user);
@@ -199,7 +193,6 @@ public class UserServiceImpl implements UserService {
             throw new AppException("INVALID_GOOGLE_TOKEN", "Unable to extract email from Google token", HttpStatus.BAD_REQUEST);
         }
 
-        // Validate Audience (Client ID) if configured
         if (StringUtils.hasText(googleClientId)) {
             String aud = (String) payload.get("aud");
             if (aud != null && !googleClientId.equals(aud)) {
@@ -222,8 +215,6 @@ public class UserServiceImpl implements UserService {
                 throw new AppException("ACCOUNT_DISABLED", "Your account has been locked. Please contact the administrator.", HttpStatus.FORBIDDEN);
             }
 
-            log.info("Account linking for Google login on existing email: {}", email);
-
             if (!StringUtils.hasText(existingUser.getProviderId())) {
                 existingUser.setProviderId(googleId);
             }
@@ -231,7 +222,6 @@ public class UserServiceImpl implements UserService {
                 existingUser.setEmailVerified(true);
             }
 
-            // Update or create profile information
             UserProfile profile = existingUser.getProfile();
             if (profile == null) {
                 profile = UserProfile.builder()
@@ -239,7 +229,6 @@ public class UserServiceImpl implements UserService {
                         .firstName(firstName)
                         .lastName(lastName)
                         .avatarUrl(picture)
-//                        .membershipTier(MembershipTier.MEMBER)
                         .build();
                 existingUser.setProfile(profile);
             } else {
@@ -249,7 +238,6 @@ public class UserServiceImpl implements UserService {
                 if (!StringUtils.hasText(profile.getLastName())) {
                     profile.setLastName(lastName);
                 }
-                // Chỉ set avatarUrl từ Google nếu user CHƯA THIẾT LẬP avatar tùy chỉnh (Cloudinary...)
                 if (!StringUtils.hasText(profile.getAvatarUrl()) && StringUtils.hasText(picture)) {
                     profile.setAvatarUrl(picture);
                 }
@@ -257,12 +245,14 @@ public class UserServiceImpl implements UserService {
 
             return userRepository.save(existingUser);
         }).orElseGet(() -> {
-            log.info("Creating new user from Google Login: {}", email);
+            Set<Role> roles = new HashSet<>();
+            roleRepository.findByCode("USER").ifPresent(roles::add);
+
             User newUser = User.builder()
                     .email(email)
                     .provider(AuthProvider.GOOGLE)
                     .providerId(googleId)
-                    .role(UserRole.USER)
+                    .roles(roles)
                     .active(true)
                     .emailVerified(true)
                     .build();
@@ -272,7 +262,6 @@ public class UserServiceImpl implements UserService {
                     .firstName(firstName)
                     .lastName(lastName)
                     .avatarUrl(picture)
-//                    .membershipTier(MembershipTier.MEMBER)
                     .build();
 
             newUser.setProfile(profile);
@@ -287,22 +276,22 @@ public class UserServiceImpl implements UserService {
     public UserResponse getUserById(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
-        
+
         return userMapper.toResponse(user);
     }
 
     @Override
     public PageResponse<UserResponse> getAllUsers(Pageable pageable) {
-        Pageable finalPageable = PaginationUtils.applyStableSort(pageable, 
-                Sort.Order.desc("createdAt"), 
+        Pageable finalPageable = PaginationUtils.applyStableSort(pageable,
+                Sort.Order.desc("createdAt"),
                 Sort.Order.asc("id"));
         return userMapper.toPageResponse(userRepository.findAll(finalPageable));
     }
 
     @Override
     public PageResponse<UserResponse> searchUsers(UserFilterRequest filter, Pageable pageable) {
-        Pageable finalPageable = PaginationUtils.applyStableSort(pageable, 
-                Sort.Order.desc("createdAt"), 
+        Pageable finalPageable = PaginationUtils.applyStableSort(pageable,
+                Sort.Order.desc("createdAt"),
                 Sort.Order.asc("id"));
 
         Specification<User> spec = (root, query, cb) -> {
@@ -323,9 +312,9 @@ public class UserServiceImpl implements UserService {
                         "%" + filter.getEmail().toLowerCase() + "%"));
             }
             if (filter.getRoles() != null && !filter.getRoles().isEmpty()) {
-                predicates.add(root.get("role").in(filter.getRoles()));
-            } else if (filter.getRole() != null) {
-                predicates.add(cb.equal(root.get("role"), filter.getRole()));
+                predicates.add(root.join("roles").get("code").in(filter.getRoles()));
+            } else if (StringUtils.hasText(filter.getRole())) {
+                predicates.add(cb.equal(root.join("roles").get("code"), filter.getRole().toUpperCase()));
             }
             if (filter.getActive() != null) {
                 predicates.add(cb.equal(root.get("active"), filter.getActive()));
@@ -361,15 +350,18 @@ public class UserServiceImpl implements UserService {
             User user = userRepository.findById(id)
                     .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
 
-            UserRole oldRole = user.getRole();
             boolean oldActive = user.isActive();
 
-            // Khởi tạo sẵn profile nếu null trước khi Mapper cập nhật
             if (user.getProfile() == null) {
                 user.setProfile(UserProfile.builder().user(user).build());
             }
 
             userMapper.updateUserFromRequest(request, user);
+
+            if (request.getRoles() != null && !request.getRoles().isEmpty()) {
+                Set<Role> newRoles = roleRepository.findByCodeIn(request.getRoles());
+                user.setRoles(newRoles);
+            }
 
             if (user.getProfile() != null && user.getProfile().getUser() == null) {
                 user.getProfile().setUser(user);
@@ -385,12 +377,8 @@ public class UserServiceImpl implements UserService {
 
             user = userRepository.save(user);
 
-            // Chỉ thu hồi token khi vai trò THỰC SỰ bị thay đổi HOẶC tài khoản bị khóa (active -> false)
-            boolean roleChanged = oldRole != user.getRole();
             boolean deactivated = oldActive && !user.isActive();
-
-            if (roleChanged || deactivated) {
-                log.info("Revoking tokens for user {} (roleChanged={}, deactivated={})", user.getEmail(), roleChanged, deactivated);
+            if (deactivated || (request.getRoles() != null && !request.getRoles().isEmpty())) {
                 tokenService.revokeUserTokens(user.getEmail());
             }
 
@@ -440,6 +428,33 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    public UserResponse updateCurrentUserAccount(String email, UserUpdateRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
+
+        request.setRoles(null);
+        request.setActive(null);
+
+        if (user.getProfile() == null) {
+            user.setProfile(UserProfile.builder().user(user).build());
+        }
+
+        userMapper.updateUserFromRequest(request, user);
+
+        if (user.getProfile() != null && user.getProfile().getUser() == null) {
+            user.getProfile().setUser(user);
+        }
+
+        user.setUpdatedBy(user);
+        user = userRepository.save(user);
+
+        auditLogService.log("USER_ACCOUNT_UPDATE", email, "Updated own account profile details");
+
+        return userMapper.toResponse(user);
+    }
+
+    @Override
+    @Transactional
     public void updateLastLogin(String email) {
         userRepository.findByEmail(email)
                 .ifPresent(user -> {
@@ -452,8 +467,8 @@ public class UserServiceImpl implements UserService {
     public UserStatisticsResponse getStatistics() {
         long totalUsers = userRepository.count();
         long onlineUsers = tokenService.countOnlineUsers();
-        long managementUsers = userRepository.countByRoleIn(List.of(UserRole.SUPER_ADMIN, UserRole.MANAGER));
-        long customerUsers = userRepository.countByRoleIn(List.of(UserRole.USER));
+        long managementUsers = userRepository.countByRolesCodeIn(List.of("SUPER_ADMIN", "MANAGER"));
+        long customerUsers = userRepository.countByRolesCode("USER");
 
         return UserStatisticsResponse.builder()
                 .totalUsers(totalUsers)

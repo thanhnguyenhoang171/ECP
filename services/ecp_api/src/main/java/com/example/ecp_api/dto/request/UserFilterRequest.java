@@ -15,7 +15,7 @@ import java.util.List;
 public class UserFilterRequest {
     private String keyword;
     private String email;
-    private UserRole role;
-    private List<UserRole> roles;
+    private String role;
+    private List<String> roles;
     private Boolean active;
 }

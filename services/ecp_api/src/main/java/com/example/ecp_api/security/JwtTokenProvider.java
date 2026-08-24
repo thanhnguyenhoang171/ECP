@@ -55,7 +55,9 @@ public class JwtTokenProvider {
 
     private String generateToken(CustomUserDetails userDetails, long expirationMs) {
         List<String> roles = userDetails.getAuthorities().stream()
-                .map(item -> item.getAuthority())
+                .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .filter(auth -> auth.startsWith("ROLE_"))
+                .map(auth -> auth.substring(5))
                 .collect(Collectors.toList());
 
         return Jwts.builder()

@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/v1/admin/system")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] System Management", description = "Super Admin: Dangerous system maintenance operations. Use with extreme caution.")
+@PreAuthorize("hasAuthority('system:purge') or hasRole('SUPER_ADMIN')")
+@Tag(name = "[ADMIN] System Management", description = "Management API: System maintenance operations.")
 public class AdminSystemController {
 
     private final SystemService systemService;

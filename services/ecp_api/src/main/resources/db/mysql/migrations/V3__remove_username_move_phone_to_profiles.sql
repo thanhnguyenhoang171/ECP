@@ -6,11 +6,14 @@ SET @tablename = "user_profiles";
 SET @columnname = "phone_number";
 SET @preparedStatement = (SELECT IF(
   (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+    WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tablename
+  ) > 0 AND (
     SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tablename AND COLUMN_NAME = @columnname
-  ) > 0,
-  "SELECT 1",
-  "ALTER TABLE user_profiles ADD COLUMN phone_number VARCHAR(20) NULL"
+  ) = 0,
+  "ALTER TABLE user_profiles ADD COLUMN phone_number VARCHAR(20) NULL",
+  "SELECT 1"
 ));
 PREPARE addCol1 FROM @preparedStatement;
 EXECUTE addCol1;
@@ -21,6 +24,9 @@ SET @tablename = "users";
 SET @columnname = "phone_number";
 SET @preparedStatement = (SELECT IF(
   (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+    WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tablename
+  ) > 0 AND (
     SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tablename AND COLUMN_NAME = @columnname
   ) > 0,
@@ -36,6 +42,9 @@ SET @tablename = "users";
 SET @columnname = "username";
 SET @preparedStatement = (SELECT IF(
   (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+    WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tablename
+  ) > 0 AND (
     SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tablename AND COLUMN_NAME = @columnname
   ) > 0,
@@ -51,6 +60,9 @@ SET @tablename = "users";
 SET @columnname = "phone_number";
 SET @preparedStatement = (SELECT IF(
   (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+    WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tablename
+  ) > 0 AND (
     SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @tablename AND COLUMN_NAME = @columnname
   ) > 0,

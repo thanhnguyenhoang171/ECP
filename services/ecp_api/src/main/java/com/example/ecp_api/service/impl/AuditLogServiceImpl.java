@@ -42,9 +42,9 @@ public class AuditLogServiceImpl implements AuditLogService {
         }
         return userRepository.findByEmail(username)
                 .map(user -> {
-                    if (user.getRole() == UserRole.SUPER_ADMIN) {
+                    if (user.hasRole("SUPER_ADMIN")) {
                         return "ADMIN";
-                    } else if (user.getRole() == UserRole.MANAGER) {
+                    } else if (user.hasRole("MANAGER")) {
                         return "MANAGER";
                     }
                     return "USER";

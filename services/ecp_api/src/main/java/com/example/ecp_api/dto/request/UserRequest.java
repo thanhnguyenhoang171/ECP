@@ -39,7 +39,7 @@ public class UserRequest {
 
     private UserGender gender;
 
-    private UserRole role;
+    private java.util.Set<String> roles;
 
     private Boolean active;
 

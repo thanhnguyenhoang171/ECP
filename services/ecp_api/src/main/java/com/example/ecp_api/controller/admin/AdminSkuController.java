@@ -21,8 +21,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/v1/admin/skus")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] SKU Management", description = "Super Admin: View SKUs with complete audit info")
+@PreAuthorize("hasAuthority('sku:read') or hasRole('SUPER_ADMIN')")
+@Tag(name = "[ADMIN] SKU Management", description = "Management API: SKU management")
 public class AdminSkuController {
 
     private final SkuService skuService;
