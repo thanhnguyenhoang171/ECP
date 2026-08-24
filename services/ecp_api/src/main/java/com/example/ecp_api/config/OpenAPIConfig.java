@@ -78,6 +78,7 @@ public class OpenAPIConfig {
                         "/v1/skus/**",
                         "/v1/users/**",
                         "/v1/roles/**",
+                        "/v1/permissions/**",
                         "/v1/inventory/**",
                         "/v1/suppliers/**",
                         "/v1/warehouses/**",

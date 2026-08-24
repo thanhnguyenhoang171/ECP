@@ -1,4 +1,4 @@
-package com.example.ecp_api.controller.admin;
+package com.example.ecp_api.controller.system;
 
 import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.service.SystemService;
@@ -14,17 +14,19 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('system:purge') or hasRole('SUPER_ADMIN')")
 @Tag(name = "System", description = "System Maintenance APIs")
-public class AdminSystemController {
+public class SystemController {
 
     private final SystemService systemService;
 
-    @PostMapping("/purge-data")
-    @Operation(summary = "⚠️ Purge ALL system data",
-            description = "DANGER: Permanently deletes ALL data from MySQL and MongoDB and re-initializes default accounts. CANNOT BE UNDONE.")
-    public ResponseEntity<ApiResponse<Void>> purgeAllData() {
+    @PostMapping("/purge")
+    @Operation(summary = "Purge all business data while preserving System Accounts and Roles")
+    public ResponseEntity<ApiResponse<String>> purgeData() {
         systemService.purgeAllData();
-        return ResponseEntity.ok(ApiResponse.<Void>builder()
-                .success(true).code("SYSTEM_DATA_PURGED")
-                .message("System data has been purged and re-initialized successfully.").build());
+        return ResponseEntity.ok(ApiResponse.<String>builder()
+                .success(true)
+                .code("SYSTEM_PURGED_SUCCESS")
+                .message("All business data has been successfully purged")
+                .data("Business data purged successfully")
+                .build());
     }
 }

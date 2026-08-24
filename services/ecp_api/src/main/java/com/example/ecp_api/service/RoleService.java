@@ -1,10 +1,12 @@
 package com.example.ecp_api.service;
 
+import com.example.ecp_api.dto.request.PermissionRequest;
 import com.example.ecp_api.dto.request.RoleRequest;
 import com.example.ecp_api.dto.response.PermissionResponse;
 import com.example.ecp_api.dto.response.RoleResponse;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public interface RoleService {
@@ -14,4 +16,6 @@ public interface RoleService {
     RoleResponse updateRole(UUID id, RoleRequest request);
     void deleteRole(UUID id);
     List<PermissionResponse> getAllPermissions();
+    Map<String, List<PermissionResponse>> getGroupedPermissions();
+    PermissionResponse createPermission(PermissionRequest request);
 }

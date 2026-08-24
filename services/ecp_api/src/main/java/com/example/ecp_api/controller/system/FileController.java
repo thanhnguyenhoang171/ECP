@@ -1,7 +1,10 @@
-package com.example.ecp_api.controller.common;
+package com.example.ecp_api.controller.system;
 
+import com.example.ecp_api.dto.response.AdminFileResponse;
 import com.example.ecp_api.dto.response.ApiResponse;
+import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.exception.AppException;
+import com.example.ecp_api.service.AdminFileService;
 import com.example.ecp_api.service.CloudinaryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -21,14 +24,26 @@ import java.util.Map;
 @RequestMapping("/v1/files")
 @RequiredArgsConstructor
 @PreAuthorize("isAuthenticated()")
-@Tag(name = "Files", description = "File Upload & Management APIs")
-public class CommonFileController {
+@Tag(name = "Files", description = "File Upload & Media Management APIs")
+public class FileController {
 
     private final CloudinaryService cloudinaryService;
+    private final AdminFileService adminFileService;
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
+    @Operation(summary = "Get list of all images and media files in the database",
+               description = "Queries images from User Profiles, Products, and Categories with filter and pagination support.")
+    public ResponseEntity<PageResponse<AdminFileResponse>> getAllFiles(
+            @RequestParam(value = "type", required = false, defaultValue = "ALL") String type,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "page", required = false, defaultValue = "1") int page,
+            @RequestParam(value = "size", required = false, defaultValue = "20") int size) {
+        return ResponseEntity.ok(adminFileService.getAllMediaFiles(type, keyword, page, size));
+    }
 
     @GetMapping("/signature")
-    @Operation(summary = "Generate upload signature for direct client-to-cloud file/video upload",
-               description = "Returns signature, timestamp, apiKey, and cloudName for uploading directly from frontend to Cloudinary without going through backend server.")
+    @Operation(summary = "Generate upload signature for direct client-to-cloud file/video upload")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getUploadSignature(
             @RequestParam(value = "folder", required = false) String folder) {
         Map<String, Object> result = cloudinaryService.generateUploadSignature(folder);

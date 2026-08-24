@@ -1,4 +1,4 @@
-package com.example.ecp_api.controller.admin;
+package com.example.ecp_api.controller.product;
 
 import com.example.ecp_api.dto.request.ProductFilterRequest;
 import com.example.ecp_api.dto.request.ProductRequest;
@@ -17,12 +17,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 
 @RestController
@@ -30,7 +30,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('product:read') or hasRole('SUPER_ADMIN')")
 @Tag(name = "Products", description = "Product and Variant Management APIs")
-public class AdminProductController {
+public class ProductController {
 
     private final ProductService productService;
 
@@ -39,7 +39,9 @@ public class AdminProductController {
     @Operation(summary = "Create a new product (JSON)")
     public ResponseEntity<ApiResponse<ProductResponse>> createProductJson(@Valid @RequestBody ProductRequest request) {
         return new ResponseEntity<>(ApiResponse.<ProductResponse>builder()
-                .success(true).message("Product created successfully")
+                .success(true)
+                .code("PRODUCT_CREATED_SUCCESS")
+                .message("Product created successfully")
                 .data(productService.createProduct(request, null, null)).build(), HttpStatus.CREATED);
     }
 
@@ -51,7 +53,9 @@ public class AdminProductController {
             @RequestPart(value = "thumbnailFile", required = false) MultipartFile thumbnailFile,
             @RequestPart(value = "imageFiles", required = false) List<MultipartFile> imageFiles) {
         return new ResponseEntity<>(ApiResponse.<ProductResponse>builder()
-                .success(true).message("Product created successfully")
+                .success(true)
+                .code("PRODUCT_CREATED_SUCCESS")
+                .message("Product created successfully")
                 .data(productService.createProduct(request, thumbnailFile, imageFiles)).build(), HttpStatus.CREATED);
     }
 
@@ -72,7 +76,9 @@ public class AdminProductController {
     @Operation(summary = "Get product by ID")
     public ResponseEntity<ApiResponse<ProductResponse>> getProductById(@PathVariable String id) {
         return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
-                .success(true).message("Product fetched successfully")
+                .success(true)
+                .code("PRODUCT_FETCHED_SUCCESS")
+                .message("Product fetched successfully")
                 .data(productService.getProductById(id)).build());
     }
 }

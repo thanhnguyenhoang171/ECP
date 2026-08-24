@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -107,6 +108,34 @@ public class RoleServiceImpl implements RoleService {
         return permissionRepository.findAll().stream()
                 .map(this::mapToPermissionResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, List<PermissionResponse>> getGroupedPermissions() {
+        return permissionRepository.findAll().stream()
+                .map(this::mapToPermissionResponse)
+                .collect(Collectors.groupingBy(
+                        p -> p.getModule() != null ? p.getModule().toUpperCase() : "GENERAL"
+                ));
+    }
+
+    @Override
+    @Transactional
+    public PermissionResponse createPermission(com.example.ecp_api.dto.request.PermissionRequest request) {
+        String code = request.getCode().trim().toLowerCase();
+        if (permissionRepository.existsByCode(code)) {
+            throw new AppException("CONFLICT", "Permission code already exists: " + code, HttpStatus.CONFLICT);
+        }
+
+        Permission permission = Permission.builder()
+                .code(code)
+                .name(request.getName().trim())
+                .module(request.getModule().trim().toUpperCase())
+                .description(request.getDescription())
+                .build();
+
+        return mapToPermissionResponse(permissionRepository.save(permission));
     }
 
     private RoleResponse mapToRoleResponse(Role role) {

@@ -1,4 +1,4 @@
-package com.example.ecp_api.controller.admin;
+package com.example.ecp_api.controller.user;
 
 import com.example.ecp_api.dto.request.RoleRequest;
 import com.example.ecp_api.dto.response.ApiResponse;
@@ -21,7 +21,7 @@ import java.util.UUID;
 @RequestMapping("/v1/roles")
 @RequiredArgsConstructor
 @Tag(name = "Roles", description = "Role & Permission Management APIs")
-public class AdminRoleController {
+public class RoleController {
 
     private final RoleService roleService;
 
@@ -31,6 +31,7 @@ public class AdminRoleController {
     public ResponseEntity<ApiResponse<List<RoleResponse>>> getAllRoles() {
         return ResponseEntity.ok(ApiResponse.<List<RoleResponse>>builder()
                 .success(true)
+                .code("ROLES_FETCHED_SUCCESS")
                 .message("Roles fetched successfully")
                 .data(roleService.getAllRoles())
                 .build());
@@ -42,6 +43,7 @@ public class AdminRoleController {
     public ResponseEntity<ApiResponse<List<PermissionResponse>>> getAllPermissions() {
         return ResponseEntity.ok(ApiResponse.<List<PermissionResponse>>builder()
                 .success(true)
+                .code("PERMISSIONS_FETCHED_SUCCESS")
                 .message("Permissions fetched successfully")
                 .data(roleService.getAllPermissions())
                 .build());
@@ -53,6 +55,7 @@ public class AdminRoleController {
     public ResponseEntity<ApiResponse<RoleResponse>> getRoleByCode(@PathVariable String code) {
         return ResponseEntity.ok(ApiResponse.<RoleResponse>builder()
                 .success(true)
+                .code("ROLE_FETCHED_SUCCESS")
                 .message("Role fetched successfully")
                 .data(roleService.getRoleByCode(code))
                 .build());
@@ -64,6 +67,7 @@ public class AdminRoleController {
     public ResponseEntity<ApiResponse<RoleResponse>> createRole(@Valid @RequestBody RoleRequest request) {
         return new ResponseEntity<>(ApiResponse.<RoleResponse>builder()
                 .success(true)
+                .code("ROLE_CREATED_SUCCESS")
                 .message("Role created successfully")
                 .data(roleService.createRole(request))
                 .build(), HttpStatus.CREATED);
@@ -76,6 +80,7 @@ public class AdminRoleController {
             @PathVariable UUID id, @Valid @RequestBody RoleRequest request) {
         return ResponseEntity.ok(ApiResponse.<RoleResponse>builder()
                 .success(true)
+                .code("ROLE_UPDATED_SUCCESS")
                 .message("Role updated successfully")
                 .data(roleService.updateRole(id, request))
                 .build());
@@ -88,6 +93,7 @@ public class AdminRoleController {
         roleService.deleteRole(id);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
+                .code("ROLE_DELETED_SUCCESS")
                 .message("Role deleted successfully")
                 .build());
     }
