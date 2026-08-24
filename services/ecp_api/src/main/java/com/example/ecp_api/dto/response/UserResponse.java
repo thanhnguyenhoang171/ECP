@@ -26,8 +26,8 @@ public class UserResponse {
     @Schema(description = "Phone number", example = "0987654321")
     private String phoneNumber;
 
-    @Schema(description = "User role in the system")
-    private UserRole role;
+    @Schema(description = "User roles in the system", example = "[\"SUPER_ADMIN\", \"MANAGER\"]")
+    private java.util.Set<String> roles;
 
     @Schema(description = "User's first name", example = "John")
     private String firstName;

@@ -25,7 +25,17 @@ public class CustomUserDetails implements UserDetails {
     private boolean active;
 
     public static CustomUserDetails build(User user) {
-        GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
+        java.util.Set<GrantedAuthority> authorities = new java.util.HashSet<>();
+        if (user.getRoles() != null) {
+            for (com.example.ecp_api.entity.jpa.Role role : user.getRoles()) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getCode().toUpperCase()));
+                if (role.getPermissions() != null) {
+                    for (com.example.ecp_api.entity.jpa.Permission perm : role.getPermissions()) {
+                        authorities.add(new SimpleGrantedAuthority(perm.getCode()));
+                    }
+                }
+            }
+        }
 
         String firstName = user.getProfile() != null ? user.getProfile().getFirstName() : null;
         String lastName = user.getProfile() != null ? user.getProfile().getLastName() : null;
@@ -38,7 +48,7 @@ public class CustomUserDetails implements UserDetails {
                 firstName,
                 lastName,
                 avatarUrl,
-                Collections.singletonList(authority),
+                authorities,
                 user.isActive()
         );
     }

@@ -2,6 +2,7 @@ package com.example.ecp_api.controller.admin;
 
 import com.example.ecp_api.dto.request.UserFilterRequest;
 import com.example.ecp_api.dto.request.UserRequest;
+import com.example.ecp_api.dto.request.UserUpdateRequest;
 import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.UserResponse;
@@ -19,24 +20,27 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/v1/admin/users")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] User Management", description = "Super Admin: Full CRUD on users of any role. Includes statistics and filtering.")
+@PreAuthorize("hasAuthority('user:read') or hasRole('SUPER_ADMIN')")
+@Tag(name = "[ADMIN] User Management", description = "Management API: User account management, role assignment, status checks, and statistics.")
 public class AdminUserController {
 
     private final UserService userService;
     private final TokenService tokenService;
 
     @PostMapping
-    @Operation(summary = "Create a new user (any role)")
+    @PreAuthorize("(hasAuthority('user:create') or hasRole('SUPER_ADMIN')) and @userSecurityEvaluator.canAssignRoles(authentication, #request.roles)")
+    @Operation(summary = "Create a new user account")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody UserRequest request) {
         return new ResponseEntity<>(ApiResponse.<UserResponse>builder()
                 .success(true).message("User created successfully")
@@ -44,7 +48,7 @@ public class AdminUserController {
     }
 
     @GetMapping
-    @Operation(summary = "Search and filter all users")
+    @Operation(summary = "Search and filter users")
     @Parameters({
             @Parameter(name = "page", example = "1", schema = @Schema(type = "integer", defaultValue = "1")),
             @Parameter(name = "size", example = "20", schema = @Schema(type = "integer", defaultValue = "20")),
@@ -64,7 +68,30 @@ public class AdminUserController {
                 .data(userService.getUserById(id)).build());
     }
 
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("(hasAuthority('user:update') or hasRole('SUPER_ADMIN')) and @userSecurityEvaluator.canManageUser(authentication, #id) and @userSecurityEvaluator.canAssignRoles(authentication, #request.roles)")
+    @Operation(summary = "Update user profile (JSON)")
+    public ResponseEntity<ApiResponse<UserResponse>> updateUserJson(
+            @PathVariable UUID id, @Valid @RequestBody UserUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
+                .success(true).message("User updated successfully")
+                .data(userService.updateUser(id, request, null)).build());
+    }
+
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("(hasAuthority('user:update') or hasRole('SUPER_ADMIN')) and @userSecurityEvaluator.canManageUser(authentication, #id) and @userSecurityEvaluator.canAssignRoles(authentication, #request.roles)")
+    @Operation(summary = "Update user profile (Multipart)")
+    public ResponseEntity<ApiResponse<UserResponse>> updateUserMultipart(
+            @PathVariable UUID id,
+            @RequestPart("user") @Valid UserUpdateRequest request,
+            @RequestPart(value = "avatarFile", required = false) MultipartFile avatarFile) {
+        return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
+                .success(true).message("User updated successfully")
+                .data(userService.updateUser(id, request, avatarFile)).build());
+    }
+
     @DeleteMapping("/{id}")
+    @PreAuthorize("(hasAuthority('user:delete') or hasRole('SUPER_ADMIN')) and @userSecurityEvaluator.canManageUser(authentication, #id)")
     @Operation(summary = "Delete a user by ID")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable UUID id) {
         userService.deleteUser(id);
@@ -73,7 +100,7 @@ public class AdminUserController {
     }
 
     @GetMapping("/statistics")
-    @Operation(summary = "Get user statistics (total, active, by role, etc.)")
+    @Operation(summary = "Get user statistics")
     public ResponseEntity<ApiResponse<UserStatisticsResponse>> getStatistics() {
         return ResponseEntity.ok(ApiResponse.<UserStatisticsResponse>builder()
                 .success(true).message("Statistics fetched successfully")
@@ -81,7 +108,7 @@ public class AdminUserController {
     }
 
     @GetMapping("/status/{id}")
-    @Operation(summary = "Check user online status by User ID", description = "Checks if a user is currently active in the system (online) based on Redis presence by User ID. Accessible only by SUPER_ADMIN.")
+    @Operation(summary = "Check user online status by User ID")
     public ResponseEntity<ApiResponse<Boolean>> checkUserStatus(@PathVariable String id) {
         UserResponse user = userService.getUserById(UUID.fromString(id));
         boolean isOnline = tokenService.isUserOnline(user.getEmail());

@@ -29,8 +29,8 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/v1/admin/brands")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Brand Management", description = "Super Admin: Full CRUD on brands with complete audit info")
+@PreAuthorize("hasAuthority('brand:read') or hasRole('SUPER_ADMIN')")
+@Tag(name = "[ADMIN] Brand Management", description = "Management API: Full CRUD on brands")
 public class AdminBrandController {
 
     private final BrandService brandService;

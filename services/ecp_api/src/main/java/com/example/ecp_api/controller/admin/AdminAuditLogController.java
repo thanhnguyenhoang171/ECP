@@ -27,8 +27,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/v1/admin/audit-logs")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Audit Logs", description = "Super Admin only: Full access to query both SYSTEM (Auth, User, Role) and MANAGEMENT (Product, Order, Inventory) audit logs.")
+@PreAuthorize("hasAuthority('audit:read') or hasRole('SUPER_ADMIN')")
+@Tag(name = "[ADMIN] Audit Logs", description = "Management API: Query audit logs.")
 public class AdminAuditLogController {
 
     private final AuditLogService auditLogService;

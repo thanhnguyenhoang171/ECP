@@ -100,7 +100,6 @@ public class SecurityConfig {
                         .requestMatchers("/v1/auth/**", "/auth/**").permitAll()
                         // Public Storefront Catalog Read Access
                         .requestMatchers(HttpMethod.GET, "/v1/storefront/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/v1/products/**", "/v1/categories/**", "/v1/brands/**").permitAll()
                         // All other endpoints require authentication (role-based security enforced via @PreAuthorize on controllers)
                         .anyRequest().authenticated()
                 );

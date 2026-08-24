@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/v1/admin/purchase-orders")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Purchase Order Management", description = "Super Admin: Full CRUD on purchase orders with complete audit info")
+@PreAuthorize("hasAuthority('purchase_order:read') or hasRole('SUPER_ADMIN')")
+@Tag(name = "[ADMIN] Purchase Order Management", description = "Management API: Purchase Order PO management")
 public class AdminPurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;

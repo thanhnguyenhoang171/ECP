@@ -39,10 +39,18 @@ public class User {
     @Column(name = "provider_id")
     private String providerId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20)
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
     @Builder.Default
-    private UserRole role = UserRole.USER;
+    private java.util.Set<Role> roles = new java.util.HashSet<>();
+
+    public boolean hasRole(String roleCode) {
+        return roles != null && roles.stream().anyMatch(r -> r.getCode().equalsIgnoreCase(roleCode));
+    }
 
     @Column(name = "is_active")
     @Builder.Default

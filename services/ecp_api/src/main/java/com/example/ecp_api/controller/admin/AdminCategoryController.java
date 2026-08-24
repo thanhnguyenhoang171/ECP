@@ -33,8 +33,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/v1/admin/categories")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Category Management", description = "Super Admin: Full CRUD on categories with audit info")
+@PreAuthorize("hasAuthority('category:read') or hasRole('SUPER_ADMIN')")
+@Tag(name = "[ADMIN] Category Management", description = "Management API: Full CRUD on categories")
 public class AdminCategoryController {
 
     private final CategoryService categoryService;

@@ -24,8 +24,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/v1/admin/inventory")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('SUPER_ADMIN')")
-@Tag(name = "[ADMIN] Inventory Management", description = "Super Admin: Full inventory control including manual adjustments and deletion")
+@PreAuthorize("hasAuthority('inventory:read') or hasRole('SUPER_ADMIN')")
+@Tag(name = "[ADMIN] Inventory Management", description = "Management API: Stock balances and ledgers")
 public class AdminInventoryController {
 
     private final InventoryService inventoryService;
