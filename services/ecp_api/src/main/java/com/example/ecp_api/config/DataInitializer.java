@@ -48,6 +48,10 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        if (roleRepository.existsByCode("SUPER_ADMIN")) {
+            log.info("System data already initialized. Skipping seeder.");
+            return;
+        }
         log.info("Starting system data initialization...");
         initializeRolesAndPermissions();
         initializeUsers();
