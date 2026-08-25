@@ -155,6 +155,7 @@ public class WarehouseServiceImpl implements WarehouseService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public WarehouseResponse getWarehouseById(String id) {
         Warehouse warehouse = warehouseRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Không tìm thấy kho hàng với ID: " + id, HttpStatus.NOT_FOUND));
@@ -170,6 +171,7 @@ public class WarehouseServiceImpl implements WarehouseService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public WarehouseAdminResponse getWarehouseByIdForAdmin(String id) {
         Warehouse warehouse = warehouseRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Không tìm thấy kho hàng với ID: " + id, HttpStatus.NOT_FOUND));
@@ -178,12 +180,14 @@ public class WarehouseServiceImpl implements WarehouseService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<WarehouseResponse> getAllWarehouses(WarehouseFilterRequest filter, Pageable pageable) {
         Page<Warehouse> warehousePage = searchWarehouses(filter, pageable);
         return warehouseMapper.toPageResponse(warehousePage);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<WarehouseAdminResponse> getAllWarehousesForAdmin(WarehouseFilterRequest filter, Pageable pageable) {
         Page<Warehouse> warehousePage = searchWarehouses(filter, pageable);
         return warehouseMapper.toAdminPageResponse(warehousePage);
