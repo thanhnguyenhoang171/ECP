@@ -273,6 +273,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResponse getUserById(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
@@ -281,6 +282,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<UserResponse> getAllUsers(Pageable pageable) {
         Pageable finalPageable = PaginationUtils.applyStableSort(pageable,
                 Sort.Order.desc("createdAt"),
@@ -289,6 +291,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<UserResponse> searchUsers(UserFilterRequest filter, Pageable pageable) {
         Pageable finalPageable = PaginationUtils.applyStableSort(pageable,
                 Sort.Order.desc("createdAt"),
@@ -464,6 +467,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserStatisticsResponse getStatistics() {
         long totalUsers = userRepository.count();
         long onlineUsers = tokenService.countOnlineUsers();

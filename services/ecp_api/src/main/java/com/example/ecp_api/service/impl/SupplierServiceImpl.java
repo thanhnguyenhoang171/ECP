@@ -116,6 +116,7 @@ public class SupplierServiceImpl implements SupplierService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public SupplierResponse getSupplierById(String id) {
         Supplier supplier = supplierRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("SUPPLIER_NOT_FOUND", "Không tìm thấy nhà cung cấp với ID: " + id, HttpStatus.NOT_FOUND));
@@ -124,6 +125,7 @@ public class SupplierServiceImpl implements SupplierService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public SupplierAdminResponse getSupplierByIdForAdmin(String id) {
         Supplier supplier = supplierRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("SUPPLIER_NOT_FOUND", "Không tìm thấy nhà cung cấp với ID: " + id, HttpStatus.NOT_FOUND));
@@ -132,12 +134,14 @@ public class SupplierServiceImpl implements SupplierService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<SupplierResponse> getAllSuppliers(SupplierRequestFilter filter, Pageable pageable) {
         Page<Supplier> supplierPage = searchSuppliers(filter, pageable);
         return supplierMapper.toPageResponse(supplierPage);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PageResponse<SupplierAdminResponse> getAllSuppliersForAdmin(SupplierRequestFilter filter, Pageable pageable) {
         Page<Supplier> supplierPage = searchSuppliers(filter, pageable);
         return supplierMapper.toAdminPageResponse(supplierPage);
