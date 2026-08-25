@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body style="font-family: Arial, sans-serif; padding: 20px;">
+<div style="max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">
+    <h2 style="color: #2563eb; text-align: center;">OTP XÁC THỰC EMAIL</h2>
+    <p>Xin chào <b th:text="${fullName}">Khách hàng</b>,</p>
+    <p>Bạn vừa yêu cầu mã xác thực Email trên hệ thống <b>Cacao Shop</b>. Mã OTP của bạn là:</p>
+    <div style="background-color: #f3f4f6; text-align: center; padding: 15px; font-size: 32px; font-weight: bold; color: #1e40af; margin: 20px 0;"
+         th:text="${otpCode}">
+        123456
+    </div>
+    <p>Mã này có hiệu lực trong <b th:text="${expireMinutes}">10</b> phút. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
+    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+    <p style="color: #6b7280; font-size: 12px; text-align: center;">Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.</p>
+</div>
+</body>
+</html>
