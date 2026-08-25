@@ -7,6 +7,7 @@ import com.example.ecp_api.dto.response.UserResponse;
 import com.example.ecp_api.security.CustomUserDetails;
 import com.example.ecp_api.security.CustomUserDetailsService;
 import com.example.ecp_api.security.JwtTokenProvider;
+import com.example.ecp_api.service.EmailVerificationService;
 import com.example.ecp_api.service.TokenService;
 import com.example.ecp_api.service.UserService;
 import com.example.ecp_api.util.SecurityUtils;
@@ -44,6 +45,7 @@ public class AuthController {
     private final UserService userService;
     private final com.example.ecp_api.service.AuditLogService auditLogService;
     private final CustomUserDetailsService customUserDetailsService;
+    private final EmailVerificationService emailVerificationService;
 
     @PostMapping("/register")
     @Operation(summary = "Register a new user account")
@@ -277,6 +279,43 @@ public class AuthController {
                 .success(true)
                 .code("LOGOUT_SUCCESS")
                 .message("Logout successful")
+                .build());
+    }
+
+    @PostMapping("/send-otp-mail")
+    @Operation(summary = "Send OTP code for email verification")
+    public ResponseEntity<ApiResponse<Void>> sendOtpEmail() {
+        String email = SecurityUtils.getCurrentUserEmail();
+        emailVerificationService.sendVerificationOtp(email);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .code("OTP_SENT_SUCCESS")
+                .message("Verification OTP sent to your email successfully")
+                .build());
+    }
+
+    @PostMapping("/verify-email")
+    @Operation(summary = "Verify email with OTP code")
+    public ResponseEntity<ApiResponse<Void>> verifyOtpEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        String email = SecurityUtils.getCurrentUserEmail();
+        emailVerificationService.verifyEmail(email, request.getOtp());
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .code("EMAIL_VERIFIED_SUCCESS")
+                .message("Email verified successfully")
+                .build());
+
+    }
+
+    @PostMapping("/resend-verification")
+    @Operation(summary = "Resend verification OTP email")
+    public ResponseEntity<ApiResponse<Void>> resendVerfification() {
+        String email = SecurityUtils.getCurrentUserEmail();
+        emailVerificationService.sendVerificationOtp(email);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .code("OTP_RESENT_SUCCESS")
+                .message("Verification OTP resent to your email successfully")
                 .build());
     }
 }
