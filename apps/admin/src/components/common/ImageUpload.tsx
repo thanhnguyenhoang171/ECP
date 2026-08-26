@@ -7,7 +7,6 @@ import {
   X, 
   Trash2,
   Maximize2,
-  CheckCircle2,
   AlertCircle,
   Loader2
 } from 'lucide-react';
@@ -347,43 +346,28 @@ export const ImageUpload = ({
             {/* Overlay controls */}
             <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
               <div className="flex gap-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        type="button" 
-                        variant="secondary" 
-                        size="icon" 
-                        className="h-10 w-10 rounded-full shadow-xl bg-white hover:bg-slate-100 text-slate-900 border-none"
-                        onClick={(e) => { e.stopPropagation(); window.open(currentImage.url, '_blank'); }}
-                      >
-                        <Maximize2 size={16} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Xem ảnh gốc</TooltipContent>
-                  </Tooltip>
+                <Button 
+                  type="button" 
+                  variant="secondary" 
+                  size="icon" 
+                  title="Xem ảnh gốc"
+                  className="h-10 w-10 rounded-full shadow-xl bg-white hover:bg-slate-100 text-slate-900 border-none cursor-pointer"
+                  onClick={(e) => { e.stopPropagation(); window.open(currentImage.url, '_blank'); }}
+                >
+                  <Maximize2 size={16} />
+                </Button>
 
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        type="button" 
-                        variant="destructive" 
-                        size="icon" 
-                        className="h-10 w-10 rounded-full shadow-xl"
-                        onClick={(e) => handleRemove(currentImage.url, e)}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Gỡ bỏ ảnh</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Button 
+                  type="button" 
+                  variant="destructive" 
+                  size="icon" 
+                  title="Gỡ bỏ ảnh"
+                  className="h-10 w-10 rounded-full shadow-xl cursor-pointer"
+                  onClick={(e) => handleRemove(currentImage.url, e)}
+                >
+                  <Trash2 size={16} />
+                </Button>
               </div>
-            </div>
-
-            {/* Success Badge */}
-            <div className="absolute top-3 right-3 bg-emerald-500 text-white p-1 rounded-full shadow-lg">
-              <CheckCircle2 size={14} />
             </div>
           </>
         )}

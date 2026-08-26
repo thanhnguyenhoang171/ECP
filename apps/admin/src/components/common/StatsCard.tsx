@@ -25,7 +25,7 @@ export const StatsCard = ({
   className
 }: StatsCardProps) => {
   return (
-    <Card className={cn("overflow-hidden border-border shadow-main hover:shadow-card transition-all duration-300", className)}>
+    <Card className={cn("overflow-hidden border border-slate-300/80 bg-slate-100/95 shadow-md hover:shadow-lg rounded-2xl transition-all duration-300", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
           {title}

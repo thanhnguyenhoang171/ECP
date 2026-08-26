@@ -7,15 +7,15 @@ import { usePathname } from 'next/navigation';
 
 import { authApi } from '@/features/auth/api/auth.api';
 
-export default function AuthProvider({ children }: { children: React.ReactNode }) {
+export default function AuthProvider({ children }: { readonly children: React.ReactNode }): React.ReactElement {
   const { setAuth, clearAuth } = useAuthStore();
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const pathname = usePathname();
 
   useEffect(() => {
-    const initAuth = async () => {
-      // Chỉ chạy refresh khi ứng dụng khởi tạo (F5)
-      // Không chạy ở trang login/register
+    const initAuth = async (): Promise<void> => {
+      // Execute refresh check only during app initialization (page reload/F5)
+      // Skip execution on authentication pages (/login or /register)
       if (pathname === '/login' || pathname === '/register') {
         setIsInitializing(false);
         return;
@@ -26,14 +26,36 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
         if (result.success) {
           const { id, accessToken, email, roles } = result.data;
-          setAuth(accessToken, { id, email, roles });
+          let userProfile = { id, email, roles: roles || [] };
+
+          try {
+            const accountRes = await authApi.getAccountInfo();
+            const accountData = accountRes?.data || accountRes;
+            if (accountData) {
+              userProfile = {
+                id: accountData.id || id,
+                email: accountData.email || email,
+                roles: accountData.roles || (accountData.role ? [accountData.role] : (roles || [])),
+                firstName: accountData.firstName,
+                lastName: accountData.lastName,
+                fullName: accountData.fullName || (accountData.lastName ? `${accountData.lastName} ${accountData.firstName || ''}`.trim() : accountData.firstName),
+                phone: accountData.phoneNumber || accountData.phone,
+                avatarUrl: accountData.avatarUrl,
+              };
+            }
+          } catch (fetchErr) {
+            console.error('[AuthProvider] Failed to retrieve account info:', fetchErr);
+          }
+
+          setAuth(accessToken, userProfile);
         }
-      } catch (error: any) {
-        if (error.status === 401) {
-          // Chỉ xóa auth nếu server xác nhận token không hợp lệ
+      } catch (error: unknown) {
+        const err = error as { status?: number };
+        if (err.status === 401) {
+          // Clear authentication state only when server confirms token is invalid
           clearAuth();
         }
-        console.error('AuthProvider init error:', error);
+        console.error('[AuthProvider] Auth initialization failed:', error);
       } finally {
         setIsInitializing(false);
       }

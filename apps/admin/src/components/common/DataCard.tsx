@@ -58,7 +58,7 @@ export function DataCard({
     <div className="space-y-6">
       {/* 1. Control Bar: Search & Filter Card */}
       {(search || extra) && (
-        <div className={cn('flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-100 p-4 rounded-2xl border border-slate-300/80 shadow-md', headerClassName)}>
+        <div className={cn('flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-100/95 p-4 rounded-2xl border border-slate-300/80 shadow-md', headerClassName)}>
           <div className="flex-1 max-w-md">
             {search}
           </div>
@@ -67,7 +67,7 @@ export function DataCard({
       )}
 
       {/* 2. Main Content / Table Card */}
-      <Card className={cn('overflow-hidden border border-slate-300/80 bg-slate-100 shadow-md rounded-2xl transition-all', className)}>
+      <Card className={cn('overflow-hidden border border-slate-300/80 bg-slate-100/95 shadow-md rounded-2xl transition-all', className)}>
         <CardContent className={cn('p-0 relative', contentClassName)}>
           {children}
         </CardContent>

@@ -2,6 +2,48 @@ export interface User {
   id: string;
   email: string;
   roles: string[];
+  phoneNumber?: string | null;
+  phone?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  fullName?: string | null;
+  avatarUrl?: string | null;
+  avatarPublicId?: string | null;
+  dob?: string | null;
+  gender?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  phoneVerified?: boolean;
+  active?: boolean;
+  emailVerified?: boolean;
+}
+
+export interface UserAccountData {
+  id: string;
+  email: string;
+  phoneNumber?: string | null;
+  phone?: string | null;
+  roles: string[];
+  firstName?: string | null;
+  lastName?: string | null;
+  avatarUrl?: string | null;
+  avatarPublicId?: string | null;
+  dob?: string | null;
+  gender?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string | null;
+  updatedBy?: string | null;
+  phoneVerified?: boolean;
+  active?: boolean;
+  emailVerified?: boolean;
+}
+
+export interface UserAccountResponse {
+  success: boolean;
+  message: string;
+  code: string;
+  data: UserAccountData;
 }
 
 export interface AuthResponse {

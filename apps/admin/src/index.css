@@ -106,9 +106,9 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
-/* Đảm bảo toàn bộ ứng dụng luôn chiếm ít nhất full màn hình và có thể cuộn dọc */
+/* Ensure full viewport height */
 html {
-  /* Khóa thanh cuộn bên ngoài để các layout tự quản lý vùng cuộn của chúng */
+  /* Lock outer scrolling to allow child layout components to handle internal scrolling */
   overflow: hidden;
   height: 100dvh;
 }
@@ -125,12 +125,12 @@ body {
   touch-action: manipulation;
 }
 
-/* Tối ưu hóa chuyển động mượt mà bằng GPU */
+/* GPU transform optimization */
 .will-change-transform {
   will-change: transform;
 }
 
-/* Custom scrollbar nhẹ hơn cho mobile */
+/* Custom compact scrollbars for mobile viewports */
 @media (max-width: 768px) {
   .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
@@ -141,7 +141,7 @@ body {
   }
 }
 
-/* Tùy chỉnh màu nprogress bar */
+/* Custom nprogress bar styling */
 #nprogress .bar {
   background: hsl(var(--primary)) !important;
   height: 3px !important;
@@ -151,7 +151,7 @@ body {
   box-shadow: 0 0 10px hsl(var(--primary)), 0 0 5px hsl(var(--primary)) !important;
 }
 
-/* Hiệu ứng fade-in cho trang */
+/* Fade-in animation for page transitions */
 @keyframes fadeIn {
   from {
     opacity: 0;

@@ -37,7 +37,7 @@ public class EmailServiceImpl implements EmailService {
 
             helper.setFrom(fromEmail, senderName);
             helper.setTo(toEmail);
-            helper.setSubject("[Cacao Shop] Mã xác thực Email của bạn");
+            helper.setSubject("Mã xác thực tài khoản Email của bạn trên hệ thống Cacao Shop");
 
            Context context = new Context();
            context.setVariable("fullName", fullName);
