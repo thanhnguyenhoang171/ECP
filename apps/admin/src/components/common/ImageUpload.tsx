@@ -295,7 +295,7 @@ export const ImageUpload = ({
   const handleRemove = (url: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (!deferUpload && !url.startsWith('blob:')) {
+    if (!onRemove && !deferUpload && !url.startsWith('blob:')) {
       const item = internalImages.find(img => img.url === url);
       const publicId = item?.publicId || getCloudinaryPublicId(url);
       
@@ -331,6 +331,7 @@ export const ImageUpload = ({
           alt="Preview" 
           fill 
           unoptimized={currentImage.url.startsWith('blob:')}
+          referrerPolicy="no-referrer"
           sizes="(max-width: 768px) 100vw, 400px"
           className="object-cover transition-transform duration-500 group-hover:scale-105" 
         />

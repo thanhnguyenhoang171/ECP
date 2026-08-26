@@ -47,6 +47,9 @@ public class UserResponse {
     @Schema(description = "User gender")
     private UserGender gender;
 
+    @Schema(description = "Authentication provider (e.g. LOCAL, GOOGLE)", example = "LOCAL")
+    private String provider;
+
     @Schema(description = "Account status", example = "true")
     private boolean isActive;
 

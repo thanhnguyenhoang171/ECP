@@ -1,6 +1,5 @@
-
 import { LoginFormValues, RegisterFormValues } from '../schemas/auth.schema';
-import { LoginResponse, RegisterResponse, LogoutResponse } from '../types/auth.interface';
+import { LoginResponse, RegisterResponse, LogoutResponse, UpdateUserAccountPayload, UserAccountResponse } from '../types/auth.interface';
 
 export const authApi = {
   login: async (values: LoginFormValues): Promise<LoginResponse> => {
@@ -78,9 +77,56 @@ export const authApi = {
     return result;
   },
 
-  getAccountInfo: async (): Promise<any> => {
+  getAccountInfo: async (): Promise<UserAccountResponse> => {
     const { clientFetch } = await import('@/lib/clientFetch');
     const response = await clientFetch('v1/users/me');
+    const result = await response.json();
+    if (!response.ok) {
+      throw result;
+    }
+    return result;
+  },
+
+  updateAccountInfo: async (payload: UpdateUserAccountPayload): Promise<UserAccountResponse> => {
+    const { clientFetch } = await import('@/lib/clientFetch');
+    const response = await clientFetch('v1/users/me', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw result;
+    }
+    return result;
+  },
+
+  uploadAvatar: async (file: File): Promise<UserAccountResponse> => {
+    const { clientFetch } = await import('@/lib/clientFetch');
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await clientFetch('v1/users/me/avatar', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw result;
+    }
+    return result;
+  },
+
+  deleteAvatar: async (): Promise<UserAccountResponse> => {
+    const { clientFetch } = await import('@/lib/clientFetch');
+    const response = await clientFetch('v1/users/me/avatar', {
+      method: 'DELETE',
+    });
+
     const result = await response.json();
     if (!response.ok) {
       throw result;

@@ -109,34 +109,54 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         if (publicId == null || publicId.trim().isEmpty()) {
             throw new AppException("INVALID_PARAM", "Public ID cannot be empty", HttpStatus.BAD_REQUEST);
         }
+
+        String cleanPublicId = publicId.trim();
+        while (cleanPublicId.startsWith("/")) {
+            cleanPublicId = cleanPublicId.substring(1);
+        }
+
+        List<String> candidates = new ArrayList<>();
+        candidates.add(cleanPublicId);
+
+        if (cleanPublicId.contains("/")) {
+            String shortId = cleanPublicId.substring(cleanPublicId.lastIndexOf('/') + 1);
+            if (!shortId.isEmpty() && !candidates.contains(shortId)) {
+                candidates.add(shortId);
+            }
+        } else {
+            candidates.add("ecp_uploads/" + cleanPublicId);
+            candidates.add("ecp_uploads/avatars/" + cleanPublicId);
+            candidates.add("ecp_uploads/products/" + cleanPublicId);
+            candidates.add("ecp_uploads/categories/" + cleanPublicId);
+        }
+
+        String[] resourceTypes = new String[]{"image", "video", "raw"};
+
         try {
-            log.info("Attempting to delete file from Cloudinary with publicId: {}", publicId);
+            boolean deleted = false;
+            for (String candidate : candidates) {
+                log.info("Attempting to delete file from Cloudinary with candidate publicId: {}", candidate);
+                for (String resourceType : resourceTypes) {
+                    Map params = ObjectUtils.asMap("resource_type", resourceType, "invalidate", true);
+                    Map result = this.cloudinary.uploader().destroy(candidate, params);
+                    log.info("Cloudinary destroy response [{}] for candidate '{}': {}", resourceType, candidate, result);
+                    String status = (String) result.get("result");
 
-            // 1. Try deleting with default resource_type (image) and invalidate CDN cache
-            Map result = this.cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("invalidate", true));
-            log.info("Cloudinary destroy response [image] for publicId '{}': {}", publicId, result);
-            String status = (String) result.get("result");
-
-            // 2. If not found, try with resource_type = video
-            if (!"ok".equalsIgnoreCase(status)) {
-                result = this.cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", "video", "invalidate", true));
-                log.info("Cloudinary destroy response [video] for publicId '{}': {}", publicId, result);
-                status = (String) result.get("result");
+                    if ("ok".equalsIgnoreCase(status)) {
+                        log.info("Delete file successfully from Cloudinary: {} (resource_type: {})", candidate, resourceType);
+                        deleted = true;
+                        break;
+                    }
+                }
+                if (deleted) {
+                    break;
+                }
             }
 
-            // 3. If still not found, try with resource_type = raw (PDF, DOC, ZIP...)
-            if (!"ok".equalsIgnoreCase(status)) {
-                result = this.cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", "raw", "invalidate", true));
-                log.info("Cloudinary destroy response [raw] for publicId '{}': {}", publicId, result);
-                status = (String) result.get("result");
-            }
-
-            if (!"ok".equalsIgnoreCase(status)) {
-                log.warn("Cloudinary delete failed for publicId '{}': final status={}", publicId, status);
+            if (!deleted) {
+                log.warn("Cloudinary delete failed for publicId '{}' (candidates tested: {})", publicId, candidates);
                 throw new AppException("FILE_NOT_FOUND", "File with public_id '" + publicId + "' was not found on Cloudinary.", HttpStatus.NOT_FOUND);
             }
-
-            log.info("Delete file successfully from Cloudinary: {}", publicId);
         } catch (AppException ae) {
             throw ae;
         } catch (Exception e) {

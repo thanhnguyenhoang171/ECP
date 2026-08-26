@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { extractRolesFromToken } from '@/lib/jwt';
 
 interface User {
   id: string;
@@ -49,14 +50,32 @@ export const useAuthStore = create<AuthState>()(
       isInitialized: false,
       errorCount: 0,
       isBlocked: false,
-      setAuth: (token, user) => set({ 
-        accessToken: token, 
-        user, 
-        isAuthenticated: true,
-        errorCount: 0,
-        isBlocked: false
-      }),
-      updateAccessToken: (token) => set({ accessToken: token }),
+      setAuth: (token, user) => {
+        const decodedRoles = extractRolesFromToken(token);
+        const mergedRoles = user?.roles && user.roles.length > 0
+          ? user.roles
+          : decodedRoles;
+
+        set({ 
+          accessToken: token, 
+          user: user ? { ...user, roles: mergedRoles } : user, 
+          isAuthenticated: true,
+          errorCount: 0,
+          isBlocked: false
+        });
+      },
+      updateAccessToken: (token) => {
+        const decodedRoles = extractRolesFromToken(token);
+        set((state) => ({
+          accessToken: token,
+          user: state.user
+            ? {
+                ...state.user,
+                roles: state.user.roles && state.user.roles.length > 0 ? state.user.roles : decodedRoles,
+              }
+            : state.user,
+        }));
+      },
       setInitialized: (val) => set({ isInitialized: val }),
       clearAuth: () => set({ 
         accessToken: null, 

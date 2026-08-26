@@ -22,7 +22,9 @@ public interface UserService {
     
     // Auth helpers
     UserResponse getCurrentUserAccount(String email);
-    UserResponse updateCurrentUserAccount(String email, UserUpdateRequest request);
+    UserResponse updateCurrentUserAccount(String email, UpdateMyAccountRequest request);
+    UserResponse updateCurrentUserAvatar(String email, org.springframework.web.multipart.MultipartFile file);
+    UserResponse deleteCurrentUserAvatar(String email);
     void updateLastLogin(String identifier);
     UserStatisticsResponse getStatistics();
 }

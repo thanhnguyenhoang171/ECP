@@ -86,6 +86,7 @@ export default function AuthInitializer(): null {
         setAuth(accessToken, {
           id: profile.id,
           email: profile.email,
+          provider: profile.provider,
           roles: profile.roles || (profile.role ? [profile.role] : []),
           firstName: profile.firstName,
           lastName: profile.lastName,

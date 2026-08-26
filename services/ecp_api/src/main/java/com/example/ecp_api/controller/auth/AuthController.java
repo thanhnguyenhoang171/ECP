@@ -90,6 +90,7 @@ public class AuthController {
                     .collect(Collectors.toList());
 
             AuthResponse authResponse = AuthResponse.builder()
+                    .code("LOGIN_SUCCESS")
                     .accessToken(accessToken)
                     .refreshToken(refreshToken)
                     .tokenType("Bearer")
@@ -146,6 +147,7 @@ public class AuthController {
         tokenService.saveRefreshToken(refreshToken, userDetails.getEmail(), jwtTokenProvider.getRefreshExpirationMs());
 
         AuthResponse authResponse = AuthResponse.builder()
+                .code("GOOGLE_LOGIN_SUCCESS")
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .tokenType("Bearer")
@@ -210,6 +212,7 @@ public class AuthController {
             tokenService.saveAccessToken(newAccessToken, username, jwtTokenProvider.getJwtExpirationMs());
 
             AuthResponse authResponse = AuthResponse.builder()
+                    .code("TOKEN_REFRESHED_SUCCESS")
                     .accessToken(newAccessToken)
                     .refreshToken(requestRefreshToken)
                     .tokenType("Bearer")
