@@ -423,6 +423,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResponse getCurrentUserAccount(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));

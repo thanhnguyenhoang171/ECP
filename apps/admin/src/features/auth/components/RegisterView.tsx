@@ -3,11 +3,11 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { User, Lock, Loader2, Eye, EyeOff, UserPlus, Mail } from 'lucide-react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { Lock, Loader2, Eye, EyeOff, UserPlus, Mail, User } from 'lucide-react';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -15,153 +15,173 @@ import {
   FormItem,
   FormMessage,
   FormLabel,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-import { registerSchema, RegisterFormValues } from "@/features/auth/schemas/auth.schema";
-import { useRegister } from "../hooks/use-auth-mutation";
+import { registerSchema, RegisterFormValues } from '@/features/auth/schemas/auth.schema';
+import { useRegister } from '../hooks/use-auth-mutation';
 
-export default function RegisterView() {
-  const [showPassword, setShowPassword] = useState(false);
+export default function RegisterView(): React.ReactElement {
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const registerMutation = useRegister();
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      email: "",
-      firstName: "",
-      lastName: "",
-      password: "",
-      confirm: "",
+      email: '',
+      firstName: '',
+      lastName: '',
+      password: '',
+      confirm: '',
     },
   });
 
-  async function onSubmit(values: RegisterFormValues) {
+  const onSubmit = (values: RegisterFormValues): void => {
     registerMutation.mutate(values);
-  }
+  };
 
   const isLoading = registerMutation.isPending;
+  const passwordValue = form.watch('password') || '';
+  const confirmValue = form.watch('confirm') || '';
+
+  const isPasswordMatched = confirmValue.length > 0 && passwordValue === confirmValue;
 
   return (
-    <div className="relative flex flex-col items-center min-h-dvh py-10 px-4">
-      {/* Background Image with Overlay */}
-      <div 
-        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/background/moutain.jpg')" }}
-      >
-        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]" />
-      </div>
+    <div className="relative min-h-dvh flex items-center justify-center p-4 sm:p-6 bg-slate-900 text-slate-100 overflow-hidden">
+      {/* Background Dot Grid & Ambient Blue Glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(59,130,246,0.15)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 w-full max-w-lg my-auto">
-        <div className="flex flex-col items-center mb-8">
-          <div className="relative h-20 w-20 mb-4 overflow-hidden rounded-2xl border-2 border-white/20 shadow-2xl">
-            <Image 
-              src="/logo/z7862984783113_196fdab6026e07fc4a13a745f502233b.jpg" 
-              alt="Logo" 
+      <div className="relative z-10 w-full max-w-lg mx-auto py-8">
+        {/* Brand Header */}
+        <div className="flex flex-col items-center mb-6 text-center">
+          <div className="relative h-16 w-16 mb-3 overflow-hidden rounded-2xl border border-white/20 shadow-2xl">
+            <Image
+              src="/logo/z7862984783113_196fdab6026e07fc4a13a745f502233b.jpg"
+              alt="Logo ECP"
               fill
-              sizes="80px"
+              sizes="64px"
               className="object-cover"
             />
           </div>
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tighter drop-shadow-lg text-center">CACAO ADMIN</h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">ECP ADMIN</h1>
+          <p className="text-xs text-slate-400 font-medium">Đăng ký tài khoản quản trị mới</p>
         </div>
 
-        <Card className="border-none shadow-2xl bg-white/95 backdrop-blur-sm overflow-hidden">
-          <CardHeader className="space-y-1 pt-6 sm:pt-8 pb-4 sm:pb-6 bg-slate-50/50 border-b px-5 sm:px-8">
-            <CardTitle className="text-xl sm:text-2xl font-bold text-center text-slate-900">Tạo tài khoản</CardTitle>
-            <CardDescription className="text-center text-slate-500 text-xs sm:text-sm">
-              Điền thông tin của bạn để bắt đầu
+        {/* Subtle Light Gray Register Card with Heavy Drop Shadow */}
+        <Card className="border border-slate-300/80 bg-slate-100/95 text-slate-900 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden backdrop-blur-sm">
+          <CardHeader className="space-y-1.5 pt-7 pb-5 px-6 sm:px-8 border-b border-slate-200/80 bg-slate-200/50 text-center">
+            <CardTitle className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Tạo tài khoản</CardTitle>
+            <CardDescription className="text-slate-500 text-xs sm:text-sm">
+              Điền đầy đủ thông tin bên dưới để gửi yêu cầu khởi tạo tài khoản
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-5 sm:p-8">
+          <CardContent className="p-6 sm:p-8">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-5">
-
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-slate-700 font-semibold text-sm sm:text-base">Email</FormLabel>
+                      <FormLabel className="text-slate-700 font-semibold text-xs uppercase tracking-wider">
+                        Địa chỉ Email
+                      </FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-3 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
-                          <Input 
-                            placeholder="admin@example.com" 
-                            {...field} 
-                            className="pl-9 sm:pl-10 h-10 sm:h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all text-sm sm:text-base"
+                          <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                          <Input
+                            type="email"
+                            placeholder="user@ecp.com"
+                            disabled={isLoading}
+                            {...field}
+                            className="pl-10 h-11 bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/25 rounded-xl shadow-xs transition-all disabled:opacity-50 text-sm font-medium"
                           />
                         </div>
                       </FormControl>
-                      <FormMessage className="text-xs" />
+                      <FormMessage className="text-xs text-rose-500" />
                     </FormItem>
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="lastName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-700 font-semibold text-sm sm:text-base">Họ</FormLabel>
+                        <FormLabel className="text-slate-700 font-semibold text-xs uppercase tracking-wider">
+                          Họ & Tên đệm
+                        </FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Nguyễn" 
-                            {...field} 
-                            className="h-10 sm:h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all text-sm sm:text-base"
-                          />
+                          <div className="relative">
+                            <User className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                            <Input
+                              placeholder="Nguyễn Văn"
+                              disabled={isLoading}
+                              {...field}
+                              className="pl-10 h-11 bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/25 rounded-xl shadow-xs transition-all disabled:opacity-50 text-sm font-medium"
+                            />
+                          </div>
                         </FormControl>
-                        <FormMessage className="text-xs" />
+                        <FormMessage className="text-xs text-rose-500" />
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="firstName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-700 font-semibold text-sm sm:text-base">Tên</FormLabel>
+                        <FormLabel className="text-slate-700 font-semibold text-xs uppercase tracking-wider">
+                          Tên
+                        </FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Thành" 
-                            {...field} 
-                            className="h-10 sm:h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all text-sm sm:text-base"
+                          <Input
+                            placeholder="Thành"
+                            disabled={isLoading}
+                            {...field}
+                            className="px-4 h-11 bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/25 rounded-xl shadow-xs transition-all disabled:opacity-50 text-sm font-medium"
                           />
                         </FormControl>
-                        <FormMessage className="text-xs" />
+                        <FormMessage className="text-xs text-rose-500" />
                       </FormItem>
                     )}
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-700 font-semibold text-sm sm:text-base">Mật khẩu</FormLabel>
+                        <FormLabel className="text-slate-700 font-semibold text-xs uppercase tracking-wider">
+                          Mật khẩu
+                        </FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <Lock className="absolute left-3 top-3 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
-                            <Input 
-                              type={showPassword ? "text" : "password"}
+                            <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                            <Input
+                              type={showPassword ? 'text' : 'password'}
                               placeholder="••••••••"
-                              {...field} 
-                              className="pl-9 sm:pl-10 h-10 sm:h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all text-sm sm:text-base"
+                              disabled={isLoading}
+                              {...field}
+                              className="pl-10 pr-10 h-11 bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/25 rounded-xl shadow-xs transition-all disabled:opacity-50 text-sm font-medium"
                             />
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition-colors"
+                              disabled={isLoading}
+                              className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50"
                             >
-                              {showPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
+                              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
                           </div>
                         </FormControl>
-                        <FormMessage className="text-xs" />
+                        <FormMessage className="text-xs text-rose-500" />
                       </FormItem>
                     )}
                   />
@@ -171,52 +191,66 @@ export default function RegisterView() {
                     name="confirm"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-700 font-semibold text-sm sm:text-base">Xác nhận mật khẩu</FormLabel>
+                        <div className="flex items-center justify-between">
+                          <FormLabel className="text-slate-700 font-semibold text-xs uppercase tracking-wider">
+                            Xác nhận mật khẩu
+                          </FormLabel>
+                          {confirmValue.length > 0 && (
+                            <span className={`text-[10px] font-bold ${isPasswordMatched ? 'text-emerald-600' : 'text-rose-500'}`}>
+                              {isPasswordMatched ? '✓ Khớp' : '✕ Chưa khớp'}
+                            </span>
+                          )}
+                        </div>
                         <FormControl>
                           <div className="relative">
-                            <Lock className="absolute left-3 top-3 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
-                            <Input 
-                              type={showPassword ? "text" : "password"}
+                            <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                            <Input
+                              type={showPassword ? 'text' : 'password'}
                               placeholder="••••••••"
-                              {...field} 
-                              className="pl-9 sm:pl-10 h-10 sm:h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all text-sm sm:text-base"
+                              disabled={isLoading}
+                              {...field}
+                              className="pl-10 h-11 bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/25 rounded-xl shadow-xs transition-all disabled:opacity-50 text-sm font-medium"
                             />
                           </div>
                         </FormControl>
-                        <FormMessage className="text-xs" />
+                        <FormMessage className="text-xs text-rose-500" />
                       </FormItem>
                     )}
                   />
                 </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full h-10 sm:h-12 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl transition-all shadow-lg mt-2 sm:mt-4 active:scale-[0.98] text-sm sm:text-base" 
+                <Button
+                  type="submit"
+                  className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-600/20 border-b-2 border-blue-800 transition-all active:border-b-0 active:translate-y-0.5 disabled:opacity-50 text-sm mt-2"
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Đang tạo tài khoản...
+                    </>
                   ) : (
-                    <span className="flex items-center">
-                      <UserPlus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Đăng ký tài khoản
+                    <span className="flex items-center justify-center gap-2">
+                      <UserPlus className="h-4 w-4" /> Đăng ký tài khoản
                     </span>
                   )}
                 </Button>
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex flex-col border-t bg-slate-50/50 p-5 sm:p-6">
-            <div className="text-center text-xs sm:text-sm text-slate-500">
-              Đã có tài khoản?{" "}
-              <Link href="/login" className="text-primary font-bold hover:underline">
-                Đăng nhập
+
+          <div className="border-t border-slate-200/80 bg-slate-200/50 p-5 text-center">
+            <p className="text-xs text-slate-500">
+              Đã có tài khoản quản trị?{' '}
+              <Link href="/login" className="text-blue-600 font-bold hover:underline">
+                Quay lại Đăng nhập
               </Link>
-            </div>
-          </CardFooter>
+            </p>
+          </div>
         </Card>
 
-        <p className="text-center text-xs text-slate-300 mt-8">
-          &copy; 2024 Cacao Enterprise. Bảo lưu mọi quyền.
+        <p className="text-center text-xs text-slate-500 mt-6">
+          &copy; 2024 ECP Enterprise System. Bảo lưu mọi quyền.
         </p>
       </div>
     </div>

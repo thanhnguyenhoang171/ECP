@@ -285,30 +285,33 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
 
   const getRoleLabel = (role?: string) => {
     if (!role) return 'Quản trị viên';
-    switch (role) {
-      case 'ROLE_SUPER_ADMIN':
+    const cleanRole = role.startsWith('ROLE_') ? role.replace('ROLE_', '') : role;
+    switch (cleanRole) {
+      case 'SUPER_ADMIN':
         return 'Quản trị viên cao cấp';
-      case 'ROLE_ADMIN':
+      case 'ADMIN':
         return 'Quản trị viên';
-      case 'ROLE_MANAGER':
+      case 'MANAGER':
         return 'Quản lý';
-      case 'ROLE_STAFF':
-      case 'ROLE_EMPLOYEE':
+      case 'STAFF':
+      case 'EMPLOYEE':
         return 'Nhân viên';
-      case 'ROLE_USER':
+      case 'USER':
         return 'Thành viên';
       default:
-        return role.replace('ROLE_', '');
+        return cleanRole;
     }
   };
 
   const renderSidebarContent = (mobile = false) => {
-    // Lọc menu items dựa trên role của user
+    // Filter sidebar menu items based on authorized user roles
     const filteredMenuItems = menuItems.filter(item => {
       if (!item.requiredRoles) return true;
       if (!user?.roles) return false;
       if (!user?.roles?.length) return false;
-      return item.requiredRoles.some(role => user.roles.includes(role));
+      return item.requiredRoles.some(reqRole => 
+        user.roles.includes(reqRole) || user.roles.includes(reqRole.replace('ROLE_', ''))
+      );
     });
 
     return (
@@ -405,17 +408,17 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
                       />
                     )}
                     <AvatarFallback className="bg-slate-800 text-slate-200 font-bold text-xs">
-                      {getInitials(user?.lastName ? `${user.lastName} ${user.firstName || ''}` : user?.email)}
+                      {getInitials(user?.fullName || ((user?.lastName || user?.firstName) ? `${user.lastName || ''} ${user.firstName || ''}`.trim() : user?.email))}
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden sm:flex flex-col items-start leading-tight">
                     <span className="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors">
-                      {(user?.lastName || user?.firstName)
+                      {user?.fullName || ((user?.lastName || user?.firstName)
                         ? `${user.lastName || ''} ${user.firstName || ''}`.trim()
-                        : (user?.email || 'Admin User')}
+                        : (user?.email || 'Admin User'))}
                     </span>
                     <span className="text-[10px] font-bold text-sky-400 bg-sky-500/15 px-2 py-0.5 rounded-full mt-0.5 tracking-wide">
-                      {getRoleLabel(user?.roles?.[0])}
+                      {getRoleLabel(user?.roles?.[0] || user?.role)}
                     </span>
                   </div>
                   <ChevronDown size={14} className="text-slate-400 group-hover:text-slate-200 transition-transform group-data-[state=open]:rotate-180" />

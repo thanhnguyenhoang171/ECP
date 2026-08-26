@@ -2,7 +2,7 @@ import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { getErrorMessage, ErrorMessages } from '@/constants/errorMessages';
 
-const getAdminBackendUrl = () => {
+const getAdminBackendUrl = (): string => {
   const envUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL || process.env.NEXT_PUBLIC_API_URL;
   return (envUrl && envUrl.startsWith('http')) ? envUrl : 'http://localhost:9090/api';
 };
@@ -16,16 +16,13 @@ export function resolveRolePath(path: string): string {
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
   
   if (
+    cleanPath.startsWith('v1/users/me') ||
     cleanPath.startsWith('v1/admin/') || 
     cleanPath.startsWith('v1/manager/') || 
     cleanPath.startsWith('v1/common/') || 
     cleanPath.startsWith('v1/auth/')
   ) {
     return cleanPath;
-  }
-
-  if (cleanPath === 'v1/users/account') {
-    return 'v1/common/users/account';
   }
 
   const { user } = useAuthStore.getState();
@@ -81,7 +78,7 @@ const getRefreshedAccessToken = async (APP_URL: string): Promise<string | null> 
       useAuthStore.getState().clearAuth();
       return null;
     } catch (e) {
-      console.error('[clientFetch] Lỗi khi làm tươi token:', e);
+      console.error('[clientFetch] Failed to refresh token:', e);
       useAuthStore.getState().clearAuth();
       return null;
     } finally {
@@ -94,16 +91,16 @@ const getRefreshedAccessToken = async (APP_URL: string): Promise<string | null> 
 
 export const clientFetch = async (url: string, options: FetchOptions = {}) => {
   const { skipToast, ...fetchOptions } = options;
-  const { accessToken, setAuth, updateAccessToken, clearAuth, isBlocked, incrementErrorCount } = useAuthStore.getState();
+  const { accessToken, clearAuth, isBlocked, incrementErrorCount } = useAuthStore.getState();
 
   if (isBlocked) {
-    console.log('Người dùng bị chặn do gặp quá nhiều lỗi server. Đang chuyển hướng về trang đăng nhập...');
+    console.log('User blocked due to consecutive server errors. Redirecting to login page...');
     if (typeof window !== 'undefined') {
       fetch('/api/auth/logout', { method: 'POST' }).finally(() => {
         window.location.href = '/login';
       });
     }
-    return new Response(JSON.stringify({ error: 'Hệ thống tạm thời không khả dụng do gặp liên tiếp nhiều lỗi nội bộ.' }), {
+    return new Response(JSON.stringify({ error: 'System temporarily unavailable due to consecutive internal errors.' }), {
       status: 503,
       headers: { 'Content-Type': 'application/json' }
     });
@@ -135,10 +132,10 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
   try {
     response = await fetch(finalUrl, { ...fetchOptions, headers });
   } catch (error) {
-    // Xử lý lỗi kết nối mạng hoặc lỗi khác không có response
+    // Handle network connection or unreachable backend errors
     console.error('Fetch error:', error);
     if (!skipToast) {
-      toast.error("Không thể kết nối đến máy chủ. Vui lòng kiểm tra đường truyền hoặc máy chủ backend.");
+      toast.error('Unable to connect to the server. Please check your network connection.');
     }
     throw error;
   }
@@ -148,7 +145,7 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
     const newAccessToken = await getRefreshedAccessToken(APP_URL);
     
     if (newAccessToken) {
-      // Retry the original request with new token
+      // Retry original request with refreshed access token
       headers.set('Authorization', `Bearer ${newAccessToken}`);
       response = await fetch(finalUrl, { ...fetchOptions, headers });
     } else {
@@ -164,47 +161,45 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
     clearAuth();
     if (typeof window !== 'undefined') {
       fetch(`${APP_URL}/api/auth/logout`, { method: 'POST' }).finally(() => {
-        toast.error('Quyền truy cập của tài khoản đã bị thay đổi. Vui lòng đăng nhập lại.');
+        toast.error('Your access permissions have been updated. Please log in again.');
         window.location.href = '/login';
       });
     }
   }
 
-  // 2. Kiểm tra lỗi 500 (Internal Server Error)
+  // Handle 500+ Internal Server Errors
   if (response.status >= 500) {
     incrementErrorCount();
     
-    // Kiểm tra lại sau khi increment xem đã đạt giới hạn chưa
+    // Check error thresholds after incrementing
     const updatedState = useAuthStore.getState();
     console.log(`Internal Server Error detected. Current error count: ${updatedState.errorCount}, isBlocked: ${updatedState.isBlocked}`);
     
     if (updatedState.isBlocked) {
-      clearAuth(); // Xóa auth state
+      clearAuth();
       if (typeof window !== 'undefined') {
-        toast.error(ErrorMessages["SYS_TOO_MANY_ERRORS"]);
+        toast.error(ErrorMessages['SYS_TOO_MANY_ERRORS']);
         
-        // Clear cookies as well to prevent middleware from redirecting back
+        // Clear auth cookies to prevent middleware redirect loops
         fetch('/api/auth/logout', { method: 'POST' });
 
-        // Chờ một chút để toast hiển thị trước khi redirect
+        // Delay redirect briefly for toast visibility
         setTimeout(() => {
           window.location.href = '/login';
         }, 2000);
       }
     } else if (!skipToast) {
-      // Nếu chưa bị block thì toast lỗi server bình thường
-      toast.error(ErrorMessages["SYS_INTERNAL_ERROR"]);
+      toast.error(ErrorMessages['SYS_INTERNAL_ERROR']);
     }
   }
 
-  // Xử lý Global Business Error Code khi response không thành công
+  // Handle global business error codes when response fails
   if (!response.ok && response.status !== 401 && !skipToast) {
     try {
-      // Clone response để không ảnh hưởng đến việc đọc json ở các component gọi hàm này
+      // Clone response to preserve stream reading for component callers
       const clonedResponse = response.clone();
       const data = await clonedResponse.json();
       
-      // Hỗ trợ nhiều định dạng code & message phổ biến từ BE
       const businessCode = data?.error?.code || data?.errorCode || data?.code;
       const serverMessage = data?.message || data?.error?.message || data?.error;
 
@@ -215,19 +210,19 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
         );
         toast.error(errorMsg);
       } else {
-        // Fallback xử lý theo HTTP Status nếu không có mã code từ BE
+        // Fallback HTTP status code handling
         if (response.status === 403) {
-          toast.error(ErrorMessages["AUTH_ACCESS_DENIED"]);
+          toast.error(ErrorMessages['AUTH_ACCESS_DENIED']);
         } else if (response.status < 500) {
-          toast.error(ErrorMessages["SYS_UNKNOWN_ERROR"]);
+          toast.error(ErrorMessages['SYS_UNKNOWN_ERROR']);
         }
       }
     } catch {
-      // Nếu API trả về lỗi nhưng không phải JSON
+      // Fallback for non-JSON error responses
       if (response.status === 403) {
-        toast.error(ErrorMessages["AUTH_ACCESS_DENIED"]);
+        toast.error(ErrorMessages['AUTH_ACCESS_DENIED']);
       } else if (response.status < 500) {
-        toast.error(ErrorMessages["SYS_UNKNOWN_ERROR"]);
+        toast.error(ErrorMessages['SYS_UNKNOWN_ERROR']);
       }
     }
   }

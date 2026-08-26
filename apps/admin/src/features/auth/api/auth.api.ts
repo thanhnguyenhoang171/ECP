@@ -80,7 +80,7 @@ export const authApi = {
 
   getAccountInfo: async (): Promise<any> => {
     const { clientFetch } = await import('@/lib/clientFetch');
-    const response = await clientFetch('v1/users/account');
+    const response = await clientFetch('v1/users/me');
     const result = await response.json();
     if (!response.ok) {
       throw result;

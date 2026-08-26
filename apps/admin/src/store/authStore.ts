@@ -6,9 +6,20 @@ interface User {
   email: string;
   roles: string[];
   role?: string;
-  firstName?: string;
-  lastName?: string;
-  avatarUrl?: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  fullName?: string | null;
+  phone?: string | null;
+  phoneNumber?: string | null;
+  avatarUrl?: string | null;
+  avatarPublicId?: string | null;
+  dob?: string | null;
+  gender?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  phoneVerified?: boolean;
+  active?: boolean;
+  emailVerified?: boolean;
 }
 
 interface AuthState {
@@ -16,7 +27,7 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   hasHydrated: boolean;
-  isInitialized: boolean; // true sau khi AuthInitializer đã chạy xong (refresh + fetch profile)
+  isInitialized: boolean; // Set to true after AuthInitializer completes token refresh and profile fetch
   errorCount: number;
   isBlocked: boolean;
   setAuth: (token: string, user: User) => void;
