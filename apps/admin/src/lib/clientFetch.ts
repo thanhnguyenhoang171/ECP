@@ -17,6 +17,7 @@ export function resolveRolePath(path: string): string {
   
   if (
     cleanPath.startsWith('v1/users/me') ||
+    cleanPath.startsWith('v1/files') ||
     cleanPath.startsWith('v1/admin/') || 
     cleanPath.startsWith('v1/manager/') || 
     cleanPath.startsWith('v1/common/') || 
@@ -37,10 +38,6 @@ export function resolveRolePath(path: string): string {
       const email = user?.email || '';
       return `v1/manager/audit-logs/user/${email}`;
     }
-  }
-
-  if (cleanPath.startsWith('v1/files')) {
-    return cleanPath.replace('v1/files', 'v1/common/files');
   }
 
   const resources = [

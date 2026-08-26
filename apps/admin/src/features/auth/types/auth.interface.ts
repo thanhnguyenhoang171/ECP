@@ -2,6 +2,7 @@ export interface User {
   id: string;
   email: string;
   roles: string[];
+  provider?: string | null;
   phoneNumber?: string | null;
   phone?: string | null;
   firstName?: string | null;
@@ -21,6 +22,7 @@ export interface User {
 export interface UserAccountData {
   id: string;
   email: string;
+  provider?: string | null;
   phoneNumber?: string | null;
   phone?: string | null;
   roles: string[];
@@ -37,6 +39,16 @@ export interface UserAccountData {
   phoneVerified?: boolean;
   active?: boolean;
   emailVerified?: boolean;
+}
+
+export interface UpdateUserAccountPayload {
+  phoneNumber?: string;
+  firstName?: string;
+  lastName?: string;
+  dob?: string | null;
+  gender?: string | null;
+  avatarUrl?: string | null;
+  avatarPublicId?: string | null;
 }
 
 export interface UserAccountResponse {

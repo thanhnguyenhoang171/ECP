@@ -14,6 +14,9 @@ import java.util.List;
 @AllArgsConstructor
 @Schema(description = "Response object containing authentication tokens")
 public class AuthResponse {
+    @Schema(description = "Response status code", example = "LOGIN_SUCCESS")
+    private String code;
+
     @Schema(description = "JWT Access Token")
     private String accessToken;
 

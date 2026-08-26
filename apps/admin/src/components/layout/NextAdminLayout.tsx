@@ -405,6 +405,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
                         src={user.avatarUrl}
                         alt={user?.email || 'Avatar'}
                         className="object-cover"
+                        referrerPolicy="no-referrer"
                       />
                     )}
                     <AvatarFallback className="bg-slate-800 text-slate-200 font-bold text-xs">

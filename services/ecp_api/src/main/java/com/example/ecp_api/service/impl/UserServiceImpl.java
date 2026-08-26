@@ -2,6 +2,7 @@ package com.example.ecp_api.service.impl;
 
 import com.example.ecp_api.dto.request.GoogleLoginRequest;
 import com.example.ecp_api.dto.request.RegisterRequest;
+import com.example.ecp_api.dto.request.UpdateMyAccountRequest;
 import com.example.ecp_api.dto.request.UserFilterRequest;
 import com.example.ecp_api.dto.request.UserRequest;
 import com.example.ecp_api.dto.request.UserUpdateRequest;
@@ -432,18 +433,27 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse updateCurrentUserAccount(String email, UserUpdateRequest request) {
+    public UserResponse updateCurrentUserAccount(String email, UpdateMyAccountRequest request) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
-
-        request.setRoles(null);
-        request.setActive(null);
 
         if (user.getProfile() == null) {
             user.setProfile(UserProfile.builder().user(user).build());
         }
 
-        userMapper.updateUserFromRequest(request, user);
+        String oldAvatarPublicId = user.getProfile().getAvatarPublicId();
+        String newAvatarPublicId = request.getAvatarPublicId();
+
+        if (StringUtils.hasText(oldAvatarPublicId) && (!oldAvatarPublicId.equals(newAvatarPublicId) || !StringUtils.hasText(newAvatarPublicId))) {
+            try {
+                cloudinaryService.delete(oldAvatarPublicId);
+                log.info("Auto-deleted old Cloudinary avatar asset: {}", oldAvatarPublicId);
+            } catch (Exception e) {
+                log.error("Failed to auto-delete old Cloudinary avatar asset {}: {}", oldAvatarPublicId, e.getMessage());
+            }
+        }
+
+        userMapper.updateUserFromAccountRequest(request, user);
 
         if (user.getProfile() != null && user.getProfile().getUser() == null) {
             user.getProfile().setUser(user);
@@ -453,6 +463,82 @@ public class UserServiceImpl implements UserService {
         user = userRepository.save(user);
 
         auditLogService.log("USER_ACCOUNT_UPDATE", email, "Updated own account profile details");
+
+        return userMapper.toResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateCurrentUserAvatar(String email, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new AppException("INVALID_FILE", "Uploaded avatar file is empty", HttpStatus.BAD_REQUEST);
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new AppException("INVALID_FILE_TYPE", "File must be a valid image format (JPEG, PNG, WebP, SVG)", HttpStatus.BAD_REQUEST);
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
+
+        if (user.getProfile() == null) {
+            user.setProfile(UserProfile.builder().user(user).build());
+        }
+
+        String oldAvatarPublicId = user.getProfile().getAvatarPublicId();
+
+        Map uploadResult = cloudinaryService.upload(file, "avatars");
+        if (uploadResult == null || !uploadResult.containsKey("secure_url")) {
+            throw new AppException("FILE_UPLOAD_FAILED", "Failed to upload avatar to Cloudinary", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        String newAvatarUrl = (String) uploadResult.get("secure_url");
+        String newAvatarPublicId = (String) uploadResult.get("public_id");
+
+        if (StringUtils.hasText(oldAvatarPublicId)) {
+            try {
+                cloudinaryService.delete(oldAvatarPublicId);
+                log.info("Auto-deleted old Cloudinary avatar asset: {}", oldAvatarPublicId);
+            } catch (Exception e) {
+                log.error("Failed to auto-delete old Cloudinary avatar asset {}: {}", oldAvatarPublicId, e.getMessage());
+            }
+        }
+
+        user.getProfile().setAvatarUrl(newAvatarUrl);
+        user.getProfile().setAvatarPublicId(newAvatarPublicId);
+        user.setUpdatedBy(user);
+        user = userRepository.save(user);
+
+        auditLogService.log("USER_AVATAR_UPDATE", email, "Uploaded and updated profile avatar");
+
+        return userMapper.toResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse deleteCurrentUserAvatar(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
+
+        if (user.getProfile() != null) {
+            String oldAvatarPublicId = user.getProfile().getAvatarPublicId();
+            if (StringUtils.hasText(oldAvatarPublicId)) {
+                try {
+                    cloudinaryService.delete(oldAvatarPublicId);
+                    log.info("Deleted Cloudinary avatar asset: {}", oldAvatarPublicId);
+                } catch (Exception e) {
+                    log.error("Failed to delete Cloudinary avatar asset {}: {}", oldAvatarPublicId, e.getMessage());
+                }
+            }
+
+            user.getProfile().setAvatarUrl(null);
+            user.getProfile().setAvatarPublicId(null);
+            user.setUpdatedBy(user);
+            user = userRepository.save(user);
+        }
+
+        auditLogService.log("USER_AVATAR_DELETE", email, "Removed profile avatar");
 
         return userMapper.toResponse(user);
     }

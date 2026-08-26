@@ -5,6 +5,8 @@ export const profileSchema = z.object({
   email: z.string().trim().email("Email không hợp lệ"),
   phone: z.string().trim().min(10, "Số điện thoại không hợp lệ"),
   role: z.string(),
+  dob: z.string().optional().nullable(),
+  gender: z.string().optional().nullable(),
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
