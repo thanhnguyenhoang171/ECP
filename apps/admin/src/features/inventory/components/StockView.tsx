@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { 
   Database, 
   Warehouse, 
@@ -23,7 +23,8 @@ import {
   DataCard, 
   Breadcrumbs,
   NextPagination,
-  Badge
+  Badge,
+  type ColumnDef
 } from '@/components/common';
 import {
   Dialog,
@@ -191,12 +192,12 @@ export default function StockView() {
     return { totalStock, totalLocked, totalAvailable, lowStockCount, outOfStockCount };
   }, [stockItems]);
 
-  const handleAdjustClick = (item: StockItem) => {
+  const handleAdjustClick = useCallback((item: StockItem) => {
     setAdjustingItem(item);
     setAdjustType('add');
     setAdjustQty(0);
     setAdjustReason('check');
-  };
+  }, []);
 
   const handleAdjustSubmit = () => {
     if (!adjustingItem) return;
@@ -210,7 +211,8 @@ export default function StockView() {
     toast.success(`Đã ghi nhận lệnh điều chỉnh tồn kho SKU ${adjustingItem.sku}: ${typeText} ${adjustQty} chiếc.`);
     setAdjustingItem(null);
   };
-  const columns = [
+  
+  const columns = useMemo<ColumnDef<StockItem>[]>(() => [
     {
       header: 'Mã SKU',
       accessorKey: 'sku',
@@ -329,7 +331,7 @@ export default function StockView() {
         </Button>
       ),
     },
-  ];
+  ], [handleAdjustClick]);
 
   const breadcrumbItems = [
     { label: 'Tồn kho', icon: Database },
@@ -427,7 +429,7 @@ export default function StockView() {
         }
       >
         <DataTable
-          columns={columns as any}
+          columns={columns}
           data={paginatedItems}
           isLoading={isLoading && !filteredItems.length}
           loadingRows={size}

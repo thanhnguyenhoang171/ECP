@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { History, ArrowUpRight, ArrowDownLeft, FileText, Tag } from "lucide-react";
-import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination } from '@/components/common';
+import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination, type ColumnDef } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 import { SearchInput } from '@/components/common/view-control';
 import { cn } from '@/lib/utils';
@@ -52,7 +52,7 @@ export default function InventoryLedgerView() {
 
   const totalPages = Math.ceil(filteredLedgers.length / size) || 1;
 
-  const columns = [
+  const columns: ColumnDef<any>[] = useMemo(() => [
     {
       accessorKey: 'createdAt',
       header: 'Thời gian',
@@ -148,7 +148,7 @@ export default function InventoryLedgerView() {
       headerClassName: 'w-[8%] min-w-[90px]',
       cell: (item: any) => <span className="text-xs text-slate-500 line-clamp-1">{item.note || '---'}</span>,
     },
-  ];
+  ], []);
 
   const breadcrumbItems = [
     { label: 'Sổ cái kho hàng', icon: History },
@@ -179,7 +179,7 @@ export default function InventoryLedgerView() {
         }
       >
         <DataTable 
-          columns={columns as any} 
+          columns={columns} 
           data={paginatedLedgers} 
           isLoading={isLoading && !filteredLedgers.length}
           loadingRows={size}

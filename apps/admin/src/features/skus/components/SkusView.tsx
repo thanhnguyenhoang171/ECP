@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Layers } from 'lucide-react';
 
 import {
@@ -74,33 +74,32 @@ export default function SkusView() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [selectedSku, setSelectedSku] = useState<Sku | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useDebounceSearch(skuParam, (val) => updateUrl({ sku: val, page: 1 }));
 
-  const handleViewDetail = (sku: Sku) => {
+  const handleViewDetail = useCallback((sku: Sku) => {
     setSelectedSku(sku);
     setIsDetailOpen(true);
-  };
-
-  const [searchTerm, setSearchTerm] = useDebounceSearch(skuParam, (val) => updateUrl({ sku: val, page: 1 }));
+  }, []);
 
   const [isExporting, setIsExporting] = useState(false);
 
-  const handleCreate = () => {
-    toast.info('Tính năng Thêm mới đang được phát triển (Demo)');
-  };
+  const handleCreate = useCallback(() => {
+    toast.info('Tính năng Thêm mới SKU đang được phát triển');
+  }, []);
 
   useHotkeys('+', handleCreate);
 
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     setIsExporting(true);
     setTimeout(() => {
       toast.success('Xuất file thành công (Demo)');
       setIsExporting(false);
     }, 1000);
-  };
+  }, []);
 
-  const sortOptions = getSortOptions(['SKU', 'PRICE']);
+  const sortOptions = useMemo(() => getSortOptions(['SKU', 'PRICE']), []);
 
-  const columns: ColumnDef<Sku>[] = [
+  const columns: ColumnDef<Sku>[] = useMemo(() => [
     {
       header: 'Mã SKU',
       accessorKey: 'skuCode',
@@ -145,13 +144,13 @@ export default function SkusView() {
         </div>
       ),
     },
-  ];
+  ], [handleViewDetail, isExporting]);
 
   const commonActions = (
     <>
       <ImportButton onClick={() => toast.info('Tính năng Nhập file đang được phát triển (Demo)')} disabled={isExporting} />
       <ExportButton onExport={handleExport} isLoading={isExporting} />
-      <AddNewButton onClick={() => toast.info('Tính năng Thêm mới đang được phát triển (Demo)')} disabled={isExporting} />
+      <AddNewButton onClick={handleCreate} disabled={isExporting} />
     </>
   );
 

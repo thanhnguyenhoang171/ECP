@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Warehouse, MapPin } from "lucide-react";
-import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination } from '@/components/common';
+import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination, type ColumnDef } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 import { 
   SearchInput, 
@@ -33,25 +33,25 @@ export default function WarehousesView() {
   // Delete Confirm State
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  const handleEdit = (warehouse: ClientWarehouse) => {
-    router.push(`/warehouses/${warehouse.id}`);
-  };
+  const handleEdit = useCallback((warehouse: ClientWarehouse) => {
+    router.push(`/warehouses/${warehouse.id}/edit`);
+  }, [router]);
 
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     router.push('/warehouses/create');
-  };
+  }, [router]);
 
-  const handleViewDetail = (warehouse: ClientWarehouse) => {
+  const handleViewDetail = useCallback((warehouse: ClientWarehouse) => {
     setSelectedWarehouseId(warehouse.id);
     setIsDetailOpen(true);
-  };
+  }, []);
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = useCallback(() => {
     if (!deleteConfirmId) return;
     deleteMutation.mutate(deleteConfirmId, {
       onSuccess: () => setDeleteConfirmId(null),
     });
-  };
+  }, [deleteConfirmId, deleteMutation]);
 
   const filteredWarehouses = useMemo(() => {
     const safeList = Array.isArray(warehouses) ? warehouses : [];
@@ -70,7 +70,7 @@ export default function WarehousesView() {
 
   const totalPages = Math.ceil(filteredWarehouses.length / size) || 1;
 
-  const columns = [
+  const columns: ColumnDef<ClientWarehouse>[] = useMemo(() => [
     {
       accessorKey: 'code',
       header: 'Mã kho',
@@ -119,7 +119,7 @@ export default function WarehousesView() {
         </div>
       )
     }
-  ];
+  ], [handleEdit, handleViewDetail]);
 
   const breadcrumbItems = [
     { label: 'Kho bãi', icon: Warehouse },
@@ -151,7 +151,7 @@ export default function WarehousesView() {
         }
       >
         <DataTable 
-          columns={columns as any} 
+          columns={columns} 
           data={paginatedWarehouses} 
           isLoading={isLoading && !filteredWarehouses.length}
           loadingRows={size}

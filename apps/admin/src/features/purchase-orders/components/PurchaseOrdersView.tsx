@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { 
   FileText, 
   PackagePlus, 
@@ -9,7 +9,7 @@ import {
   XCircle,
   ChevronDown
 } from "lucide-react";
-import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination } from '@/components/common';
+import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination, type ColumnDef } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -84,7 +84,7 @@ export default function PurchaseOrdersView() {
 
   const totalPages = Math.ceil(filteredOrders.length / size) || 1;
 
-  const renderStatusDropdown = (item: any) => {
+  const renderStatusDropdown = useCallback((item: any) => {
     const status = item.status;
     const isDraft = status === 'DRAFT' || status === 'PENDING';
     const isOrdered = status === 'ORDERED' || status === 'APPROVED';
@@ -149,9 +149,9 @@ export default function PurchaseOrdersView() {
         </DropdownMenuContent>
       </DropdownMenu>
     );
-  };
+  }, [updateStatusMutation]);
 
-  const columns = [
+  const columns: ColumnDef<any>[] = useMemo(() => [
     {
       accessorKey: 'code',
       header: 'Mã PO',
@@ -273,7 +273,7 @@ export default function PurchaseOrdersView() {
         );
       }
     }
-  ];
+  ], [isLoading, renderStatusDropdown, router]);
 
   const breadcrumbItems = [
     { label: 'Đơn mua hàng', icon: FileText },
@@ -310,7 +310,7 @@ export default function PurchaseOrdersView() {
         }
       >
         <DataTable 
-          columns={columns as any} 
+          columns={columns} 
           data={paginatedOrders} 
           isLoading={isLoading && !filteredOrders.length}
           loadingRows={size}

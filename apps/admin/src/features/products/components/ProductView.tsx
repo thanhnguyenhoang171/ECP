@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Package,
   Layers,
@@ -95,35 +95,35 @@ export default function ProductView({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  const handleCopySku = (e: React.MouseEvent, skuCode: string) => {
+  const handleCopySku = useCallback((e: React.MouseEvent, skuCode: string) => {
     e.stopPropagation();
     navigator.clipboard.writeText(skuCode);
     setCopiedSku(skuCode);
     toast.success(`Đã sao chép SKU: ${skuCode}`);
     setTimeout(() => setCopiedSku(null), 2000);
-  };
+  }, []);
 
-  const handleNavigateDetail = (productId: string) => {
+  const handleNavigateDetail = useCallback((productId: string) => {
     router.push(`/products/${productId}`);
-  };
+  }, [router]);
 
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     router.push('/products/create');
-  };
+  }, [router]);
 
   useHotkeys('+', handleCreate);
 
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     setIsExporting(true);
     setTimeout(() => {
       toast.success('Xuất danh sách sản phẩm thành công');
       setIsExporting(false);
     }, 1000);
-  };
+  }, []);
 
-  const sortOptions = getSortOptions(['NAME', 'PRICE']);
+  const sortOptions = useMemo(() => getSortOptions(['NAME', 'PRICE']), []);
 
-  const columns: ColumnDef<Product>[] = [
+  const columns: ColumnDef<Product>[] = useMemo(() => [
     {
       header: 'Sản phẩm',
       className: 'w-[35%] min-w-[240px]',
@@ -299,7 +299,7 @@ export default function ProductView({
         </div>
       ),
     },
-  ];
+  ], [categoriesList, copiedSku, handleCopySku, handleNavigateDetail, isExporting]);
 
   const commonActions = (
     <>

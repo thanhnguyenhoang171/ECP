@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
  Badge,
  NextPagination,
@@ -122,38 +122,23 @@ export default function CategoriesView({
  const deleteMutation = useDeleteCategory();
  const updateMutation = useUpdateCategory();
 
- const handleToggleActive = (category: Category) => {
-  updateMutation.mutate({
-   id: category.id,
-   values: { active: !category.active } as any,
-  });
- };
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
 
- const handleToggleFeatured = (category: Category) => {
-  updateMutation.mutate({
-   id: category.id,
-   values: { isFeatured: !category.isFeatured } as any,
-  });
- };
-
- // States
- const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
- const [isExporting, setIsExporting] = useState(false);
- const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
- const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
-
- const handleEdit = (category: Category) => {
+ const handleEdit = useCallback((category: Category) => {
   router.push(`/categories/${category.id}/edit`);
- };
+ }, [router]);
 
- const handleViewDetail = (category: Category) => {
+ const handleViewDetail = useCallback((category: Category) => {
   setSelectedCategory(category);
   setIsDetailDialogOpen(true);
- };
+ }, []);
 
- const handleCreate = () => {
+ const handleCreate = useCallback(() => {
   router.push('/categories/create');
- };
+ }, [router]);
 
  useHotkeys('+', handleCreate);
 
@@ -184,6 +169,22 @@ export default function CategoriesView({
   }
  };
 
+ const handleToggleActive = useCallback((category: Category) => {
+  updateMutation.mutate({
+   id: category.id,
+   values: { active: !category.active } as any,
+  });
+ }, [updateMutation]);
+
+ const handleToggleFeatured = useCallback((category: Category) => {
+  updateMutation.mutate({
+   id: category.id,
+   values: {
+    isFeatured: !category.isFeatured,
+   } as any,
+  });
+ }, [updateMutation]);
+
  const categoriesData = data || initialData;
  const categories = Array.isArray(categoriesData?.data)
   ? categoriesData.data
@@ -192,9 +193,9 @@ export default function CategoriesView({
    : [];
  const pagination = categoriesData?.pagination || { currentPage: 1, totalPages: 1, totalElements: categories.length, pageSize: 10 };
 
- const sortOptions = getSortOptions(['NAME', 'DATE']);
+ const sortOptions = useMemo(() => getSortOptions(['NAME', 'DATE']), []);
 
- const columns: ColumnDef<Category>[] = [
+ const columns: ColumnDef<Category>[] = useMemo(() => [
   {
    header: 'Tên danh mục',
    className: 'w-[28%] min-w-[200px]',
@@ -209,8 +210,7 @@ export default function CategoriesView({
     </div>
    ),
     cell: (category) => {
-      const thumbObj = category.image || category.imageUrl;
-      const thumbUrl = typeof thumbObj === 'string' ? thumbObj : thumbObj?.url;
+      const thumbUrl = category.imageUrl;
 
       return (
         <div className='flex items-center gap-3'>
@@ -228,65 +228,49 @@ export default function CategoriesView({
               <Layers className='w-5 h-5 text-slate-400' />
             )}
           </div>
-          <div className='flex flex-col'>
-            <span className='text-sm font-bold text-slate-900 line-clamp-1'>
+          <div className='flex flex-col gap-0.5 min-w-0'>
+            <span 
+              className='text-sm font-bold text-slate-900 truncate hover:text-blue-600 cursor-pointer transition-colors'
+              onClick={() => handleViewDetail(category)}
+            >
               {category.name}
             </span>
-            <span className='text-[10px] text-slate-400 font-medium'>
-              ID: {category.id}
-            </span>
+            {category.slug && (
+              <span className='text-[11px] font-mono text-slate-400 truncate'>
+                /{category.slug}
+              </span>
+            )}
           </div>
         </div>
       );
     },
   },
   {
-   header: 'Cấp độ',
-   align: 'center',
-   className: 'w-[10%] min-w-[80px]',
-   headerClassName: 'w-[10%] min-w-[80px]',
-   skeleton: <Skeleton className='h-5 w-16 mx-auto rounded-full' />,
-   cell: (category) => (
-    <Badge
-     variant='outline'
-     className='text-[10px] font-bold border-slate-200 text-slate-500'
-    >
-     Cấp {category.level}
-    </Badge>
-   ),
+   header: 'Danh mục cha',
+   className: 'w-[18%] min-w-[140px] text-xs font-medium text-slate-600',
+   headerClassName: 'w-[18%] min-w-[140px]',
+   skeleton: <Skeleton className='h-4 w-24' />,
+   cell: (category) => (category as any).parentName || '---',
   },
   {
-   header: 'Trạng thái',
-   align: 'center',
-   className: 'w-[12%] min-w-[100px]',
-   headerClassName: 'w-[12%] min-w-[100px]',
-   skeleton: <Skeleton className='h-5 w-20 mx-auto rounded-full' />,
-   cell: (category) => {
-    const isPending = updateMutation.isPending && updateMutation.variables?.id === category.id;
-    return (
-     <div className="flex justify-center items-center">
-       <Badge
-        variant={category.active ? 'default' : 'destructive'}
-        className={cn(
-         'text-[10px] font-bold py-0.5 px-2 uppercase tracking-tight border-none whitespace-nowrap cursor-pointer hover:opacity-80 transition-all select-none',
-         isPending && 'pointer-events-none opacity-50'
-        )}
-        onClick={() => handleToggleActive(category)}
-       >
-        {category.active ? 'Hoạt động' : 'Đã ẩn'}
-       </Badge>
-     </div>
-    );
-   },
+   header: 'Mô tả',
+   className: 'w-[20%] min-w-[160px] text-xs text-slate-500 hidden md:table-cell',
+   headerClassName: 'w-[20%] min-w-[160px] hidden md:table-cell',
+   skeleton: <Skeleton className='h-4 w-32' />,
+   cell: (category) => (
+    <span className='line-clamp-1' title={category.description}>
+     {category.description || '---'}
+    </span>
+   ),
   },
   {
    header: 'Nổi bật',
    align: 'center',
-   className: 'w-[12%] min-w-[100px]',
-   headerClassName: 'w-[12%] min-w-[100px]',
-   skeleton: <Skeleton className='h-5 w-16 mx-auto rounded-full' />,
+   className: 'w-[10%] min-w-[80px]',
+   headerClassName: 'w-[10%] min-w-[80px]',
+   skeleton: <Skeleton className='h-5 w-8 mx-auto rounded-full' />,
    cell: (category) => (
-    <div className="flex justify-center items-center">
+    <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
       <Switch 
         checked={!!category.isFeatured}
         onCheckedChange={() => handleToggleFeatured(category)}
@@ -295,22 +279,6 @@ export default function CategoriesView({
       />
     </div>
    ),
-  },
-  {
-   header: 'Ngày tạo',
-   align: 'center',
-   className: 'w-[14%] min-w-[110px] text-xs font-medium text-slate-500',
-   headerClassName: 'w-[14%] min-w-[110px]',
-   skeleton: <Skeleton className='h-4 w-24 mx-auto' />,
-   cell: (category) => formatDate(category.createdAt),
-  },
-  {
-   header: 'Ngày sửa',
-   align: 'center',
-   className: 'w-[14%] min-w-[110px] text-xs font-medium text-slate-500',
-   headerClassName: 'w-[14%] min-w-[110px]',
-   skeleton: <Skeleton className='h-4 w-24 mx-auto' />,
-   cell: (category) => formatDate(category.updatedAt),
   },
   {
    header: 'Thao tác',
@@ -331,30 +299,30 @@ export default function CategoriesView({
     </div>
    ),
   },
- ];
+ ], [handleEdit, handleToggleFeatured, handleViewDetail, isFetching, isLoading, updateMutation.isPending, updateMutation.variables?.id]);
 
  const commonActions = (
   <>
-   <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200/80 mr-2">
-     <button
-       onClick={() => setViewMode('tree')}
-       className={cn(
-         "px-2.5 py-1 text-xs font-bold rounded-md transition-all cursor-pointer",
-         viewMode === 'tree' ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-900"
-       )}
-     >
-       Cây thư mục (Tree)
-     </button>
-     <button
-       onClick={() => setViewMode('table')}
-       className={cn(
-         "px-2.5 py-1 text-xs font-bold rounded-md transition-all cursor-pointer",
-         viewMode === 'table' ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-900"
-       )}
-     >
-       Dạng bảng (Table)
-     </button>
-   </div>
+    <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200/80 mr-2">
+      <button
+        onClick={() => setViewMode('tree')}
+        className={cn(
+          "px-2.5 py-1 text-xs font-bold rounded-md transition-all cursor-pointer",
+          viewMode === 'tree' ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-900"
+        )}
+      >
+        Cây thư mục (Tree)
+      </button>
+      <button
+        onClick={() => setViewMode('table')}
+        className={cn(
+          "px-2.5 py-1 text-xs font-bold rounded-md transition-all cursor-pointer",
+          viewMode === 'table' ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-900"
+        )}
+      >
+        Dạng bảng (Table)
+      </button>
+    </div>
    <ImportButton onClick={() => router.push('/categories/import')} disabled={isLoading || isFetching} />
    <ExportButton onExport={handleExportExcelFile} isLoading={isExporting} disabled={isLoading || isFetching} />
    <AddNewButton onClick={handleCreate} disabled={isLoading || isFetching} />
