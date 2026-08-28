@@ -59,13 +59,7 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
     setPosition({ x: 0, y: 0 });
   }, []);
 
-  useEffect(() => {
-    if (isOpen) {
-      resetControls();
-    }
-  }, [isOpen, imageSrc, resetControls]);
-
-  // Load natural dimensions when imageSrc changes
+  // Load natural dimensions & reset controls when imageSrc changes
   useEffect(() => {
     if (!imageSrc) return;
 
@@ -73,6 +67,9 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
     img.src = imageSrc;
     img.onload = () => {
       setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight });
+      setZoom(1);
+      setRotation(0);
+      setPosition({ x: 0, y: 0 });
     };
   }, [imageSrc]);
 
