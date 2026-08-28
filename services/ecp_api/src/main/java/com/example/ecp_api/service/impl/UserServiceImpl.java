@@ -441,18 +441,6 @@ public class UserServiceImpl implements UserService {
             user.setProfile(UserProfile.builder().user(user).build());
         }
 
-        String oldAvatarPublicId = user.getProfile().getAvatarPublicId();
-        String newAvatarPublicId = request.getAvatarPublicId();
-
-        if (StringUtils.hasText(oldAvatarPublicId) && (!oldAvatarPublicId.equals(newAvatarPublicId) || !StringUtils.hasText(newAvatarPublicId))) {
-            try {
-                cloudinaryService.delete(oldAvatarPublicId);
-                log.info("Auto-deleted old Cloudinary avatar asset: {}", oldAvatarPublicId);
-            } catch (Exception e) {
-                log.error("Failed to auto-delete old Cloudinary avatar asset {}: {}", oldAvatarPublicId, e.getMessage());
-            }
-        }
-
         userMapper.updateUserFromAccountRequest(request, user);
 
         if (user.getProfile() != null && user.getProfile().getUser() == null) {

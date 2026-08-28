@@ -395,7 +395,7 @@ export const ProductGeneralTab = ({ form, categories, brands = [], isSlugEditedR
               <FormItem>
                 <FormControl>
                   <ImageUpload 
-                    value={field.value} 
+                    value={typeof field.value === 'string' || (typeof window !== 'undefined' && field.value instanceof File) ? field.value : (field.value as { url?: string })?.url} 
                     onChange={field.onChange}
                     onUploadingChange={onUploadingChange}
                     folder="products"
@@ -418,7 +418,7 @@ export const ProductGeneralTab = ({ form, categories, brands = [], isSlugEditedR
                   <ImageUpload 
                     multiple 
                     maxFiles={5}
-                    value={field.value} 
+                    value={Array.isArray(field.value) ? field.value.map((v) => (typeof v === 'string' || (typeof window !== 'undefined' && v instanceof File) ? v : (v as { url?: string })?.url || '')).filter(Boolean) : []} 
                     onChange={field.onChange}
                     onUploadingChange={onUploadingChange}
                     folder="products"

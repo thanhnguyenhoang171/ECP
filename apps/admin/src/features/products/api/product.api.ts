@@ -95,29 +95,34 @@ export const productApi = {
   },
 
   update: async (id: string, data: ProductFormValues): Promise<Product> => {
-    try {
-      const res = await clientFetch(`v1/products/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+    const payload: any = {
+      ...data,
+      specifications: Array.isArray(data.specifications) ? data.specifications.reduce((acc: any, curr: any) => {
+        if (curr.key) acc[curr.key] = curr.value;
+        return acc;
+      }, {}) : (data.specifications || {}),
+      variants: (data.variants || []).map(v => ({
+        ...v,
+        attributes: Array.isArray(v.attributes) ? v.attributes.reduce((acc: any, curr: any) => {
+          if (curr.key) acc[curr.key] = curr.value;
+          return acc;
+        }, {}) : (v.attributes || {})
+      }))
+    };
 
-      if (res.ok) {
-        const result = await res.json();
-        return result.data || result;
-      }
-    } catch (error) {
-      console.warn('Backend update product failed, using mock fallback', error);
+    const res = await clientFetch(`v1/products/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to update product');
     }
 
-    // Fallback mock logic for testing UI without backend
-    return {
-      ...data,
-      id,
-      price: data.variants[0]?.price || 0,
-      stock: 0,
-      updatedAt: new Date().toISOString(),
-    } as unknown as Product;
+    const result = await res.json();
+    return result.data || result;
   },
 
   getPaged: async (params: {
@@ -186,5 +191,15 @@ export const productApi = {
     }
     const result = await res.json();
     return result.data || result;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    const res = await clientFetch(`v1/products/${id}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to delete product');
+    }
   }
 };

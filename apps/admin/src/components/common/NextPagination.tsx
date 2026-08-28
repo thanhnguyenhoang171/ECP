@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface NextPaginationProps {
   currentPage: number;
@@ -30,6 +31,7 @@ interface NextPaginationProps {
   className?: string;
   showTotal?: boolean;
   pageSizeOptions?: number[];
+  isLoading?: boolean;
 }
 
 export const NextPagination = ({
@@ -42,7 +44,28 @@ export const NextPagination = ({
   className,
   showTotal = true,
   pageSizeOptions = [10, 20, 50, 100],
+  isLoading,
 }: NextPaginationProps) => {
+  if (isLoading) {
+    return (
+      <div className={cn(
+        "flex flex-col md:flex-row items-center justify-between gap-4 px-5 py-3.5 bg-slate-100 border border-slate-300/80 shadow-md rounded-2xl transition-all",
+        className
+      )}>
+        <Skeleton className="h-4 w-44 rounded-md" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-8 w-28 rounded-xl" />
+          <div className="flex gap-1.5">
+            <Skeleton className="h-8 w-8 rounded-xl" />
+            <Skeleton className="h-8 w-8 rounded-xl" />
+            <Skeleton className="h-8 w-8 rounded-xl" />
+            <Skeleton className="h-8 w-8 rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Logic to calculate page numbers to show (Smart Pagination)
   const getPageNumbers = () => {
     const current = currentPage;

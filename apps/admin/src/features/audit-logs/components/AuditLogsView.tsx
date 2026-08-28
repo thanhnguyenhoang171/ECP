@@ -234,15 +234,15 @@ export default function AuditLogsView() {
           </div>
         }
         footer={
-          totalItems > 0 && (
+          (isApiLoading || totalItems > 0) && (
             <NextPagination
+              isLoading={isApiLoading}
               currentPage={page}
               totalPages={totalPages}
               totalItems={totalItems}
               itemsPerPage={size}
               onItemsPerPageChange={setSize}
               onPageChange={setPage}
-              className="bg-slate-50/20"
             />
           )
         }

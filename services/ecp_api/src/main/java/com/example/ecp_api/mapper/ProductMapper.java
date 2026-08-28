@@ -21,7 +21,6 @@ public interface ProductMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "published", source = "isPublished")
-    @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
@@ -61,7 +60,6 @@ public interface ProductMapper {
     @Mapping(target = "featured", source = "isFeatured")
     @Mapping(target = "new", source = "isNew")
     @Mapping(target = "bestSeller", source = "isBestSeller")
-    @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)

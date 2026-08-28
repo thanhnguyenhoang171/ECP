@@ -48,8 +48,6 @@ export function DataCard({
   extra,
   children,
   footer,
-  isLoading,
-  isFetching,
   className,
   headerClassName,
   contentClassName,
@@ -62,7 +60,7 @@ export function DataCard({
           <div className="flex-1 max-w-md">
             {search}
           </div>
-          {extra && <div className='flex items-center gap-2 flex-wrap'>{extra}</div>}
+          {extra && <div className="flex items-center gap-2 flex-wrap">{extra}</div>}
         </div>
       )}
 

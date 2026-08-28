@@ -19,14 +19,14 @@ interface BreadcrumbsProps {
 
 export const Breadcrumbs = ({ items, className }: BreadcrumbsProps) => {
   return (
-    <nav className={cn("flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-2.5", className)}>
+    <nav className={cn("flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-2", className)}>
       {items.length === 0 ? (
-        <span className="text-slate-900 font-semibold">
+        <span className="text-slate-900 font-bold">
           Tổng quan
         </span>
       ) : (
         <>
-          <Link href="/dashboard" className="hover:text-slate-900 transition-colors">
+          <Link href="/dashboard" className="hover:text-blue-600 transition-colors">
             Tổng quan
           </Link>
           
@@ -36,12 +36,12 @@ export const Breadcrumbs = ({ items, className }: BreadcrumbsProps) => {
               {item.href ? (
                 <Link 
                   href={item.href} 
-                  className="hover:text-slate-900 transition-colors"
+                  className="hover:text-blue-600 transition-colors"
                 >
                   {item.label}
                 </Link>
               ) : (
-                <span className="text-slate-900 font-semibold">
+                <span className="text-slate-900 font-bold">
                   {item.label}
                 </span>
               )}

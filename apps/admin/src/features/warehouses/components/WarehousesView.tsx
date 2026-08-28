@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Warehouse, MapPin } from "lucide-react";
-import { PageHeader, DataTable, DataCard, Breadcrumbs } from '@/components/common';
+import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 import { 
   SearchInput, 
@@ -23,6 +23,8 @@ export default function WarehousesView() {
   const deleteMutation = useDeleteWarehouse();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(10);
   
   // Detail Dialog State
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | null>(null);
@@ -61,15 +63,26 @@ export default function WarehousesView() {
     );
   }, [warehouses, searchTerm]);
 
+  const paginatedWarehouses = useMemo(() => {
+    const start = (page - 1) * size;
+    return filteredWarehouses.slice(start, start + size);
+  }, [filteredWarehouses, page, size]);
+
+  const totalPages = Math.ceil(filteredWarehouses.length / size) || 1;
+
   const columns = [
     {
       accessorKey: 'code',
       header: 'Mã kho',
+      className: 'w-[20%] min-w-[120px]',
+      headerClassName: 'w-[20%] min-w-[120px]',
       cell: (item: ClientWarehouse) => <span className="font-mono font-bold text-xs text-primary">{item.code}</span>
     },
     {
       accessorKey: 'name',
       header: 'Tên kho bãi',
+      className: 'w-[50%] min-w-[260px]',
+      headerClassName: 'w-[50%] min-w-[260px]',
       cell: (item: ClientWarehouse) => (
         <div className="flex flex-col">
           <span className="text-sm font-bold text-slate-700">{item.name}</span>
@@ -84,6 +97,8 @@ export default function WarehousesView() {
       accessorKey: 'isActive',
       header: 'Trạng thái',
       align: 'center' as const,
+      className: 'w-[15%] min-w-[110px]',
+      headerClassName: 'w-[15%] min-w-[110px]',
       cell: (item: ClientWarehouse) => (
         <Badge className={item.isActive ? "bg-emerald-100 text-emerald-700 border-none" : "bg-slate-100 text-slate-500 border-none"}>
           {item.isActive ? 'Đang hoạt động' : 'Ngừng hoạt động'}
@@ -94,6 +109,8 @@ export default function WarehousesView() {
       id: 'actions',
       header: 'Thao tác',
       align: 'right' as const,
+      className: 'w-[15%] min-w-[110px]',
+      headerClassName: 'w-[15%] min-w-[110px]',
       cell: (item: ClientWarehouse) => (
         <div className="flex items-center justify-end gap-1">
           <ViewActionButton onClick={() => handleViewDetail(item)} />
@@ -117,11 +134,27 @@ export default function WarehousesView() {
         actions={<AddNewButton onClick={handleCreate} label="Thêm kho mới" />}
       />
 
-      <DataCard search={<SearchInput placeholder="Tìm tên kho, mã kho..." value={searchTerm} onChange={setSearchTerm} />}>
+      <DataCard 
+        search={<SearchInput placeholder="Tìm tên kho, mã kho..." value={searchTerm} onChange={(val) => { setSearchTerm(val); setPage(1); }} />}
+        footer={
+          (isLoading || filteredWarehouses.length > 0) && (
+            <NextPagination
+              isLoading={isLoading}
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={filteredWarehouses.length}
+              itemsPerPage={size}
+              onItemsPerPageChange={setSize}
+              onPageChange={setPage}
+            />
+          )
+        }
+      >
         <DataTable 
           columns={columns as any} 
-          data={filteredWarehouses} 
-          isLoading={isLoading}
+          data={paginatedWarehouses} 
+          isLoading={isLoading && !filteredWarehouses.length}
+          loadingRows={size}
           emptyState={{
             title: "Chưa có dữ liệu kho bãi",
             description: "Thêm kho hàng đầu tiên để bắt đầu quản lý tồn kho.",

@@ -45,6 +45,7 @@ import { useHotkeys } from '@/hooks/use-hotkeys';
 import { getSortOptions } from '@/types';
 import { cn } from '@/lib/utils';
 import { useProducts } from '../hooks/use-products';
+import { useDeleteProduct } from '../hooks/use-product-mutation';
 import { useCategories } from '@/features/categories/hooks/use-categories';
 
 interface ProductViewProps {
@@ -57,6 +58,7 @@ export default function ProductView({
   categories,
 }: ProductViewProps) {
   const router = useRouter();
+  const deleteMutation = useDeleteProduct();
   const {
     sort,
     name,
@@ -80,7 +82,7 @@ export default function ProductView({
     categoryId: categoryIdParam,
   });
 
-  const { data: categoriesData } = useCategories({ page: 0, size: 100 });
+  const { data: categoriesData, isLoading: isCategoriesLoading } = useCategories({ page: 0, size: 100 });
   const categoriesList = categoriesData?.data || categories;
 
   const pageData = queryData || initialData;
@@ -124,17 +126,22 @@ export default function ProductView({
   const columns: ColumnDef<Product>[] = [
     {
       header: 'Sản phẩm',
+      className: 'w-[35%] min-w-[240px]',
+      headerClassName: 'w-[35%] min-w-[240px]',
       skeleton: (
         <div className="flex items-center gap-3 py-1">
           <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
-          <div className="flex flex-col gap-1.5 flex-1">
-            <Skeleton className="h-4 w-40 rounded-md" />
-            <Skeleton className="h-3 w-24 rounded-md" />
+          <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+            <Skeleton className="h-4 w-44 rounded-md" />
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-3.5 w-20 rounded-md" />
+              <Skeleton className="h-3 w-16 rounded-md" />
+            </div>
           </div>
         </div>
       ),
       cell: (product) => {
-        const thumbObj = product.thumbnail as any;
+        const thumbObj = product.thumbnail;
         const thumbUrl = typeof thumbObj === 'string' ? thumbObj : thumbObj?.url;
 
         return (
@@ -194,12 +201,12 @@ export default function ProductView({
     },
     {
       header: 'Danh mục',
-      className: 'text-sm hidden md:table-cell',
-      headerClassName: 'hidden md:table-cell',
+      className: 'w-[18%] min-w-[140px] text-sm hidden md:table-cell',
+      headerClassName: 'w-[18%] min-w-[140px] hidden md:table-cell',
       skeleton: <Skeleton className="h-4 w-28 rounded-md" />,
       cell: (product) => {
         const cat = categoriesList.find((c) => c.id === product.categoryId);
-        const name = cat ? cat.name : ((product as any).categoryName || 'Chưa phân loại');
+        const name = cat ? cat.name : (product.categoryName || 'Chưa phân loại');
 
         return (
           <span className="text-xs font-medium text-slate-600">
@@ -211,6 +218,8 @@ export default function ProductView({
     {
       header: 'Biến thể SKU',
       align: 'center',
+      className: 'w-[12%] min-w-[100px]',
+      headerClassName: 'w-[12%] min-w-[100px]',
       skeleton: <Skeleton className="h-6 w-16 mx-auto rounded-lg" />,
       cell: (product) => {
         const variants = product.variants || [];
@@ -230,13 +239,15 @@ export default function ProductView({
     {
       header: 'Giá bán',
       align: 'right',
+      className: 'w-[15%] min-w-[120px]',
+      headerClassName: 'w-[15%] min-w-[120px]',
       skeleton: <Skeleton className="h-5 w-24 ml-auto rounded-md" />,
       cell: (product) => {
         const variants = product.variants || [];
         const minPrice =
           variants.length > 0
             ? Math.min(...variants.map((v) => v.price))
-            : (product as any).price || 0;
+            : product.price || 0;
 
         return (
           <span className="text-sm font-bold text-blue-600 font-mono">
@@ -248,9 +259,11 @@ export default function ProductView({
     {
       header: 'Trạng thái',
       align: 'center',
+      className: 'w-[10%] min-w-[90px]',
+      headerClassName: 'w-[10%] min-w-[90px]',
       skeleton: <Skeleton className="h-6 w-20 mx-auto rounded-full" />,
       cell: (product) => {
-        const isPublished = product.isPublished ?? (product as any).published;
+        const isPublished = product.isPublished ?? product.published ?? true;
 
         return (
           <Badge
@@ -269,6 +282,8 @@ export default function ProductView({
     {
       header: 'Thao tác',
       align: 'right',
+      className: 'w-[10%] min-w-[110px]',
+      headerClassName: 'w-[10%] min-w-[110px]',
       skeleton: (
         <div className="flex justify-end gap-1">
           <Skeleton className="h-8 w-8 rounded-lg" />
@@ -336,15 +351,21 @@ export default function ProductView({
                     >
                       Tất cả danh mục
                     </button>
-                    {categoriesList.map((cat) => (
-                      <button
-                        key={cat.id}
-                        className={filterBtnClass(categoryIdParam === cat.id)}
-                        onClick={() => updateUrl({ categoryId: cat.id, page: 1 })}
-                      >
-                        {cat.name}
-                      </button>
-                    ))}
+                    {isCategoriesLoading ? (
+                      Array.from({ length: 4 }).map((_, i) => (
+                        <Skeleton key={i} className="h-7 w-full rounded-md" />
+                      ))
+                    ) : (
+                      categoriesList.map((cat) => (
+                        <button
+                          key={cat.id}
+                          className={filterBtnClass(categoryIdParam === cat.id)}
+                          onClick={() => updateUrl({ categoryId: cat.id, page: 1 })}
+                        >
+                          {cat.name}
+                        </button>
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -393,15 +414,15 @@ export default function ProductView({
           </>
         }
         footer={
-          totalElements > 0 && (
+          (isFetching || totalElements > 0) && (
             <NextPagination
+              isLoading={isFetching}
               currentPage={page}
               totalPages={totalPages}
               totalItems={totalElements}
               itemsPerPage={size}
               onItemsPerPageChange={setSize}
               onPageChange={setPage}
-              className="bg-slate-50/20"
             />
           )
         }
@@ -410,6 +431,7 @@ export default function ProductView({
           columns={columns}
           data={paginatedProducts}
           isLoading={isFetching}
+          loadingRows={size}
           emptyState={{
             title: 'Không tìm thấy sản phẩm',
             description: 'Thử thay đổi bộ lọc tìm kiếm hoặc tạo sản phẩm mới.',
@@ -423,8 +445,10 @@ export default function ProductView({
         isOpen={Boolean(deleteConfirmId)}
         onClose={() => setDeleteConfirmId(null)}
         onConfirm={() => {
+          if (deleteConfirmId) {
+            deleteMutation.mutate(deleteConfirmId);
+          }
           setDeleteConfirmId(null);
-          toast.success('Xóa sản phẩm thành công');
         }}
         description="Bạn có chắc chắn muốn xóa sản phẩm này không?"
       />

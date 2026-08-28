@@ -13,45 +13,7 @@ export interface FetchOptions extends RequestInit {
 }
 
 export function resolveRolePath(path: string): string {
-  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  
-  if (
-    cleanPath.startsWith('v1/users/me') ||
-    cleanPath.startsWith('v1/files') ||
-    cleanPath.startsWith('v1/admin/') || 
-    cleanPath.startsWith('v1/manager/') || 
-    cleanPath.startsWith('v1/common/') || 
-    cleanPath.startsWith('v1/auth/')
-  ) {
-    return cleanPath;
-  }
-
-  const { user } = useAuthStore.getState();
-  const role = user?.role || (user?.roles && user.roles[0]) || '';
-  const isSuperAdmin = role === 'SUPER_ADMIN' || role === 'ROLE_SUPER_ADMIN';
-  const scope = isSuperAdmin ? 'admin' : 'manager';
-
-  if (cleanPath.startsWith('v1/audit-logs')) {
-    if (isSuperAdmin) {
-      return cleanPath.replace('v1/audit-logs', 'v1/admin/audit-logs');
-    } else {
-      const email = user?.email || '';
-      return `v1/manager/audit-logs/user/${email}`;
-    }
-  }
-
-  const resources = [
-    'brands', 'categories', 'products', 'skus', 'suppliers',
-    'warehouses', 'inventory', 'purchase-orders', 'goods-receipts', 'users'
-  ];
-
-  for (const res of resources) {
-    if (cleanPath.startsWith(`v1/${res}`)) {
-      return cleanPath.replace(`v1/${res}`, `v1/${scope}/${res}`);
-    }
-  }
-
-  return cleanPath;
+  return path.startsWith('/') ? path.slice(1) : path;
 }
 
 let refreshTokenPromise: Promise<string | null> | null = null;

@@ -55,6 +55,56 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { Product, ProductVariant } from '@/features/products/types/product.interface';
+
+interface SkuRecord {
+  id: string | number;
+  skuCode?: string;
+  sku?: string;
+  variantName?: string;
+  barcode?: string;
+  barcodeType?: string;
+  stock?: number;
+  quantityOnHand?: number;
+  price?: number;
+  sellingPrice?: number;
+  costPrice?: number;
+  compareAtPrice?: number;
+  attributes?: Record<string, string | number | boolean>;
+  active?: boolean;
+  isActive?: boolean;
+}
+
+interface SupplierItem {
+  id: string;
+  name?: string;
+  supplierName?: string;
+}
+
+interface InventoryStockItem {
+  skuId?: string | number;
+  skuCode?: string;
+  quantityOnHand?: number;
+  sellingPrice?: number;
+  costPrice?: number;
+  price?: number;
+}
+
+interface DisplayVariant {
+  id: string;
+  sku: string;
+  variantName: string;
+  barcodeType: string;
+  price: number;
+  costPrice: number;
+  compareAtPrice: number;
+  stock: number;
+  hasInventoryRecord: boolean;
+  attributes: Record<string, string | number | boolean>;
+  barcode?: string;
+  isActive: boolean;
+}
+
 export default function UnifiedProductDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -68,15 +118,14 @@ export default function UnifiedProductDetailPage() {
   const categoriesList = categoriesData?.data || [];
 
   const { data: activeBrands } = useActiveBrands();
-  const brandsList = activeBrands || [];
 
   const { data: suppliersData } = useSuppliers();
-  const suppliersList = suppliersData || [];
+  const suppliersList = (suppliersData || []) as SupplierItem[];
 
   const { data: skusResponse, isFetching: isSkusLoading, refetch: refetchSkus } = useSkus({
     page: 1,
     size: 100,
-    productId: productId,
+    productId,
   });
 
   const { data: stocksData, isFetching: isStocksLoading, refetch: refetchStocks } = useQuery({
@@ -120,7 +169,7 @@ export default function UnifiedProductDetailPage() {
 
   // SKU Form Modal States (Add/Edit Variant)
   const [isSkuFormOpen, setIsSkuFormOpen] = useState(false);
-  const [editingSku, setEditingSku] = useState<any | null>(null);
+  const [editingSku, setEditingSku] = useState<DisplayVariant | null>(null);
   const [skuFormData, setSkuFormData] = useState({
     skuCode: '',
     variantName: '',
@@ -141,31 +190,31 @@ export default function UnifiedProductDetailPage() {
         name: product.name || '',
         sku: product.sku || '',
         brand: product.brand || '',
-        brandId: (product as any).brandId || '',
+        brandId: product.brandId || '',
         categoryId: product.categoryId || '',
-        supplierId: (product as any).supplierId || '',
+        supplierId: product.supplierId || '',
         description: product.description || '',
-        price: (product as any).price || product.variants?.[0]?.price || 0,
-        costPrice: (product as any).costPrice || 0,
-        compareAtPrice: (product as any).compareAtPrice || 0,
-        weight: (product as any).weight || 500,
-        length: (product as any).dimensions?.length || 10,
-        width: (product as any).dimensions?.width || 10,
-        height: (product as any).dimensions?.height || 15,
-        metaTitle: (product as any).metaTitle || product.name || '',
-        metaDescription: (product as any).metaDescription || product.description || '',
-        metaKeywords: (product as any).metaKeywords || '',
+        price: product.price || product.variants?.[0]?.price || 0,
+        costPrice: product.costPrice || 0,
+        compareAtPrice: product.compareAtPrice || 0,
+        weight: product.weight || 500,
+        length: product.dimensions?.length || 10,
+        width: product.dimensions?.width || 10,
+        height: product.dimensions?.height || 15,
+        metaTitle: product.metaTitle || product.name || '',
+        metaDescription: product.metaDescription || product.description || '',
+        metaKeywords: product.metaKeywords || '',
         slug: product.slug || '',
-        isPublished: product.isPublished ?? (product as any).published ?? true,
-        isFeatured: product.isFeatured ?? (product as any).featured ?? false,
-        isNew: product.isNew ?? (product as any).new ?? false,
-        isBestSeller: product.isBestSeller ?? (product as any).bestSeller ?? false,
+        isPublished: product.isPublished ?? product.published ?? true,
+        isFeatured: product.isFeatured ?? product.featured ?? false,
+        isNew: product.isNew ?? product.new ?? false,
+        isBestSeller: product.isBestSeller ?? product.bestSeller ?? false,
       });
       setIsDirty(false);
     }
   }, [product]);
 
-  const handleFieldChange = (field: string, value: any) => {
+  const handleFieldChange = (field: string, value: string | number | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setIsDirty(true);
   };
@@ -189,25 +238,35 @@ export default function UnifiedProductDetailPage() {
         id: productId,
         values: {
           ...formData,
-          specifications: (product as any)?.specifications || [],
+          images: (product?.images || []) as Array<Record<string, unknown> | string>,
+          viewCount: product?.viewCount || 0,
+          soldCount: product?.soldCount || 0,
+          ratingAvg: product?.ratingAvg || 0,
+          ratingCount: product?.ratingCount || 0,
+          specifications: Array.isArray(product?.specifications)
+            ? product.specifications.map((s) => ({ key: s.key, value: String(s.value) }))
+            : product?.specifications && typeof product.specifications === 'object'
+              ? Object.entries(product.specifications).map(([key, value]) => ({ key, value: String(value) }))
+              : [],
           variants: product?.variants?.map((v) => ({
             sku: v.sku,
             price: v.price,
-            compareAtPrice: (v as any).compareAtPrice || 0,
-            costPrice: (v as any).costPrice || 0,
-            barcode: (v as any).barcode || '',
-            barcodeType: (v as any).barcodeType || 'EAN-13',
-            image: (v as any).image || '',
-            isActive: (v as any).isActive !== undefined ? (v as any).isActive : true,
-            attributes: Object.entries(v.attributes || {}).map(([key, value]) => ({ key, value })) as any,
+            compareAtPrice: v.compareAtPrice || 0,
+            costPrice: v.costPrice || 0,
+            barcode: v.barcode || '',
+            barcodeType: v.barcodeType || 'EAN-13',
+            image: typeof v.image === 'string' ? v.image : v.image?.url || '',
+            isActive: v.isActive !== undefined ? v.isActive : true,
+            attributes: Object.entries(v.attributes || {}).map(([key, value]) => ({ key, value: String(value) })),
           })) || [{ sku: formData.sku, price: formData.price, compareAtPrice: 0, costPrice: 0, barcode: '', barcodeType: 'EAN-13', image: '', isActive: true, attributes: [] }],
-        } as any,
+        },
       });
       toast.success('Lưu thông tin sản phẩm thành công');
       setIsDirty(false);
       refetchProduct();
-    } catch (err: any) {
-      toast.error(err.message || 'Lưu thất bại');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Lưu thất bại';
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }
@@ -229,17 +288,17 @@ export default function UnifiedProductDetailPage() {
     setIsSkuFormOpen(true);
   };
 
-  const handleOpenEditSku = (skuItem: any) => {
+  const handleOpenEditSku = (skuItem: DisplayVariant) => {
     setEditingSku(skuItem);
     setSkuFormData({
-      skuCode: skuItem.sku || skuItem.skuCode || '',
+      skuCode: skuItem.sku || '',
       variantName: skuItem.variantName || '',
       barcode: skuItem.barcode || '',
       barcodeType: skuItem.barcodeType || 'EAN-13',
       price: skuItem.price || 0,
       costPrice: skuItem.costPrice || 0,
       compareAtPrice: skuItem.compareAtPrice || 0,
-      active: skuItem.active ?? skuItem.isActive ?? true,
+      active: skuItem.isActive,
     });
     setIsSkuFormOpen(true);
   };
@@ -265,7 +324,7 @@ export default function UnifiedProductDetailPage() {
       } else {
         await skuApi.create({
           skuCode: skuFormData.skuCode,
-          productId: productId,
+          productId,
           productName: formData.name,
           variantName: skuFormData.variantName,
           barcode: skuFormData.barcode,
@@ -279,8 +338,9 @@ export default function UnifiedProductDetailPage() {
       refetchSkus();
       refetchProduct();
       refetchStocks();
-    } catch (err: any) {
-      toast.error(err.message || 'Thao tác SKU thất bại');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Thao tác SKU thất bại';
+      toast.error(message);
     } finally {
       setIsSkuSubmitting(false);
     }
@@ -296,8 +356,9 @@ export default function UnifiedProductDetailPage() {
       refetchSkus();
       refetchProduct();
       refetchStocks();
-    } catch (err: any) {
-      toast.error(err.message || 'Xóa SKU thất bại');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Xóa SKU thất bại';
+      toast.error(message);
     } finally {
       setIsSkuSubmitting(false);
     }
@@ -305,33 +366,33 @@ export default function UnifiedProductDetailPage() {
 
   // Process data for SKU table
   const rawSkusData = skusResponse?.data;
-  const apiSkusList = Array.isArray(rawSkusData)
-    ? rawSkusData
-    : Array.isArray((rawSkusData as any)?.data)
-      ? (rawSkusData as any).data
+  const apiSkusList: SkuRecord[] = Array.isArray(rawSkusData)
+    ? (rawSkusData as SkuRecord[])
+    : Array.isArray((rawSkusData as unknown as { data?: SkuRecord[] })?.data)
+      ? ((rawSkusData as unknown as { data: SkuRecord[] }).data)
       : [];
 
-  const productVariants = product?.variants || [];
-  const inventoryList = stocksData || [];
+  const productVariants: ProductVariant[] = product?.variants || [];
+  const inventoryList: InventoryStockItem[] = (stocksData || []) as InventoryStockItem[];
 
-  const variants: any[] = apiSkusList.map((item: any) => {
+  const variants: DisplayVariant[] = apiSkusList.map((item) => {
     const skuCode = item.skuCode || item.sku || '';
-    const skuId = item.id?.toString() || '';
+    const skuId = item.id ? String(item.id) : '';
 
-    const matchingVariant = productVariants.find((v) => v.sku === skuCode || (v as any).skuId === skuId);
-    const matchingInventory = inventoryList.find((inv: any) =>
-      (inv.skuId && inv.skuId.toString() === skuId) ||
+    const matchingVariant = productVariants.find((v) => v.sku === skuCode || v.skuId === skuId);
+    const matchingInventory = inventoryList.find((inv) =>
+      (inv.skuId && String(inv.skuId) === skuId) ||
       (inv.skuCode && inv.skuCode === skuCode)
     );
 
-    const stockQty = matchingInventory?.quantityOnHand ?? item.stock ?? item.quantityOnHand ?? matchingVariant?.stock ?? (product as any)?.stock ?? 0;
+    const stockQty = matchingInventory?.quantityOnHand ?? item.stock ?? item.quantityOnHand ?? matchingVariant?.stock ?? product?.stock ?? 0;
 
     return {
       id: skuId || matchingVariant?.id || '',
       sku: skuCode || 'N/A',
-      variantName: item.variantName || matchingVariant?.attributes?.["Tên biến thể"] || matchingVariant?.attributes?.["Variant"] || '',
-      barcodeType: item.barcodeType || (matchingVariant as any)?.barcodeType || 'EAN-13',
-      price: matchingVariant?.price || matchingInventory?.sellingPrice || matchingInventory?.price || item.price || item.sellingPrice || (product as any)?.price || 0,
+      variantName: item.variantName || (matchingVariant?.attributes?.['Tên biến thể'] as string) || (matchingVariant?.attributes?.['Variant'] as string) || '',
+      barcodeType: item.barcodeType || matchingVariant?.barcodeType || 'EAN-13',
+      price: matchingVariant?.price || matchingInventory?.sellingPrice || matchingInventory?.price || item.price || item.sellingPrice || product?.price || 0,
       costPrice: matchingVariant?.costPrice || matchingInventory?.costPrice || item.costPrice || 0,
       compareAtPrice: matchingVariant?.compareAtPrice || item.compareAtPrice || 0,
       stock: stockQty,
@@ -342,7 +403,20 @@ export default function UnifiedProductDetailPage() {
     };
   });
 
-  const displayVariants = variants.length > 0 ? variants : productVariants;
+  const displayVariants: DisplayVariant[] = variants.length > 0 ? variants : productVariants.map((v) => ({
+    id: v.id || v.sku,
+    sku: v.sku,
+    variantName: (v.attributes?.['Tên biến thể'] as string) || (v.attributes?.['Variant'] as string) || '',
+    barcodeType: v.barcodeType || 'EAN-13',
+    price: v.price,
+    costPrice: v.costPrice || 0,
+    compareAtPrice: v.compareAtPrice || 0,
+    stock: v.stock || 0,
+    hasInventoryRecord: false,
+    attributes: v.attributes || {},
+    barcode: v.barcode,
+    isActive: v.isActive ?? true,
+  }));
 
   const breadcrumbItems = [
     { label: 'Sản phẩm', href: '/products', icon: Package },
@@ -354,7 +428,7 @@ export default function UnifiedProductDetailPage() {
   const images = (product as any)?.images || [];
   const galleryUrls: string[] = images.map((img: any) => typeof img === 'string' ? img : img?.url).filter(Boolean);
 
-  const skuColumns: ColumnDef<any>[] = [
+  const skuColumns: ColumnDef<DisplayVariant>[] = [
     {
       header: 'Mã SKU',
       cell: (variant) => (

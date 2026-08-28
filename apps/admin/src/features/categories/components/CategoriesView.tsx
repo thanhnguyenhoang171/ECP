@@ -47,8 +47,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 
 interface CategoriesViewProps {
- initialData: PageResponse<Category>;
- parentCategories: Category[];
+ initialData?: PageResponse<Category>;
+ parentCategories?: Category[];
 }
 
 export default function CategoriesView({
@@ -197,6 +197,8 @@ export default function CategoriesView({
  const columns: ColumnDef<Category>[] = [
   {
    header: 'Tên danh mục',
+   className: 'w-[28%] min-w-[200px]',
+   headerClassName: 'w-[28%] min-w-[200px]',
    skeleton: (
     <div className='flex items-center gap-3'>
      <Skeleton className='h-10 w-10 rounded-lg' />
@@ -241,6 +243,8 @@ export default function CategoriesView({
   {
    header: 'Cấp độ',
    align: 'center',
+   className: 'w-[10%] min-w-[80px]',
+   headerClassName: 'w-[10%] min-w-[80px]',
    skeleton: <Skeleton className='h-5 w-16 mx-auto rounded-full' />,
    cell: (category) => (
     <Badge
@@ -254,6 +258,8 @@ export default function CategoriesView({
   {
    header: 'Trạng thái',
    align: 'center',
+   className: 'w-[12%] min-w-[100px]',
+   headerClassName: 'w-[12%] min-w-[100px]',
    skeleton: <Skeleton className='h-5 w-20 mx-auto rounded-full' />,
    cell: (category) => {
     const isPending = updateMutation.isPending && updateMutation.variables?.id === category.id;
@@ -276,40 +282,41 @@ export default function CategoriesView({
   {
    header: 'Nổi bật',
    align: 'center',
+   className: 'w-[12%] min-w-[100px]',
+   headerClassName: 'w-[12%] min-w-[100px]',
    skeleton: <Skeleton className='h-5 w-16 mx-auto rounded-full' />,
    cell: (category) => (
-    <div className="flex justify-center items-center gap-1.5">
+    <div className="flex justify-center items-center">
       <Switch 
         checked={!!category.isFeatured}
         onCheckedChange={() => handleToggleFeatured(category)}
         disabled={updateMutation.isPending && updateMutation.variables?.id === category.id}
         className="scale-75 data-[state=checked]:bg-amber-500"
       />
-      {category.isFeatured && (
-        <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] font-bold px-1.5 py-0">
-          Nổi bật
-        </Badge>
-      )}
     </div>
    ),
   },
   {
    header: 'Ngày tạo',
    align: 'center',
+   className: 'w-[14%] min-w-[110px] text-xs font-medium text-slate-500',
+   headerClassName: 'w-[14%] min-w-[110px]',
    skeleton: <Skeleton className='h-4 w-24 mx-auto' />,
    cell: (category) => formatDate(category.createdAt),
-   className: 'text-xs font-medium text-slate-500',
   },
   {
    header: 'Ngày sửa',
    align: 'center',
+   className: 'w-[14%] min-w-[110px] text-xs font-medium text-slate-500',
+   headerClassName: 'w-[14%] min-w-[110px]',
    skeleton: <Skeleton className='h-4 w-24 mx-auto' />,
    cell: (category) => formatDate(category.updatedAt),
-   className: 'text-xs font-medium text-slate-500',
   },
   {
    header: 'Thao tác',
    align: 'right',
+   className: 'w-[10%] min-w-[110px]',
+   headerClassName: 'w-[10%] min-w-[110px]',
    skeleton: (
     <div className='flex justify-end gap-1'>
      <Skeleton className='h-8 w-8 rounded-md' />
@@ -480,15 +487,15 @@ export default function CategoriesView({
      </>
     }
     footer={
-     viewMode === 'table' && categories.length > 0 && (
+     viewMode === 'table' && (isLoading || categories.length > 0) && (
       <NextPagination
+       isLoading={isLoading}
        currentPage={pagination.currentPage}
        totalPages={pagination.totalPages}
        totalItems={pagination.totalElements}
        itemsPerPage={pagination.pageSize}
        onItemsPerPageChange={setSize}
        onPageChange={setPage}
-       className='bg-slate-50/30'
       />
      )
     }
@@ -507,6 +514,7 @@ export default function CategoriesView({
            columns={columns}
            data={categories}
            isLoading={isLoading || (isFetching && !categories.length)}
+           loadingRows={size}
            emptyState={{
             title: 'Không tìm thấy danh mục',
             description:
@@ -523,7 +531,7 @@ export default function CategoriesView({
      isOpen={isDetailDialogOpen}
      onOpenChange={setIsDetailDialogOpen}
      category={selectedCategory}
-     parentCategories={parentCategories}
+     parentCategories={parentCategories || []}
    />
 
    <DeleteConfirmDialog

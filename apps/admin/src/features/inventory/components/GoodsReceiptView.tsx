@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { PackagePlus } from "lucide-react";
-import { PageHeader, DataTable, DataCard, Breadcrumbs } from '@/components/common';
+import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -33,6 +33,10 @@ export default function GoodsReceiptView() {
   const updateStatusMutation = useUpdateGoodsReceiptStatus();
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(10);
+
   const receiptsList = React.useMemo(() => {
     if (Array.isArray(receiptsData)) {
       return receiptsData.map((item: any) => ({
@@ -48,6 +52,21 @@ export default function GoodsReceiptView() {
     }
     return [];
   }, [receiptsData]);
+
+  const filteredReceipts = React.useMemo(() => {
+    return receiptsList.filter((item: any) =>
+      item.receiptCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.warehouseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.purchaseOrderCode && item.purchaseOrderCode.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  }, [receiptsList, searchTerm]);
+
+  const paginatedReceipts = React.useMemo(() => {
+    const start = (page - 1) * size;
+    return filteredReceipts.slice(start, start + size);
+  }, [filteredReceipts, page, size]);
+
+  const totalPages = Math.ceil(filteredReceipts.length / size) || 1;
 
   const renderStatusDropdown = (item: any) => {
     const status = item.status;
@@ -102,6 +121,8 @@ export default function GoodsReceiptView() {
     {
       accessorKey: 'receiptCode',
       header: 'Mã nhập kho',
+      className: 'w-[15%] min-w-[120px]',
+      headerClassName: 'w-[15%] min-w-[120px]',
       cell: (item: any) => (
         <span 
           onClick={() => router.push(`/goods-receipt/${item.id}`)}
@@ -114,6 +135,8 @@ export default function GoodsReceiptView() {
     {
       accessorKey: 'warehouseName',
       header: 'Kho thực nhận',
+      className: 'w-[20%] min-w-[150px]',
+      headerClassName: 'w-[20%] min-w-[150px]',
       cell: (item: any) => (
         <span className="text-xs font-semibold text-slate-800">{item.warehouseName}</span>
       )
@@ -121,6 +144,8 @@ export default function GoodsReceiptView() {
     {
       accessorKey: 'purchaseOrderCode',
       header: 'Đơn mua (PO)',
+      className: 'w-[15%] min-w-[120px]',
+      headerClassName: 'w-[15%] min-w-[120px]',
       cell: (item: any) => (
         <span className="text-xs font-mono text-slate-600">
           {item.purchaseOrderCode || '---'}
@@ -131,6 +156,8 @@ export default function GoodsReceiptView() {
       accessorKey: 'totalItems',
       header: 'Số SKU nhập',
       align: 'center' as const,
+      className: 'w-[12%] min-w-[100px]',
+      headerClassName: 'w-[12%] min-w-[100px]',
       cell: (item: any) => (
         <span className="text-xs font-bold text-slate-700">{item.totalItems} sản phẩm</span>
       )
@@ -139,11 +166,15 @@ export default function GoodsReceiptView() {
       accessorKey: 'status',
       header: 'Trạng thái (Đổi nhanh)',
       align: 'center' as const,
+      className: 'w-[18%] min-w-[140px]',
+      headerClassName: 'w-[18%] min-w-[140px]',
       cell: (item: any) => renderStatusDropdown(item)
     },
     {
       accessorKey: 'createdAt',
       header: 'Ngày nhập',
+      className: 'w-[12%] min-w-[110px]',
+      headerClassName: 'w-[12%] min-w-[110px]',
       cell: (item: any) => (
         <div className="flex flex-col">
           <span className="text-xs font-medium text-slate-600">
@@ -156,6 +187,8 @@ export default function GoodsReceiptView() {
     {
       header: 'Thao tác',
       align: 'right' as const,
+      className: 'w-[8%] min-w-[90px]',
+      headerClassName: 'w-[8%] min-w-[90px]',
       cell: (item: any) => (
         <div className="flex justify-end gap-1">
           <ViewActionButton 
@@ -190,17 +223,26 @@ export default function GoodsReceiptView() {
       />
 
       <DataCard
-        search={<SearchInput placeholder="Tìm kiếm theo mã phiếu, kho..." value="" onChange={() => {}} />}
-        extra={
-          <FilterPopover activeCount={0} onClear={() => {}}>
-            <div className="p-2 text-xs text-slate-500 italic">Tính năng lọc đang phát triển...</div>
-          </FilterPopover>
+        search={<SearchInput placeholder="Tìm kiếm theo mã phiếu, kho..." value={searchTerm} onChange={(val) => { setSearchTerm(val); setPage(1); }} />}
+        footer={
+          (isLoading || filteredReceipts.length > 0) && (
+            <NextPagination
+              isLoading={isLoading}
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={filteredReceipts.length}
+              itemsPerPage={size}
+              onItemsPerPageChange={setSize}
+              onPageChange={setPage}
+            />
+          )
         }
       >
         <DataTable 
           columns={columns as any} 
-          data={receiptsList} 
-          isLoading={isLoading}
+          data={paginatedReceipts} 
+          isLoading={isLoading && !filteredReceipts.length}
+          loadingRows={size}
           emptyState={{
             title: "Chưa có phiếu nhập kho",
             description: "Bắt đầu tạo phiếu nhập kho đầu tiên để quản lý hàng tồn.",

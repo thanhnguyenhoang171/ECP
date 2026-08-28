@@ -81,4 +81,30 @@ public class ProductController {
                 .message("Product fetched successfully")
                 .data(productService.getProductById(id)).build());
     }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('product:update') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Update product details by ID")
+    public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(
+            @PathVariable String id,
+            @Valid @RequestBody ProductRequest request) {
+        return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
+                .success(true)
+                .code("PRODUCT_UPDATED_SUCCESS")
+                .message("Product updated successfully")
+                .data(productService.updateProduct(id, request))
+                .build());
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Delete product (soft delete)")
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable String id) {
+        productService.deleteProduct(id);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .code("PRODUCT_DELETED_SUCCESS")
+                .message("Product deleted successfully")
+                .build());
+    }
 }

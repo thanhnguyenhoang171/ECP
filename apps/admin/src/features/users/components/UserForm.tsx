@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Save, Image as ImageIcon, Info, ShieldCheck, KeyRound, Upload } from 'lucide-react';
+import { Loader2, Save, Image as ImageIcon, Info, ShieldCheck, KeyRound, Upload, Camera } from 'lucide-react';
 import {
   Form,
   FormControl,
@@ -91,8 +91,26 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
     }
 
     if (isEdit && userId) {
+      const dirtyFields = form.formState.dirtyFields;
+      const partialData: Partial<UserFormValues> = {};
+
+      if (dirtyFields.fullName) partialData.fullName = values.fullName;
+      if (dirtyFields.email) partialData.email = values.email;
+      if (dirtyFields.phone) partialData.phone = values.phone;
+      if (dirtyFields.role) partialData.role = values.role;
+      if (dirtyFields.status) partialData.status = values.status;
+      if (dirtyFields.password && values.password) partialData.password = values.password;
+      if (dirtyFields.avatarUrl) partialData.avatarUrl = values.avatarUrl;
+      if (dirtyFields.avatarPublicId) partialData.avatarPublicId = values.avatarPublicId;
+
+      if (Object.keys(partialData).length === 0) {
+        toast.info('Không có thông tin nào thay đổi');
+        onSuccess();
+        return;
+      }
+
       updateUserMutation.mutate(
-        { id: userId, data: values },
+        { id: userId, data: partialData },
         {
           onSuccess: () => {
             form.reset();
@@ -342,18 +360,28 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
             >
               <div className="space-y-4">
                 <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 hover:bg-slate-50 transition-all text-center group">
-                  <Avatar className="h-28 w-28 border-4 border-white shadow-lg ring-1 ring-slate-200/80 mb-4">
-                    {currentAvatarUrl && (
-                      <AvatarImage 
-                        src={typeof currentAvatarUrl === 'string' ? currentAvatarUrl : ((currentAvatarUrl as any) instanceof File ? URL.createObjectURL(currentAvatarUrl as any) : '')} 
-                        alt={currentFullName || 'Avatar'} 
-                        className="object-cover" 
-                      />
-                    )}
-                    <AvatarFallback className="bg-blue-100 text-blue-700 font-black text-2xl">
-                      {getInitials(currentFullName)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="relative group/avatar cursor-pointer mb-4"
+                    title="Click để chọn & đổi ảnh đại diện mới"
+                  >
+                    <Avatar className="h-28 w-28 border-4 border-white shadow-lg ring-1 ring-slate-200/80 overflow-hidden">
+                      {currentAvatarUrl && (
+                        <AvatarImage 
+                          src={typeof currentAvatarUrl === 'string' ? currentAvatarUrl : ((currentAvatarUrl as any) instanceof File ? URL.createObjectURL(currentAvatarUrl as any) : '')} 
+                          alt={currentFullName || 'Avatar'} 
+                          className="object-cover" 
+                        />
+                      )}
+                      <AvatarFallback className="bg-blue-100 text-blue-700 font-black text-2xl">
+                        {getInitials(currentFullName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px] rounded-full flex flex-col items-center justify-center text-white opacity-0 group-hover/avatar:opacity-100 transition-all duration-300">
+                      <Camera size={20} className="mb-0.5" />
+                      <span className="text-[9px] font-bold tracking-tight uppercase">Đổi ảnh</span>
+                    </div>
+                  </div>
                   
                   <input 
                     type="file" 

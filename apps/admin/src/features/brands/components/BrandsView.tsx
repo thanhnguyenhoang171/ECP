@@ -127,6 +127,8 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
   const columns: ColumnDef<Brand>[] = [
     {
       header: 'Thương hiệu',
+      className: 'w-[35%] min-w-[220px]',
+      headerClassName: 'w-[35%] min-w-[220px]',
       skeleton: (
         <div className="flex items-center gap-3">
           <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
@@ -173,8 +175,8 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
     },
     {
       header: 'Slug',
-      className: 'hidden md:table-cell',
-      headerClassName: 'hidden md:table-cell',
+      className: 'w-[25%] min-w-[160px] hidden md:table-cell',
+      headerClassName: 'w-[25%] min-w-[160px] hidden md:table-cell',
       skeleton: <Skeleton className="h-5 w-24 rounded-md" />,
       cell: (brand) => (
         <span className="font-mono text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
@@ -184,11 +186,14 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
     },
     {
       header: 'Trạng thái',
+      align: 'center',
+      className: 'w-[15%] min-w-[110px]',
+      headerClassName: 'w-[15%] min-w-[110px]',
       skeleton: <Skeleton className="h-5 w-20 rounded-full" />,
       cell: (brand) => {
         const isPending = togglingId === brand.id;
         return (
-          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
             <Badge
               className={cn(
                 'cursor-pointer select-none transition-all text-xs font-medium hover:opacity-80',
@@ -207,14 +212,16 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
     },
     {
       header: 'Ngày tạo',
-      className: 'hidden lg:table-cell text-slate-500 text-xs',
-      headerClassName: 'hidden lg:table-cell',
+      className: 'w-[15%] min-w-[120px] hidden lg:table-cell text-slate-500 text-xs',
+      headerClassName: 'w-[15%] min-w-[120px] hidden lg:table-cell',
       skeleton: <Skeleton className="h-4 w-20 rounded-md" />,
       cell: (brand) => (brand.createdAt ? formatDate(brand.createdAt) : '---'),
     },
     {
       header: 'Thao tác',
       align: 'right',
+      className: 'w-[10%] min-w-[110px]',
+      headerClassName: 'w-[10%] min-w-[110px]',
       skeleton: (
         <div className="flex justify-end gap-1">
           <Skeleton className="h-8 w-8 rounded-lg" />
@@ -313,8 +320,9 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
           </>
         }
         footer={
-          totalPages > 0 && (
+          (isLoading || totalPages > 0) && (
             <NextPagination
+              isLoading={isLoading}
               currentPage={page}
               totalPages={totalPages}
               totalItems={totalElements}
@@ -329,6 +337,7 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
           columns={columns}
           data={brands}
           isLoading={isLoading && !brands.length}
+          loadingRows={size}
           onRowClick={(brand) => handleViewDetail(brand)}
           emptyState={{
             title: 'Không có thương hiệu nào',

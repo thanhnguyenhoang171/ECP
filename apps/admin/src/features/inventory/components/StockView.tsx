@@ -22,6 +22,7 @@ import {
   DataTable, 
   DataCard, 
   Breadcrumbs,
+  NextPagination,
   Badge
 } from '@/components/common';
 import {
@@ -104,6 +105,8 @@ export default function StockView() {
   const [selectedWarehouse, setSelectedWarehouse] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [sortOption, setSortOption] = useState('sku,asc');
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(10);
 
   // Adjustment Modal state
   const [adjustingItem, setAdjustingItem] = useState<StockItem | null>(null);
@@ -159,6 +162,13 @@ export default function StockView() {
     return items;
   }, [stockItems, searchTerm, selectedWarehouse, selectedStatus, sortOption]);
 
+  const paginatedItems = useMemo(() => {
+    const start = (page - 1) * size;
+    return filteredItems.slice(start, start + size);
+  }, [filteredItems, page, size]);
+
+  const totalPages = Math.ceil(filteredItems.length / size) || 1;
+
   // Statistics summaries
   const stats = useMemo(() => {
     let totalStock = 0;
@@ -200,11 +210,12 @@ export default function StockView() {
     toast.success(`Đã ghi nhận lệnh điều chỉnh tồn kho SKU ${adjustingItem.sku}: ${typeText} ${adjustQty} chiếc.`);
     setAdjustingItem(null);
   };
-
   const columns = [
     {
       header: 'Mã SKU',
       accessorKey: 'sku',
+      className: 'w-[12%] min-w-[100px]',
+      headerClassName: 'w-[12%] min-w-[100px]',
       cell: (item: StockItem) => (
         <span className="font-mono text-xs font-bold text-blue-600">
           {item.sku}
@@ -213,6 +224,8 @@ export default function StockView() {
     },
     {
       header: 'Sản phẩm & Chi tiết Lô',
+      className: 'w-[24%] min-w-[180px]',
+      headerClassName: 'w-[24%] min-w-[180px]',
       cell: (item: StockItem) => (
         <div className="flex flex-col">
           <span className="text-xs font-bold text-slate-800">{item.productName}</span>
@@ -230,6 +243,8 @@ export default function StockView() {
     {
       header: 'Kho hàng',
       accessorKey: 'warehouseName',
+      className: 'w-[16%] min-w-[130px]',
+      headerClassName: 'w-[16%] min-w-[130px]',
       cell: (item: StockItem) => (
         <div className="flex items-center gap-1.5 text-xs text-slate-600">
           <Warehouse size={13} className="text-slate-400" />
@@ -240,6 +255,8 @@ export default function StockView() {
     {
       header: 'Tồn thực tế (OnHand)',
       align: 'center' as const,
+      className: 'w-[13%] min-w-[120px]',
+      headerClassName: 'w-[13%] min-w-[120px]',
       cell: (item: StockItem) => {
         const isOutOfStock = item.quantityOnHand === 0;
         const isLowStock = item.quantityOnHand > 0 && item.quantityOnHand <= item.lowStockThreshold;
@@ -263,6 +280,8 @@ export default function StockView() {
     {
       header: 'Đang khóa (Locked)',
       align: 'center' as const,
+      className: 'w-[10%] min-w-[90px]',
+      headerClassName: 'w-[10%] min-w-[90px]',
       cell: (item: StockItem) => (
         <span className={cn(
           "text-xs font-semibold font-mono",
@@ -275,6 +294,8 @@ export default function StockView() {
     {
       header: 'Tồn khả dụng (Available)',
       align: 'center' as const,
+      className: 'w-[12%] min-w-[110px]',
+      headerClassName: 'w-[12%] min-w-[110px]',
       cell: (item: StockItem) => (
         <span className="text-xs font-bold font-mono text-emerald-600">
           {item.quantityAvailable}
@@ -284,6 +305,8 @@ export default function StockView() {
     {
       header: 'Cập nhật',
       align: 'center' as const,
+      className: 'w-[8%] min-w-[80px]',
+      headerClassName: 'w-[8%] min-w-[80px]',
       cell: (item: StockItem) => (
         <span className="text-[11px] text-slate-400">
           {item.updatedAt ? formatDate(item.updatedAt) : '---'}
@@ -293,6 +316,8 @@ export default function StockView() {
     {
       header: 'Thao tác',
       align: 'right' as const,
+      className: 'w-[5%] min-w-[90px]',
+      headerClassName: 'w-[5%] min-w-[90px]',
       cell: (item: StockItem) => (
         <Button 
           variant="outline" 
@@ -300,7 +325,7 @@ export default function StockView() {
           className="h-8 text-[10px] font-bold uppercase tracking-wider gap-1 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 border-slate-200"
           onClick={() => handleAdjustClick(item)}
         >
-          <RefreshCw size={11} /> Điều chỉnh
+          <RefreshCw size={12} /> Điều chỉnh
         </Button>
       ),
     },
@@ -328,7 +353,7 @@ export default function StockView() {
         search={
           <SearchInput 
             value={searchTerm} 
-            onChange={setSearchTerm} 
+            onChange={(val) => { setSearchTerm(val); setPage(1); }} 
             placeholder="Tìm theo tên sản phẩm hoặc SKU..." 
           />
         }
@@ -339,12 +364,13 @@ export default function StockView() {
               onClear={() => {
                 setSelectedWarehouse('all');
                 setSelectedStatus('all');
+                setPage(1);
               }}
             >
               <div className="space-y-4 p-1">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold uppercase tracking-wide text-slate-500">Kho hàng</Label>
-                  <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
+                  <Select value={selectedWarehouse} onValueChange={(val) => { setSelectedWarehouse(val); setPage(1); }}>
                     <SelectTrigger className="h-9 text-xs">
                       <SelectValue placeholder="Tất cả kho" />
                     </SelectTrigger>
@@ -359,7 +385,7 @@ export default function StockView() {
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold uppercase tracking-wide text-slate-500">Trạng thái tồn kho</Label>
-                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <Select value={selectedStatus} onValueChange={(val) => { setSelectedStatus(val); setPage(1); }}>
                     <SelectTrigger className="h-9 text-xs">
                       <SelectValue placeholder="Tất cả trạng thái" />
                     </SelectTrigger>
@@ -386,11 +412,25 @@ export default function StockView() {
             />
           </>
         }
+        footer={
+          (isLoading || filteredItems.length > 0) && (
+            <NextPagination
+              isLoading={isLoading}
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={filteredItems.length}
+              itemsPerPage={size}
+              onItemsPerPageChange={setSize}
+              onPageChange={setPage}
+            />
+          )
+        }
       >
         <DataTable
           columns={columns as any}
-          data={filteredItems}
+          data={paginatedItems}
           isLoading={isLoading && !filteredItems.length}
+          loadingRows={size}
           emptyState={{
             title: 'Không tìm thấy dòng tồn kho nào',
             description: 'Hãy kiểm tra lại điều kiện lọc hoặc nhập thêm hàng hóa.',

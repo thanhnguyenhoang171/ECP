@@ -8,7 +8,8 @@ import {
   Trash2,
   Maximize2,
   AlertCircle,
-  Loader2
+  Loader2,
+  Camera
 } from 'lucide-react';
 import { Button, Card, CardContent } from './index';
 import { 
@@ -47,6 +48,8 @@ interface ImageUploadProps {
   reqWidth?: number;
   reqHeight?: number;
   deferUpload?: boolean;
+  allowReplace?: boolean;
+  showRemove?: boolean;
 }
 
 /**
@@ -71,7 +74,9 @@ export const ImageUpload = ({
   variant = 'default',
   reqWidth,
   reqHeight,
-  deferUpload = true
+  deferUpload = true,
+  allowReplace,
+  showRemove,
 }: ImageUploadProps) => {
   const [internalImages, setInternalImages] = useState<ImageValue[]>([]);
 
@@ -280,7 +285,10 @@ export const ImageUpload = ({
     });
   }, [maxSize]);
 
-  const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
+  const isReplaceAllowed = allowReplace ?? (variant === 'circle' || !multiple);
+  const isRemoveVisible = showRemove ?? (variant !== 'circle');
+
+  const { getRootProps, getInputProps, isDragActive, isDragReject, open } = useDropzone({
     onDrop,
     onDropRejected,
     accept: {
@@ -289,7 +297,7 @@ export const ImageUpload = ({
     maxFiles: multiple ? maxFiles - internalImages.length : 1,
     multiple: multiple,
     maxSize,
-    disabled: disabled || (!multiple && internalImages.length > 0) || (multiple && internalImages.length >= maxFiles)
+    disabled: disabled || (!multiple && !isReplaceAllowed && internalImages.length > 0) || (multiple && internalImages.length >= maxFiles)
   });
 
   const handleRemove = (url: string, e: React.MouseEvent) => {
@@ -343,34 +351,64 @@ export const ImageUpload = ({
             <span className="text-[11px] font-bold tracking-tight">Đang tải...</span>
           </div>
         ) : (
-          <>
-            {/* Overlay controls */}
-            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-              <div className="flex gap-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+          <div 
+            onClick={(e) => {
+              if (!isRemoveVisible && isReplaceAllowed) {
+                e.stopPropagation();
+                open();
+              }
+            }}
+            className={cn(
+              "absolute inset-0 bg-slate-900/50 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-10",
+              !isRemoveVisible && isReplaceAllowed && "cursor-pointer"
+            )}
+          >
+            {!isRemoveVisible && isReplaceAllowed ? (
+              <div className="flex flex-col items-center justify-center text-white">
+                <Camera className="h-6 w-6 text-white mb-1 drop-shadow-md" />
+                <span className="text-[10px] font-bold tracking-tight uppercase">Đổi ảnh</span>
+              </div>
+            ) : (
+              <div className="flex gap-2.5 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
                 <Button 
                   type="button" 
                   variant="secondary" 
                   size="icon" 
                   title="Xem ảnh gốc"
-                  className="h-10 w-10 rounded-full shadow-xl bg-white hover:bg-slate-100 text-slate-900 border-none cursor-pointer"
+                  className="h-9 w-9 rounded-full shadow-xl bg-white hover:bg-slate-100 text-slate-900 border-none cursor-pointer"
                   onClick={(e) => { e.stopPropagation(); window.open(currentImage.url, '_blank'); }}
                 >
-                  <Maximize2 size={16} />
+                  <Maximize2 size={15} />
                 </Button>
 
-                <Button 
-                  type="button" 
-                  variant="destructive" 
-                  size="icon" 
-                  title="Gỡ bỏ ảnh"
-                  className="h-10 w-10 rounded-full shadow-xl cursor-pointer"
-                  onClick={(e) => handleRemove(currentImage.url, e)}
-                >
-                  <Trash2 size={16} />
-                </Button>
+                {isReplaceAllowed && (
+                  <Button 
+                    type="button" 
+                    variant="secondary" 
+                    size="icon" 
+                    title="Thay đổi ảnh mới"
+                    className="h-9 w-9 rounded-full shadow-xl bg-white hover:bg-slate-100 text-blue-600 border-none cursor-pointer"
+                    onClick={(e) => { e.stopPropagation(); open(); }}
+                  >
+                    <Camera size={15} />
+                  </Button>
+                )}
+
+                {isRemoveVisible && (
+                  <Button 
+                    type="button" 
+                    variant="destructive" 
+                    size="icon" 
+                    title="Gỡ bỏ ảnh"
+                    className="h-9 w-9 rounded-full shadow-xl cursor-pointer"
+                    onClick={(e) => handleRemove(currentImage.url, e)}
+                  >
+                    <Trash2 size={15} />
+                  </Button>
+                )}
               </div>
-            </div>
-          </>
+            )}
+          </div>
         )}
       </div>
     );
@@ -428,7 +466,6 @@ export const ImageUpload = ({
           )}
         >
           <CardContent className="p-2 flex flex-col items-center justify-center w-full h-full text-center">
-            <input {...getInputProps()} />
             {isUploading ? (
               <Loader2 className="h-5 w-5 animate-spin text-primary mb-1" />
             ) : (
@@ -444,6 +481,7 @@ export const ImageUpload = ({
 
   return (
     <div className={cn("w-full group/container", className)}>
+      <input {...getInputProps()} />
       {!multiple && internalImages.length > 0 ? (
         renderSinglePreview()
       ) : multiple && internalImages.length > 0 ? (
@@ -463,8 +501,6 @@ export const ImageUpload = ({
           )}
         >
           <CardContent className="p-2 sm:p-4 md:p-6 flex flex-col items-center justify-center w-full h-full">
-            <input {...getInputProps()} />
-            
             {isUploading ? (
               <div className="flex flex-col items-center justify-center space-y-2 p-2">
                 <Loader2 className="h-5 w-5 md:h-6 md:w-6 text-primary animate-spin" />

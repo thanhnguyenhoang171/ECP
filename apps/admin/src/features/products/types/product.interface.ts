@@ -1,25 +1,35 @@
-// Aligned with Spring Boot ProductResponse.java
+export type AttributeValue = string | number | boolean;
+
 export interface ProductVariant {
-  // From ProductResponse.ProductVariantResponse
   sku: string;
   skuId?: string;
   barcode?: string;
   barcodeType?: string;
-  price: number;        // BigDecimal → number
-  costPrice?: number;   // BigDecimal → number
-  compareAtPrice?: number; // BigDecimal → number
+  price: number;
+  costPrice?: number;
+  compareAtPrice?: number;
   image?: { url?: string; publicId?: string } | string | null;
-  attributes: Record<string, any>;
+  attributes: Record<string, AttributeValue>;
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
-  // Legacy compat
   stock?: number;
   id?: string;
+  variantName?: string;
+}
+
+export interface ProductSpecificationItem {
+  key: string;
+  value: AttributeValue;
+}
+
+export interface ProductDimensions {
+  length?: number;
+  width?: number;
+  height?: number;
 }
 
 export interface Product {
-  // From ProductResponse.java - exact fields only
   id: string;
   sku: string;
   name: string;
@@ -27,10 +37,12 @@ export interface Product {
   brand?: string;
   brandId?: string;
   categoryId: string;
+  categoryName?: string;
+  supplierId?: string;
   description?: string;
   thumbnail?: { url?: string; publicId?: string } | string | null;
   images?: Array<{ url?: string; publicId?: string } | string>;
-  specifications?: Record<string, any> | Array<{ key: string; value: any }>;
+  specifications?: Record<string, AttributeValue> | ProductSpecificationItem[];
   variants?: ProductVariant[];
   isPublished: boolean;
   isFeatured?: boolean;
@@ -43,9 +55,18 @@ export interface Product {
   createdAt?: string;
   updatedAt?: string;
 
-  // Computed/compat properties — NOT in backend DTO, derived on FE:
-  // price → use variants[0]?.price
-  // stock → use inventoryApi separately
-  // categoryName → lookup from categories list
-  // supplierId / weight / length / width / height → not in ProductResponse
+  price?: number;
+  costPrice?: number;
+  compareAtPrice?: number;
+  weight?: number;
+  dimensions?: ProductDimensions;
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
+  published?: boolean;
+  featured?: boolean;
+  new?: boolean;
+  bestSeller?: boolean;
+  stock?: number;
 }
+

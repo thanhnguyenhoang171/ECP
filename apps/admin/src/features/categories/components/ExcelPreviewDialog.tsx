@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Table,
@@ -150,6 +151,9 @@ export default function ExcelPreviewDialog({
               <FileSpreadsheet className="h-5 w-5 text-green-600" />
               Xem trước dữ liệu: <span className="text-blue-600 truncate max-w-[300px]">{file?.name}</span>
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Xem trước dữ liệu file Excel trước khi nhập dữ liệu
+            </DialogDescription>
 
             {/* Sheet Selector */}
             {sheetNames.length > 1 && (

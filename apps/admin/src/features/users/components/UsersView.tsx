@@ -62,8 +62,8 @@ import { formatDateTimeForFilename } from '@/lib/formatters';
 import { useRouter } from 'next/navigation';
 
 interface UsersViewProps {
-  initialData: PageResponse<User>;
-  initialStats: UserStatistics;
+  initialData?: PageResponse<User>;
+  initialStats?: UserStatistics;
 }
 
 export default function UsersView({ initialData, initialStats }: UsersViewProps) {
@@ -71,8 +71,9 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
   const [activeTab, setActiveTab] = useState<'staff' | 'customers'>('staff');
 
   // React Query fetch số liệu thống kê thực tế từ API Backend (/v1/users/statistics)
+  const defaultStats: UserStatistics = { totalUsers: 0, onlineUsers: 0, offlineUsers: 0, managementUsers: 0, customerUsers: 0 };
   const { data: statsData } = useUserStatistics(initialStats);
-  const stats = statsData || initialStats;
+  const stats = statsData || initialStats || defaultStats;
 
   const deleteMutation = useDeleteUser();
   const updateMutation = useUpdateUser();
@@ -117,8 +118,8 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
   );
 
   const staffUsersData = staffQueryData || initialData;
-  const staffUsers = staffUsersData.data || [];
-  const staffPagination = staffUsersData.pagination || { currentPage: 1, totalPages: 1, totalElements: staffUsers.length, pageSize: 10 };
+  const staffUsers = staffUsersData?.data || [];
+  const staffPagination = staffUsersData?.pagination || { currentPage: 1, totalPages: 1, totalElements: staffUsers.length, pageSize: 10 };
 
   // ===================== 2. LOGIC KHÁCH HÀNG (CUSTOMERS API: USER) =====================
   const [customerPage, setCustomerPage] = useState(1);
@@ -242,6 +243,8 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
   const staffColumns: ColumnDef<User>[] = [
     {
       header: 'Nhân sự',
+      className: 'w-[26%] min-w-[200px]',
+      headerClassName: 'w-[26%] min-w-[200px]',
       skeleton: (
         <div className='flex items-center gap-3'>
           <Skeleton className='h-10 w-10 rounded-full' />
@@ -274,12 +277,15 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
     {
       header: 'Số điện thoại',
       accessorKey: 'phone',
-      className: 'text-sm text-slate-600 font-medium font-mono',
+      className: 'w-[14%] min-w-[110px] text-sm text-slate-600 font-medium font-mono',
+      headerClassName: 'w-[14%] min-w-[110px]',
       skeleton: <Skeleton className='h-4 w-24' />,
       cell: (user) => <span className="font-mono text-xs font-medium text-slate-600">{user.phone || '—'}</span>,
     },
     {
       header: 'Vai trò (Gán quyền)',
+      className: 'w-[18%] min-w-[140px]',
+      headerClassName: 'w-[18%] min-w-[140px]',
       skeleton: <Skeleton className='h-6 w-24 rounded-lg' />,
       cell: (user) => {
         const meta = getRoleMeta(user.role);
@@ -323,32 +329,25 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
     {
       header: 'Trạng thái tài khoản',
       align: 'center',
+      className: 'w-[14%] min-w-[120px]',
+      headerClassName: 'w-[14%] min-w-[120px]',
       skeleton: <Skeleton className='h-6 w-20 mx-auto rounded-full' />,
       cell: (user) => (
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center">
           <Switch
             checked={user.status === 'active'}
             onCheckedChange={() => handleQuickStatusToggle(user)}
             disabled={user.role === 'SUPER_ADMIN'}
             title={user.status === 'active' ? 'Đang hoạt động (Bấm để khóa)' : 'Tạm khóa (Bấm để kích hoạt)'}
           />
-          <Badge 
-            variant={user.status === 'active' ? 'default' : 'secondary'} 
-            className={cn(
-              'text-[9px] font-bold py-0.5 px-1.5 border-none uppercase',
-              user.status === 'active' 
-                ? 'bg-emerald-50 text-emerald-700' 
-                : 'bg-rose-50 text-rose-700'
-            )}
-          >
-            {user.status === 'active' ? 'Hoạt động' : 'Tạm khóa'}
-          </Badge>
         </div>
       ),
     },
     {
       header: 'Trạng thái phiên',
       align: 'center',
+      className: 'w-[10%] min-w-[100px]',
+      headerClassName: 'w-[10%] min-w-[100px]',
       skeleton: <Skeleton className='h-4 w-24 mx-auto' />,
       cell: (user) => (
         <div className='flex items-center justify-center gap-1.5'>
@@ -363,12 +362,15 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
       header: 'Ngày tạo',
       align: 'center',
       accessorKey: 'createdAt',
-      className: 'text-xs text-slate-500 font-medium',
+      className: 'w-[10%] min-w-[90px] text-xs text-slate-500 font-medium',
+      headerClassName: 'w-[10%] min-w-[90px]',
       skeleton: <Skeleton className='h-4 w-20 mx-auto' />,
     },
     {
       header: 'Thao tác',
       align: 'right',
+      className: 'w-[8%] min-w-[90px]',
+      headerClassName: 'w-[8%] min-w-[90px]',
       skeleton: <Skeleton className='h-8 w-24 ml-auto rounded-lg' />,
       cell: (user) => (
         <div className='flex justify-end gap-1'>
@@ -460,23 +462,12 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
       header: 'Trạng thái mua hàng',
       align: 'center',
       cell: (user) => (
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center">
           <Switch
             checked={user.status === 'active'}
             onCheckedChange={() => handleQuickStatusToggle(user)}
             title={user.status === 'active' ? 'Tài khoản hoạt động (Bấm để khóa)' : 'Đã bị khóa (Bấm để mở khóa)'}
           />
-          <Badge 
-            variant={user.status === 'active' ? 'default' : 'secondary'} 
-            className={cn(
-              'text-[9px] font-bold py-0.5 px-1.5 border-none uppercase',
-              user.status === 'active' 
-                ? 'bg-emerald-50 text-emerald-700' 
-                : 'bg-rose-50 text-rose-700'
-            )}
-          >
-            {user.status === 'active' ? 'Hoạt động' : 'Đã khóa'}
-          </Badge>
         </div>
       ),
     },
@@ -650,15 +641,15 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
               </>
             }
             footer={
-              staffUsers.length > 0 && (
+              (isStaffLoading || staffUsers.length > 0) && (
                 <NextPagination
+                  isLoading={isStaffLoading}
                   currentPage={staffPagination.currentPage}
                   totalPages={staffPagination.totalPages}
                   totalItems={staffPagination.totalElements}
                   itemsPerPage={staffPagination.pageSize}
                   onItemsPerPageChange={setStaffSize}
                   onPageChange={setStaffPage}
-                  className='bg-slate-50/30'
                 />
               )
             }
@@ -667,6 +658,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
               columns={staffColumns}
               data={staffUsers}
               isLoading={isStaffLoading && !staffUsers.length}
+              loadingRows={staffPagination.pageSize}
               emptyState={{
                 title: 'Không tìm thấy nhân sự',
                 description: 'Không có tài khoản quản trị nào khớp với tìm kiếm.',
@@ -728,15 +720,15 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
               </>
             }
             footer={
-              customerUsers.length > 0 && (
+              (isCustomerLoading || customerUsers.length > 0) && (
                 <NextPagination
+                  isLoading={isCustomerLoading}
                   currentPage={customerPagination.currentPage}
                   totalPages={customerPagination.totalPages}
                   totalItems={customerPagination.totalElements}
                   itemsPerPage={customerPagination.pageSize}
                   onItemsPerPageChange={setCustomerSize}
                   onPageChange={setCustomerPage}
-                  className='bg-slate-50/30'
                 />
               )
             }
@@ -745,6 +737,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
               columns={customerColumns}
               data={customerUsers}
               isLoading={isCustomerLoading && !customerUsers.length}
+              loadingRows={customerPagination.pageSize}
               emptyState={{
                 title: 'Không tìm thấy khách hàng',
                 description: 'Chưa có tài khoản khách hàng nào khớp với tìm kiếm.',

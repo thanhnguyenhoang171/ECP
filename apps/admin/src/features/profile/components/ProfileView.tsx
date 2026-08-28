@@ -86,12 +86,13 @@ import {
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Breadcrumbs, ImageUpload } from '@/components/common';
+import { Breadcrumbs, ImageUpload, AvatarCropModal } from '@/components/common';
 import { cn } from '@/lib/utils';
 
 import { profileSchema, ProfileFormValues } from '@/features/profile/schemas/profile.schema';
 import { useAuthStore } from '@/store/authStore';
 import { authApi } from '@/features/auth/api/auth.api';
+import { UpdateUserAccountPayload } from '@/features/auth/types/auth.interface';
 
 interface ProfileViewProps {
   readonly initialData?: ProfileFormValues;
@@ -274,6 +275,50 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
   const [avatarUrl, setAvatarUrl] = useState<string>('');
   const [isEditing, setIsEditing] = useState<boolean>(false);
 
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [isCropModalOpen, setIsCropModalOpen] = useState<boolean>(false);
+  const [avatarResetKey, setAvatarResetKey] = useState<number>(0);
+
+  const handleAvatarFileSelect = (val: string | File) => {
+    if (val instanceof File) {
+      const blobUrl = URL.createObjectURL(val);
+      setCropFile(val);
+      setCropImageSrc(blobUrl);
+      setIsCropModalOpen(true);
+    } else if (typeof val === 'string' && val) {
+      setAvatarUrl(val);
+    }
+  };
+
+  const handleCropCancel = () => {
+    setIsCropModalOpen(false);
+    setCropFile(null);
+    setCropImageSrc(null);
+    setAvatarUrl(user?.avatarUrl || '');
+    setAvatarResetKey((prev) => prev + 1);
+  };
+
+  const handleCroppedAvatarSave = (croppedFile: File) => {
+    // 0ms Optimistic UI preview
+    const blobUrl = URL.createObjectURL(croppedFile);
+    setAvatarUrl(blobUrl);
+    useAuthStore.setState((state) => ({
+      user: state.user ? { ...state.user, avatarUrl: blobUrl } : state.user,
+    }));
+
+    // Close crop modal immediately (0ms wait)
+    setIsCropModalOpen(false);
+    setCropFile(null);
+    setCropImageSrc(null);
+
+    // Immediate success feedback
+    toast.success('Cập nhật ảnh đại diện thành công!');
+
+    // Silent background API upload
+    uploadAvatarMutate(croppedFile);
+  };
+
   const getRoleLabel = (role?: string): string => {
     if (!role) return 'Quản trị viên';
     const cleanRole = role.startsWith('ROLE_') ? role.replace('ROLE_', '') : role;
@@ -301,7 +346,7 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
     ((user?.lastName || user?.firstName) ? `${user.lastName || ''} ${user.firstName || ''}`.trim() : (initialData?.fullName || ''));
 
   const activeEmail = user?.email || initialData?.email || '';
-  const activePhone = user?.phoneNumber || user?.phone || initialData?.phone || 'Chưa cập nhật';
+  const activePhone = user?.phoneNumber || user?.phone || initialData?.phone || '';
   const activeRole = getRoleLabel(user?.roles?.[0] || user?.role || initialData?.role);
   const activeAvatar = avatarUrl || user?.avatarUrl || '';
   const activeDob = user?.dob || initialData?.dob || '';
@@ -368,11 +413,9 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
     },
   });
 
-  // Atomic Mutation for uploading avatar via POST /v1/users/me/avatar
-  const { mutate: uploadAvatarMutate, isPending: isUploadingAvatar } = useMutation({
+  const { mutate: uploadAvatarMutate } = useMutation({
     mutationFn: authApi.uploadAvatar,
     onSuccess: (res) => {
-      toast.success(res?.message || 'Cập nhật ảnh đại diện thành công!');
       if (res?.data) {
         const updatedData = res.data;
         const updatedFullName = `${updatedData.lastName || ''} ${updatedData.firstName || ''}`.trim();
@@ -432,22 +475,6 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
     },
   });
 
-  const handleAvatarFileSelect = (val: string | File) => {
-    if (val instanceof File) {
-      // 0ms Optimistic UI preview
-      const blobUrl = URL.createObjectURL(val);
-      setAvatarUrl(blobUrl);
-      useAuthStore.setState((state) => ({
-        user: state.user ? { ...state.user, avatarUrl: blobUrl } : state.user,
-      }));
-
-      // Atomic API upload
-      uploadAvatarMutate(val);
-    } else if (typeof val === 'string' && val) {
-      setAvatarUrl(val);
-    }
-  };
-
   const handleAvatarRemove = (_url: string) => {
     // 0ms Optimistic UI removal
     setAvatarUrl('');
@@ -472,25 +499,43 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
   };
 
   const onProfileSubmit = (values: ProfileFormValues): void => {
-    const trimmed = values.fullName.trim();
-    const spaceIndex = trimmed.lastIndexOf(' ');
-    let firstName = trimmed;
-    let lastName = '';
+    const dirtyFields = form.formState.dirtyFields;
+    const payload: UpdateUserAccountPayload = {};
 
-    if (spaceIndex !== -1) {
-      lastName = trimmed.substring(0, spaceIndex);
-      firstName = trimmed.substring(spaceIndex + 1);
+    if (dirtyFields.fullName) {
+      const trimmed = values.fullName.trim();
+      const spaceIndex = trimmed.lastIndexOf(' ');
+      let firstName = trimmed;
+      let lastName = '';
+
+      if (spaceIndex !== -1) {
+        lastName = trimmed.substring(0, spaceIndex);
+        firstName = trimmed.substring(spaceIndex + 1);
+      }
+
+      payload.firstName = firstName;
+      payload.lastName = lastName;
     }
 
-    updateProfile({
-      phoneNumber: values.phone,
-      firstName,
-      lastName,
-      dob: values.dob || null,
-      gender: values.gender || null,
-      avatarUrl: activeAvatar || null,
-      avatarPublicId: user?.avatarPublicId || null,
-    });
+    if (dirtyFields.phone) {
+      payload.phoneNumber = values.phone;
+    }
+
+    if (dirtyFields.dob) {
+      payload.dob = values.dob || null;
+    }
+
+    if (dirtyFields.gender) {
+      payload.gender = values.gender || null;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      toast.info('Không có thông tin nào thay đổi');
+      setIsEditing(false);
+      return;
+    }
+
+    updateProfile(payload);
   };
 
   const breadcrumbItems = [{ label: 'Hồ sơ cá nhân', icon: UserIcon }];
@@ -541,16 +586,18 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
                 ) : (
                   <>
                     <ImageUpload
+                      key={avatarResetKey}
                       variant="circle"
                       value={activeAvatar}
                       onChange={handleAvatarFileSelect}
-                      onRemove={handleAvatarRemove}
+                      allowReplace={true}
+                      showRemove={false}
                       deferUpload={true}
                       folder="avatars"
                       description="Đổi ảnh"
                       className="w-full h-full"
                     />
-                    {(isUploadingAvatar || isDeletingAvatar) && (
+                    {isDeletingAvatar && (
                       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px] flex flex-col items-center justify-center text-white pointer-events-none rounded-full z-30 animate-in fade-in">
                         <Loader2 className="h-6 w-6 animate-spin text-white mb-1" />
                         <span className="text-[10px] font-bold tracking-tight">Đang xử lý...</span>
@@ -732,7 +779,7 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
                               <div className="relative">
                                 <Phone className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
                                 <Input
-                                  placeholder="0912345678"
+                                  placeholder="Chưa cập nhật"
                                   disabled={!isEditing}
                                   {...field}
                                   className={cn(
@@ -1011,6 +1058,16 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Facebook-style Avatar Crop & Zoom Modal */}
+      <AvatarCropModal
+        isOpen={isCropModalOpen}
+        onClose={handleCropCancel}
+        imageSrc={cropImageSrc}
+        file={cropFile}
+        onCropSave={handleCroppedAvatarSave}
+        isSaving={false}
+      />
     </div>
   );
 }

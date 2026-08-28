@@ -36,7 +36,7 @@ public class AccountController {
 
     @PutMapping
     @Operation(summary = "Update current logged-in user account details", 
-               description = "Updates profile details for current logged-in user. Allowed update fields: phoneNumber, firstName, lastName, dob, gender, avatarUrl, and avatarPublicId.")
+               description = "Updates profile details for current logged-in user. Allowed update fields: phoneNumber, firstName, lastName, dob, and gender.")
     public ResponseEntity<ApiResponse<UserResponse>> updateMyAccount(
             @Valid @RequestBody UpdateMyAccountRequest request) {
         String email = SecurityUtils.getCurrentUsername();

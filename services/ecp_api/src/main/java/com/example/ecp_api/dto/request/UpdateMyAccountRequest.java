@@ -37,10 +37,4 @@ public class UpdateMyAccountRequest {
 
     @Schema(description = "Gender of the user", example = "MALE")
     private UserGender gender;
-
-    @Schema(description = "Avatar image URL", example = "https://res.cloudinary.com/demo/image/upload/v12345/avatar.jpg")
-    private String avatarUrl;
-
-    @Schema(description = "Cloudinary public ID of the uploaded avatar", example = "avatars/sample_user_123")
-    private String avatarPublicId;
 }
