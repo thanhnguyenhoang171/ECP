@@ -2,6 +2,8 @@
 
 import { Skeleton } from '@/components/ui/skeleton';
 import {
+  Breadcrumbs,
+  PageHeader,
   Card,
   CardContent,
   Table,
@@ -10,8 +12,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  PageHeader,
-  Breadcrumbs,
 } from '@/components/common';
 import {
   SearchInput,
@@ -21,18 +21,16 @@ import {
   FilterPopover,
   SortPopover,
 } from '@/components/common/view-control';
-import { Layers } from 'lucide-react';
+import { Tag } from 'lucide-react';
 
-export default function CategoriesLoading() {
+export default function BrandsLoading() {
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-200">
-      {/* Breadcrumbs */}
-      <Breadcrumbs items={[{ label: 'Danh mục', icon: Layers }]} />
+      <Breadcrumbs items={[{ label: 'Thương hiệu', icon: Tag }]} />
 
-      {/* Page Header Static Controls */}
       <PageHeader
-        title="Quản lý danh mục"
-        description="Quản lý các nhóm sản phẩm và phân loại hàng hóa."
+        title="Quản lý Thương hiệu"
+        description="Danh sách các thương hiệu sản phẩm trên hệ thống. Bạn có thể thêm mới, cập nhật hoặc thay đổi trạng thái."
         actions={
           <>
             <ImportButton onClick={() => {}} disabled />
@@ -45,14 +43,12 @@ export default function CategoriesLoading() {
       {/* Block 1: Search & Filter Card Skeleton */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-100/95 p-4 rounded-2xl border border-slate-300/80 shadow-md">
         <div className="flex-1 max-w-md">
-          <SearchInput value="" onChange={() => {}} placeholder="Tìm tên hoặc ID danh mục..." />
+          <SearchInput value="" onChange={() => {}} placeholder="Tìm theo tên thương hiệu, website..." />
         </div>
-
         <div className="flex items-center gap-2">
           <FilterPopover activeCount={0}>
             <div className="p-2 text-xs text-slate-500">Đang tải bộ lọc...</div>
           </FilterPopover>
-
           <SortPopover options={[]} currentValue="name,asc" onSelect={() => {}} disabled />
         </div>
       </div>
@@ -64,12 +60,10 @@ export default function CategoriesLoading() {
             <Table>
               <TableHeader className="bg-slate-50/50">
                 <TableRow>
-                  <TableHead className="pl-6 py-4 text-[11px] font-bold uppercase text-slate-500 w-[28%] min-w-[200px]">Tên danh mục</TableHead>
-                  <TableHead className="py-4 text-[11px] font-bold uppercase text-slate-500 text-center w-[10%] min-w-[80px]">Cấp độ</TableHead>
-                  <TableHead className="py-4 text-[11px] font-bold uppercase text-slate-500 text-center w-[12%] min-w-[100px]">Trạng thái</TableHead>
-                  <TableHead className="py-4 text-[11px] font-bold uppercase text-slate-500 text-center w-[12%] min-w-[100px]">Nổi bật</TableHead>
-                  <TableHead className="py-4 text-[11px] font-bold uppercase text-slate-500 text-center w-[14%] min-w-[110px]">Ngày tạo</TableHead>
-                  <TableHead className="py-4 text-[11px] font-bold uppercase text-slate-500 text-center w-[14%] min-w-[110px]">Ngày sửa</TableHead>
+                  <TableHead className="pl-6 py-4 text-[11px] font-bold uppercase text-slate-500 w-[35%] min-w-[220px]">Thương hiệu</TableHead>
+                  <TableHead className="py-4 text-[11px] font-bold uppercase text-slate-500 w-[25%] min-w-[160px] hidden md:table-cell">Slug</TableHead>
+                  <TableHead className="py-4 text-[11px] font-bold uppercase text-slate-500 text-center w-[15%] min-w-[110px]">Trạng thái</TableHead>
+                  <TableHead className="py-4 text-[11px] font-bold uppercase text-slate-500 w-[15%] min-w-[120px] hidden lg:table-cell">Ngày tạo</TableHead>
                   <TableHead className="pr-6 py-4 text-[11px] font-bold uppercase text-slate-500 text-right w-[10%] min-w-[110px]">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
@@ -77,35 +71,29 @@ export default function CategoriesLoading() {
               <TableBody>
                 {Array.from({ length: 10 }).map((_, i) => (
                   <TableRow key={i} className="border-b border-slate-100/60 even:bg-slate-50/30">
-                    <TableCell className="pl-6 py-4 w-[28%] min-w-[200px]">
+                    <TableCell className="pl-6 py-4 w-[35%] min-w-[220px]">
                       <div className="flex items-center gap-3">
                         <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
                         <div className="space-y-1.5 flex-1 min-w-0">
                           <Skeleton className="h-4 w-36 rounded-md" />
-                          <Skeleton className="h-3 w-20 rounded-md" />
+                          <Skeleton className="h-3 w-28 rounded-md" />
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="py-4 text-center w-[10%] min-w-[80px]">
-                      <Skeleton className="h-5 w-14 mx-auto rounded-full" />
+                    <TableCell className="py-4 w-[25%] min-w-[160px] hidden md:table-cell">
+                      <Skeleton className="h-5 w-24 rounded-md" />
                     </TableCell>
-                    <TableCell className="py-4 text-center w-[12%] min-w-[100px]">
-                      <Skeleton className="h-5 w-18 mx-auto rounded-full" />
+                    <TableCell className="py-4 text-center w-[15%] min-w-[110px]">
+                      <Skeleton className="h-5 w-20 mx-auto rounded-full" />
                     </TableCell>
-                    <TableCell className="py-4 text-center w-[12%] min-w-[100px]">
-                      <Skeleton className="h-5 w-16 mx-auto rounded-full" />
-                    </TableCell>
-                    <TableCell className="py-4 text-center w-[14%] min-w-[110px]">
-                      <Skeleton className="h-4 w-20 mx-auto rounded-md" />
-                    </TableCell>
-                    <TableCell className="py-4 text-center w-[14%] min-w-[110px]">
-                      <Skeleton className="h-4 w-20 mx-auto rounded-md" />
+                    <TableCell className="py-4 w-[15%] min-w-[120px] hidden lg:table-cell">
+                      <Skeleton className="h-4 w-20 rounded-md" />
                     </TableCell>
                     <TableCell className="pr-6 py-4 text-right w-[10%] min-w-[110px]">
                       <div className="flex justify-end gap-1">
-                        <Skeleton className="h-8 w-8 rounded-md" />
-                        <Skeleton className="h-8 w-8 rounded-md" />
-                        <Skeleton className="h-8 w-8 rounded-md" />
+                        <Skeleton className="h-8 w-8 rounded-lg" />
+                        <Skeleton className="h-8 w-8 rounded-lg" />
+                        <Skeleton className="h-8 w-8 rounded-lg" />
                       </div>
                     </TableCell>
                   </TableRow>

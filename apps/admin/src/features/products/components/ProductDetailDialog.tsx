@@ -37,9 +37,9 @@ export default function ProductDetailDialog({
   const { data: product, isFetching: isLoading, isError } = useProductDetail(activeId);
 
   const categoryName = categories.find(c => c.id === product?.categoryId)?.name || 'Chưa phân loại';
-  const isPublished = product?.isPublished ?? (product as any)?.published ?? false;
+  const isPublished = product?.isPublished ?? product?.published ?? false;
 
-  const thumbObj = product?.thumbnail as any;
+  const thumbObj = product?.thumbnail;
   const thumbUrl = typeof thumbObj === 'string' ? thumbObj : thumbObj?.url;
 
   // Transform specs if present
@@ -125,8 +125,8 @@ export default function ProductDetailDialog({
       isLoading={isLoading}
       isError={isError}
       errorMessage="Không thể tải thông tin chi tiết sản phẩm từ máy chủ."
-      createdAt={(product as any)?.createdAt}
-      updatedAt={(product as any)?.updatedAt}
+      createdAt={product?.createdAt}
+      updatedAt={product?.updatedAt}
       header={{
         icon: Package,
         title: product?.name,

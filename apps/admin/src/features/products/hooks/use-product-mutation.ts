@@ -38,3 +38,20 @@ export function useUpdateProduct() {
     },
   });
 }
+
+export function useDeleteProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return productApi.delete(id);
+    },
+    onSuccess: () => {
+      toast.success('Xóa sản phẩm thành công');
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'Xóa sản phẩm thất bại');
+    },
+  });
+}

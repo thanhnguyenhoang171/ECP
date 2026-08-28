@@ -47,11 +47,11 @@ export const PageHeader = ({
             </button>
           )}
           <div>
-            <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-slate-900">
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 leading-tight">
               {title}
             </h1>
             {description && (
-              <p className="text-sm font-medium text-slate-500">
+              <p className="text-xs font-medium text-slate-500 leading-relaxed mt-0.5">
                 {description}
               </p>
             )}

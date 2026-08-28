@@ -96,9 +96,6 @@ public class ProductServiceImpl implements ProductService {
             query.addCriteria(Criteria.where("is_best_seller").is(filter.getIsBestSeller()));
         }
 
-        // Loại bỏ các sản phẩm đã xóa (Soft Delete)
-        query.addCriteria(Criteria.where("is_deleted").is(false));
-
         long count = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), Product.class);
         List<Product> products = mongoTemplate.find(query, Product.class);
 
@@ -262,6 +259,114 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
         return productMapper.toResponse(product);
+    }
+
+    @Override
+    @Transactional
+    public ProductResponse updateProduct(String id, ProductRequest request) {
+        Product existingProduct = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
+
+        if (StringUtils.hasText(request.getName())) {
+            existingProduct.setName(request.getName());
+            if (!StringUtils.hasText(request.getSlug())) {
+                existingProduct.setSlug(SlugUtils.toSlug(request.getName()));
+            }
+        }
+
+        if (StringUtils.hasText(request.getSlug())) {
+            existingProduct.setSlug(SlugUtils.toSlug(request.getSlug()));
+        }
+
+        if (StringUtils.hasText(request.getSku())) {
+            existingProduct.setSku(request.getSku());
+        }
+
+        if (StringUtils.hasText(request.getBrand())) {
+            existingProduct.setBrand(request.getBrand());
+        }
+
+        if (StringUtils.hasText(request.getBrandId())) {
+            existingProduct.setBrandId(request.getBrandId());
+        }
+
+        if (StringUtils.hasText(request.getCategoryId())) {
+            existingProduct.setCategoryId(request.getCategoryId());
+        }
+
+        if (request.getDescription() != null) {
+            existingProduct.setDescription(request.getDescription());
+        }
+
+        if (request.getThumbnail() != null) {
+            existingProduct.setThumbnail(request.getThumbnail());
+        }
+
+        if (request.getImages() != null) {
+            existingProduct.setImages(request.getImages());
+        }
+
+        if (request.getSpecifications() != null) {
+            existingProduct.setSpecifications(request.getSpecifications());
+        }
+
+        if (request.getIsPublished() != null) {
+            existingProduct.setPublished(request.getIsPublished());
+        }
+
+        if (request.getIsFeatured() != null) {
+            existingProduct.setFeatured(request.getIsFeatured());
+        }
+
+        if (request.getIsNew() != null) {
+            existingProduct.setNew(request.getIsNew());
+        }
+
+        if (request.getIsBestSeller() != null) {
+            existingProduct.setBestSeller(request.getIsBestSeller());
+        }
+
+        if (request.getVariants() != null && !request.getVariants().isEmpty()) {
+            List<ProductVariant> updatedVariants = new ArrayList<>();
+            for (ProductRequest.ProductVariantRequest varReq : request.getVariants()) {
+                ProductVariant variant = ProductVariant.builder()
+                        .sku(StringUtils.hasText(varReq.getSku()) ? varReq.getSku() : ProductUtils.generateVariantSku(existingProduct.getSku(), varReq.getAttributes()))
+                        .barcode(varReq.getBarcode())
+                        .barcodeType(varReq.getBarcodeType())
+                        .price(varReq.getPrice())
+                        .costPrice(varReq.getCostPrice())
+                        .compareAtPrice(varReq.getCompareAtPrice())
+                        .attributes(varReq.getAttributes())
+                        .image(varReq.getImage())
+                        .active(varReq.getIsActive() != null ? varReq.getIsActive() : true)
+                        .build();
+                updatedVariants.add(variant);
+            }
+            existingProduct.setVariants(updatedVariants);
+        }
+
+        String operatorEmail = SecurityUtils.getCurrentUsername();
+        if (StringUtils.hasText(operatorEmail) && !"SYSTEM".equals(operatorEmail)) {
+            existingProduct.setUpdatedBy(operatorEmail);
+        }
+
+        existingProduct = productRepository.save(existingProduct);
+
+        auditLogService.log("PRODUCT_UPDATE", operatorEmail, "Updated product: " + existingProduct.getName() + " (ID: " + existingProduct.getId() + ")");
+
+        return productMapper.toResponse(existingProduct);
+    }
+
+    @Override
+    @Transactional
+    public void deleteProduct(String id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
+
+        String operatorEmail = SecurityUtils.getCurrentUsername();
+        productRepository.delete(product);
+
+        auditLogService.log("PRODUCT_DELETE", operatorEmail, "Hard deleted product: " + product.getName() + " (ID: " + product.getId() + ")");
     }
 
     @Override

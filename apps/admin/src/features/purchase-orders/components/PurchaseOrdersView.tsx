@@ -9,7 +9,7 @@ import {
   XCircle,
   ChevronDown
 } from "lucide-react";
-import { PageHeader, DataTable, DataCard, Breadcrumbs } from '@/components/common';
+import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -40,6 +40,10 @@ export default function PurchaseOrdersView() {
   const updateStatusMutation = useUpdatePOStatus();
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(10);
+
   const purchaseOrdersList = React.useMemo(() => {
     if (Array.isArray(poData)) {
       return poData.map((item: any) => {
@@ -64,6 +68,21 @@ export default function PurchaseOrdersView() {
     }
     return [];
   }, [poData]);
+
+  const filteredOrders = React.useMemo(() => {
+    return purchaseOrdersList.filter((item: any) =>
+      item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.warehouseName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [purchaseOrdersList, searchTerm]);
+
+  const paginatedOrders = React.useMemo(() => {
+    const start = (page - 1) * size;
+    return filteredOrders.slice(start, start + size);
+  }, [filteredOrders, page, size]);
+
+  const totalPages = Math.ceil(filteredOrders.length / size) || 1;
 
   const renderStatusDropdown = (item: any) => {
     const status = item.status;
@@ -136,6 +155,8 @@ export default function PurchaseOrdersView() {
     {
       accessorKey: 'code',
       header: 'Mã PO',
+      className: 'w-[14%] min-w-[110px]',
+      headerClassName: 'w-[14%] min-w-[110px]',
       cell: (item: any) => (
         <span 
           onClick={() => router.push(`/purchase-orders/${item.id}`)}
@@ -148,6 +169,8 @@ export default function PurchaseOrdersView() {
     {
       accessorKey: 'supplierName',
       header: 'Nhà cung cấp',
+      className: 'w-[22%] min-w-[160px]',
+      headerClassName: 'w-[22%] min-w-[160px]',
       cell: (item: any) => (
         <div className="flex flex-col">
           <span className="text-xs font-semibold text-slate-800">{item.supplierName}</span>
@@ -161,6 +184,8 @@ export default function PurchaseOrdersView() {
       accessorKey: 'totalItems',
       header: 'Số lượng đặt',
       align: 'center' as const,
+      className: 'w-[14%] min-w-[110px]',
+      headerClassName: 'w-[14%] min-w-[110px]',
       cell: (item: any) => (
         <div className="flex flex-col items-center">
           <span className="text-xs font-bold text-slate-700">{item.totalQuantity} sản phẩm</span>
@@ -172,6 +197,8 @@ export default function PurchaseOrdersView() {
       accessorKey: 'totalAmount',
       header: 'Tổng tiền mua',
       align: 'right' as const,
+      className: 'w-[16%] min-w-[130px]',
+      headerClassName: 'w-[16%] min-w-[130px]',
       cell: (item: any) => (
         <span className="text-xs font-mono font-bold text-slate-900">
           {formatCurrency(item.totalAmount)}
@@ -182,11 +209,15 @@ export default function PurchaseOrdersView() {
       accessorKey: 'status',
       header: 'Trạng thái (Đổi nhanh)',
       align: 'center' as const,
+      className: 'w-[16%] min-w-[140px]',
+      headerClassName: 'w-[16%] min-w-[140px]',
       cell: (item: any) => renderStatusDropdown(item)
     },
     {
       accessorKey: 'createdAt',
       header: 'Ngày lập',
+      className: 'w-[10%] min-w-[100px]',
+      headerClassName: 'w-[10%] min-w-[100px]',
       cell: (item: any) => (
         <div className="flex flex-col">
           <span className="text-xs font-medium text-slate-600">
@@ -199,6 +230,8 @@ export default function PurchaseOrdersView() {
     {
       header: 'Thao tác',
       align: 'right' as const,
+      className: 'w-[8%] min-w-[90px]',
+      headerClassName: 'w-[8%] min-w-[90px]',
       cell: (item: any) => {
         const isApproved = item.status === 'APPROVED' || item.status === 'ORDERED';
 
@@ -261,17 +294,26 @@ export default function PurchaseOrdersView() {
       />
 
       <DataCard
-        search={<SearchInput placeholder="Tìm theo mã PO, tên Nhà cung cấp..." value="" onChange={() => {}} />}
-        extra={
-          <FilterPopover activeCount={0} onClear={() => {}}>
-            <div className="p-2 text-xs text-slate-500 italic">Lọc theo Nhà cung cấp, Trạng thái...</div>
-          </FilterPopover>
+        search={<SearchInput placeholder="Tìm theo mã PO, tên Nhà cung cấp..." value={searchTerm} onChange={(val) => { setSearchTerm(val); setPage(1); }} />}
+        footer={
+          (isLoading || filteredOrders.length > 0) && (
+            <NextPagination
+              isLoading={isLoading}
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={filteredOrders.length}
+              itemsPerPage={size}
+              onItemsPerPageChange={setSize}
+              onPageChange={setPage}
+            />
+          )
         }
       >
         <DataTable 
           columns={columns as any} 
-          data={purchaseOrdersList} 
-          isLoading={isLoading}
+          data={paginatedOrders} 
+          isLoading={isLoading && !filteredOrders.length}
+          loadingRows={size}
           emptyState={{
             title: "Chưa có Đơn mua hàng nào",
             description: "Bắt đầu tạo đơn mua hàng đầu tiên từ nhà cung cấp.",

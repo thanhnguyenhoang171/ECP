@@ -174,7 +174,7 @@ const SidebarItem = memo(({
             href={item.key}
             className={cn(
               "flex items-center justify-center h-10 w-10 mx-auto rounded-lg mb-1 transition-all duration-200",
-              pathname === item.key ? "bg-primary text-white shadow-md" : "text-slate-400 hover:bg-slate-800 hover:text-white"
+              pathname === item.key ? "bg-blue-600 text-white shadow-md shadow-blue-500/20 font-bold" : "text-slate-400 hover:bg-slate-800 hover:text-white"
             )}
             onClick={onNavigate}
           >
@@ -197,7 +197,7 @@ const SidebarItem = memo(({
             onClick={() => setIsOpen(!isOpen)}
             className={cn(
               "flex items-center justify-between w-full px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 h-auto",
-              isActive ? "text-white bg-slate-800/50" : "text-slate-400 hover:bg-slate-800 hover:text-white"
+              isActive ? "text-white bg-slate-800/60 font-semibold" : "text-slate-400 hover:bg-slate-800 hover:text-white"
             )}
           >
             <div className="flex items-center gap-3">
@@ -219,8 +219,8 @@ const SidebarItem = memo(({
                   className={cn(
                     "flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-md transition-all mb-1",
                     pathname === child.key 
-                      ? "bg-primary/10 text-primary" 
-                      : "text-slate-500 hover:bg-slate-800 hover:text-white"
+                      ? "bg-blue-500/20 text-blue-400 font-extrabold border-l-2 border-blue-500 shadow-2xs" 
+                      : "text-slate-400 hover:bg-slate-800 hover:text-white"
                   )}
                   onClick={onNavigate}
                 >
@@ -237,7 +237,7 @@ const SidebarItem = memo(({
           className={cn(
             "flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
             pathname === item.key 
-              ? "bg-primary text-white shadow-md" 
+              ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-500/20" 
               : "text-slate-400 hover:bg-slate-800 hover:text-white"
           )}
           onClick={onNavigate}

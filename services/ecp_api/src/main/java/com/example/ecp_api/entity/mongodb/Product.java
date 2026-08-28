@@ -65,10 +65,6 @@ public class Product {
     @Builder.Default
     private boolean published = false;
 
-    @Field("is_deleted")
-    @Builder.Default
-    private boolean deleted = false;
-
     @Field("is_featured")
     @Builder.Default
     private boolean isFeatured = false;

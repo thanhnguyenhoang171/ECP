@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, Phone, Mail, Building2 } from "lucide-react";
-import { PageHeader, DataTable, DataCard, Breadcrumbs } from '@/components/common';
+import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 import { 
   SearchInput, 
@@ -54,6 +54,8 @@ export default function SuppliersView() {
     {
       accessorKey: 'name',
       header: 'Nhà cung cấp',
+      className: 'w-[35%] min-w-[220px]',
+      headerClassName: 'w-[35%] min-w-[220px]',
       cell: (item: ClientSupplier) => (
         <div className="flex flex-col">
           <span className="text-sm font-bold text-slate-700">{item.name}</span>
@@ -66,6 +68,8 @@ export default function SuppliersView() {
     {
       accessorKey: 'contact',
       header: 'Liên hệ',
+      className: 'w-[35%] min-w-[220px]',
+      headerClassName: 'w-[35%] min-w-[220px]',
       cell: (item: ClientSupplier) => (
         <div className="flex flex-col gap-0.5">
           <span className="text-xs font-medium text-slate-600">{item.contactName || 'N/A'}</span>
@@ -80,6 +84,8 @@ export default function SuppliersView() {
       accessorKey: 'isActive',
       header: 'Trạng thái',
       align: 'center' as const,
+      className: 'w-[15%] min-w-[110px]',
+      headerClassName: 'w-[15%] min-w-[110px]',
       cell: (item: ClientSupplier) => (
         <Badge className={item.isActive ? "bg-blue-100 text-blue-700 border-none" : "bg-slate-100 text-slate-500 border-none"}>
           {item.isActive ? 'Đang hợp tác' : 'Tạm ngưng'}
@@ -89,6 +95,8 @@ export default function SuppliersView() {
     {
       header: 'Thao tác',
       align: 'right' as const,
+      className: 'w-[15%] min-w-[110px]',
+      headerClassName: 'w-[15%] min-w-[110px]',
       cell: (item: ClientSupplier) => (
         <div className="flex justify-end gap-1">
           <ViewActionButton onClick={() => handleViewDetail(item)} disabled={isLoading} />
@@ -98,6 +106,16 @@ export default function SuppliersView() {
       )
     }
   ];
+
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(10);
+
+  const paginatedSuppliers = useMemo(() => {
+    const start = (page - 1) * size;
+    return filteredSuppliers.slice(start, start + size);
+  }, [filteredSuppliers, page, size]);
+
+  const totalPages = Math.ceil(filteredSuppliers.length / size) || 1;
 
   const breadcrumbItems = [
     { label: 'Nhà cung cấp', icon: Users },
@@ -112,11 +130,27 @@ export default function SuppliersView() {
         actions={<AddNewButton onClick={handleCreate} label="Thêm NCC mới" />}
       />
 
-      <DataCard search={<SearchInput placeholder="Tìm tên NCC, SĐT..." value={searchTerm} onChange={setSearchTerm} />}>
+      <DataCard 
+        search={<SearchInput placeholder="Tìm tên NCC, SĐT..." value={searchTerm} onChange={(val) => { setSearchTerm(val); setPage(1); }} />}
+        footer={
+          (isLoading || filteredSuppliers.length > 0) && (
+            <NextPagination
+              isLoading={isLoading}
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={filteredSuppliers.length}
+              itemsPerPage={size}
+              onItemsPerPageChange={setSize}
+              onPageChange={setPage}
+            />
+          )
+        }
+      >
         <DataTable 
           columns={columns as any} 
-          data={filteredSuppliers} 
-          isLoading={isLoading}
+          data={paginatedSuppliers} 
+          isLoading={isLoading && !filteredSuppliers.length}
+          loadingRows={size}
           emptyState={{
             title: "Chưa có nhà cung cấp",
             description: "Thêm thông tin đối tác đầu tiên để thực hiện nhập kho.",

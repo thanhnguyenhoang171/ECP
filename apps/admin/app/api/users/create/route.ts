@@ -107,7 +107,7 @@ export async function POST(request: Request) {
       headers['Authorization'] = authHeader;
     }
 
-    const backendRes = await fetch(`${BACKEND_URL}/v1/${scope}/users`, {
+    const backendRes = await fetch(`${BACKEND_URL}/v1/users`, {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),

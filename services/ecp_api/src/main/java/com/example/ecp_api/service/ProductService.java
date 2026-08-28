@@ -16,6 +16,10 @@ public interface ProductService {
 
     ProductResponse getProductById(String id);
 
+    ProductResponse updateProduct(String id, ProductRequest request);
+
+    void deleteProduct(String id);
+
     void updateVariantCostPriceMAC(String skuId, int addedQuantity, java.math.BigDecimal newUnitCost);
 }
 

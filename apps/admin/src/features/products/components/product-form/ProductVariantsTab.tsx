@@ -119,8 +119,7 @@ export const ProductVariantsTab = ({ form, onUploadingChange }: ProductVariantsT
                   control={form.control}
                   name={`variants.${index}.isActive`}
                   render={({ field }) => (
-                    <div className="flex items-center gap-2 mr-4">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hoạt động</span>
+                    <div className="flex items-center mr-4">
                       <Switch 
                         checked={field.value} 
                         onCheckedChange={field.onChange} 

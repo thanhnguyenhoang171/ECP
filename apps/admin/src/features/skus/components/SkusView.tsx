@@ -198,15 +198,15 @@ export default function SkusView() {
           </>
         }
         footer={
-          totalItems > 0 && (
+          (isFetching || totalItems > 0) && (
             <NextPagination 
+              isLoading={isFetching}
               currentPage={page} 
               totalPages={totalPages} 
               totalItems={totalItems} 
               itemsPerPage={size} 
               onItemsPerPageChange={setSize} 
               onPageChange={setPage} 
-              className='bg-slate-50/20' 
             />
           )
         }

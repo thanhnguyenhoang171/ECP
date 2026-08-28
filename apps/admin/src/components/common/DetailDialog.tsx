@@ -93,11 +93,9 @@ export const DetailDialog = ({
                     </div>
                   )}
                 </div>
-                {header?.subtitle && (
-                  <DialogDescription className="text-xs sm:text-sm font-medium text-slate-500">
-                    {header.subtitle}
-                  </DialogDescription>
-                )}
+                <DialogDescription className={cn("text-xs sm:text-sm font-medium text-slate-500", !header?.subtitle && "sr-only")}>
+                  {header?.subtitle || header?.title || 'Thông tin chi tiết'}
+                </DialogDescription>
               </div>
             </div>
           </DialogHeader>

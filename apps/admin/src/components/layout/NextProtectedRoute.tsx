@@ -24,8 +24,10 @@ export default function NextProtectedRoute({ children }: { children: React.React
     }
   }, [isClient, hasHydrated, isInitialized, isAuthenticated, router]);
 
-  // Chờ hydration từ localStorage và AuthInitializer (refresh + fetch profile) hoàn tất
-  if (!isClient || !hasHydrated || !isInitialized) {
+  // Chờ hydration từ localStorage.
+  // Nếu tài khoản đã được khôi phục phiên từ storage (isAuthenticated === true),
+  // hiển thị giao diện ngay lập tức mà không bắt người dùng chờ màn hình trắng F5.
+  if (!isClient || !hasHydrated || (!isAuthenticated && !isInitialized)) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">

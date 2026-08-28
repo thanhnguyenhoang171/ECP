@@ -5,6 +5,7 @@ import { extractRolesFromToken } from '@/lib/jwt';
 interface User {
   id: string;
   email: string;
+  provider?: string | null;
   roles: string[];
   role?: string;
   firstName?: string | null;
