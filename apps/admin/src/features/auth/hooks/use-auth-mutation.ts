@@ -6,7 +6,53 @@ import { toast } from 'sonner';
 import { authApi } from '../api/auth.api';
 import { useAuthStore } from '@/store/authStore';
 import { getErrorMessage } from '@/constants/errorMessages';
-import { LoginResponse, RegisterResponse, LogoutResponse } from '../types/auth.interface';
+import { decodeJwtToken, extractRolesFromToken } from '@/lib/jwt';
+import { LoginResponse, RegisterResponse, LogoutResponse, User, UserAccountData } from '../types/auth.interface';
+
+const fetchAccountInfoInBackground = (
+  accessToken: string,
+  initialProfile: User,
+  setAuth: (token: string, user: User) => void
+): void => {
+  authApi
+    .getAccountInfo()
+    .then((accountRes) => {
+      const accountData: UserAccountData | undefined = accountRes?.data;
+      if (!accountData) {
+        return;
+      }
+
+      const rolesFromAccount = accountData.roles || initialProfile.roles || [];
+      const firstNameStr = accountData.firstName || '';
+      const lastNameStr = accountData.lastName || '';
+      const fullNameStr = lastNameStr ? `${lastNameStr} ${firstNameStr}`.trim() : firstNameStr;
+
+      const updatedProfile: User = {
+        id: accountData.id || initialProfile.id,
+        email: accountData.email || initialProfile.email,
+        roles: rolesFromAccount,
+        firstName: firstNameStr,
+        lastName: lastNameStr,
+        fullName: fullNameStr,
+        phone: accountData.phoneNumber || accountData.phone || null,
+        phoneNumber: accountData.phoneNumber || accountData.phone || null,
+        avatarUrl: accountData.avatarUrl || null,
+        avatarPublicId: accountData.avatarPublicId || null,
+        dob: accountData.dob || null,
+        gender: accountData.gender || null,
+        createdAt: accountData.createdAt || '',
+        updatedAt: accountData.updatedAt || '',
+        phoneVerified: Boolean(accountData.phoneVerified),
+        emailVerified: Boolean(accountData.emailVerified),
+        active: Boolean(accountData.active),
+      };
+
+      setAuth(accessToken, updatedProfile);
+    })
+    .catch((err: unknown) => {
+      console.error('[auth-mutation] Background account info fetch failed:', err);
+    });
+};
 
 export function useLogin(): UseMutationResult<LoginResponse, unknown, Parameters<typeof authApi.login>[0]> {
   const router = useRouter();
@@ -14,71 +60,45 @@ export function useLogin(): UseMutationResult<LoginResponse, unknown, Parameters
 
   return useMutation({
     mutationFn: authApi.login,
-    onSuccess: async (result) => {
+    onSuccess: (result) => {
       const { accessToken } = result.data;
-      
-      // 1. Store temporary accessToken to enable authenticated account fetch
+
+      // 1. Store temporary accessToken
       updateAccessToken(accessToken);
 
-      let accountData: Record<string, unknown> | null = null;
-      try {
-        // 2. Fetch full user account details from /v1/users/me
-        const accountRes = await authApi.getAccountInfo();
-        accountData = (accountRes?.data || accountRes) as Record<string, unknown>;
-      } catch (err) {
-        console.error('[useLogin] Failed to fetch user account info from /v1/users/me:', err);
-      }
+      // 2. Extract user claims and roles directly from JWT token for instant authorization check
+      const decodedPayload = decodeJwtToken(accessToken);
+      const rolesArray = extractRolesFromToken(accessToken);
 
-      if (!accountData) {
-        toast.error('Unable to retrieve account details. Please try again.');
-        return;
-      }
-
-      const rolesArray = (accountData.roles as string[]) || (accountData.role ? [accountData.role as string] : []);
-      const firstNameStr = (accountData.firstName as string) || '';
-      const lastNameStr = (accountData.lastName as string) || '';
-
-      const userProfile = {
-        id: accountData.id as string,
-        email: accountData.email as string,
-        roles: rolesArray,
-        firstName: firstNameStr,
-        lastName: lastNameStr,
-        fullName: (accountData.fullName as string) || (lastNameStr ? `${lastNameStr} ${firstNameStr}`.trim() : firstNameStr),
-        phone: (accountData.phoneNumber as string) || (accountData.phone as string),
-        phoneNumber: (accountData.phoneNumber as string) || (accountData.phone as string),
-        avatarUrl: accountData.avatarUrl as string | null,
-        avatarPublicId: accountData.avatarPublicId as string | null,
-        dob: accountData.dob as string | null,
-        gender: accountData.gender as string | null,
-        createdAt: accountData.createdAt as string,
-        updatedAt: accountData.updatedAt as string,
-        phoneVerified: Boolean(accountData.phoneVerified),
-        emailVerified: Boolean(accountData.emailVerified),
-        active: Boolean(accountData.active),
-      };
-
-      const finalRoles = userProfile.roles || [];
-      const isRestricted = (finalRoles.includes('USER') || finalRoles.includes('ROLE_USER')) && 
-                         !finalRoles.some((r: string) => r.includes('SUPER_ADMIN') || r.includes('ADMIN') || r.includes('MANAGER'));
+      const isRestricted =
+        (rolesArray.includes('USER') || rolesArray.includes('ROLE_USER')) &&
+        !rolesArray.some((r: string) => r.includes('SUPER_ADMIN') || r.includes('ADMIN') || r.includes('MANAGER'));
 
       if (isRestricted) {
-        try {
-          await authApi.logout(accessToken);
-        } catch (e) {
+        authApi.logout(accessToken).catch((e: unknown) => {
           console.error('[useLogin] Failed to logout restricted account:', e);
-        }
+        });
         clearAuth();
         toast.error('Your account does not have authorization to access the admin system.');
         return;
       }
 
-      // 3. Hydrate authentication store with complete profile details
-      setAuth(accessToken, userProfile);
+      // 3. Construct initial user profile from JWT token claims
+      const initialProfile: User = {
+        id: (decodedPayload?.id || decodedPayload?.userId || decodedPayload?.sub || '') as string,
+        email: (decodedPayload?.email || '') as string,
+        roles: rolesArray,
+      };
+
+      // 4. Set authentication state and redirect immediately without blocking UI
+      setAuth(accessToken, initialProfile);
       toast.success('Welcome back!');
-      
+
       router.refresh();
       router.push('/dashboard');
+
+      // 5. Fetch complete user profile in the background
+      fetchAccountInfoInBackground(accessToken, initialProfile, setAuth);
     },
     onError: (error: unknown) => {
       console.error('[useLogin] Login mutation failed:', error);
@@ -131,66 +151,45 @@ export function useGoogleLogin(): UseMutationResult<LoginResponse, unknown, stri
 
   return useMutation({
     mutationFn: authApi.googleLogin,
-    onSuccess: async (result) => {
+    onSuccess: (result) => {
       const { accessToken } = result.data;
 
-      // 1. Store temporary accessToken for subsequent API calls
+      // 1. Store temporary accessToken
       updateAccessToken(accessToken);
 
-      let accountData: Record<string, unknown> | null = null;
-      try {
-        // 2. Fetch full user account details from /v1/users/me
-        const accountRes = await authApi.getAccountInfo();
-        accountData = (accountRes?.data || accountRes) as Record<string, unknown>;
-      } catch (err) {
-        console.error('[useGoogleLogin] Failed to fetch account info from /v1/users/me:', err);
-      }
+      // 2. Extract user claims and roles directly from JWT token for instant authorization check
+      const decodedPayload = decodeJwtToken(accessToken);
+      const rolesArray = extractRolesFromToken(accessToken);
 
-      const rolesArray = (accountData?.roles as string[]) || (accountData?.role ? [accountData.role as string] : []);
-      const firstNameStr = (accountData?.firstName as string) || '';
-      const lastNameStr = (accountData?.lastName as string) || '';
-
-      const userProfile = {
-        id: (accountData?.id as string) || '',
-        email: (accountData?.email as string) || '',
-        roles: rolesArray,
-        firstName: firstNameStr,
-        lastName: lastNameStr,
-        fullName: (accountData?.fullName as string) || (lastNameStr ? `${lastNameStr} ${firstNameStr}`.trim() : firstNameStr),
-        phone: (accountData?.phoneNumber as string) || (accountData?.phone as string),
-        phoneNumber: (accountData?.phoneNumber as string) || (accountData?.phone as string),
-        avatarUrl: (accountData?.avatarUrl as string) || null,
-        avatarPublicId: (accountData?.avatarPublicId as string) || null,
-        dob: (accountData?.dob as string) || null,
-        gender: (accountData?.gender as string) || null,
-        createdAt: (accountData?.createdAt as string) || '',
-        updatedAt: (accountData?.updatedAt as string) || '',
-        phoneVerified: Boolean(accountData?.phoneVerified),
-        emailVerified: Boolean(accountData?.emailVerified),
-        active: Boolean(accountData?.active),
-      };
-
-      const finalRoles = userProfile.roles || [];
-      const isRestricted = (finalRoles.includes('USER') || finalRoles.includes('ROLE_USER')) && 
-                         !finalRoles.some((r: string) => r.includes('SUPER_ADMIN') || r.includes('ADMIN') || r.includes('MANAGER'));
+      const isRestricted =
+        (rolesArray.includes('USER') || rolesArray.includes('ROLE_USER')) &&
+        !rolesArray.some((r: string) => r.includes('SUPER_ADMIN') || r.includes('ADMIN') || r.includes('MANAGER'));
 
       if (isRestricted) {
-        try {
-          await authApi.logout(accessToken);
-        } catch (e) {
+        authApi.logout(accessToken).catch((e: unknown) => {
           console.error('[useGoogleLogin] Failed to logout restricted account:', e);
-        }
+        });
         clearAuth();
         toast.error('Your account does not have authorization to access the admin system.');
         return;
       }
 
-      // 3. Hydrate store with complete profile
-      setAuth(accessToken, userProfile);
+      // 3. Construct initial user profile from JWT token claims
+      const initialProfile: User = {
+        id: (decodedPayload?.id || decodedPayload?.userId || decodedPayload?.sub || '') as string,
+        email: (decodedPayload?.email || '') as string,
+        roles: rolesArray,
+      };
+
+      // 4. Set authentication state and redirect immediately without blocking UI
+      setAuth(accessToken, initialProfile);
       toast.success('Google login successful!');
-      
+
       router.refresh();
       router.push('/dashboard');
+
+      // 5. Fetch complete user profile in the background
+      fetchAccountInfoInBackground(accessToken, initialProfile, setAuth);
     },
     onError: (error: unknown) => {
       console.error('[useGoogleLogin] Google login failed:', error);
