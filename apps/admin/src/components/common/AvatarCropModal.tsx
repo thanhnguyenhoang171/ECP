@@ -247,6 +247,7 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
                 transform: `translate(${position.x}px, ${position.y}px) scale(${zoom}) rotate(${rotation}deg)`,
               }}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 ref={imageRef}
                 src={imageSrc}

@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import Image from 'next/image';
 
 import {
@@ -39,16 +38,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import nprogress from 'nprogress';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 
 import { useLogout } from '@/features/auth/hooks/use-auth-mutation';
-
-// Lazy load
-const Sheet = dynamic(() => import("@/components/ui/sheet").then(m => m.Sheet));
-const SheetContent = dynamic(() => import("@/components/ui/sheet").then(m => m.SheetContent));
-const SheetTrigger = dynamic(() => import("@/components/ui/sheet").then(m => m.SheetTrigger));
 
 interface SubMenuItem {
   key: string;
@@ -252,7 +247,8 @@ const SidebarItem = memo(({
 SidebarItem.displayName = 'SidebarItem';
 
 export default function NextAdminLayout({ children }: { children: React.ReactNode }) {
-  const { isSidebarCollapsed, toggleSidebar } = useUIStore();
+  const isSidebarCollapsed = useUIStore((state) => state.isSidebarCollapsed);
+  const toggleSidebar = useUIStore((state) => state.toggleSidebar);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   
   const router = useRouter();
@@ -267,7 +263,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
     };
   }, [pathname]);
 
-  const { user } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
   const logoutMutation = useLogout();
 
   const handleLogout = useCallback(() => {
@@ -446,10 +442,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
         
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 custom-scrollbar" style={{ scrollbarGutter: 'stable' }}>
           <div className="max-w-[1600px] mx-auto min-h-full">
-            <div 
-              key={pathname}
-              className="animate-page-fade-in"
-            >
+            <div className="animate-page-fade-in">
               {children}
             </div>
           </div>

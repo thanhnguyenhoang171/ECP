@@ -109,11 +109,7 @@ export default function AuditLogsView() {
     toast.success('Đã làm mới dữ liệu nhật ký');
   };
 
-  if (!isSuperAdmin) {
-    return <Forbidden />;
-  }
-
-  const columns: ColumnDef<AuditLog>[] = [
+  const columns: ColumnDef<AuditLog>[] = useMemo(() => [
     {
       header: 'Thời gian',
       accessorKey: 'timestamp',
@@ -164,7 +160,11 @@ export default function AuditLogsView() {
         </span>
       )
     }
-  ];
+  ], []);
+
+  if (!isSuperAdmin) {
+    return <Forbidden />;
+  }
 
   return (
     <div className="space-y-6">

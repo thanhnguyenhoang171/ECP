@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { 
   Users, 
   Wifi, 
@@ -157,7 +157,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     if (deleteConfirmId) {
       deleteMutation.mutate(deleteConfirmId, {
         onSuccess: () => {
@@ -165,26 +165,25 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
         },
       });
     }
-  };
+  }, [deleteConfirmId, deleteMutation]);
 
-  const handleEditClick = (user: User) => {
+  const handleEditClick = useCallback((user: User) => {
     router.push(`/users/${user.id}/edit`);
-  };
+  }, [router]);
 
-  const handleViewDetail = (user: User) => {
+  const handleViewDetail = useCallback((user: User) => {
     router.push(`/users/${user.id}`);
-  };
+  }, [router]);
 
-  const handleCreateStaffClick = () => {
+  const handleCreateStaffClick = useCallback(() => {
     router.push('/users/create');
-  };
+  }, [router]);
 
-  const handleCreateCustomerClick = () => {
+  const handleCreateCustomerClick = useCallback(() => {
     router.push('/users/create');
-  };
+  }, [router]);
 
-  // Gán quyền nhanh
-  const handleQuickRoleChange = (user: User, newRole: User['role']) => {
+  const handleQuickRoleChange = useCallback((user: User, newRole: User['role']) => {
     if (user.role === newRole) return;
     updateMutation.mutate(
       {
@@ -200,10 +199,9 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
         },
       }
     );
-  };
+  }, [updateMutation]);
 
-  // Bật/Tắt trạng thái nhanh
-  const handleQuickStatusToggle = (user: User) => {
+  const handleQuickStatusToggle = useCallback((user: User) => {
     const newStatus = user.status === 'active' ? 'inactive' : 'active';
     updateMutation.mutate(
       {
@@ -220,17 +218,17 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
         },
       }
     );
-  };
+  }, [updateMutation]);
 
   useHotkeys('+', activeTab === 'staff' ? handleCreateStaffClick : handleCreateCustomerClick);
 
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     setIsExporting(true);
     setTimeout(() => {
       toast.success(`Xuất file danh sách tài khoản (${formatDateTimeForFilename()}) thành công`);
       setIsExporting(false);
     }, 800);
-  };
+  }, []);
 
   const getRoleMeta = (role: User['role']) => ROLE_OPTIONS.find((r) => r.value === role);
 
@@ -240,7 +238,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
   };
 
   // Table Columns Nhân sự
-  const staffColumns: ColumnDef<User>[] = [
+  const staffColumns: ColumnDef<User>[] = useMemo(() => [
     {
       header: 'Nhân sự',
       className: 'w-[26%] min-w-[200px]',
@@ -380,10 +378,10 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
         </div>
       ),
     },
-  ];
+  ], [handleEditClick, handleQuickRoleChange, handleQuickStatusToggle, handleViewDetail, isStaffFetching, isStaffLoading]);
 
   // Table Columns Khách hàng
-  const customerColumns: ColumnDef<User>[] = [
+  const customerColumns: ColumnDef<User>[] = useMemo(() => [
     {
       header: 'Khách hàng',
       skeleton: (
@@ -488,7 +486,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
         </div>
       ),
     },
-  ];
+  ], [handleEditClick, handleQuickRoleChange, handleQuickStatusToggle, handleViewDetail, isCustomerFetching, isCustomerLoading]);
 
   const filterBtnClass = (active: boolean) =>
     cn(

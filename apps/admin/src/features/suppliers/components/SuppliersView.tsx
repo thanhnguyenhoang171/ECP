@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, Phone, Mail, Building2 } from "lucide-react";
-import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination } from '@/components/common';
+import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination, type ColumnDef } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 import { 
   SearchInput, 
@@ -26,18 +26,18 @@ export default function SuppliersView() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  const handleViewDetail = (item: ClientSupplier) => {
+  const handleViewDetail = useCallback((item: ClientSupplier) => {
     setSelectedSupplierId(item.id);
     setIsDetailOpen(true);
-  };
+  }, []);
 
-  const handleEdit = (item: ClientSupplier) => {
+  const handleEdit = useCallback((item: ClientSupplier) => {
     router.push(`/suppliers/${item.id}`);
-  };
+  }, [router]);
 
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     router.push('/suppliers/create');
-  };
+  }, [router]);
 
   const filteredSuppliers = useMemo(() => {
     return suppliers.filter(
@@ -50,7 +50,7 @@ export default function SuppliersView() {
     );
   }, [suppliers, searchTerm]);
 
-  const columns = [
+  const columns: ColumnDef<ClientSupplier>[] = useMemo(() => [
     {
       accessorKey: 'name',
       header: 'Nhà cung cấp',
@@ -66,7 +66,7 @@ export default function SuppliersView() {
       )
     },
     {
-      accessorKey: 'contact',
+      id: 'contact',
       header: 'Liên hệ',
       className: 'w-[35%] min-w-[220px]',
       headerClassName: 'w-[35%] min-w-[220px]',
@@ -105,7 +105,7 @@ export default function SuppliersView() {
         </div>
       )
     }
-  ];
+  ], [handleEdit, handleViewDetail, isLoading]);
 
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(10);
@@ -147,7 +147,7 @@ export default function SuppliersView() {
         }
       >
         <DataTable 
-          columns={columns as any} 
+          columns={columns} 
           data={paginatedSuppliers} 
           isLoading={isLoading && !filteredSuppliers.length}
           loadingRows={size}

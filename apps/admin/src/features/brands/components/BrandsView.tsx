@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Tag, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -26,7 +26,6 @@ import {
   ViewActionButton,
   DeleteConfirmDialog,
 } from '@/components/common/view-control';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { BrandDetailDialog } from './BrandDetailDialog';
 
@@ -35,6 +34,7 @@ import { PageResponse } from '@/types/pagination';
 import { useBrands } from '../hooks/use-brands';
 import { useDeleteBrand, useUpdateBrand } from '../hooks/use-brand-mutation';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
+import { useHotkeys } from '@/hooks/use-hotkeys';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/formatters';
 
@@ -44,6 +44,9 @@ interface BrandsViewProps {
 
 export default function BrandsView({ initialData }: BrandsViewProps) {
   const router = useRouter();
+  const deleteMutation = useDeleteBrand();
+  const updateMutation = useUpdateBrand();
+
   const {
     sort,
     name,
@@ -54,77 +57,64 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
     size,
     setPage,
     setSize,
-  } = useViewParams('name,asc');
+  } = useViewParams('createdAt,desc');
 
-  const activeParam = searchParams.get('active');
-  const activeFilter =
-    activeParam === 'true' ? true : activeParam === 'false' ? false : undefined;
+  const activeFilter = searchParams.get('active');
 
   const { data: queryData, isFetching, isLoading } = useBrands({
     page,
     size,
     sort,
-    name: name || undefined,
-    active: activeFilter,
+    name,
+    active: activeFilter === null ? undefined : activeFilter === 'true',
   });
-
-  const deleteMutation = useDeleteBrand();
-  const updateMutation = useUpdateBrand();
 
   const pageData = queryData || initialData;
   const brands = pageData?.data || [];
   const totalPages = pageData?.pagination?.totalPages || 1;
   const totalElements = pageData?.pagination?.totalElements || 0;
 
-  const [searchTerm, setSearchTerm] = useDebounceSearch(name, (val) =>
-    updateUrl({ name: val, page: 1 })
-  );
-
-  // States for dialogs
-  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useDebounceSearch(name, (val) => updateUrl({ name: val, page: 1 }));
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  const handleViewDetail = (brand: Brand) => {
-    setSelectedBrand(brand);
-    setIsDetailOpen(true);
-  };
+  // State Dialogs
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
+  const [viewingBrand, setViewingBrand] = useState<Brand | null>(null);
 
-  const handleEdit = (brand: Brand) => {
-    router.push(`/brands/${brand.id}/edit`);
-  };
+  const handleCreate = useCallback(() => setIsCreateOpen(true), []);
+  useHotkeys('+', handleCreate);
 
-  const handleDelete = (id: string) => {
+  const handleEdit = useCallback((brand: Brand) => {
+    setEditingBrand(brand);
+  }, []);
+
+  const handleViewDetail = useCallback((brand: Brand) => {
+    setViewingBrand(brand);
+  }, []);
+
+  const handleDelete = useCallback((id: string) => {
     setDeleteConfirmId(id);
-  };
+  }, []);
 
-  const confirmDelete = async () => {
-    if (!deleteConfirmId) return;
-    await deleteMutation.mutateAsync(deleteConfirmId);
-    setDeleteConfirmId(null);
-  };
-
-  const handleToggleActive = async (brand: Brand) => {
-    try {
-      setTogglingId(brand.id);
-      await updateMutation.mutateAsync({
-        id: brand.id,
-        values: { active: !brand.active },
+  const confirmDelete = useCallback(() => {
+    if (deleteConfirmId) {
+      deleteMutation.mutate(deleteConfirmId, {
+        onSuccess: () => setDeleteConfirmId(null),
       });
-    } finally {
-      setTogglingId(null);
     }
-  };
+  }, [deleteConfirmId, deleteMutation]);
 
-  const sortOptions = [
+  const brandToDelete = brands.find(b => b.id === deleteConfirmId);
+
+  const sortOptions = useMemo(() => [
     { label: 'Tên (A-Z)', value: 'name,asc' },
     { label: 'Tên (Z-A)', value: 'name,desc' },
     { label: 'Mới nhất', value: 'createdAt,desc' },
     { label: 'Cũ nhất', value: 'createdAt,asc' },
-  ];
+  ], []);
 
-  const columns: ColumnDef<Brand>[] = [
+  const columns: ColumnDef<Brand>[] = useMemo(() => [
     {
       header: 'Thương hiệu',
       className: 'w-[35%] min-w-[220px]',
@@ -139,119 +129,102 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
         </div>
       ),
       cell: (brand) => (
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg border border-slate-200 overflow-hidden flex-shrink-0 bg-slate-100 flex items-center justify-center p-1 text-xs font-bold text-slate-600">
+        <div className="flex items-center gap-3 py-0.5">
+          <div className="h-10 w-10 rounded-lg border border-slate-200 overflow-hidden flex-shrink-0 bg-slate-50 flex items-center justify-center relative shadow-2xs">
             {brand.logo ? (
               <Image
                 src={brand.logo}
                 alt={brand.name}
                 width={40}
                 height={40}
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
                 unoptimized
               />
             ) : (
-              <span>{brand.name.substring(0, 2).toUpperCase()}</span>
+              <Tag className="w-4 h-4 text-slate-400" />
             )}
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold text-slate-900 line-clamp-1">
+          <div className="flex flex-col min-w-0">
+            <span
+              onClick={() => handleViewDetail(brand)}
+              className="text-sm font-bold text-slate-900 truncate hover:text-blue-600 cursor-pointer transition-colors"
+            >
               {brand.name}
             </span>
-            {brand.website && (
-              <a
-                href={brand.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px] text-slate-500 hover:text-slate-900 hover:underline line-clamp-1"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {brand.website.replace(/^https?:\/\//, '')}
-              </a>
-            )}
+            <span className="text-[11px] font-mono text-slate-400 truncate">
+              /{brand.slug}
+            </span>
           </div>
         </div>
       ),
     },
     {
-      header: 'Slug',
-      className: 'w-[25%] min-w-[160px] hidden md:table-cell',
-      headerClassName: 'w-[25%] min-w-[160px] hidden md:table-cell',
-      skeleton: <Skeleton className="h-5 w-24 rounded-md" />,
+      header: 'Mô tả',
+      className: 'w-[30%] min-w-[180px] text-xs text-slate-500 hidden md:table-cell',
+      headerClassName: 'w-[30%] min-w-[180px] hidden md:table-cell',
+      skeleton: <Skeleton className="h-4 w-40 rounded-md" />,
       cell: (brand) => (
-        <span className="font-mono text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
-          {brand.slug}
+        <span className="line-clamp-1" title={brand.description || ''}>
+          {brand.description || '---'}
         </span>
       ),
     },
     {
       header: 'Trạng thái',
       align: 'center',
-      className: 'w-[15%] min-w-[110px]',
-      headerClassName: 'w-[15%] min-w-[110px]',
-      skeleton: <Skeleton className="h-5 w-20 rounded-full" />,
-      cell: (brand) => {
-        const isPending = togglingId === brand.id;
-        return (
-          <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <Badge
-              className={cn(
-                'cursor-pointer select-none transition-all text-xs font-medium hover:opacity-80',
-                brand.active
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-slate-100 text-slate-500 border-slate-200',
-                isPending && 'pointer-events-none opacity-50'
-              )}
-              onClick={() => handleToggleActive(brand)}
-            >
-              {brand.active ? 'Hoạt động' : 'Đã khóa'}
-            </Badge>
-          </div>
-        );
-      },
-    },
-    {
-      header: 'Ngày tạo',
-      className: 'w-[15%] min-w-[120px] hidden lg:table-cell text-slate-500 text-xs',
-      headerClassName: 'w-[15%] min-w-[120px] hidden lg:table-cell',
-      skeleton: <Skeleton className="h-4 w-20 rounded-md" />,
-      cell: (brand) => (brand.createdAt ? formatDate(brand.createdAt) : '---'),
+      className: 'w-[15%] min-w-[100px]',
+      headerClassName: 'w-[15%] min-w-[100px]',
+      skeleton: <Skeleton className="h-6 w-16 mx-auto rounded-full" />,
+      cell: (brand) => (
+        <Badge
+          variant={brand.active ? 'default' : 'secondary'}
+          className={cn(
+            'text-[10px] font-bold py-0.5 px-2 border-none whitespace-nowrap',
+            brand.active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+          )}
+        >
+          {brand.active ? 'Hoạt động' : 'Đã khóa'}
+        </Badge>
+      ),
     },
     {
       header: 'Thao tác',
       align: 'right',
-      className: 'w-[10%] min-w-[110px]',
-      headerClassName: 'w-[10%] min-w-[110px]',
+      className: 'w-[20%] min-w-[120px]',
+      headerClassName: 'w-[20%] min-w-[120px]',
       skeleton: (
         <div className="flex justify-end gap-1">
-          <Skeleton className="h-8 w-8 rounded-lg" />
-          <Skeleton className="h-8 w-8 rounded-lg" />
-          <Skeleton className="h-8 w-8 rounded-lg" />
+          <Skeleton className="h-8 w-8 rounded-md" />
+          <Skeleton className="h-8 w-8 rounded-md" />
+          <Skeleton className="h-8 w-8 rounded-md" />
         </div>
       ),
       cell: (brand) => (
-        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-          <ViewActionButton onClick={() => handleViewDetail(brand)} />
-          <EditActionButton onClick={() => handleEdit(brand)} />
-          <DeleteActionButton onClick={() => handleDelete(brand.id)} />
+        <div className="flex justify-end gap-1">
+          <ViewActionButton onClick={() => handleViewDetail(brand)} disabled={isFetching} />
+          <EditActionButton onClick={() => handleEdit(brand)} disabled={isFetching} />
+          <DeleteActionButton onClick={() => handleDelete(brand.id)} disabled={isFetching} />
         </div>
       ),
     },
+  ], [handleDelete, handleEdit, handleViewDetail, isFetching]);
+
+  const breadcrumbs = [
+    { label: 'Trang chủ', href: '/' },
+    { label: 'Thương hiệu', active: true },
   ];
 
-  const brandToDelete = brands.find((b) => b.id === deleteConfirmId);
-
   return (
-    <div className="space-y-6 pb-12">
-      <Breadcrumbs items={[{ label: 'Thương hiệu', icon: Tag }]} />
+    <div className="space-y-6">
+      <Breadcrumbs items={breadcrumbs} />
 
       <PageHeader
-        title="Quản lý Thương hiệu"
+        title="Quản lý thương hiệu"
         description="Danh sách các thương hiệu sản phẩm trên hệ thống. Bạn có thể thêm mới, cập nhật hoặc thay đổi trạng thái."
-        action={
+        actions={
           <AddNewButton
             label="Thêm thương hiệu"
-            onClick={() => router.push('/brands/create')}
+            onClick={handleCreate}
           />
         }
       />
@@ -269,7 +242,7 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
         extra={
           <>
             <FilterPopover
-              activeCount={activeFilter !== undefined ? 1 : 0}
+              activeCount={activeFilter !== null ? 1 : 0}
               onClear={() => updateUrl({ active: undefined, page: 1 })}
             >
               <div className="space-y-2">
@@ -287,7 +260,7 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
                       <input
                         type="radio"
                         name="active-filter"
-                        checked={(activeParam || '') === opt.value}
+                        checked={(activeFilter || '') === opt.value}
                         onChange={() => updateUrl({ active: opt.value || undefined, page: 1 })}
                         className="text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
                       />
@@ -304,14 +277,14 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
               onSelect={(newSort) => setSort(newSort)}
             />
 
-            {(Boolean(name) || activeFilter !== undefined || sort !== 'name,asc') && (
+            {(Boolean(name) || activeFilter !== null || sort !== 'createdAt,desc') && (
               <ResetFiltersButton
                 onClick={() => {
                   setSearchTerm('');
                   updateUrl({
                     name: undefined,
                     active: undefined,
-                    sort: 'name,asc',
+                    sort: 'createdAt,desc',
                     page: 1,
                   });
                 }}
@@ -348,9 +321,9 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
 
       {/* Brand Detail Modal */}
       <BrandDetailDialog
-        isOpen={isDetailOpen}
-        onOpenChange={setIsDetailOpen}
-        brand={selectedBrand}
+        isOpen={!!viewingBrand}
+        onOpenChange={(open) => !open && setViewingBrand(null)}
+        brand={viewingBrand}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -358,9 +331,7 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
         isOpen={!!deleteConfirmId}
         onClose={() => setDeleteConfirmId(null)}
         onConfirm={confirmDelete}
-        title="Xóa thương hiệu"
         description={`Bạn có chắc chắn muốn xóa thương hiệu "${brandToDelete?.name || ''}" không? Hành động này không thể hoàn tác.`}
-        isLoading={deleteMutation.isPending}
       />
     </div>
   );

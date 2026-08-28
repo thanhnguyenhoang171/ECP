@@ -31,7 +31,7 @@ export function useViewParams(defaultSort = 'name,asc') {
 
   const updateUrl = useCallback(
     (newParams: Record<string, string | number | boolean | undefined | null>) => {
-      router.push(`${pathname}?${createQueryString(newParams)}`, {
+      router.replace(`${pathname}?${createQueryString(newParams)}`, {
         scroll: false,
       });
     },

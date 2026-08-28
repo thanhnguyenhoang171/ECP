@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { PackagePlus } from "lucide-react";
-import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination } from '@/components/common';
+import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination, type ColumnDef } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useGoodsReceipts, useConfirmGoodsReceipt, useUpdateGoodsReceiptStatus } from '../hooks/use-goods-receipt-mutation';
-import { CheckCircle2, XCircle, ChevronDown } from 'lucide-react';
+import { CheckCircle2, XCircle, ChevronDown, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
@@ -36,6 +36,10 @@ export default function GoodsReceiptView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(10);
+
+  const handleUpdateStatus = useCallback((id: string, status: string) => {
+    updateStatusMutation.mutate({ id, status });
+  }, [updateStatusMutation]);
 
   const receiptsList = React.useMemo(() => {
     if (Array.isArray(receiptsData)) {
@@ -68,7 +72,7 @@ export default function GoodsReceiptView() {
 
   const totalPages = Math.ceil(filteredReceipts.length / size) || 1;
 
-  const renderStatusDropdown = (item: any) => {
+  const renderStatusDropdown = useCallback((item: any) => {
     const status = item.status;
     const isDraft = status === 'DRAFT';
     const isReceived = status === 'RECEIVED' || status === 'COMPLETED';
@@ -97,16 +101,23 @@ export default function GoodsReceiptView() {
             <ChevronDown size={12} className="opacity-70" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="center" className="w-48 p-1">
-          <DropdownMenuItem 
-            onClick={() => confirmMutation.mutate(item.id)}
-            disabled={confirmMutation.isPending}
+        <DropdownMenuContent align="center" className="w-40 p-1 font-sans">
+          <DropdownMenuItem
+            onClick={() => handleUpdateStatus(item.id, 'COMPLETED')}
+            disabled={updateStatusMutation.isPending || item.status === 'COMPLETED'}
             className="text-xs gap-2 font-medium text-emerald-700 hover:bg-emerald-50 cursor-pointer"
           >
-            <CheckCircle2 size={14} /> Xác nhận nhập kho
+            <CheckCircle2 size={14} /> Hoàn thành
           </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={() => updateStatusMutation.mutate({ id: item.id, status: 'CANCELLED' })}
+          <DropdownMenuItem
+            onClick={() => handleUpdateStatus(item.id, 'DRAFT')}
+            disabled={updateStatusMutation.isPending || item.status === 'DRAFT'}
+            className="text-xs gap-2 font-medium text-slate-700 hover:bg-slate-100 cursor-pointer"
+          >
+            <Clock size={14} /> Nháp
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => handleUpdateStatus(item.id, 'CANCELLED')}
             disabled={updateStatusMutation.isPending}
             className="text-xs gap-2 font-medium text-red-600 hover:bg-red-50 cursor-pointer"
           >
@@ -115,94 +126,73 @@ export default function GoodsReceiptView() {
         </DropdownMenuContent>
       </DropdownMenu>
     );
-  };
+  }, [handleUpdateStatus, updateStatusMutation.isPending]);
 
-  const columns = [
+  const columns: ColumnDef<any>[] = useMemo(() => [
     {
       accessorKey: 'receiptCode',
       header: 'Mã nhập kho',
-      className: 'w-[15%] min-w-[120px]',
-      headerClassName: 'w-[15%] min-w-[120px]',
-      cell: (item: any) => (
-        <span 
-          onClick={() => router.push(`/goods-receipt/${item.id}`)}
-          className="font-mono font-bold text-xs text-blue-600 hover:underline cursor-pointer"
-        >
-          {item.receiptCode}
-        </span>
-      )
+      cell: ({ row }: any) => {
+        const item = row.original;
+        return (
+          <span 
+            onClick={() => router.push(`/goods-receipt/${item.id}`)}
+            className="font-mono font-bold text-xs text-blue-600 hover:underline cursor-pointer"
+          >
+            {item.receiptCode}
+          </span>
+        );
+      }
     },
     {
       accessorKey: 'warehouseName',
       header: 'Kho thực nhận',
-      className: 'w-[20%] min-w-[150px]',
-      headerClassName: 'w-[20%] min-w-[150px]',
-      cell: (item: any) => (
-        <span className="text-xs font-semibold text-slate-800">{item.warehouseName}</span>
-      )
+      cell: ({ row }: any) => <span className="text-xs font-semibold text-slate-800">{row.original.warehouseName}</span>
     },
     {
       accessorKey: 'purchaseOrderCode',
       header: 'Đơn mua (PO)',
-      className: 'w-[15%] min-w-[120px]',
-      headerClassName: 'w-[15%] min-w-[120px]',
-      cell: (item: any) => (
-        <span className="text-xs font-mono text-slate-600">
-          {item.purchaseOrderCode || '---'}
-        </span>
-      )
+      cell: ({ row }: any) => <span className="text-xs font-mono text-slate-600">{row.original.purchaseOrderCode || '---'}</span>
     },
     {
       accessorKey: 'totalItems',
       header: 'Số SKU nhập',
-      align: 'center' as const,
-      className: 'w-[12%] min-w-[100px]',
-      headerClassName: 'w-[12%] min-w-[100px]',
-      cell: (item: any) => (
-        <span className="text-xs font-bold text-slate-700">{item.totalItems} sản phẩm</span>
-      )
+      cell: ({ row }: any) => <span className="text-xs font-bold text-slate-700">{row.original.totalItems} sản phẩm</span>
     },
     {
       accessorKey: 'status',
-      header: 'Trạng thái (Đổi nhanh)',
-      align: 'center' as const,
-      className: 'w-[18%] min-w-[140px]',
-      headerClassName: 'w-[18%] min-w-[140px]',
-      cell: (item: any) => renderStatusDropdown(item)
+      header: 'Trạng thái',
+      cell: ({ row }: any) => renderStatusDropdown(row.original)
     },
     {
       accessorKey: 'createdAt',
       header: 'Ngày nhập',
-      className: 'w-[12%] min-w-[110px]',
-      headerClassName: 'w-[12%] min-w-[110px]',
-      cell: (item: any) => (
+      cell: ({ row }: any) => (
         <div className="flex flex-col">
           <span className="text-xs font-medium text-slate-600">
-            {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+            {new Date(row.original.createdAt).toLocaleDateString('vi-VN')}
           </span>
-          <span className="text-[10px] text-slate-400 italic">{item.createdBy}</span>
+          <span className="text-[10px] text-slate-400 italic">{row.original.createdBy}</span>
         </div>
       )
     },
     {
+      id: 'actions',
       header: 'Thao tác',
-      align: 'right' as const,
-      className: 'w-[8%] min-w-[90px]',
-      headerClassName: 'w-[8%] min-w-[90px]',
-      cell: (item: any) => (
+      cell: ({ row }: any) => (
         <div className="flex justify-end gap-1">
           <ViewActionButton 
-            onClick={() => router.push(`/goods-receipt/${item.id}`)} 
+            onClick={() => router.push(`/goods-receipt/${row.original.id}`)} 
             disabled={isLoading} 
           />
           <DeleteActionButton 
-            onClick={() => setDeleteConfirmId(item.id)} 
+            onClick={() => setDeleteConfirmId(row.original.id)} 
             disabled={isLoading} 
           />
         </div>
       )
     }
-  ];
+  ], [isLoading, renderStatusDropdown, router]);
 
   const breadcrumbItems = [
     { label: 'Nhập kho', icon: PackagePlus },
@@ -223,7 +213,7 @@ export default function GoodsReceiptView() {
       />
 
       <DataCard
-        search={<SearchInput placeholder="Tìm kiếm theo mã phiếu, kho..." value={searchTerm} onChange={(val) => { setSearchTerm(val); setPage(1); }} />}
+        search={<SearchInput placeholder="Tìm mã phiếu nhập, kho..." value={searchTerm} onChange={(val) => { setSearchTerm(val); setPage(1); }} />}
         footer={
           (isLoading || filteredReceipts.length > 0) && (
             <NextPagination
@@ -239,7 +229,7 @@ export default function GoodsReceiptView() {
         }
       >
         <DataTable 
-          columns={columns as any} 
+          columns={columns} 
           data={paginatedReceipts} 
           isLoading={isLoading && !filteredReceipts.length}
           loadingRows={size}

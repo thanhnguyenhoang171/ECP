@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -57,12 +57,12 @@ export default function ProductSkusDialog({
 
   const [copiedSku, setCopiedSku] = React.useState<string | null>(null);
 
-  const handleCopySku = (skuCode: string) => {
+  const handleCopySku = useCallback((skuCode: string) => {
     navigator.clipboard.writeText(skuCode);
     setCopiedSku(skuCode);
     toast.success(`Đã sao chép mã SKU: ${skuCode}`);
     setTimeout(() => setCopiedSku(null), 2000);
-  };
+  }, []);
 
   const rawSkusData = skusResponse?.data;
   const apiSkusList = Array.isArray(rawSkusData)
@@ -137,7 +137,7 @@ export default function ProductSkusDialog({
 
   const isLoading = isProductFetching || isSkusFetching || isStocksFetching;
 
-  const columns: ColumnDef<RichProductVariant>[] = [
+  const columns: ColumnDef<RichProductVariant>[] = useMemo(() => [
     {
       header: 'Mã SKU & ID',
       cell: (variant) => (
@@ -290,7 +290,7 @@ export default function ProductSkusDialog({
         );
       },
     },
-  ];
+  ], [copiedSku, handleCopySku]);
 
   const thumbObj = product?.thumbnail as any;
   const thumbUrl = typeof thumbObj === 'string' ? thumbObj : thumbObj?.url;
