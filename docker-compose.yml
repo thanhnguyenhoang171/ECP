@@ -40,6 +40,7 @@ services:
     ports:
       - '8081:80'
     environment:
+      ADMIN_INTERNAL_API_URL: ${ADMIN_INTERNAL_API_URL:-http://api:9090/api}
       NEXT_PUBLIC_ADMIN_API_URL: ${NEXT_PUBLIC_ADMIN_API_URL:-http://api:9090/api}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:9090/api}
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
