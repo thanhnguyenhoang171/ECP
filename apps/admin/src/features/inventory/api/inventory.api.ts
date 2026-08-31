@@ -43,7 +43,7 @@ export const inventoryApi = {
   // Lấy mức tồn kho hiện tại (Stock)
   getStocks: async (): Promise<InventoryItemResponse[]> => {
     try {
-      const res = await clientFetch('v1/inventory');
+      const res = await clientFetch('v1/inventory/stocks');
       if (res.ok) {
         const result = await res.json();
         let items: any[] = [];
@@ -73,6 +73,38 @@ export const inventoryApi = {
     }
 
     return clientDb.getStockItems() as any;
+  },
+
+  // Lấy mức tồn kho lọc theo Product ID
+  getStocksByProduct: async (productId: string): Promise<InventoryItemResponse[]> => {
+    if (!productId) return [];
+    try {
+      const res = await clientFetch(`v1/inventory/stocks?productId=${encodeURIComponent(productId)}`);
+      if (res.ok) {
+        const result = await res.json();
+        let items: any[] = [];
+        if (Array.isArray(result.data)) {
+          items = result.data;
+        } else if (result.data && Array.isArray(result.data.content)) {
+          items = result.data.content;
+        } else if (Array.isArray(result.content)) {
+          items = result.content;
+        } else if (Array.isArray(result)) {
+          items = result;
+        }
+
+        return items.map((item: any) => ({
+          ...item,
+          id: item.id?.toString(),
+          warehouseId: item.warehouseId?.toString(),
+          skuId: item.skuId?.toString(),
+        }));
+      }
+    } catch (e) {
+      console.warn('Backend getStocksByProduct failed, falling back to getStocks', e);
+    }
+
+    return inventoryApi.getStocks();
   },
 
   // Thao tác điều chỉnh tồn kho thủ công

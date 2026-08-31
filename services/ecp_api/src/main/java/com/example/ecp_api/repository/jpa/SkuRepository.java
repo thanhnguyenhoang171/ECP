@@ -12,4 +12,5 @@ import java.util.UUID;
 public interface SkuRepository  extends JpaRepository<Sku, UUID>, JpaSpecificationExecutor<Sku> {
     boolean existsBySkuCode(String skuCode);
     Optional<Sku> findBySkuCode(String skuCode);
+    java.util.List<Sku> findByProductId(String productId);
 }

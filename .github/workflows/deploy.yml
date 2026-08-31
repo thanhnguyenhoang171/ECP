@@ -11,15 +11,14 @@ env:
 
 jobs:
   # ==========================================
-  # JOB 1: KIỂM TRA CHẤT LƯỢNG CODE & BUILD
+  # JOB 1: KIỂM TRA CHẤT LƯỢNG CODE & BUILD (CHẠY CHO PR VÀ NHÁNH DEV)
   # ==========================================
   build-and-test:
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/dev')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -49,10 +48,9 @@ jobs:
         run: pnpm turbo build
 
   # ==========================================
-  # JOB 2: BUILD DOCKER & PUSH LÊN GHCR
+  # JOB 2: BUILD DOCKER & PUSH LÊN GHCR (CHẠY TRỰC TIẾP KHI PUSH MAIN)
   # ==========================================
   deploy:
-    needs: build-and-test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -79,9 +77,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -110,7 +105,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          provenance: false # Quan trọng: Tắt cái này để sửa lỗi 'unknown blob'
+          provenance: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
@@ -137,34 +132,26 @@ jobs:
           curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared.deb
 
-      - name: Deploy via SSH
+      - name: Generate .env file securely
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-          # Secrets cho Backend
           SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
           SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
           SPRING_MONGODB_URI: ${{ secrets.SPRING_MONGODB_URI }}
-          # Secrets cho Database (Khởi tạo)
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
           MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
           MYSQL_USER: ${{ secrets.MYSQL_USER }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
           MONGO_ROOT_USER: ${{ secrets.MONGO_ROOT_USER }}
           MONGO_ROOT_PASSWORD: ${{ secrets.MONGO_ROOT_PASSWORD }}
-          # Secrets cho Redis
           SPRING_REDIS_HOST: ${{ secrets.SPRING_REDIS_HOST }}
           SPRING_REDIS_PORT: ${{ secrets.SPRING_REDIS_PORT }}
           SPRING_REDIS_USERNAME: ${{ secrets.SPRING_REDIS_USERNAME }}
           SPRING_REDIS_PASSWORD: ${{ secrets.SPRING_REDIS_PASSWORD }}
-          # Secrets cho JWT & Cloudinary
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
-          # Secrets cho Swagger Auth, Telegram & Mail
           SWAGGER_USERNAME: ${{ secrets.SWAGGER_USERNAME }}
           SWAGGER_PASSWORD: ${{ secrets.SWAGGER_PASSWORD }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -173,13 +160,36 @@ jobs:
           SPRING_MAIL_PORT: ${{ secrets.SPRING_MAIL_PORT }}
           SPRING_MAIL_USERNAME: ${{ secrets.SPRING_MAIL_USERNAME }}
           SPRING_MAIL_PASSWORD: ${{ secrets.SPRING_MAIL_PASSWORD }}
-          # Secrets cho Frontend & Admin
           NEXT_PUBLIC_ADMIN_API_URL: ${{ secrets.NEXT_PUBLIC_ADMIN_API_URL }}
           NEXT_PUBLIC_STOREFRONT_API_URL: ${{ secrets.NEXT_PUBLIC_STOREFRONT_API_URL }}
           STOREFRONT_INTERNAL_API_URL: ${{ secrets.STOREFRONT_INTERNAL_API_URL }}
           INTERNAL_API_URL: ${{ secrets.INTERNAL_API_URL }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+        run: |
+          node -e '
+          const fs = require("fs");
+          const envVars = [
+            "SPRING_DATASOURCE_URL", "SPRING_DATASOURCE_USERNAME", "SPRING_DATASOURCE_PASSWORD",
+            "SPRING_MONGODB_URI", "MYSQL_ROOT_PASSWORD", "MYSQL_DATABASE", "MYSQL_USER",
+            "MYSQL_PASSWORD", "MONGO_ROOT_USER", "MONGO_ROOT_PASSWORD", "SPRING_REDIS_HOST",
+            "SPRING_REDIS_PORT", "SPRING_REDIS_USERNAME", "SPRING_REDIS_PASSWORD", "JWT_SECRET",
+            "CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET",
+            "SWAGGER_USERNAME", "SWAGGER_PASSWORD", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID",
+            "SPRING_MAIL_HOST", "SPRING_MAIL_PORT", "SPRING_MAIL_USERNAME", "SPRING_MAIL_PASSWORD",
+            "NEXT_PUBLIC_ADMIN_API_URL", "NEXT_PUBLIC_STOREFRONT_API_URL",
+            "STOREFRONT_INTERNAL_API_URL", "INTERNAL_API_URL", "NEXT_PUBLIC_API_URL",
+            "NEXT_PUBLIC_GOOGLE_CLIENT_ID"
+          ];
+          const lines = envVars.map(k => `${k}=${process.env[k] !== undefined ? process.env[k] : ""}`);
+          fs.writeFileSync(".env", lines.join("\n") + "\n");
+          '
+
+      - name: Deploy via SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
           # 1. Thiết lập thư mục SSH và lưu Private Key
           mkdir -p ~/.ssh
@@ -196,56 +206,23 @@ jobs:
               StrictHostKeyChecking no
           EOF
 
-          # 2.5 Copy file docker-compose.yml mới nhất lên server
-          scp docker-compose.yml asus-server:~/ECP/docker-compose.yml
+          # 3. Copy file docker-compose.yml và .env an toàn lên server
+          scp docker-compose.yml .env asus-server:~/ECP/
 
-          # 3. Chạy lệnh deploy từ xa qua SSH và tạo file .env động
-          ssh asus-server << ENDSSH
+          # 4. Chạy lệnh deploy từ xa qua SSH
+          ssh asus-server 'bash -s' << 'ENDSSH'
+          set -e
           cd ~/ECP
 
-          # Tạo hoặc ghi đè file .env để docker-compose bốc biến
-          echo "SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL" > .env
-          echo "SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME" >> .env
-          echo "SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD" >> .env
-          echo "SPRING_MONGODB_URI=$SPRING_MONGODB_URI" >> .env
-          echo "MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD" >> .env
-          echo "MYSQL_DATABASE=$MYSQL_DATABASE" >> .env
-          echo "MYSQL_USER=$MYSQL_USER" >> .env
-          echo "MYSQL_PASSWORD=$MYSQL_PASSWORD" >> .env
-          echo "MONGO_ROOT_USER=$MONGO_ROOT_USER" >> .env
-          echo "MONGO_ROOT_PASSWORD=$MONGO_ROOT_PASSWORD" >> .env
-          echo "SPRING_REDIS_HOST=$SPRING_REDIS_HOST" >> .env
-          echo "SPRING_REDIS_PORT=$SPRING_REDIS_PORT" >> .env
-          echo "SPRING_REDIS_USERNAME=$SPRING_REDIS_USERNAME" >> .env
-          echo "SPRING_REDIS_PASSWORD=$SPRING_REDIS_PASSWORD" >> .env
-          echo "JWT_SECRET=$JWT_SECRET" >> .env
-          echo "CLOUDINARY_CLOUD_NAME=$CLOUDINARY_CLOUD_NAME" >> .env
-          echo "CLOUDINARY_API_KEY=$CLOUDINARY_API_KEY" >> .env
-          echo "CLOUDINARY_API_SECRET=$CLOUDINARY_API_SECRET" >> .env
-          echo "SWAGGER_USERNAME=$SWAGGER_USERNAME" >> .env
-          echo "SWAGGER_PASSWORD=$SWAGGER_PASSWORD" >> .env
-          echo "TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN" >> .env
-          echo "TELEGRAM_CHAT_ID=$TELEGRAM_CHAT_ID" >> .env
-          echo "SPRING_MAIL_HOST=$SPRING_MAIL_HOST" >> .env
-          echo "SPRING_MAIL_PORT=$SPRING_MAIL_PORT" >> .env
-          echo "SPRING_MAIL_USERNAME=$SPRING_MAIL_USERNAME" >> .env
-          echo "SPRING_MAIL_PASSWORD=$SPRING_MAIL_PASSWORD" >> .env
-          echo "NEXT_PUBLIC_ADMIN_API_URL=$NEXT_PUBLIC_ADMIN_API_URL" >> .env
-          echo "NEXT_PUBLIC_STOREFRONT_API_URL=$NEXT_PUBLIC_STOREFRONT_API_URL" >> .env
-          echo "STOREFRONT_INTERNAL_API_URL=$STOREFRONT_INTERNAL_API_URL" >> .env
-          echo "INTERNAL_API_URL=$INTERNAL_API_URL" >> .env
-          echo "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" >> .env
-          echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID" >> .env
-
-          # Đăng nhập để có quyền kéo image private
+          # Đăng nhập để có quyền kéo image private từ GHCR
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-          # 1. Kéo bản mới nhất về
+          # 1. Kéo các image mới nhất về
           docker compose pull
 
-          # 2. Ép Docker tạo lại Container từ Image mới
-          docker compose up -d --force-recreate --remove-orphans
+          # 2. Tạo lại các Container có thay đổi (hạn chế restart không cần thiết)
+          docker compose up -d --remove-orphans
 
-          # 3. Dọn dẹp các Image cũ bị "treo"
+          # 3. Dọn dẹp các Image cũ bị treo/dangling
           docker image prune -f
           ENDSSH

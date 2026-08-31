@@ -19,5 +19,6 @@ export const useActiveBrands = () => {
   return useQuery({
     queryKey: ['brands', 'active'],
     queryFn: () => brandApi.getActive(),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 };

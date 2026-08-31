@@ -3,20 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { useProductDetail } from '@/features/products/hooks/use-products';
+import { useProductCompositeDetail } from '@/features/products/hooks/use-products';
 import { useUpdateProduct } from '@/features/products/hooks/use-product-mutation';
 import { useCategories } from '@/features/categories/hooks/use-categories';
 import { useActiveBrands } from '@/features/brands/hooks/use-brands';
 import { useSuppliers } from '@/features/suppliers/hooks/use-suppliers';
-import { useSkus } from '@/features/skus/hooks/use-skus';
 import { skuApi } from '@/features/skus/api/sku.api';
-import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import { formatCurrency } from '@/lib/formatters';
+import { cn } from '@/lib/utils';
 import {
   Breadcrumbs,
   PageHeader,
   DataTable,
+  FormActionsBar,
   type ColumnDef,
 } from '@/components/common';
 import {
@@ -110,29 +109,20 @@ export default function UnifiedProductDetailPage() {
   const router = useRouter();
   const productId = (params?.id as string) || '';
 
-  // API Queries
-  const { data: product, isFetching: isProductLoading, isError, refetch: refetchProduct } = useProductDetail(productId);
+  // Composite Single API Query (Product, Brand, Category, SKUs & Inventory in 1 Call)
+  const { data: compositeData, isFetching: isProductLoading, isError, refetch: refetchProduct } = useProductCompositeDetail(productId);
+  const product = compositeData?.product || compositeData;
+
   const updateProductMutation = useUpdateProduct();
 
+  // Cached Dropdown Datasets for Editing Form Options
   const { data: categoriesData } = useCategories({ page: 0, size: 100 });
-  const categoriesList = categoriesData?.data || [];
+  const categoriesList = categoriesData?.data || (compositeData?.category ? [compositeData.category] : []);
 
-  const { data: activeBrands } = useActiveBrands();
+  const { data: activeBrandsData } = useActiveBrands();
 
   const { data: suppliersData } = useSuppliers();
-  const suppliersList = (suppliersData || []) as SupplierItem[];
-
-  const { data: skusResponse, isFetching: isSkusLoading, refetch: refetchSkus } = useSkus({
-    page: 1,
-    size: 100,
-    productId,
-  });
-
-  const { data: stocksData, isFetching: isStocksLoading, refetch: refetchStocks } = useQuery({
-    queryKey: ['inventory-stocks-unified', productId],
-    queryFn: inventoryApi.getStocks,
-    enabled: Boolean(productId),
-  });
+  const suppliersList = (suppliersData || (compositeData?.supplier ? [compositeData.supplier] : [])) as SupplierItem[];
 
   // Local Editable Product Form State
   const [formData, setFormData] = useState({
@@ -244,11 +234,11 @@ export default function UnifiedProductDetailPage() {
           ratingAvg: product?.ratingAvg || 0,
           ratingCount: product?.ratingCount || 0,
           specifications: Array.isArray(product?.specifications)
-            ? product.specifications.map((s) => ({ key: s.key, value: String(s.value) }))
+            ? product.specifications.map((s: any) => ({ key: s.key, value: String(s.value) }))
             : product?.specifications && typeof product.specifications === 'object'
               ? Object.entries(product.specifications).map(([key, value]) => ({ key, value: String(value) }))
               : [],
-          variants: product?.variants?.map((v) => ({
+          variants: product?.variants?.map((v: any) => ({
             sku: v.sku,
             price: v.price,
             compareAtPrice: v.compareAtPrice || 0,
@@ -335,9 +325,7 @@ export default function UnifiedProductDetailPage() {
       }
 
       setIsSkuFormOpen(false);
-      refetchSkus();
       refetchProduct();
-      refetchStocks();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Thao tác SKU thất bại';
       toast.error(message);
@@ -353,9 +341,7 @@ export default function UnifiedProductDetailPage() {
       await skuApi.delete(deleteSkuConfirmId);
       toast.success('Xóa SKU thành công');
       setDeleteSkuConfirmId(null);
-      refetchSkus();
       refetchProduct();
-      refetchStocks();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Xóa SKU thất bại';
       toast.error(message);
@@ -364,59 +350,38 @@ export default function UnifiedProductDetailPage() {
     }
   };
 
-  // Process data for SKU table
-  const rawSkusData = skusResponse?.data;
-  const apiSkusList: SkuRecord[] = Array.isArray(rawSkusData)
-    ? (rawSkusData as SkuRecord[])
-    : Array.isArray((rawSkusData as unknown as { data?: SkuRecord[] })?.data)
-      ? ((rawSkusData as unknown as { data: SkuRecord[] }).data)
-      : [];
+  // Process data for SKU table from Composite Data
+  const compositeSkus = compositeData?.skus || [];
 
-  const productVariants: ProductVariant[] = product?.variants || [];
-  const inventoryList: InventoryStockItem[] = (stocksData || []) as InventoryStockItem[];
-
-  const variants: DisplayVariant[] = apiSkusList.map((item) => {
-    const skuCode = item.skuCode || item.sku || '';
-    const skuId = item.id ? String(item.id) : '';
-
-    const matchingVariant = productVariants.find((v) => v.sku === skuCode || v.skuId === skuId);
-    const matchingInventory = inventoryList.find((inv) =>
-      (inv.skuId && String(inv.skuId) === skuId) ||
-      (inv.skuCode && inv.skuCode === skuCode)
-    );
-
-    const stockQty = matchingInventory?.quantityOnHand ?? item.stock ?? item.quantityOnHand ?? matchingVariant?.stock ?? product?.stock ?? 0;
-
-    return {
-      id: skuId || matchingVariant?.id || '',
-      sku: skuCode || 'N/A',
-      variantName: item.variantName || (matchingVariant?.attributes?.['Tên biến thể'] as string) || (matchingVariant?.attributes?.['Variant'] as string) || '',
-      barcodeType: item.barcodeType || matchingVariant?.barcodeType || 'EAN-13',
-      price: matchingVariant?.price || matchingInventory?.sellingPrice || matchingInventory?.price || item.price || item.sellingPrice || product?.price || 0,
-      costPrice: matchingVariant?.costPrice || matchingInventory?.costPrice || item.costPrice || 0,
-      compareAtPrice: matchingVariant?.compareAtPrice || item.compareAtPrice || 0,
-      stock: stockQty,
-      hasInventoryRecord: Boolean(matchingInventory || item.stock !== undefined),
-      attributes: matchingVariant?.attributes || item.attributes || {},
-      barcode: item.barcode || matchingVariant?.barcode,
-      isActive: item.active !== undefined ? item.active : (matchingVariant?.isActive ?? true),
-    };
-  });
-
-  const displayVariants: DisplayVariant[] = variants.length > 0 ? variants : productVariants.map((v) => ({
-    id: v.id || v.sku,
-    sku: v.sku,
-    variantName: (v.attributes?.['Tên biến thể'] as string) || (v.attributes?.['Variant'] as string) || '',
-    barcodeType: v.barcodeType || 'EAN-13',
-    price: v.price,
-    costPrice: v.costPrice || 0,
-    compareAtPrice: v.compareAtPrice || 0,
-    stock: v.stock || 0,
-    hasInventoryRecord: false,
-    attributes: v.attributes || {},
-    barcode: v.barcode,
-    isActive: v.isActive ?? true,
-  }));
+  const displayVariants: DisplayVariant[] = Array.isArray(compositeSkus) && compositeSkus.length > 0
+    ? compositeSkus.map((item: any) => ({
+        id: String(item.id || ''),
+        sku: item.skuCode || item.sku || '',
+        variantName: item.variantName || item.skuCode || '',
+        barcodeType: item.barcodeType || 'EAN-13',
+        price: Number(item.price || 0),
+        costPrice: Number(item.costPrice || 0),
+        compareAtPrice: Number(item.compareAtPrice || 0),
+        stock: Number(item.stockQuantity || 0),
+        hasInventoryRecord: Boolean(item.stockQuantity !== undefined),
+        attributes: item.attributes || {},
+        barcode: item.barcode || '',
+        isActive: Boolean(item.active ?? true),
+      }))
+    : (product?.variants || []).map((v: any) => ({
+        id: v.id || v.sku || '',
+        sku: v.sku || '',
+        variantName: (v.attributes?.['Tên biến thể'] as string) || (v.attributes?.['Variant'] as string) || '',
+        barcodeType: v.barcodeType || 'EAN-13',
+        price: v.price || 0,
+        costPrice: v.costPrice || 0,
+        compareAtPrice: v.compareAtPrice || 0,
+        stock: v.stock || 0,
+        hasInventoryRecord: false,
+        attributes: v.attributes || {},
+        barcode: v.barcode,
+        isActive: v.isActive ?? true,
+      }));
 
   const breadcrumbItems = [
     { label: 'Sản phẩm', href: '/products', icon: Package },
@@ -563,24 +528,24 @@ export default function UnifiedProductDetailPage() {
   }
 
   return (
-    <div className="space-y-6 pb-16">
+    <div className="space-y-6 pb-16 animate-in fade-in-50 duration-300">
       <Breadcrumbs items={breadcrumbItems} />
 
       {/* Top Header Actions */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900">{product.name}</h1>
-            <Badge className={formData.isPublished ? 'bg-emerald-100 text-emerald-800 border-none' : 'bg-slate-100 text-slate-600 border-none'}>
-              {formData.isPublished ? 'Đang bán' : 'Ngừng bán'}
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">{product.name}</h1>
+            <Badge className={formData.isPublished ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold text-[11px]' : 'bg-slate-100 text-slate-600 border-slate-200 text-[11px]'}>
+              {formData.isPublished ? '● Đang bán' : '○ Ngừng bán'}
             </Badge>
             {isDirty && (
-              <Badge className="bg-amber-100 text-amber-900 border-amber-300 animate-pulse text-xs font-bold">
+              <Badge className="bg-amber-100 text-amber-900 border-amber-300 animate-pulse text-xs font-bold shadow-xs">
                 ● Bản nháp chưa lưu
               </Badge>
             )}
           </div>
-          <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+          <p className="text-xs font-medium text-slate-500 mt-1 flex items-center gap-2">
             <span>SKU chính: <strong className="font-mono text-slate-700">{product.sku}</strong></span>
             <span>• Mã ID: <strong className="font-mono text-slate-600">{product.id}</strong></span>
           </p>
@@ -591,12 +556,12 @@ export default function UnifiedProductDetailPage() {
             variant="outline"
             size="sm"
             onClick={() => setIsHistoryOpen(true)}
-            className="gap-1.5 text-xs font-semibold cursor-pointer"
+            className="gap-1.5 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
           >
             <History className="w-3.5 h-3.5 text-slate-500" /> Lịch sử phiên bản
           </Button>
 
-          <Button variant="outline" size="sm" onClick={() => router.push('/products')} className="gap-1.5 text-xs cursor-pointer">
+          <Button variant="outline" size="sm" onClick={() => router.push('/products')} className="gap-1.5 text-xs font-semibold hover:bg-slate-50 cursor-pointer">
             <ArrowLeft className="w-3.5 h-3.5" /> Danh sách
           </Button>
 
@@ -604,7 +569,12 @@ export default function UnifiedProductDetailPage() {
             onClick={handleSaveProduct}
             disabled={isSaving}
             size="sm"
-            className="gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer"
+            className={cn(
+              "gap-1.5 font-bold text-xs cursor-pointer transition-all duration-200",
+              isDirty 
+                ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-100" 
+                : "bg-slate-900 hover:bg-slate-800 text-white"
+            )}
           >
             {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
             Lưu thay đổi (Ctrl+S)
@@ -755,7 +725,7 @@ export default function UnifiedProductDetailPage() {
             <DataTable
               columns={skuColumns}
               data={displayVariants}
-              isLoading={isSkusLoading || isStocksLoading}
+              isLoading={isProductLoading}
               emptyState={{
                 title: 'Chưa có biến thể SKU',
                 description: 'Bấm nút "Thêm biến thể SKU" để tạo kích thước, màu sắc hoặc mã phân loại.',
@@ -853,7 +823,7 @@ export default function UnifiedProductDetailPage() {
                 className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 py-1 text-xs text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-900"
               >
                 <option value="">-- Chọn danh mục --</option>
-                {categoriesList.map((cat) => (
+                {categoriesList.map((cat: any) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
                   </option>
@@ -1047,6 +1017,44 @@ export default function UnifiedProductDetailPage() {
         title="Xác nhận xóa SKU"
         description="Bạn có chắc chắn muốn xóa biến thể SKU này không?"
       />
+
+      {/* Floating Sticky Actions Bar when dirty */}
+      {isDirty && (
+        <FormActionsBar
+          onCancel={() => {
+            if (product) {
+              setFormData({
+                name: product.name || '',
+                sku: product.sku || '',
+                brand: product.brand || '',
+                brandId: product.brandId || '',
+                categoryId: product.categoryId || '',
+                supplierId: product.supplierId || '',
+                description: product.description || '',
+                price: product.price || 0,
+                costPrice: product.costPrice || 0,
+                compareAtPrice: product.compareAtPrice || 0,
+                weight: product.weight || 500,
+                length: product.length || 10,
+                width: product.width || 10,
+                height: product.height || 15,
+                metaTitle: product.metaTitle || '',
+                metaDescription: product.metaDescription || '',
+                metaKeywords: product.metaKeywords || '',
+                slug: product.slug || '',
+                isPublished: product.isPublished ?? true,
+                isFeatured: product.isFeatured ?? false,
+                isNew: product.isNew ?? false,
+                isBestSeller: product.isBestSeller ?? false,
+              });
+              setIsDirty(false);
+            }
+          }}
+          isSubmitting={isSaving}
+          submitText="Lưu thay đổi (Ctrl+S)"
+          activeTabLabel="Bản nháp sản phẩm"
+        />
+      )}
     </div>
   );
 }

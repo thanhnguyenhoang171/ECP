@@ -33,6 +33,7 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -56,6 +57,10 @@ public class ProductServiceImpl implements ProductService {
     private final com.example.ecp_api.repository.jpa.InventoryRepository inventoryRepository;
     private final AuditLogService auditLogService;
     private final CloudinaryService cloudinaryService;
+    private final com.example.ecp_api.mapper.BrandMapper brandMapper;
+    private final com.example.ecp_api.mapper.CategoryMapper categoryMapper;
+    private final com.example.ecp_api.mapper.SupplierMapper supplierMapper;
+    private final com.example.ecp_api.repository.jpa.SupplierRepository supplierRepository;
 
     @Override
     public PageResponse<ProductResponse> getAllProducts(ProductFilterRequest filter, Pageable pageable) {
@@ -259,6 +264,99 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
         return productMapper.toResponse(product);
+    }
+
+    @Override
+    public com.example.ecp_api.dto.response.ProductDetailResponse getProductDetail(String id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
+
+        ProductResponse productResp = productMapper.toResponse(product);
+
+        // Resolve Brand
+        com.example.ecp_api.dto.response.BrandResponse brandResp = null;
+        if (StringUtils.hasText(product.getBrandId())) {
+            brandResp = brandRepository.findById(product.getBrandId())
+                    .map(brandMapper::toResponse)
+                    .orElse(null);
+        }
+
+        // Resolve Category
+        com.example.ecp_api.dto.response.CategoryResponse categoryResp = null;
+        if (StringUtils.hasText(product.getCategoryId())) {
+            categoryResp = categoryRepository.findById(product.getCategoryId())
+                    .map(categoryMapper::toResponse)
+                    .orElse(null);
+        }
+
+        // Resolve SKUs and Inventory Counts
+        List<Sku> skus = skuRepository.findByProductId(id);
+        List<com.example.ecp_api.dto.response.ProductDetailResponse.SkuDetailItemResponse> skuDetails = new ArrayList<>();
+
+        if (skus != null && !skus.isEmpty()) {
+            for (Sku sku : skus) {
+                Integer totalQty = inventoryRepository.sumQuantityOnHandBySkuId(sku.getId());
+                if (totalQty == null) {
+                    totalQty = 0;
+                }
+
+                ProductVariant matchingVariant = null;
+                if (product.getVariants() != null) {
+                    matchingVariant = product.getVariants().stream()
+                            .filter(v -> sku.getId().toString().equals(v.getSku_id()) || sku.getSkuCode().equals(v.getSku()))
+                            .findFirst()
+                            .orElse(null);
+                }
+
+                BigDecimal price = matchingVariant != null && matchingVariant.getPrice() != null 
+                        ? matchingVariant.getPrice() : BigDecimal.ZERO;
+                BigDecimal costPrice = matchingVariant != null && matchingVariant.getCostPrice() != null 
+                        ? matchingVariant.getCostPrice() : BigDecimal.ZERO;
+                BigDecimal compareAtPrice = matchingVariant != null && matchingVariant.getCompareAtPrice() != null 
+                        ? matchingVariant.getCompareAtPrice() : BigDecimal.ZERO;
+                Map<String, Object> attributes = matchingVariant != null && matchingVariant.getAttributes() != null 
+                        ? matchingVariant.getAttributes() : new HashMap<>();
+
+                skuDetails.add(com.example.ecp_api.dto.response.ProductDetailResponse.SkuDetailItemResponse.builder()
+                        .id(sku.getId().toString())
+                        .skuCode(sku.getSkuCode())
+                        .variantName(sku.getVariantName())
+                        .barcode(sku.getBarcode())
+                        .barcodeType(sku.getBarcodeType())
+                        .price(price)
+                        .costPrice(costPrice)
+                        .compareAtPrice(compareAtPrice)
+                        .stockQuantity(totalQty)
+                        .active(sku.isActive())
+                        .attributes(attributes)
+                        .build());
+            }
+        } else if (product.getVariants() != null) {
+            // Fallback to embedded ProductVariants if MySQL Sku entries are not created yet
+            for (ProductVariant v : product.getVariants()) {
+                skuDetails.add(com.example.ecp_api.dto.response.ProductDetailResponse.SkuDetailItemResponse.builder()
+                        .id(v.getSku_id() != null ? v.getSku_id() : UUID.randomUUID().toString())
+                        .skuCode(v.getSku())
+                        .variantName(v.getSku())
+                        .barcode(v.getBarcode())
+                        .barcodeType(v.getBarcodeType())
+                        .price(v.getPrice() != null ? v.getPrice() : BigDecimal.ZERO)
+                        .costPrice(v.getCostPrice() != null ? v.getCostPrice() : BigDecimal.ZERO)
+                        .compareAtPrice(v.getCompareAtPrice() != null ? v.getCompareAtPrice() : BigDecimal.ZERO)
+                        .stockQuantity(0)
+                        .active(v.isActive())
+                        .attributes(v.getAttributes() != null ? v.getAttributes() : new HashMap<>())
+                        .build());
+            }
+        }
+
+        return com.example.ecp_api.dto.response.ProductDetailResponse.builder()
+                .product(productResp)
+                .brand(brandResp)
+                .category(categoryResp)
+                .supplier(null)
+                .skus(skuDetails)
+                .build();
     }
 
     @Override
