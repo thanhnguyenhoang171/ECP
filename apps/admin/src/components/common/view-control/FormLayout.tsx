@@ -33,7 +33,7 @@ export const FormSection = ({
           </p>
         )}
       </div>
-      <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+      <div className="bg-white rounded-2xl border border-slate-100 p-4 sm:p-6 shadow-sm">
         {children}
       </div>
     </div>

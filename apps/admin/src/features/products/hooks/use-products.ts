@@ -24,3 +24,11 @@ export const useProductDetail = (id?: string) => {
     enabled: !!id,
   });
 };
+
+export const useProductCompositeDetail = (id?: string) => {
+  return useQuery({
+    queryKey: ['product-composite-detail', id],
+    queryFn: () => productApi.getDetail(id!),
+    enabled: !!id,
+  });
+};

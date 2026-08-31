@@ -16,6 +16,8 @@ public interface ProductService {
 
     ProductResponse getProductById(String id);
 
+    com.example.ecp_api.dto.response.ProductDetailResponse getProductDetail(String id);
+
     ProductResponse updateProduct(String id, ProductRequest request);
 
     void deleteProduct(String id);

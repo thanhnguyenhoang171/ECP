@@ -17,11 +17,17 @@ ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
 # Enable pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
-# Copy all files to build
-COPY . .
+# Copy workspace configuration and package files for dependency caching
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
+COPY apps/admin/package.json ./apps/admin/
+COPY apps/storefront/package.json ./apps/storefront/
+COPY services/ecp_api/package.json ./services/ecp_api/
 
-# Install dependencies (pnpm sẽ tự tối ưu hóa trong monorepo)
+# Install dependencies (tận dụng Docker layer cache)
 RUN pnpm install --frozen-lockfile
+
+# Copy mã nguồn dự án admin
+COPY apps/admin ./apps/admin
 
 # Build dự án admin
 RUN pnpm --filter admin build

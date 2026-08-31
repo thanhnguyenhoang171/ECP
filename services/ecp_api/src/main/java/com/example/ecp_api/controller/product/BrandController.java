@@ -23,6 +23,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/v1/brands")
 @RequiredArgsConstructor
@@ -67,6 +69,16 @@ public class BrandController {
             BrandFilterRequest filter,
             @Parameter(hidden = true) @PageableDefault(sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(brandService.getAllBrands(filter, pageable));
+    }
+
+    @GetMapping("/active")
+    @Operation(summary = "Get all active brands")
+    public ResponseEntity<ApiResponse<List<BrandResponse>>> getActiveBrands() {
+        return ResponseEntity.ok(ApiResponse.<List<BrandResponse>>builder()
+                .success(true)
+                .code("ACTIVE_BRANDS_FETCHED_SUCCESS")
+                .message("Active brands fetched successfully")
+                .data(brandService.getActiveBrands()).build());
     }
 
     @GetMapping("/{id}")

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { getRefreshedAccessToken } from '@/lib/clientFetch';
 
 const getAdminBackendUrl = (): string => {
   const envUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL || process.env.NEXT_PUBLIC_API_URL;
@@ -41,29 +42,14 @@ export default function AuthInitializer(): null {
     const initialize = async (): Promise<void> => {
       const APP_URL = window.location.origin;
       try {
-        // Step 1: Request new accessToken via HTTP-only refreshToken cookie
-        const refreshRes = await fetch(`${APP_URL}/api/auth/refresh`, {
-          method: 'POST',
-        });
+        // Step 1: Request new accessToken via shared getRefreshedAccessToken mutex
+        const accessToken = await getRefreshedAccessToken(APP_URL);
 
-        if (!refreshRes.ok) {
-          // Token expired or missing cookie -> clear auth state
+        if (!accessToken) {
           clearAuth();
           setInitialized(true);
           return;
         }
-
-        const refreshData = await refreshRes.json();
-        if (!refreshData.success || !refreshData.data?.accessToken) {
-          clearAuth();
-          setInitialized(true);
-          return;
-        }
-
-        const { accessToken } = refreshData.data;
-
-        // Step 2: Temporarily store accessToken for subsequent API calls
-        updateAccessToken(accessToken);
 
         // Step 3: Fetch full user account details from /v1/users/me via proxy
         const accountRes = await fetch('/api/proxy/v1/users/me', {

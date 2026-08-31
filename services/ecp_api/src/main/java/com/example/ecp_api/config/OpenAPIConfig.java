@@ -72,21 +72,21 @@ public class OpenAPIConfig {
         return GroupedOpenApi.builder()
                 .group("1-management")
                 .pathsToMatch(
-                        "/v1/products/**",
-                        "/v1/categories/**",
-                        "/v1/brands/**",
-                        "/v1/skus/**",
-                        "/v1/users/**",
-                        "/v1/roles/**",
-                        "/v1/permissions/**",
-                        "/v1/inventory/**",
-                        "/v1/suppliers/**",
-                        "/v1/warehouses/**",
-                        "/v1/purchase-orders/**",
-                        "/v1/goods-receipts/**",
-                        "/v1/audit-logs/**",
-                        "/v1/system/**",
-                        "/v1/files/**"
+                        "/v1/products", "/v1/products/**",
+                        "/v1/categories", "/v1/categories/**",
+                        "/v1/brands", "/v1/brands/**",
+                        "/v1/skus", "/v1/skus/**",
+                        "/v1/users", "/v1/users/**",
+                        "/v1/roles", "/v1/roles/**",
+                        "/v1/permissions", "/v1/permissions/**",
+                        "/v1/inventory", "/v1/inventory/**",
+                        "/v1/suppliers", "/v1/suppliers/**",
+                        "/v1/warehouses", "/v1/warehouses/**",
+                        "/v1/purchase-orders", "/v1/purchase-orders/**",
+                        "/v1/goods-receipts", "/v1/goods-receipts/**",
+                        "/v1/audit-logs", "/v1/audit-logs/**",
+                        "/v1/system", "/v1/system/**",
+                        "/v1/files", "/v1/files/**"
                 )
                 .build();
     }

@@ -18,7 +18,7 @@ export function resolveRolePath(path: string): string {
 
 let refreshTokenPromise: Promise<string | null> | null = null;
 
-const getRefreshedAccessToken = async (APP_URL: string): Promise<string | null> => {
+export const getRefreshedAccessToken = async (APP_URL: string): Promise<string | null> => {
   if (refreshTokenPromise) {
     return refreshTokenPromise;
   }
@@ -50,7 +50,18 @@ const getRefreshedAccessToken = async (APP_URL: string): Promise<string | null> 
 
 export const clientFetch = async (url: string, options: FetchOptions = {}) => {
   const { skipToast, ...fetchOptions } = options;
-  const { accessToken, clearAuth, isBlocked, incrementErrorCount } = useAuthStore.getState();
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+  
+  const isAuthEndpoint = url.includes('/api/auth/') || url.includes('/login') || url.includes('/register');
+  let currentToken = useAuthStore.getState().accessToken;
+  const isInitialized = useAuthStore.getState().isInitialized;
+
+  // On page refresh before auth store is initialized, wait for session refresh if token is not in memory
+  if (!currentToken && !isInitialized && !isAuthEndpoint && typeof window !== 'undefined') {
+    currentToken = await getRefreshedAccessToken(APP_URL);
+  }
+
+  const { clearAuth, isBlocked, incrementErrorCount } = useAuthStore.getState();
 
   if (isBlocked) {
     console.log('User blocked due to consecutive server errors. Redirecting to login page...');
@@ -67,11 +78,9 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
 
   const headers = new Headers(fetchOptions.headers);
   
-  if (accessToken) {
-    headers.set('Authorization', `Bearer ${accessToken}`);
+  if (currentToken) {
+    headers.set('Authorization', `Bearer ${currentToken}`);
   }
-
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
   
   let finalUrl: string;
   if (url.startsWith('http')) {

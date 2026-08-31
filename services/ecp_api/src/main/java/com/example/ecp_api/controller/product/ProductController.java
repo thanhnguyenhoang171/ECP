@@ -82,12 +82,22 @@ public class ProductController {
                 .data(productService.getProductById(id)).build());
     }
 
+    @GetMapping("/{id}/detail")
+    @Operation(summary = "Get product composite details (Product, Brand, Category, Supplier, SKUs & Stocks)")
+    public ResponseEntity<ApiResponse<com.example.ecp_api.dto.response.ProductDetailResponse>> getProductDetail(@PathVariable String id) {
+        return ResponseEntity.ok(ApiResponse.<com.example.ecp_api.dto.response.ProductDetailResponse>builder()
+                .success(true)
+                .code("PRODUCT_DETAIL_FETCHED_SUCCESS")
+                .message("Product detail fetched successfully")
+                .data(productService.getProductDetail(id)).build());
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('product:update') or hasRole('SUPER_ADMIN')")
-    @Operation(summary = "Update product details by ID")
+    @Operation(summary = "Update product details by ID (Partial update support)")
     public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(
             @PathVariable String id,
-            @Valid @RequestBody ProductRequest request) {
+            @RequestBody ProductRequest request) {
         return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
                 .success(true)
                 .code("PRODUCT_UPDATED_SUCCESS")

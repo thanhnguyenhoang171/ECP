@@ -95,19 +95,51 @@ export const productApi = {
   },
 
   update: async (id: string, data: ProductFormValues): Promise<Product> => {
+    // Sanitize Thumbnail
+    let thumbnailObj: any = null;
+    if (typeof data.thumbnail === 'string' && data.thumbnail.trim() !== '') {
+      thumbnailObj = { url: data.thumbnail };
+    } else if (data.thumbnail && typeof data.thumbnail === 'object' && (data.thumbnail as any).url) {
+      thumbnailObj = data.thumbnail;
+    }
+
+    // Sanitize Gallery Images
+    const imageObjs: any[] = [];
+    if (Array.isArray(data.images)) {
+      data.images.forEach(img => {
+        if (typeof img === 'string' && img.trim() !== '') {
+          imageObjs.push({ url: img });
+        } else if (img && typeof img === 'object' && (img as any).url) {
+          imageObjs.push(img);
+        }
+      });
+    }
+
     const payload: any = {
       ...data,
+      thumbnail: thumbnailObj,
+      images: imageObjs.length > 0 ? imageObjs : undefined,
       specifications: Array.isArray(data.specifications) ? data.specifications.reduce((acc: any, curr: any) => {
         if (curr.key) acc[curr.key] = curr.value;
         return acc;
       }, {}) : (data.specifications || {}),
-      variants: (data.variants || []).map(v => ({
-        ...v,
-        attributes: Array.isArray(v.attributes) ? v.attributes.reduce((acc: any, curr: any) => {
-          if (curr.key) acc[curr.key] = curr.value;
-          return acc;
-        }, {}) : (v.attributes || {})
-      }))
+      variants: (data.variants || []).map(v => {
+        let variantImage: any = null;
+        if (typeof v.image === 'string' && v.image.trim() !== '') {
+          variantImage = { url: v.image };
+        } else if (v.image && typeof v.image === 'object' && (v.image as any).url) {
+          variantImage = v.image;
+        }
+
+        return {
+          ...v,
+          image: variantImage,
+          attributes: Array.isArray(v.attributes) ? v.attributes.reduce((acc: any, curr: any) => {
+            if (curr.key) acc[curr.key] = curr.value;
+            return acc;
+          }, {}) : (v.attributes || {})
+        };
+      })
     };
 
     const res = await clientFetch(`v1/products/${id}`, {
@@ -188,6 +220,15 @@ export const productApi = {
     const res = await clientFetch(`v1/products/${id}`);
     if (!res.ok) {
       throw new Error('Failed to fetch product');
+    }
+    const result = await res.json();
+    return result.data || result;
+  },
+
+  getDetail: async (id: string): Promise<any> => {
+    const res = await clientFetch(`v1/products/${id}/detail`);
+    if (!res.ok) {
+      throw new Error('Failed to fetch product composite details');
     }
     const result = await res.json();
     return result.data || result;

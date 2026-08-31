@@ -31,7 +31,7 @@ interface ImageValue {
 }
 
 interface ImageUploadProps {
-  value?: string | File | (string | File)[]; // Can be URL string, File object, or array of either
+  value?: unknown; // Can be URL string, File object, object with url/secure_url, or array of either
   onChange: (value: any) => void;
   onRemove?: (url: string) => void;
   onUploadComplete?: (file: CloudinaryFile | CloudinaryFile[]) => void;
@@ -51,6 +51,116 @@ interface ImageUploadProps {
   allowReplace?: boolean;
   showRemove?: boolean;
 }
+
+/**
+ * Helper to validate and normalize image URLs for Next.js <Image />
+ */
+const getValidImageUrl = (val: unknown): string | null => {
+  if (!val || typeof val !== 'string') {
+    return null;
+  }
+
+  const trimmed = val.trim();
+  if (!trimmed || trimmed === 'undefined' || trimmed === 'null' || trimmed === '[object Object]') {
+    return null;
+  }
+
+  if (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('blob:') ||
+    trimmed.startsWith('data:') ||
+    trimmed.startsWith('/')
+  ) {
+    return trimmed;
+  }
+
+  if (!trimmed.includes('://')) {
+    return `/${trimmed}`;
+  }
+
+  try {
+    new URL(trimmed);
+    return trimmed;
+  } catch {
+    return null;
+  }
+};
+
+interface ObjectWithValueUrl {
+  url?: string;
+  secure_url?: string;
+  src?: string;
+  file?: File;
+  publicId?: string;
+  public_id?: string;
+  isUploading?: boolean;
+}
+
+const extractImageValue = (ext: unknown, prevImages: readonly ImageValue[] = []): ImageValue | null => {
+  if (!ext) {
+    return null;
+  }
+
+  if (typeof ext === 'string') {
+    const validUrl = getValidImageUrl(ext);
+    if (!validUrl) {
+      return null;
+    }
+    const existing = prevImages.find((img) => img.url === validUrl);
+    if (existing) {
+      return existing;
+    }
+    return { url: validUrl };
+  }
+
+  if (typeof window !== 'undefined' && ext instanceof File) {
+    const existing = prevImages.find((img) => img.file === ext);
+    if (existing) {
+      return existing;
+    }
+    return {
+      file: ext,
+      url: URL.createObjectURL(ext),
+    };
+  }
+
+  if (typeof ext === 'object' && ext !== null) {
+    const obj = ext as ObjectWithValueUrl;
+    if (obj.file instanceof File) {
+      const existing = prevImages.find((img) => img.file === obj.file);
+      if (existing) {
+        return existing;
+      }
+      const validUrl = getValidImageUrl(obj.url) ?? URL.createObjectURL(obj.file);
+      return {
+        file: obj.file,
+        url: validUrl,
+        publicId: obj.publicId ?? obj.public_id,
+        isUploading: obj.isUploading,
+      };
+    }
+
+    const rawUrl = obj.url ?? obj.secure_url ?? obj.src ?? '';
+    const validUrl = getValidImageUrl(rawUrl);
+    if (!validUrl) {
+      return null;
+    }
+
+    const existing = prevImages.find((img) => img.url === validUrl);
+    if (existing) {
+      return existing;
+    }
+
+    return {
+      url: validUrl,
+      publicId: obj.publicId ?? obj.public_id,
+      isUploading: obj.isUploading,
+    };
+  }
+
+  return null;
+};
 
 /**
  * A premium Image Upload component using react-dropzone.
@@ -110,32 +220,21 @@ export const ImageUpload = ({
         ? (Array.isArray(value) ? value : [value])
         : [];
 
-      // 2. Check if internal state is already in sync with external values
-      const isSync = externalValues.length === prevImages.length && 
-        externalValues.every((ext, i) => {
-          const int = prevImages[i];
-          if (typeof ext === 'string') return ext === int.url;
-          if (ext instanceof File) return ext === int.file;
-          return false;
+      // 2. Map and filter valid images
+      const newInternalImages: ImageValue[] = externalValues
+        .map(ext => extractImageValue(ext, prevImages))
+        .filter((img): img is ImageValue => img !== null);
+
+      // 3. Check if internal state is already in sync with new internal images
+      const isSync = newInternalImages.length === prevImages.length && 
+        newInternalImages.every((newImg, i) => {
+          const prev = prevImages[i];
+          if (!prev) return false;
+          if (newImg.file && prev.file) return newImg.file === prev.file;
+          return newImg.url === prev.url;
         });
 
       if (isSync) return prevImages;
-
-      // 3. Create new internal state if not in sync
-      const newInternalImages: ImageValue[] = externalValues.map(ext => {
-        if (typeof ext === 'string') {
-          return { url: ext };
-        } else if (ext instanceof File) {
-          const existing = prevImages.find(img => img.file === ext);
-          if (existing) return existing;
-          
-          return {
-            file: ext,
-            url: URL.createObjectURL(ext)
-          };
-        }
-        return { url: '' };
-      }).filter(img => img.url !== '');
 
       return newInternalImages;
     });
@@ -327,6 +426,11 @@ export const ImageUpload = ({
   const renderSinglePreview = () => {
     const currentImage = internalImages[0];
     const isItemUploading = Boolean(currentImage?.isUploading);
+    const validUrl = getValidImageUrl(currentImage?.url);
+
+    if (!validUrl) {
+      return null;
+    }
 
     return (
       <div className={cn(
@@ -335,10 +439,10 @@ export const ImageUpload = ({
         aspectRatio === 'square' ? 'aspect-square' : aspectRatio === 'video' ? 'aspect-video' : 'h-full'
       )}>
         <Image 
-          src={currentImage.url} 
+          src={validUrl} 
           alt="Preview" 
           fill 
-          unoptimized={currentImage.url.startsWith('blob:')}
+          unoptimized={validUrl.startsWith('blob:')}
           referrerPolicy="no-referrer"
           sizes="(max-width: 768px) 100vw, 400px"
           className="object-cover transition-transform duration-500 group-hover:scale-105" 
@@ -376,7 +480,7 @@ export const ImageUpload = ({
                   size="icon" 
                   title="Xem ảnh gốc"
                   className="h-9 w-9 rounded-full shadow-xl bg-white hover:bg-slate-100 text-slate-900 border-none cursor-pointer"
-                  onClick={(e) => { e.stopPropagation(); window.open(currentImage.url, '_blank'); }}
+                  onClick={(e) => { e.stopPropagation(); window.open(validUrl, '_blank'); }}
                 >
                   <Maximize2 size={15} />
                 </Button>
@@ -418,14 +522,18 @@ export const ImageUpload = ({
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
       {internalImages.map((img, i) => {
         const isItemUploading = Boolean(img.isUploading);
+        const validUrl = getValidImageUrl(img.url);
+        if (!validUrl) {
+          return null;
+        }
 
         return (
-          <div key={img.url} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-slate-50 group shadow-md animate-in zoom-in-95 duration-200">
+          <div key={validUrl} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-slate-50 group shadow-md animate-in zoom-in-95 duration-200">
             <Image 
-              src={img.url} 
+              src={validUrl} 
               alt={`Preview ${i}`} 
               fill 
-              unoptimized={img.url.startsWith('blob:')}
+              unoptimized={validUrl.startsWith('blob:')}
               sizes="(max-width: 768px) 50vw, 200px"
               className="object-cover transition-transform duration-500 group-hover:scale-110" 
             />
