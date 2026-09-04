@@ -317,8 +317,14 @@ export default function ProductSkusDialog({
                 )}
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
-                <span>SKU chính: <strong className="font-mono text-slate-700">{product?.sku || 'N/A'}</strong></span>
-                {product?.brand && <span>• Thương hiệu: <strong>{product.brand}</strong></span>}
+                {product?.brand && (
+                  <span>
+                    • Thương hiệu:{' '}
+                    <strong>
+                      {typeof product.brand === 'object' ? product.brand.name : product.brand}
+                    </strong>
+                  </span>
+                )}
               </DialogDescription>
             </div>
           </div>

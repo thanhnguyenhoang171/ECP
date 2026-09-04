@@ -105,7 +105,9 @@ public class ProductServiceImpl implements ProductService {
         List<Product> products = mongoTemplate.find(query, Product.class);
 
         Page<Product> productPage = new PageImpl<>(products, finalPageable, count);
-        return productMapper.toPageResponse(productPage);
+        PageResponse<ProductResponse> pageResp = productMapper.toPageResponse(productPage);
+        enrichCategoryInfo(pageResp.getData());
+        return pageResp;
     }
 
     @Override
@@ -246,7 +248,9 @@ public class ProductServiceImpl implements ProductService {
         auditLogService.log("PRODUCT_CREATE", SecurityUtils.getCurrentUserEmail(),
                 "Created product: " + product.getName());
 
-        return productMapper.toResponse(product);
+        ProductResponse resp = productMapper.toResponse(product);
+        enrichCategoryInfo(resp);
+        return resp;
         } catch (Exception e) {
             for (String publicId : uploadedPublicIds) {
                 try {
@@ -263,7 +267,9 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponse getProductById(String id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
-        return productMapper.toResponse(product);
+        ProductResponse resp = productMapper.toResponse(product);
+        enrichCategoryInfo(resp);
+        return resp;
     }
 
     @Override
@@ -452,7 +458,9 @@ public class ProductServiceImpl implements ProductService {
 
         auditLogService.log("PRODUCT_UPDATE", operatorEmail, "Updated product: " + existingProduct.getName() + " (ID: " + existingProduct.getId() + ")");
 
-        return productMapper.toResponse(existingProduct);
+        ProductResponse resp = productMapper.toResponse(existingProduct);
+        enrichCategoryInfo(resp);
+        return resp;
     }
 
     @Override
@@ -513,6 +521,37 @@ public class ProductServiceImpl implements ProductService {
 
         if (updated) {
             productRepository.save(product);
+        }
+    }
+
+    private void enrichCategoryInfo(ProductResponse response) {
+        if (response == null) return;
+        enrichCategoryInfo(List.of(response));
+    }
+
+    private void enrichCategoryInfo(List<ProductResponse> responses) {
+        if (responses == null || responses.isEmpty()) return;
+
+        List<String> categoryIds = responses.stream()
+                .map(ProductResponse::getCategoryId)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .toList();
+
+        Map<String, String> categoryNameMap = new HashMap<>();
+        if (!categoryIds.isEmpty()) {
+            categoryRepository.findAllById(categoryIds)
+                    .forEach(cat -> categoryNameMap.put(cat.getId(), cat.getName()));
+        }
+
+        for (ProductResponse resp : responses) {
+            if (StringUtils.hasText(resp.getCategoryId())) {
+                String catName = categoryNameMap.get(resp.getCategoryId());
+                resp.setCategory(ProductResponse.CategoryInfo.builder()
+                        .id(resp.getCategoryId())
+                        .name(catName)
+                        .build());
+            }
         }
     }
 }

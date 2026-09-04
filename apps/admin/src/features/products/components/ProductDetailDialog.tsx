@@ -36,7 +36,8 @@ export default function ProductDetailDialog({
   const activeId = open && productId ? productId : '';
   const { data: product, isFetching: isLoading, isError } = useProductDetail(activeId);
 
-  const categoryName = categories.find(c => c.id === product?.categoryId)?.name || 'Chưa phân loại';
+  const brandName = typeof product?.brand === 'object' ? product?.brand?.name : (product?.brand || 'N/A');
+  const categoryName = typeof product?.category === 'object' ? product?.category?.name : (categories.find(c => c.id === (typeof product?.category === 'object' ? product?.category?.id : product?.categoryId))?.name || 'Chưa phân loại');
   const isPublished = product?.isPublished ?? product?.published ?? false;
 
   const thumbObj = product?.thumbnail;
@@ -57,7 +58,7 @@ export default function ProductDetailDialog({
       items: [
         { label: "Tên sản phẩm", value: product?.name, icon: ShoppingBag },
         { label: "Mã SKU chính", value: product?.sku, icon: Hash, fontMono: true },
-        { label: "Thương hiệu", value: product?.brand || 'N/A', icon: Tag },
+        { label: "Thương hiệu", value: brandName, icon: Tag },
         { label: "Danh mục sản phẩm", value: categoryName, icon: Layers },
         { label: "Đường dẫn (Slug)", value: product?.slug, icon: Globe, fontMono: true },
         { label: "Mã ID sản phẩm", value: product?.id, icon: FileText, fontMono: true },
@@ -130,7 +131,7 @@ export default function ProductDetailDialog({
       header={{
         icon: Package,
         title: product?.name,
-        subtitle: `SKU: ${product?.sku || 'N/A'} • Brand: ${product?.brand || 'N/A'}`,
+        subtitle: `SKU: ${product?.sku || 'N/A'} • Brand: ${brandName}`,
         badge: product ? (
           <div className="flex items-center gap-1.5 flex-wrap">
             <Badge 

@@ -31,11 +31,14 @@ public class ProductResponse {
     @Schema(description = "URL-friendly slug", example = "iphone-15-pro-max")
     private String slug;
 
-    @Schema(description = "Brand name", example = "Apple")
-    private String brand;
+    @Schema(description = "Brand information")
+    private BrandInfo brand;
 
     @Schema(description = "ID of the brand", example = "65f1a2b3c4d5e6f7a8b9c0d1")
     private String brandId;
+
+    @Schema(description = "Category information")
+    private CategoryInfo category;
 
     @Schema(description = "ID of the category", example = "65f1a2b3c4d5e6f7a8b9c0d1")
     private String categoryId;
@@ -132,5 +135,25 @@ public class ProductResponse {
 
         @Schema(description = "Last update timestamp")
         private LocalDateTime updatedAt;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Schema(description = "Brand reference information")
+    public static class BrandInfo {
+        private String id;
+        private String name;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Schema(description = "Category reference information")
+    public static class CategoryInfo {
+        private String id;
+        private String name;
     }
 }
