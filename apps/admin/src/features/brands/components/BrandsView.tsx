@@ -61,13 +61,16 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
 
   const activeFilter = searchParams.get('active');
 
-  const { data: queryData, isFetching, isLoading } = useBrands({
-    page,
-    size,
-    sort,
-    name,
-    active: activeFilter === null ? undefined : activeFilter === 'true',
-  });
+  const { data: queryData, isFetching, isLoading } = useBrands(
+    {
+      page,
+      size,
+      sort,
+      name,
+      active: activeFilter === null ? undefined : activeFilter === 'true',
+    },
+    initialData?.data?.length ? initialData : undefined,
+  );
 
   const pageData = queryData || initialData;
   const brands = pageData?.data || [];

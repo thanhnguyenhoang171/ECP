@@ -74,13 +74,16 @@ export default function ProductView({
   const categoryIdParam = searchParams.get('categoryId') || '';
   const isPublishedParam = searchParams.get('isPublished');
 
-  const { data: queryData, isFetching } = useProducts({
-    page,
-    size,
-    sort,
-    search: name,
-    categoryId: categoryIdParam,
-  });
+  const { data: queryData, isFetching, isLoading } = useProducts(
+    {
+      page,
+      size,
+      sort,
+      search: name,
+      categoryId: categoryIdParam,
+    },
+    initialData?.data?.length ? initialData : undefined,
+  );
 
   const { data: categoriesData, isLoading: isCategoriesLoading } = useCategories({ page: 0, size: 100 });
   const categoriesList = categoriesData?.data || categories;
@@ -430,7 +433,7 @@ export default function ProductView({
         <DataTable
           columns={columns}
           data={paginatedProducts}
-          isLoading={isFetching}
+          isLoading={isLoading && paginatedProducts.length === 0}
           loadingRows={size}
           emptyState={{
             title: 'Không tìm thấy sản phẩm',

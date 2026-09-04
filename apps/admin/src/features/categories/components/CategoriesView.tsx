@@ -95,7 +95,7 @@ export default function CategoriesView({
       : undefined,
    level: levelParam ? Number(levelParam) : undefined,
   },
-  initialData,
+  initialData?.data?.length ? initialData : undefined,
  );
 
  // Nếu có dữ liệu từ API thì dùng, không thì dùng từ Server
@@ -481,7 +481,7 @@ export default function CategoriesView({
           <DataTable
            columns={columns}
            data={categories}
-           isLoading={isLoading || (isFetching && !categories.length)}
+           isLoading={isLoading && !categories.length}
            loadingRows={size}
            emptyState={{
             title: 'Không tìm thấy danh mục',
