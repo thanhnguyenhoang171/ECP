@@ -5,3 +5,9 @@ apps/*/.next
 apps/*/dist
 .turbo
 target
+.git
+.github
+.idea
+.vscode
+*.md
+.env*
