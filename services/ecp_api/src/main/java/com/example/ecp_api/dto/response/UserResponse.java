@@ -41,6 +41,12 @@ public class UserResponse {
     @Schema(description = "Cloudinary public ID for avatar")
     private String avatarPublicId;
 
+    @Schema(description = "URL to user's cover banner image")
+    private String bannerUrl;
+
+    @Schema(description = "Cloudinary public ID for banner")
+    private String bannerPublicId;
+
     @Schema(description = "Date of birth")
     private LocalDate dob;
 

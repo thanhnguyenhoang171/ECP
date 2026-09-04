@@ -72,4 +72,29 @@ public class AccountController {
                 .data(userService.deleteCurrentUserAvatar(email))
                 .build());
     }
+
+    @PostMapping("/banner")
+    @Operation(summary = "Upload and update cover banner for current logged-in user")
+    public ResponseEntity<ApiResponse<UserResponse>> updateMyBanner(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        String email = SecurityUtils.getCurrentUsername();
+        return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
+                .success(true)
+                .code("BANNER_UPDATED_SUCCESS")
+                .message("Banner updated successfully")
+                .data(userService.updateCurrentUserBanner(email, file))
+                .build());
+    }
+
+    @DeleteMapping("/banner")
+    @Operation(summary = "Remove cover banner for current logged-in user")
+    public ResponseEntity<ApiResponse<UserResponse>> deleteMyBanner() {
+        String email = SecurityUtils.getCurrentUsername();
+        return ResponseEntity.ok(ApiResponse.<UserResponse>builder()
+                .success(true)
+                .code("BANNER_DELETED_SUCCESS")
+                .message("Banner removed successfully")
+                .data(userService.deleteCurrentUserBanner(email))
+                .build());
+    }
 }

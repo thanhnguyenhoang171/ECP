@@ -42,6 +42,12 @@ public class UserProfile {
     @Column(name = "avatar_public_id", length = 255)
     private String avatarPublicId;
 
+    @Column(name = "banner_url", columnDefinition = "TEXT")
+    private String bannerUrl;
+
+    @Column(name = "banner_public_id", length = 255)
+    private String bannerPublicId;
+
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 

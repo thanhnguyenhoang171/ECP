@@ -73,6 +73,8 @@ public interface UserMapper {
     @Mapping(target = "lastName", source = "profile.lastName")
     @Mapping(target = "avatarUrl", source = "profile.avatarUrl")
     @Mapping(target = "avatarPublicId", source = "profile.avatarPublicId")
+    @Mapping(target = "bannerUrl", source = "profile.bannerUrl")
+    @Mapping(target = "bannerPublicId", source = "profile.bannerPublicId")
     @Mapping(target = "dob", source = "profile.dob")
     @Mapping(target = "gender", source = "profile.gender")
 //    @Mapping(target = "loyaltyPoints", source = "profile.loyaltyPoints")

@@ -132,5 +132,35 @@ export const authApi = {
       throw result;
     }
     return result;
+  },
+
+  uploadBanner: async (file: File): Promise<UserAccountResponse> => {
+    const { clientFetch } = await import('@/lib/clientFetch');
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await clientFetch('v1/users/me/banner', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw result;
+    }
+    return result;
+  },
+
+  deleteBanner: async (): Promise<UserAccountResponse> => {
+    const { clientFetch } = await import('@/lib/clientFetch');
+    const response = await clientFetch('v1/users/me/banner', {
+      method: 'DELETE',
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw result;
+    }
+    return result;
   }
 };

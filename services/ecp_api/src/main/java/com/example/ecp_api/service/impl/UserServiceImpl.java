@@ -533,6 +533,82 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    public UserResponse updateCurrentUserBanner(String email, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new AppException("INVALID_FILE", "Uploaded banner file is empty", HttpStatus.BAD_REQUEST);
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new AppException("INVALID_FILE_TYPE", "File must be a valid image format (JPEG, PNG, WebP, SVG)", HttpStatus.BAD_REQUEST);
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
+
+        if (user.getProfile() == null) {
+            user.setProfile(UserProfile.builder().user(user).build());
+        }
+
+        String oldBannerPublicId = user.getProfile().getBannerPublicId();
+
+        Map uploadResult = cloudinaryService.upload(file, "banners");
+        if (uploadResult == null || !uploadResult.containsKey("secure_url")) {
+            throw new AppException("FILE_UPLOAD_FAILED", "Failed to upload banner to Cloudinary", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        String newBannerUrl = (String) uploadResult.get("secure_url");
+        String newBannerPublicId = (String) uploadResult.get("public_id");
+
+        if (StringUtils.hasText(oldBannerPublicId)) {
+            try {
+                cloudinaryService.delete(oldBannerPublicId);
+                log.info("Auto-deleted old Cloudinary banner asset: {}", oldBannerPublicId);
+            } catch (Exception e) {
+                log.error("Failed to auto-delete old Cloudinary banner asset {}: {}", oldBannerPublicId, e.getMessage());
+            }
+        }
+
+        user.getProfile().setBannerUrl(newBannerUrl);
+        user.getProfile().setBannerPublicId(newBannerPublicId);
+        user.setUpdatedBy(user);
+        user = userRepository.save(user);
+
+        auditLogService.log("USER_BANNER_UPDATE", email, "Uploaded and updated profile banner");
+
+        return userMapper.toResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse deleteCurrentUserBanner(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
+
+        if (user.getProfile() != null) {
+            String oldBannerPublicId = user.getProfile().getBannerPublicId();
+            if (StringUtils.hasText(oldBannerPublicId)) {
+                try {
+                    cloudinaryService.delete(oldBannerPublicId);
+                    log.info("Deleted Cloudinary banner asset: {}", oldBannerPublicId);
+                } catch (Exception e) {
+                    log.error("Failed to delete Cloudinary banner asset {}: {}", oldBannerPublicId, e.getMessage());
+                }
+            }
+
+            user.getProfile().setBannerUrl(null);
+            user.getProfile().setBannerPublicId(null);
+            user.setUpdatedBy(user);
+            user = userRepository.save(user);
+        }
+
+        auditLogService.log("USER_BANNER_DELETE", email, "Removed profile banner");
+
+        return userMapper.toResponse(user);
+    }
+
+    @Override
+    @Transactional
     public void updateLastLogin(String email) {
         userRepository.findByEmail(email)
                 .ifPresent(user -> {
