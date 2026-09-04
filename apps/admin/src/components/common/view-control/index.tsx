@@ -67,7 +67,7 @@ export const ResetFiltersButton = ({ onClick, label = 'Đặt lại bộ lọc',
     size="sm" 
     onClick={onClick} 
     disabled={disabled}
-    className="h-10 text-xs font-bold text-slate-600 hover:text-slate-900 border border-slate-300 rounded-xl transition-colors"
+    className="h-10 text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50/50 hover:bg-orange-100/60 border border-orange-200 rounded-xl transition-colors"
   >
     <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
     {label}
@@ -75,9 +75,9 @@ export const ResetFiltersButton = ({ onClick, label = 'Đặt lại bộ lọc',
 );
 
 // 3. Popover Controls
-export const FilterPopover = ({ children, activeCount, onClear, disabled }: { children: React.ReactNode; activeCount?: number; onClear?: () => void; disabled?: boolean }) => {
+export const FilterPopover = ({ children, activeCount, onClear, disabled, onOpenChange }: { children: React.ReactNode; activeCount?: number; onClear?: () => void; disabled?: boolean; onOpenChange?: (open: boolean) => void }) => {
   return (
-    <Popover>
+    <Popover onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <Button variant={activeCount ? 'default' : 'outline'} className="h-10 text-xs font-bold border-slate-300 rounded-xl" disabled={disabled}>
           <Filter className="mr-1.5 h-3.5 w-3.5" />

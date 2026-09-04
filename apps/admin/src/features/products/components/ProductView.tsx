@@ -6,6 +6,7 @@ import {
   Layers,
   Copy,
   Check,
+  Loader2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -46,7 +47,7 @@ import { getSortOptions } from '@/types';
 import { cn } from '@/lib/utils';
 import { useProducts } from '../hooks/use-products';
 import { useDeleteProduct } from '../hooks/use-product-mutation';
-import { useCategories } from '@/features/categories/hooks/use-categories';
+import { useInfiniteCategories } from '@/features/categories/hooks/use-categories';
 
 interface ProductViewProps {
   initialData: PageResponse<Product>;
@@ -85,8 +86,30 @@ export default function ProductView({
     initialData?.data?.length ? initialData : undefined,
   );
 
-  const { data: categoriesData, isLoading: isCategoriesLoading } = useCategories({ page: 0, size: 100 });
-  const categoriesList = categoriesData?.data || categories;
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  const {
+    data: categoriesInfiniteData,
+    isLoading: isCategoriesLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteCategories(
+    { size: 20 },
+    { enabled: isFilterOpen || !!categoryIdParam }
+  );
+
+  const categoriesList = useMemo(() => {
+    if (!categoriesInfiniteData) return categories;
+    return categoriesInfiniteData.pages.flatMap((p) => p.data || []);
+  }, [categoriesInfiniteData, categories]);
+
+  const handleCategoryScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 30 && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const pageData = queryData || initialData;
   const paginatedProducts = pageData.data || [];
@@ -191,11 +214,14 @@ export default function ProductView({
                   </button>
                 </div>
 
-                {product.brand && (
-                  <span className="text-[11px] text-slate-500 truncate">
-                    • {product.brand}
-                  </span>
-                )}
+                {(() => {
+                  const brandName = typeof product.brand === 'object' ? product.brand?.name : (product.brand || '');
+                  return brandName ? (
+                    <span className="text-[11px] text-slate-500 truncate">
+                      • {brandName}
+                    </span>
+                  ) : null;
+                })()}
               </div>
             </div>
           </div>
@@ -208,8 +234,9 @@ export default function ProductView({
       headerClassName: 'w-[18%] min-w-[140px] hidden md:table-cell',
       skeleton: <Skeleton className="h-4 w-28 rounded-md" />,
       cell: (product) => {
-        const cat = categoriesList.find((c) => c.id === product.categoryId);
-        const name = cat ? cat.name : (product.categoryName || 'Chưa phân loại');
+        const catObjName = typeof product.category === 'object' ? product.category?.name : undefined;
+        const cat = categoriesList.find((c) => c.id === (typeof product.category === 'object' ? product.category?.id : product.categoryId));
+        const name = catObjName || (cat ? cat.name : (product.categoryName || 'Chưa phân loại'));
 
         return (
           <span className="text-xs font-medium text-slate-600">
@@ -343,11 +370,17 @@ export default function ProductView({
             <FilterPopover
               activeCount={(categoryIdParam ? 1 : 0) + (isPublishedParam ? 1 : 0)}
               onClear={() => updateUrl({ categoryId: '', isPublished: '', page: 1 })}
+              onOpenChange={(open) => {
+                if (open) setIsFilterOpen(true);
+              }}
             >
               <div className="space-y-4">
                 <div className="space-y-2">
                   <h4 className="font-medium text-xs leading-none text-slate-900">Danh mục sản phẩm</h4>
-                  <div className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar">
+                  <div
+                    className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar"
+                    onScroll={handleCategoryScroll}
+                  >
                     <button
                       className={filterBtnClass(!categoryIdParam)}
                       onClick={() => updateUrl({ categoryId: '', page: 1 })}
@@ -368,6 +401,11 @@ export default function ProductView({
                           {cat.name}
                         </button>
                       ))
+                    )}
+                    {isFetchingNextPage && (
+                      <div className="flex justify-center py-1">
+                        <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                      </div>
                     )}
                   </div>
                 </div>

@@ -29,14 +29,25 @@ export interface ProductDimensions {
   height?: number;
 }
 
+export interface BrandInfo {
+  id?: string;
+  name?: string;
+}
+
+export interface CategoryInfo {
+  id?: string;
+  name?: string;
+}
+
 export interface Product {
   id: string;
   sku: string;
   name: string;
   slug: string;
-  brand?: string;
+  brand?: BrandInfo | string;
   brandId?: string;
-  categoryId: string;
+  category?: CategoryInfo | string;
+  categoryId?: string;
   categoryName?: string;
   supplierId?: string;
   description?: string;

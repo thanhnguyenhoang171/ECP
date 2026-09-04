@@ -31,7 +31,20 @@ public interface ProductMapper {
     @Mapping(target = "isFeatured", source = "featured")
     @Mapping(target = "isNew", source = "new")
     @Mapping(target = "isBestSeller", source = "bestSeller")
+    @Mapping(target = "brand", expression = "java(mapBrandInfo(product))")
+    @Mapping(target = "category", ignore = true)
     ProductResponse toResponse(Product product);
+
+    default ProductResponse.BrandInfo mapBrandInfo(Product product) {
+        if (product == null) return null;
+        if (!org.springframework.util.StringUtils.hasText(product.getBrandId()) && !org.springframework.util.StringUtils.hasText(product.getBrand())) {
+            return null;
+        }
+        return ProductResponse.BrandInfo.builder()
+                .id(product.getBrandId())
+                .name(product.getBrand())
+                .build();
+    }
 
     default PageResponse<ProductResponse> toPageResponse(Page<Product> page) {
         List<ProductResponse> list = page.getContent().stream()
