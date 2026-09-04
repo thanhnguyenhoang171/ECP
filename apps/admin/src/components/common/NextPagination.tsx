@@ -49,18 +49,33 @@ export const NextPagination = ({
   if (isLoading) {
     return (
       <div className={cn(
-        "flex flex-col md:flex-row items-center justify-between gap-4 px-5 py-3.5 bg-slate-100 border border-slate-300/80 shadow-md rounded-2xl transition-all",
+        "flex flex-col md:flex-row items-center justify-between gap-3.5 md:gap-4 px-4 sm:px-5 py-3.5 bg-slate-100 border border-slate-300/80 shadow-md rounded-2xl transition-all",
         className
       )}>
-        <Skeleton className="h-4 w-44 rounded-md" />
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-8 w-28 rounded-xl" />
-          <div className="flex gap-1.5">
-            <Skeleton className="h-8 w-8 rounded-xl" />
-            <Skeleton className="h-8 w-8 rounded-xl" />
-            <Skeleton className="h-8 w-8 rounded-xl" />
-            <Skeleton className="h-8 w-8 rounded-xl" />
+        {/* Mobile Top Skeleton */}
+        <div className="flex md:hidden items-center justify-between w-full border-b border-slate-200/60 pb-2.5">
+          <Skeleton className="h-6 w-12 rounded-xl" />
+          <div className="flex items-center gap-1.5">
+            <Skeleton className="h-4 w-10 rounded-md" />
+            <Skeleton className="h-8 w-[110px] rounded-xl" />
           </div>
+        </div>
+
+        {/* Desktop Left Skeleton */}
+        <div className="hidden md:flex items-center gap-4">
+          <Skeleton className="h-4 w-44 rounded-md" />
+          <div className="flex items-center gap-2 border-l pl-4 border-slate-200/80">
+            <Skeleton className="h-4 w-10 rounded-md" />
+            <Skeleton className="h-8 w-[115px] rounded-xl" />
+          </div>
+        </div>
+
+        {/* Right / Bottom Skeleton Pagination buttons */}
+        <div className="flex justify-center w-full md:w-auto gap-1.5">
+          <Skeleton className="h-8 w-8 rounded-xl" />
+          <Skeleton className="h-8 w-8 rounded-xl" />
+          <Skeleton className="h-8 w-8 rounded-xl" />
+          <Skeleton className="h-8 w-8 rounded-xl" />
         </div>
       </div>
     );
@@ -111,11 +126,41 @@ export const NextPagination = ({
 
   return (
     <div className={cn(
-      "flex flex-col md:flex-row items-center justify-between gap-4 px-5 py-3.5 bg-slate-100 border border-slate-300/80 shadow-md rounded-2xl transition-all",
+      "flex flex-col md:flex-row items-center justify-between gap-3.5 md:gap-4 px-4 sm:px-5 py-3.5 bg-slate-100 border border-slate-300/80 shadow-md rounded-2xl transition-all",
       className
     )}>
-      {/* Left side: Total items info */}
-      <div className="flex items-center gap-4">
+      {/* Mobile Top Section: Left (current/total page numbers) & Right (Items per page select) */}
+      <div className="flex md:hidden items-center justify-between w-full border-b border-slate-200/60 pb-2.5">
+        <div className="text-xs font-bold text-slate-800 font-mono bg-white px-2.5 py-1 rounded-xl border border-slate-200/90 shadow-2xs flex items-center gap-0.5">
+          <span>{currentPage}</span>
+          <span className="text-slate-400 font-normal mx-0.5">/</span>
+          <span>{totalPages}</span>
+        </div>
+
+        {onItemsPerPageChange && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-medium text-slate-500">Hiển thị:</span>
+            <Select 
+              value={String(itemsPerPage)}
+              onValueChange={(value) => onItemsPerPageChange(Number(value))}
+            >
+              <SelectTrigger className="h-8 w-[110px] text-[11px] font-semibold bg-white border border-slate-200/90 rounded-xl shadow-2xs text-slate-700 hover:border-blue-300 transition-all">
+                <SelectValue placeholder={`${itemsPerPage} / trang`} />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                {pageSizeOptions.map(option => (
+                  <SelectItem key={option} value={String(option)} className="text-[11px] font-bold rounded-lg">
+                    {option} / trang
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Left Section: Total items info & Page size select */}
+      <div className="hidden md:flex items-center gap-4">
         {showTotal && totalItems !== undefined && (
           <div className="text-[11px] font-medium italic whitespace-nowrap text-slate-500">
             Hiển thị <span className="font-bold text-slate-900">{actualStartItem}-{endItem}</span> trên <span className="font-bold text-slate-900">{totalItems}</span> bản ghi
@@ -145,8 +190,8 @@ export const NextPagination = ({
         )}
       </div>
       
-      {/* Right side: Pagination controls */}
-      <Pagination className="w-auto mx-0 justify-end">
+      {/* Bottom Section (Mobile) / Right Section (Desktop): Pagination controls */}
+      <Pagination className="w-full md:w-auto mx-0 justify-center md:justify-end overflow-x-auto">
         <PaginationContent className="gap-1.5">
           <PaginationItem>
             <PaginationLink

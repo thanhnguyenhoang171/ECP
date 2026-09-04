@@ -28,3 +28,13 @@ export const useActiveBrands = () => {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 };
+
+export const useBrand = (id: string) => {
+  return useQuery({
+    queryKey: ['brands', id],
+    queryFn: () => brandApi.getById(id),
+    enabled: Boolean(id),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+};
+
