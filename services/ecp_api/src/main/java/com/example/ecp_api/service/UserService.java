@@ -25,6 +25,8 @@ public interface UserService {
     UserResponse updateCurrentUserAccount(String email, UpdateMyAccountRequest request);
     UserResponse updateCurrentUserAvatar(String email, org.springframework.web.multipart.MultipartFile file);
     UserResponse deleteCurrentUserAvatar(String email);
+    UserResponse updateCurrentUserBanner(String email, org.springframework.web.multipart.MultipartFile file);
+    UserResponse deleteCurrentUserBanner(String email);
     void updateLastLogin(String identifier);
     UserStatisticsResponse getStatistics();
 }

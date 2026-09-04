@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ArrowLeft,
   Mail,
@@ -18,6 +19,8 @@ import {
   ChevronRight,
   Pencil,
   X,
+  Camera,
+  Trash2,
 } from 'lucide-react';
 
 const MarsIcon = ({ className }: { className?: string }) => (
@@ -273,7 +276,9 @@ function SpaciousDatePicker({ value, onChange, disabled }: SpaciousDatePickerPro
 export default function ProfileView({ initialData }: ProfileViewProps): React.ReactElement {
   const { user, isInitialized } = useAuthStore();
   const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [bannerUrl, setBannerUrl] = useState<string>('');
   const [isEditing, setIsEditing] = useState<boolean>(false);
+  const bannerInputRef = React.useRef<HTMLInputElement>(null);
 
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
@@ -349,6 +354,7 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
   const activePhone = user?.phoneNumber || user?.phone || initialData?.phone || '';
   const activeRole = getRoleLabel(user?.roles?.[0] || user?.role || initialData?.role);
   const activeAvatar = avatarUrl || user?.avatarUrl || '';
+  const activeBanner = bannerUrl || user?.bannerUrl || '';
   const activeDob = user?.dob || initialData?.dob || '';
   const activeGender = user?.gender || initialData?.gender || 'MALE';
   const isEmailVerified = user?.emailVerified ?? true;
@@ -375,6 +381,9 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
     if (user) {
       if (user.avatarUrl) {
         setAvatarUrl(user.avatarUrl);
+      }
+      if (user.bannerUrl) {
+        setBannerUrl(user.bannerUrl);
       }
       form.reset({
         fullName: activeFullName,
@@ -486,6 +495,96 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
     deleteAvatarMutate();
   };
 
+  const { mutate: uploadBannerMutate, isPending: isUploadingBanner } = useMutation({
+    mutationFn: authApi.uploadBanner,
+    onSuccess: (res) => {
+      toast.success(res?.message || 'Cập nhật ảnh nền thành công!');
+      if (res?.data) {
+        const updatedData = res.data;
+        if (updatedData.bannerUrl) {
+          setBannerUrl(updatedData.bannerUrl);
+        }
+        useAuthStore.setState((state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                ...updatedData,
+              }
+            : state.user,
+        }));
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'Cập nhật ảnh nền thất bại. Vui lòng thử lại.');
+      setBannerUrl(user?.bannerUrl || '');
+      useAuthStore.setState((state) => ({
+        user: state.user ? { ...state.user, bannerUrl: user?.bannerUrl || '' } : state.user,
+      }));
+    },
+  });
+
+  const { mutate: deleteBannerMutate, isPending: isDeletingBanner } = useMutation({
+    mutationFn: authApi.deleteBanner,
+    onSuccess: (res) => {
+      toast.success(res?.message || 'Đã gỡ ảnh nền.');
+      setBannerUrl('');
+      if (res?.data) {
+        const updatedData = res.data;
+        useAuthStore.setState((state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                ...updatedData,
+              }
+            : state.user,
+        }));
+      } else {
+        useAuthStore.setState((state) => ({
+          user: state.user ? { ...state.user, bannerUrl: null, bannerPublicId: null } : state.user,
+        }));
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'Gỡ ảnh nền thất bại. Vui lòng thử lại.');
+      setBannerUrl(user?.bannerUrl || '');
+      useAuthStore.setState((state) => ({
+        user: state.user ? { ...state.user, bannerUrl: user?.bannerUrl || '' } : state.user,
+      }));
+    },
+  });
+
+  const handleBannerFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Vui lòng chọn tập tin hình ảnh hợp lệ');
+      return;
+    }
+
+    // 0ms Optimistic UI preview
+    const blobUrl = URL.createObjectURL(file);
+    setBannerUrl(blobUrl);
+    useAuthStore.setState((state) => ({
+      user: state.user ? { ...state.user, bannerUrl: blobUrl } : state.user,
+    }));
+
+    uploadBannerMutate(file);
+
+    // Reset input value so same file can be re-selected if needed
+    e.target.value = '';
+  };
+
+  const handleRemoveBanner = () => {
+    // 0ms Optimistic UI removal
+    setBannerUrl('');
+    useAuthStore.setState((state) => ({
+      user: state.user ? { ...state.user, bannerUrl: null } : state.user,
+    }));
+
+    deleteBannerMutate();
+  };
+
   const handleCancelEdit = (): void => {
     form.reset({
       fullName: activeFullName,
@@ -569,18 +668,74 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
 
       {/* Enterprise Hero Banner Card */}
       <Card className="border border-slate-300/80 bg-slate-100/95 shadow-md overflow-hidden rounded-2xl p-0">
-        <div className="relative h-36 sm:h-44 bg-gradient-to-r from-slate-900 via-slate-800 to-blue-950 p-6 flex items-end overflow-hidden">
-          {/* Subtle Glow Overlay */}
-          <div className="absolute inset-0 bg-[radial-gradient(rgba(59,130,246,0.2)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
-          <div className="absolute -top-12 -right-12 w-64 h-64 bg-blue-600/25 rounded-full blur-3xl pointer-events-none" />
+        <input
+          type="file"
+          ref={bannerInputRef}
+          accept="image/*"
+          className="hidden"
+          onChange={handleBannerFileSelect}
+        />
+        <div className="relative h-36 sm:h-44 bg-gradient-to-r from-slate-900 via-slate-800 to-blue-950 p-6 flex items-end overflow-hidden group">
+          {activeBanner ? (
+            <Image
+              src={activeBanner}
+              alt="Profile Banner"
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              priority
+              unoptimized
+            />
+          ) : null}
+
+          {/* Gradient & Glow Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-black/20 pointer-events-none z-1" />
+          {!activeBanner && (
+            <>
+              <div className="absolute inset-0 bg-[radial-gradient(rgba(59,130,246,0.2)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
+              <div className="absolute -top-12 -right-12 w-64 h-64 bg-blue-600/25 rounded-full blur-3xl pointer-events-none" />
+            </>
+          )}
+
+          {/* Top Right Action Controls for Banner */}
+          <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+            {activeBanner && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleRemoveBanner}
+                disabled={isUploadingBanner || isDeletingBanner}
+                className="h-8 px-2.5 text-xs font-bold bg-black/40 hover:bg-rose-600 text-white backdrop-blur-md border border-white/20 rounded-xl shadow-xs transition-colors cursor-pointer"
+                title="Gỡ ảnh nền"
+              >
+                <Trash2 className="w-3.5 h-3.5 sm:mr-1.5" />
+                <span className="hidden sm:inline">Gỡ ảnh nền</span>
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => bannerInputRef.current?.click()}
+              disabled={isUploadingBanner || isDeletingBanner}
+              className="h-8 px-2.5 text-xs font-bold bg-black/40 hover:bg-black/70 text-white backdrop-blur-md border border-white/20 rounded-xl shadow-xs transition-colors cursor-pointer"
+            >
+              {isUploadingBanner ? (
+                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Camera className="w-3.5 h-3.5 mr-1.5" />
+              )}
+              <span>{activeBanner ? 'Đổi ảnh nền' : 'Tải ảnh nền'}</span>
+            </Button>
+          </div>
         </div>
 
         {/* User Identity Info Row */}
-        <div className="px-6 sm:px-8 pb-6 pt-0 relative">
+        <div className="px-6 sm:px-8 pb-6 pt-0 relative z-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 -mt-14 sm:-mt-16">
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 text-center sm:text-left">
               {/* Floating Avatar Circle */}
-              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full ring-4 ring-white shadow-xl overflow-hidden bg-white shrink-0 relative">
+              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full ring-4 ring-white shadow-xl overflow-hidden bg-white shrink-0 relative z-20">
                 {isDataLoading ? (
                   <Skeleton className="w-full h-full rounded-full" />
                 ) : (

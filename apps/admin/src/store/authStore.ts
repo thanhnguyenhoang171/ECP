@@ -15,6 +15,8 @@ interface User {
   phoneNumber?: string | null;
   avatarUrl?: string | null;
   avatarPublicId?: string | null;
+  bannerUrl?: string | null;
+  bannerPublicId?: string | null;
   dob?: string | null;
   gender?: string | null;
   createdAt?: string;
