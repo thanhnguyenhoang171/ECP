@@ -95,6 +95,7 @@ import { cn } from '@/lib/utils';
 import { profileSchema, ProfileFormValues } from '@/features/profile/schemas/profile.schema';
 import { useAuthStore } from '@/store/authStore';
 import { authApi } from '@/features/auth/api/auth.api';
+import { fileApi } from '@/features/files/api/file.api';
 import { UpdateUserAccountPayload } from '@/features/auth/types/auth.interface';
 
 interface ProfileViewProps {
@@ -496,7 +497,18 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
   };
 
   const { mutate: uploadBannerMutate, isPending: isUploadingBanner } = useMutation({
-    mutationFn: authApi.uploadBanner,
+    mutationFn: async (file: File) => {
+      // Direct Cloudinary Upload via Signed Signature (bypasses app server)
+      const uploaded = await fileApi.uploadWithSignature(file, 'banners');
+
+      // Update user account with newly uploaded banner URL & public ID
+      const res = await authApi.updateAccountInfo({
+        bannerUrl: uploaded.secure_url,
+        bannerPublicId: uploaded.public_id,
+      });
+
+      return res;
+    },
     onSuccess: (res) => {
       toast.success(res?.message || 'Cập nhật ảnh nền thành công!');
       if (res?.data) {

@@ -11,7 +11,69 @@ export interface CloudinaryFile {
   original_filename?: string;
 }
 
+export interface UploadSignatureResponse {
+  signature: string;
+  timestamp: number;
+  apiKey: string;
+  cloudName: string;
+  folder?: string;
+}
+
 export const fileApi = {
+  /**
+   * Fetch upload signature for direct Cloudinary upload from browser
+   */
+  getSignature: async (folder?: string): Promise<ApiResponse<UploadSignatureResponse>> => {
+    const query = folder ? `?folder=${encodeURIComponent(folder)}` : '';
+    const res = await clientFetch(`v1/files/signature${query}`);
+    if (!res.ok) {
+      throw new Error('Failed to generate upload signature');
+    }
+    return res.json();
+  },
+
+  /**
+   * Upload file directly to Cloudinary using signed signature (bypasses application server)
+   */
+  uploadWithSignature: async (file: File, folder: string = 'banners'): Promise<CloudinaryFile> => {
+    const sigRes = await fileApi.getSignature(folder);
+    if (!sigRes.success || !sigRes.data) {
+      throw new Error('Failed to get Cloudinary signature');
+    }
+
+    const { signature, timestamp, apiKey, cloudName, folder: serverFolder } = sigRes.data;
+    const targetFolder = serverFolder || folder;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('api_key', apiKey);
+    formData.append('timestamp', timestamp.toString());
+    formData.append('signature', signature);
+    if (targetFolder) {
+      formData.append('folder', targetFolder);
+    }
+
+    const cloudUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+    const response = await fetch(cloudUrl, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => null);
+      throw new Error(errData?.error?.message || 'Direct Cloudinary upload failed');
+    }
+
+    const result = await response.json();
+    return {
+      public_id: result.public_id,
+      secure_url: result.secure_url,
+      url: result.url || result.secure_url,
+      format: result.format,
+      bytes: result.bytes,
+    };
+  },
+
   /**
    * Upload single file to Cloudinary
    * @param file File object to upload

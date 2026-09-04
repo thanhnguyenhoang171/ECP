@@ -166,6 +166,10 @@ public interface UserMapper {
     @Mapping(target = "profile.firstName", source = "firstName")
     @Mapping(target = "profile.lastName", source = "lastName")
     @Mapping(target = "profile.phoneNumber", source = "phoneNumber")
+    @Mapping(target = "profile.avatarUrl", source = "avatarUrl")
+    @Mapping(target = "profile.avatarPublicId", source = "avatarPublicId")
+    @Mapping(target = "profile.bannerUrl", source = "bannerUrl")
+    @Mapping(target = "profile.bannerPublicId", source = "bannerPublicId")
     @Mapping(target = "profile.dob", source = "dob")
     @Mapping(target = "profile.gender", source = "gender")
     void updateUserFromAccountRequest(UpdateMyAccountRequest request, @MappingTarget User user);
