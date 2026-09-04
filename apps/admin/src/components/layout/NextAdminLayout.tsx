@@ -313,10 +313,13 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
     return (
       <div className="flex flex-col h-full bg-slate-900">
         <div className={cn(
-          "h-16 flex items-center px-6 border-b border-slate-800 shrink-0",
-          !isSidebarCollapsed || mobile ? "justify-start" : "justify-center"
+          "h-16 flex items-center border-b border-slate-800 shrink-0 transition-all duration-300",
+          !isSidebarCollapsed || mobile ? "justify-start px-6" : "justify-center px-0"
         )}>
-          <div className="relative h-9 w-9 mr-3 shrink-0 overflow-hidden rounded-lg border border-slate-700">
+          <div className={cn(
+            "relative h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-slate-700",
+            (!isSidebarCollapsed || mobile) && "mr-3"
+          )}>
             <Image 
               src="/logo/z7862984783113_196fdab6026e07fc4a13a745f502233b.jpg" 
               alt="Logo" 

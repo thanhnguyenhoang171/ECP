@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { brandSchema, BrandFormValues } from '../schemas/brand.schema';
 import { useCreateBrand, useUpdateBrand } from '../hooks/use-brand-mutation';
 import { Brand } from '../types/brand.interface';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Form,
   FormControl,
@@ -31,9 +32,10 @@ interface BrandFormProps {
   id?: string;
   onSuccess: () => void;
   isDialog?: boolean;
+  isLoadingData?: boolean;
 }
 
-export default function BrandForm({ initialData, id, onSuccess, isDialog = false }: BrandFormProps) {
+export default function BrandForm({ initialData, id, onSuccess, isDialog = false, isLoadingData = false }: BrandFormProps) {
   const createMutation = useCreateBrand();
   const updateMutation = useUpdateBrand();
   const isSlugEditedRef = useRef(false);
@@ -52,6 +54,19 @@ export default function BrandForm({ initialData, id, onSuccess, isDialog = false
       active: initialData?.active ?? true,
     },
   });
+
+  useEffect(() => {
+    if (initialData) {
+      form.reset({
+        name: initialData.name || '',
+        slug: initialData.slug || '',
+        logo: initialData.logo || '',
+        description: initialData.description || '',
+        website: initialData.website || '',
+        active: initialData.active ?? true,
+      });
+    }
+  }, [initialData, form]);
 
   const nameValue = useWatch({ control: form.control, name: 'name' });
   const isLoading = createMutation.isPending || updateMutation.isPending;
@@ -91,17 +106,21 @@ export default function BrandForm({ initialData, id, onSuccess, isDialog = false
                     <FormItem className="col-span-2">
                       <AdminFormLabel required>Tên thương hiệu</AdminFormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="Ví dụ: ChaTraMue, Bento, Lay's Thailand, Koh-Kae..."
-                          {...field}
-                          className="h-11 border-slate-200 focus:border-blue-500"
-                          onChange={(e) => {
-                            field.onChange(e);
-                            if (!isSlugEditedRef.current) {
-                              form.setValue('slug', convertToSlug(e.target.value), { shouldValidate: true });
-                            }
-                          }}
-                        />
+                        {isLoadingData ? (
+                          <Skeleton className="h-11 w-full rounded-xl" />
+                        ) : (
+                          <Input
+                            placeholder="Ví dụ: ChaTraMue, Bento, Lay's Thailand, Koh-Kae..."
+                            {...field}
+                            className="h-11 border-slate-200 focus:border-blue-500"
+                            onChange={(e) => {
+                              field.onChange(e);
+                              if (!isSlugEditedRef.current) {
+                                form.setValue('slug', convertToSlug(e.target.value), { shouldValidate: true });
+                              }
+                            }}
+                          />
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -115,33 +134,39 @@ export default function BrandForm({ initialData, id, onSuccess, isDialog = false
                     <FormItem className="col-span-2">
                       <div className="flex items-center justify-between">
                         <AdminFormLabel>Đường dẫn (Slug)</AdminFormLabel>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="h-auto p-0 text-[10px] text-blue-600 font-bold"
-                          onClick={() => {
-                            isSlugEditedRef.current = false;
-                            form.setValue('slug', convertToSlug(nameValue || ''), { shouldValidate: true });
-                          }}
-                        >
-                          Sinh tự động
-                        </Button>
+                        {!isLoadingData && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="h-auto p-0 text-[10px] text-blue-600 font-bold"
+                            onClick={() => {
+                              isSlugEditedRef.current = false;
+                              form.setValue('slug', convertToSlug(nameValue || ''), { shouldValidate: true });
+                            }}
+                          >
+                            Sinh tự động
+                          </Button>
+                        )}
                       </div>
                       <FormControl>
-                        <div className="relative group">
-                          <Input 
-                            placeholder="chatramue" 
-                            {...field} 
-                            className="h-11 bg-slate-50/50 font-mono text-xs pr-16 border-slate-200" 
-                            onChange={(e) => {
-                              isSlugEditedRef.current = true;
-                              field.onChange(e);
-                            }}
-                          />
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded tracking-wider">
-                            {isSlugEditedRef.current ? 'CUSTOM' : 'AUTO'}
+                        {isLoadingData ? (
+                          <Skeleton className="h-11 w-full rounded-xl" />
+                        ) : (
+                          <div className="relative group">
+                            <Input 
+                              placeholder="chatramue" 
+                              {...field} 
+                              className="h-11 bg-slate-50/50 font-mono text-xs pr-16 border-slate-200" 
+                              onChange={(e) => {
+                                isSlugEditedRef.current = true;
+                                field.onChange(e);
+                              }}
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded tracking-wider">
+                              {isSlugEditedRef.current ? 'CUSTOM' : 'AUTO'}
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -155,7 +180,11 @@ export default function BrandForm({ initialData, id, onSuccess, isDialog = false
                     <FormItem className="col-span-2">
                       <AdminFormLabel>Website chính thức</AdminFormLabel>
                       <FormControl>
-                        <Input placeholder="https://www.chatramue.com" {...field} className="h-11 border-slate-200" />
+                        {isLoadingData ? (
+                          <Skeleton className="h-11 w-full rounded-xl" />
+                        ) : (
+                          <Input placeholder="https://www.cacaoshop.com" {...field} className="h-11 border-slate-200" />
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -169,11 +198,15 @@ export default function BrandForm({ initialData, id, onSuccess, isDialog = false
                     <FormItem className="col-span-2">
                       <AdminFormLabel>Mô tả thương hiệu</AdminFormLabel>
                       <FormControl>
-                        <textarea
-                          placeholder="Nhập giới thiệu tóm tắt về thương hiệu..."
-                          className="flex min-h-[120px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 transition-all focus-visible:border-blue-500"
-                          {...field}
-                        />
+                        {isLoadingData ? (
+                          <Skeleton className="h-[120px] w-full rounded-xl" />
+                        ) : (
+                          <textarea
+                            placeholder="Nhập giới thiệu tóm tắt về thương hiệu..."
+                            className="flex min-h-[120px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 transition-all focus-visible:border-blue-500"
+                            {...field}
+                          />
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -192,15 +225,19 @@ export default function BrandForm({ initialData, id, onSuccess, isDialog = false
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <ImageUpload 
-                        value={field.value} 
-                        onChange={field.onChange}
-                        onUploadingChange={setIsImageUploading}
-                        folder="brands"
-                        reqWidth={128}
-                        reqHeight={128}
-                        className="w-full aspect-square max-w-[200px] mx-auto"
-                      />
+                      {isLoadingData ? (
+                        <Skeleton className="w-full aspect-square max-w-[200px] mx-auto rounded-2xl" />
+                      ) : (
+                        <ImageUpload 
+                          value={field.value} 
+                          onChange={field.onChange}
+                          onUploadingChange={setIsImageUploading}
+                          folder="brands"
+                          reqWidth={128}
+                          reqHeight={128}
+                          className="w-full aspect-square max-w-[200px] mx-auto"
+                        />
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>

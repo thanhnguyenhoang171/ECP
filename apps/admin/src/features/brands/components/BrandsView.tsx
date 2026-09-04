@@ -27,7 +27,6 @@ import {
   DeleteConfirmDialog,
 } from '@/components/common/view-control';
 import { Label } from '@/components/ui/label';
-import { BrandDetailDialog } from './BrandDetailDialog';
 
 import { Brand } from '../types/brand.interface';
 import { PageResponse } from '@/types/pagination';
@@ -80,21 +79,18 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
   const [searchTerm, setSearchTerm] = useDebounceSearch(name, (val) => updateUrl({ name: val, page: 1 }));
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // State Dialogs
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
-  const [viewingBrand, setViewingBrand] = useState<Brand | null>(null);
-
-  const handleCreate = useCallback(() => setIsCreateOpen(true), []);
+  const handleCreate = useCallback(() => {
+    router.push('/brands/create');
+  }, [router]);
   useHotkeys('+', handleCreate);
 
   const handleEdit = useCallback((brand: Brand) => {
-    setEditingBrand(brand);
-  }, []);
+    router.push(`/brands/${brand.id}/edit`);
+  }, [router]);
 
   const handleViewDetail = useCallback((brand: Brand) => {
-    setViewingBrand(brand);
-  }, []);
+    router.push(`/brands/${brand.id}`);
+  }, [router]);
 
   const handleDelete = useCallback((id: string) => {
     setDeleteConfirmId(id);
@@ -203,7 +199,7 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
         </div>
       ),
       cell: (brand) => (
-        <div className="flex justify-end gap-1">
+        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           <ViewActionButton onClick={() => handleViewDetail(brand)} disabled={isFetching} />
           <EditActionButton onClick={() => handleEdit(brand)} disabled={isFetching} />
           <DeleteActionButton onClick={() => handleDelete(brand.id)} disabled={isFetching} />
@@ -213,8 +209,7 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
   ], [handleDelete, handleEdit, handleViewDetail, isFetching]);
 
   const breadcrumbs = [
-    { label: 'Trang chủ', href: '/' },
-    { label: 'Thương hiệu', active: true },
+    { label: 'Thương hiệu', icon: Tag, active: true },
   ];
 
   return (
@@ -321,13 +316,6 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
           }}
         />
       </DataCard>
-
-      {/* Brand Detail Modal */}
-      <BrandDetailDialog
-        isOpen={!!viewingBrand}
-        onOpenChange={(open) => !open && setViewingBrand(null)}
-        brand={viewingBrand}
-      />
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog

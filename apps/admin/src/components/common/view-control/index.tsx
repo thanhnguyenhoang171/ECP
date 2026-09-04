@@ -122,11 +122,20 @@ export const SortPopover = ({ options, currentValue, onSelect, disabled }: { opt
 };
 
 // 4. Row Actions (Table)
-export const EditActionButton = ({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) => (
+export const EditActionButton = ({ onClick, disabled }: { onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void; disabled?: boolean }) => (
   <TooltipProvider>
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" onClick={onClick} className="h-8 w-8 text-slate-500 hover:text-blue-600 hover:bg-blue-100/70 rounded-lg transition-transform hover:scale-105" disabled={disabled}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick?.(e);
+          }}
+          className="h-8 w-8 text-slate-500 hover:text-blue-600 hover:bg-blue-100/70 rounded-lg transition-transform hover:scale-105"
+          disabled={disabled}
+        >
           <Edit className="h-4 w-4" />
         </Button>
       </TooltipTrigger>
@@ -135,11 +144,20 @@ export const EditActionButton = ({ onClick, disabled }: { onClick: () => void; d
   </TooltipProvider>
 );
 
-export const DeleteActionButton = ({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) => (
+export const DeleteActionButton = ({ onClick, disabled }: { onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void; disabled?: boolean }) => (
   <TooltipProvider>
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" onClick={onClick} className="h-8 w-8 text-slate-500 hover:text-rose-600 hover:bg-rose-100/70 rounded-lg transition-transform hover:scale-105" disabled={disabled}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick?.(e);
+          }}
+          className="h-8 w-8 text-slate-500 hover:text-rose-600 hover:bg-rose-100/70 rounded-lg transition-transform hover:scale-105"
+          disabled={disabled}
+        >
           <Trash2 className="h-4 w-4" />
         </Button>
       </TooltipTrigger>
@@ -148,11 +166,20 @@ export const DeleteActionButton = ({ onClick, disabled }: { onClick: () => void;
   </TooltipProvider>
 );
 
-export const ViewActionButton = ({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) => (
+export const ViewActionButton = ({ onClick, disabled }: { onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void; disabled?: boolean }) => (
   <TooltipProvider>
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" onClick={onClick} className="h-8 w-8 text-slate-500 hover:text-blue-600 hover:bg-blue-100/70 rounded-lg transition-transform hover:scale-105" disabled={disabled}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick?.(e);
+          }}
+          className="h-8 w-8 text-slate-500 hover:text-blue-600 hover:bg-blue-100/70 rounded-lg transition-transform hover:scale-105"
+          disabled={disabled}
+        >
           <Eye className="h-4 w-4" />
         </Button>
       </TooltipTrigger>
