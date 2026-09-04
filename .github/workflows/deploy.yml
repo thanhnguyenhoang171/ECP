@@ -6,15 +6,18 @@ on:
   pull_request:
     branches: [main, dev]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io
 
 jobs:
   # ==========================================
-  # JOB 1: KIỂM TRA CHẤT LƯỢNG CODE & BUILD (CHẠY CHO PR VÀ NHÁNH DEV)
+  # JOB 1: KIỂM TRA CHẤT LƯỢNG CODE & BUILD
   # ==========================================
   build-and-test:
-    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/dev')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -48,10 +51,86 @@ jobs:
         run: pnpm turbo build
 
   # ==========================================
-  # JOB 2: BUILD DOCKER & PUSH LÊN GHCR (CHẠY TRỰC TIẾP KHI PUSH MAIN)
+  # JOB 2: PHÁT HIỆN THAY ĐỔI (PATH FILTERING)
+  # ==========================================
+  filter:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      has_changes: ${{ steps.set-matrix.outputs.has_changes }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check paths filter
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            admin:
+              - 'apps/admin/**'
+            storefront:
+              - 'apps/storefront/**'
+            api:
+              - 'services/ecp_api/**'
+            shared:
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'turbo.json'
+              - 'docker-compose.yml'
+              - '.github/workflows/deploy.yml'
+
+      - name: Build dynamic matrix
+        id: set-matrix
+        run: |
+          node -e '
+          const fs = require("fs");
+          const admin = "${{ steps.filter.outputs.admin }}" === "true";
+          const storefront = "${{ steps.filter.outputs.storefront }}" === "true";
+          const api = "${{ steps.filter.outputs.api }}" === "true";
+          const shared = "${{ steps.filter.outputs.shared }}" === "true";
+
+          const buildAll = shared || (!admin && !storefront && !api);
+          const matrix = [];
+
+          if (admin || buildAll) {
+            matrix.push({
+              name: "admin",
+              context: ".",
+              dockerfile: "./apps/admin/Dockerfile",
+              image: "ghcr.io/${{ github.repository }}/ecp-admin"
+            });
+          }
+          if (storefront || buildAll) {
+            matrix.push({
+              name: "storefront",
+              context: ".",
+              dockerfile: "./apps/storefront/Dockerfile",
+              image: "ghcr.io/${{ github.repository }}/ecp-storefront"
+            });
+          }
+          if (api || buildAll) {
+            matrix.push({
+              name: "api",
+              context: "./services/ecp_api",
+              dockerfile: "./services/ecp_api/Dockerfile",
+              image: "ghcr.io/${{ github.repository }}/ecp-api"
+            });
+          }
+
+          console.log("Services to build:", matrix.map(m => m.name));
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, "matrix=" + JSON.stringify({ include: matrix }) + "\n");
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, "has_changes=" + (matrix.length > 0 ? "true" : "false") + "\n");
+          '
+
+  # ==========================================
+  # JOB 3: BUILD DOCKER & PUSH LÊN GHCR
   # ==========================================
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build-and-test, filter]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.filter.outputs.has_changes == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -59,20 +138,7 @@ jobs:
 
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - name: admin
-            context: .
-            dockerfile: ./apps/admin/Dockerfile
-            image: ghcr.io/${{ github.repository }}/ecp-admin
-          - name: storefront
-            context: .
-            dockerfile: ./apps/storefront/Dockerfile
-            image: ghcr.io/${{ github.repository }}/ecp-storefront
-          - name: api
-            context: ./services/ecp_api
-            dockerfile: ./services/ecp_api/Dockerfile
-            image: ghcr.io/${{ github.repository }}/ecp-api
+      matrix: ${{ fromJson(needs.filter.outputs.matrix) }}
 
     steps:
       - name: Checkout code
@@ -117,20 +183,29 @@ jobs:
             NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
 
   # ==========================================
-  # JOB 3: DEPLOY TRỰC TIẾP VỀ LAPTOP ASUS
+  # JOB 4: DEPLOY TRỰC TIẾP VỀ LAPTOP ASUS
   # ==========================================
   deploy-to-laptop:
-    needs: deploy
+    needs: [deploy]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Cache Cloudflared package
+        id: cache-cloudflared
+        uses: actions/cache@v4
+        with:
+          path: cloudflared.deb
+          key: cloudflared-deb-v1
+
+      - name: Download Cloudflared
+        if: steps.cache-cloudflared.outputs.cache-hit != 'true'
+        run: curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+
       - name: Install Cloudflared
-        run: |
-          curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-          sudo dpkg -i cloudflared.deb
+        run: sudo dpkg -i cloudflared.deb
 
       - name: Generate .env file securely
         env:
@@ -209,7 +284,7 @@ jobs:
           # 3. Copy file docker-compose.yml và .env an toàn lên server
           scp docker-compose.yml .env asus-server:~/ECP/
 
-          # 4. Chạy lệnh deploy từ xa qua SSH
+          # 4. Chạy lệnh deploy từ xa qua SSH & Health Check
           ssh asus-server 'bash -s' << 'ENDSSH'
           set -e
           cd ~/ECP
@@ -220,9 +295,33 @@ jobs:
           # 1. Kéo các image mới nhất về
           docker compose pull
 
-          # 2. Tạo lại các Container có thay đổi (hạn chế restart không cần thiết)
+          # 2. Tạo lại các Container có thay đổi
           docker compose up -d --remove-orphans
 
-          # 3. Dọn dẹp các Image cũ bị treo/dangling
+          # 3. Kiểm tra trạng thái sức khỏe container (Health check)
+          echo "Đang kiểm tra tính sẵn sàng của các container..."
+          sleep 5
+          for i in {1..30}; do
+            # Kiểm tra xem có container nào bị crash/exited hoặc restarting không
+            CRASHED=$(docker compose ps --format '{{.Name}}: {{.Status}}' | grep -iE 'exit|restarting' || true)
+            if [ -n "$CRASHED" ]; then
+              echo "Phát hiện container bị lỗi khởi động:"
+              echo "$CRASHED"
+              docker compose logs --tail=50
+              exit 1
+            fi
+
+            # Kiểm tra backend API đã bắt đầu lắng nghe trên port 9091 chưa
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9091/ || true)
+            if [ "$HTTP_CODE" != "000" ]; then
+              echo "Backend API và các container đã hoạt động bình thường (HTTP $HTTP_CODE)!"
+              break
+            fi
+
+            echo "Đang đợi dịch vụ khởi động hoàn tất (lần $i/30)..."
+            sleep 3
+          done
+
+          # 4. Dọn dẹp các Image cũ bị treo/dangling
           docker image prune -f
           ENDSSH
