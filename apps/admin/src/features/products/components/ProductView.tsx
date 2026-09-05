@@ -19,6 +19,7 @@ import {
   type ColumnDef,
   DataCard,
   Breadcrumbs,
+  Forbidden,
 } from '@/components/common';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -75,7 +76,7 @@ export default function ProductView({
   const categoryIdParam = searchParams.get('categoryId') || '';
   const isPublishedParam = searchParams.get('isPublished');
 
-  const { data: queryData, isFetching, isLoading } = useProducts(
+  const { data: queryData, isFetching, isLoading, error } = useProducts(
     {
       page,
       size,
@@ -346,6 +347,23 @@ export default function ProductView({
     );
 
   const breadcrumbItems = [{ label: 'Sản phẩm', icon: Package }];
+
+  const isForbidden =
+    (error as unknown as { status?: number })?.status === 403 ||
+    (error as Error)?.message?.includes('403') ||
+    (error as Error)?.message?.toLowerCase().includes('forbidden');
+
+  if (isForbidden) {
+    return (
+      <div className="space-y-6 pb-12">
+        <Breadcrumbs items={breadcrumbItems} />
+        <Forbidden
+          title="Không có quyền xem Sản phẩm"
+          description="Tài khoản của bạn chưa được cấp quyền xem danh mục sản phẩm (product:read). Vui lòng liên hệ với Quản trị viên để được phân quyền."
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12">

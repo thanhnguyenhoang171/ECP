@@ -79,19 +79,27 @@ public interface UserMapper {
     @Mapping(target = "gender", source = "profile.gender")
 //    @Mapping(target = "loyaltyPoints", source = "profile.loyaltyPoints")
 //    @Mapping(target = "membershipTier", source = "profile.membershipTier")
-    @Mapping(target = "createdBy", source = "createdBy.email")
-    @Mapping(target = "updatedBy", source = "updatedBy.email")
+    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "isEmailVerified", source = "emailVerified")
     @Mapping(target = "isPhoneVerified", source = "phoneVerified")
+    @Mapping(target = "lastLoginAt", source = "lastLoginAt")
+    @Mapping(target = "isOnline", ignore = true)
     @Mapping(target = "roles", ignore = true)
     UserResponse toResponse(User user);
 
     @org.mapstruct.AfterMapping
-    default void mapRoles(User user, @org.mapstruct.MappingTarget UserResponse userResponse) {
+    default void mapRolesAndAudit(User user, @org.mapstruct.MappingTarget UserResponse userResponse) {
         if (user.getRoles() != null) {
             userResponse.setRoles(user.getRoles().stream()
                     .map(com.example.ecp_api.entity.jpa.Role::getCode)
                     .collect(java.util.stream.Collectors.toSet()));
+        }
+        if (user.getCreatedBy() != null && org.hibernate.Hibernate.isInitialized(user.getCreatedBy())) {
+            userResponse.setCreatedBy(user.getCreatedBy().getEmail());
+        }
+        if (user.getUpdatedBy() != null && org.hibernate.Hibernate.isInitialized(user.getUpdatedBy())) {
+            userResponse.setUpdatedBy(user.getUpdatedBy().getEmail());
         }
     }
 

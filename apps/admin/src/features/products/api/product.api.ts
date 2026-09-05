@@ -199,6 +199,11 @@ export const productApi = {
 
     const res = await clientFetch(`v1/products?${query.toString()}`);
     if (!res.ok) {
+      if (res.status === 403) {
+        const forbiddenErr = new Error('403_FORBIDDEN');
+        (forbiddenErr as unknown as { status: number }).status = 403;
+        throw forbiddenErr;
+      }
       return {
         success: false,
         data: [],
@@ -209,8 +214,8 @@ export const productApi = {
           pageSize: params.size,
           last: true,
           first: true,
-        }
-      } as any;
+        },
+      } as unknown as import('@/types/pagination').PageResponse<Product>;
     }
     const result = await res.json();
     return result;

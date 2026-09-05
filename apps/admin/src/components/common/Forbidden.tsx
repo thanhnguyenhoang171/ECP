@@ -1,55 +1,53 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ShieldAlert, ArrowLeft, Loader2 } from 'lucide-react';
+import React from 'react';
+import { useRouter } from 'next/navigation';
+import { ShieldAlert, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/store/authStore';
-import { authApi } from '@/features/auth/api/auth.api';
 
-export default function Forbidden() {
-  const { clearAuth, accessToken } = useAuthStore();
-  const [isLoading, setIsLoading] = useState(false);
+interface ForbiddenProps {
+  readonly title?: string;
+  readonly description?: string;
+}
 
-  const handleBackToLogin = async () => {
-    setIsLoading(true);
-    try {
-      await authApi.logout(accessToken || undefined);
-    } catch (error) {
-      console.error('[Forbidden] Lỗi đăng xuất:', error);
-    } finally {
-      clearAuth();
-      window.location.href = '/login';
-    }
-  };
+export default function Forbidden({
+  title = 'Truy cập bị từ chối',
+  description = 'Bạn không có quyền truy cập vào trang này hoặc thực hiện tác vụ này. Vui lòng liên hệ với Quản trị viên để được cấp quyền.',
+}: ForbiddenProps): React.JSX.Element {
+  const router = useRouter();
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-      <div className="bg-destructive/10 p-6 rounded-full mb-6">
-        <ShieldAlert className="h-16 w-16 text-destructive" />
+      <div className="bg-rose-50 border border-rose-100 p-6 rounded-3xl mb-6 shadow-2xs">
+        <ShieldAlert className="h-16 w-16 text-rose-500" />
       </div>
       
-      <h1 className="text-4xl font-bold tracking-tight mb-2">Truy cập bị từ chối</h1>
-      <p className="text-muted-foreground text-lg mb-8 max-w-md">
-        Bạn không có quyền truy cập vào trang này. Vui lòng liên hệ với quản trị viên nếu bạn cho rằng đây là một lỗi.
+      <h1 className="text-3xl font-black tracking-tight text-slate-900 mb-2">{title}</h1>
+      <p className="text-slate-500 text-sm mb-8 max-w-md leading-relaxed">
+        {description}
       </p>
       
-      <div className="flex justify-center">
+      <div className="flex flex-wrap items-center justify-center gap-3">
         <Button 
           variant="outline" 
-          onClick={handleBackToLogin}
-          disabled={isLoading}
-          className="flex items-center gap-2 font-bold px-6 py-2.5 shadow-sm hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors"
+          onClick={() => router.back()}
+          className="flex items-center gap-2 font-bold text-xs h-10 px-5 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 transition-all cursor-pointer shadow-2xs"
         >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <ArrowLeft className="h-4 w-4" />
-          )}
-          <span>Quay lại trang đăng nhập</span>
+          <ArrowLeft className="h-4 w-4" />
+          <span>Quay lại trang trước</span>
+        </Button>
+
+        <Button 
+          onClick={() => router.push('/dashboard')}
+          className="flex items-center gap-2 font-bold text-xs h-10 px-5 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all cursor-pointer shadow-2xs"
+        >
+          <LayoutDashboard className="h-4 w-4" />
+          <span>Về Bảng điều khiển</span>
         </Button>
       </div>
     </div>
   );
 }
+
 
 

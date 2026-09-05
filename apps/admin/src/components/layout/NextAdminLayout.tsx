@@ -90,6 +90,7 @@ const menuItems: MenuItem[] = [
     label: 'Hệ thống',
     icon: Settings,
     children: [
+      { key: '/roles', label: 'Vai trò & Phân quyền', icon: ShieldCheck },
       { key: '/audit-logs', label: 'Nhật ký kiểm toán', icon: ShieldCheck },
     ],
   },

@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -38,9 +39,10 @@ interface UserFormProps {
   initialData?: User | null;
   userId?: string;
   isDialog?: boolean;
+  isLoadingData?: boolean;
 }
 
-export default function UserForm({ onSuccess, onCancel, initialData, userId, isDialog = false }: UserFormProps) {
+export default function UserForm({ onSuccess, onCancel, initialData, userId, isDialog = false, isLoadingData = false }: UserFormProps) {
   const { user: currentUser } = useAuthStore();
   const operatorRole = currentUser?.role || (currentUser?.roles && currentUser.roles[0]) || '';
   const isSuperAdmin = operatorRole === 'SUPER_ADMIN' || operatorRole === 'ROLE_SUPER_ADMIN';
@@ -209,12 +211,16 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                     <FormItem className="space-y-1.5">
                       <AdminFormLabel required>Họ và tên</AdminFormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Nhập họ và tên đầy đủ..." 
-                          disabled={isLoading} 
-                          className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
-                          {...field} 
-                        />
+                        {isLoadingData ? (
+                          <Skeleton className="h-11 w-full rounded-xl" />
+                        ) : (
+                          <Input 
+                            placeholder="Nhập họ và tên đầy đủ..." 
+                            disabled={isLoading} 
+                            className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
+                            {...field} 
+                          />
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -229,13 +235,17 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                     <FormItem className="space-y-1.5">
                       <AdminFormLabel required>Email đăng nhập</AdminFormLabel>
                       <FormControl>
-                        <Input 
-                          type="email"
-                          placeholder="Nhập địa chỉ email..." 
-                          disabled={isLoading} 
-                          className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
-                          {...field} 
-                        />
+                        {isLoadingData ? (
+                          <Skeleton className="h-11 w-full rounded-xl" />
+                        ) : (
+                          <Input 
+                            type="email"
+                            placeholder="Nhập địa chỉ email..." 
+                            disabled={isLoading} 
+                            className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
+                            {...field} 
+                          />
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -250,12 +260,16 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                     <FormItem className="space-y-1.5 md:col-span-2">
                       <AdminFormLabel required>Số điện thoại</AdminFormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Nhập số điện thoại liên hệ (vd: 0912345678)..." 
-                          disabled={isLoading} 
-                          className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-mono text-sm" 
-                          {...field} 
-                        />
+                        {isLoadingData ? (
+                          <Skeleton className="h-11 w-full rounded-xl" />
+                        ) : (
+                          <Input 
+                            placeholder="Nhập số điện thoại liên hệ (vd: 0912345678)..." 
+                            disabled={isLoading} 
+                            className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-mono text-sm" 
+                            {...field} 
+                          />
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>

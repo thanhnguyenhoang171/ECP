@@ -71,7 +71,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
   const [activeTab, setActiveTab] = useState<'staff' | 'customers'>('staff');
 
   // React Query fetch số liệu thống kê thực tế từ API Backend (/v1/users/statistics)
-  const defaultStats: UserStatistics = { totalUsers: 0, onlineUsers: 0, offlineUsers: 0, managementUsers: 0, customerUsers: 0 };
+  const defaultStats: UserStatistics = { totalUsers: 0, onlineUsers: 0, offlineUsers: 0, managementUsers: 0, customerUsers: 0, activeUsers: 0, inactiveUsers: 0 };
   const { data: statsData } = useUserStatistics(initialStats);
   const stats = statsData || initialStats || defaultStats;
 
@@ -230,7 +230,13 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
     }, 800);
   }, []);
 
-  const getRoleMeta = (role: User['role']) => ROLE_OPTIONS.find((r) => r.value === role);
+  const getRoleMeta = (role: User['role'] | string) => {
+    const cleanRole = (role || '').toUpperCase().replace(/^ROLE_/, '').trim();
+    return (
+      ROLE_OPTIONS.find((r) => r.value === cleanRole) ||
+      ROLE_OPTIONS.find((r) => r.value === 'USER')!
+    );
+  };
 
   const getInitials = (fullName: string) => {
     if (!fullName) return 'U';
@@ -338,21 +344,6 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
             disabled={user.role === 'SUPER_ADMIN'}
             title={user.status === 'active' ? 'Đang hoạt động (Bấm để khóa)' : 'Tạm khóa (Bấm để kích hoạt)'}
           />
-        </div>
-      ),
-    },
-    {
-      header: 'Trạng thái phiên',
-      align: 'center',
-      className: 'w-[10%] min-w-[100px]',
-      headerClassName: 'w-[10%] min-w-[100px]',
-      skeleton: <Skeleton className='h-4 w-24 mx-auto' />,
-      cell: (user) => (
-        <div className='flex items-center justify-center gap-1.5'>
-          <div className={cn('h-2 w-2 rounded-full', user.isOnline ? 'bg-emerald-500 shadow-[0_0_6px_#10B981]' : 'bg-slate-300')} />
-          <span className='text-[11px] font-medium text-slate-500'>
-            {user.isOnline ? 'Trực tuyến' : 'Ngoại tuyến'}
-          </span>
         </div>
       ),
     },
@@ -531,6 +522,52 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
           )
         }
       />
+
+      {/* Statistics Metric Overview Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Total Users Card */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs space-y-1">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-semibold">Tổng tài khoản</span>
+            <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-xl font-black text-slate-900 font-mono">{stats.totalUsers}</p>
+          <p className="text-[11px] text-slate-400 font-medium">
+            {stats.customerUsers} khách hàng • {stats.managementUsers} nhân sự
+          </p>
+        </div>
+
+        {/* Online Users Card */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs space-y-1">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-semibold">Đang trực tuyến</span>
+            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 relative">
+              <Wifi className="w-4 h-4" />
+              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_#10B981]" />
+            </div>
+          </div>
+          <p className="text-xl font-black text-emerald-700 font-mono">{stats.onlineUsers}</p>
+          <p className="text-[11px] text-slate-400 font-medium">
+            Realtime phiên Redis ({stats.offlineUsers} ngoại tuyến)
+          </p>
+        </div>
+
+        {/* Management Staff Card */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-2xs space-y-1">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-semibold">Nhân sự Quản trị</span>
+            <div className="p-2 rounded-xl bg-purple-50 text-purple-600">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-xl font-black text-purple-700 font-mono">{stats.managementUsers}</p>
+          <p className="text-[11px] text-slate-400 font-medium">
+            Admin & Quản lý vận hành
+          </p>
+        </div>
+      </div>
 
       {/* Tabs Container */}
       <Tabs defaultValue="staff" onValueChange={(val) => setActiveTab(val as any)} className="space-y-6">

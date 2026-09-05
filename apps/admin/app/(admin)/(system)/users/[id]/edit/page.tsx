@@ -43,14 +43,7 @@ export default function EditUserPage({ params }: EditUserPageProps) {
         description={user ? `Cập nhật thông tin chi tiết cá nhân, vai trò và trạng thái cho ${user.email}.` : "Cập nhật thông tin tài khoản người dùng."}
       />
 
-      {isLoading ? (
-        <div className="space-y-6 bg-white border border-slate-200/80 rounded-2xl p-8 shadow-sm">
-          <Skeleton className="h-10 w-1/3" />
-          <Skeleton className="h-11 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-11 w-1/2" />
-        </div>
-      ) : error || !user ? (
+      {error || (!isUserLoading && !user) ? (
         <div className="space-y-6 text-center py-16 bg-white rounded-2xl border border-slate-200">
           <h2 className="text-xl font-bold text-slate-800">Không tìm thấy người dùng</h2>
           <p className="text-sm text-slate-500">Tài khoản này có thể đã bị xóa hoặc không tồn tại trong hệ thống.</p>
@@ -62,8 +55,9 @@ export default function EditUserPage({ params }: EditUserPageProps) {
         <UserForm
           onSuccess={handleSuccess}
           onCancel={handleCancel}
-          userId={user.id}
+          userId={id}
           initialData={user}
+          isLoadingData={isUserLoading && !user}
         />
       )}
     </div>

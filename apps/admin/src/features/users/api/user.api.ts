@@ -10,6 +10,8 @@ export interface BackendUserResponse {
   role: 'SUPER_ADMIN' | 'MANAGER' | 'USER';
   isActive?: boolean;
   active?: boolean;
+  isOnline?: boolean;
+  lastLoginAt?: string;
   firstName?: string;
   lastName?: string;
   avatarUrl?: string;
@@ -20,19 +22,76 @@ export interface BackendUserResponse {
   updatedBy?: string;
 }
 
+export const normalizeRole = (b: unknown): User['role'] => {
+  const item = b as Record<string, unknown>;
+  let rawRole: string = '';
+
+  if (typeof item?.role === 'string' && item.role) {
+    rawRole = item.role;
+  } else if (item?.role && typeof item.role === 'object' && 'name' in (item.role as Record<string, unknown>)) {
+    rawRole = String((item.role as { name?: string }).name || '');
+  } else if (Array.isArray(item?.roles) && item.roles.length > 0) {
+    const firstRole = item.roles[0];
+    if (typeof firstRole === 'string') {
+      rawRole = firstRole;
+    } else if (firstRole && typeof firstRole === 'object') {
+      rawRole = String(firstRole.name || firstRole.role || firstRole.authority || '');
+    }
+  } else if (Array.isArray(item?.authorities) && item.authorities.length > 0) {
+    const firstAuth = item.authorities[0];
+    if (typeof firstAuth === 'string') {
+      rawRole = firstAuth;
+    } else if (firstAuth && typeof firstAuth === 'object') {
+      rawRole = String(firstAuth.authority || firstAuth.role || '');
+    }
+  }
+
+  const cleanRole = rawRole.toUpperCase().replace(/^ROLE_/, '').trim();
+
+  if (cleanRole === 'SUPER_ADMIN' || cleanRole === 'ADMIN') return 'SUPER_ADMIN';
+  if (cleanRole === 'MANAGER' || cleanRole === 'STAFF' || cleanRole === 'ADMINISTRATOR') return 'MANAGER';
+  return 'USER';
+};
+
+export const normalizeOnlineStatus = (b: unknown): boolean => {
+  const item = b as Record<string, unknown>;
+  if (typeof item?.isOnline === 'boolean') return item.isOnline;
+  if (typeof item?.online === 'boolean') return item.online;
+  if (typeof item?.is_online === 'boolean') return item.is_online;
+
+  const statusStr = String(item?.sessionStatus || item?.onlineStatus || item?.userStatus || '').toUpperCase();
+  if (statusStr === 'ONLINE' || statusStr === 'ACTIVE_SESSION') return true;
+
+  return false;
+};
+
+export const normalizeLastActive = (b: unknown): string => {
+  const item = b as Record<string, unknown>;
+  const val = (item?.lastActive || item?.lastActiveAt || item?.lastLoginAt || item?.last_login_at || item?.updatedAt) as string | undefined;
+  if (!val) return 'Không rõ';
+  if (typeof val === 'string' && val.includes('T')) {
+    return val.split('T')[0];
+  }
+  return String(val);
+};
+
 export const mapBackendUserToFrontend = (b: BackendUserResponse): User => {
   const isAct = b.active !== undefined ? b.active : (b.isActive !== undefined ? b.isActive : true);
-  const avatar = b.avatarUrl || (b as any).avatar_url || (b as any).avatar || undefined;
+  const rawObj = b as unknown as Record<string, unknown>;
+  const avatar = b.avatarUrl || (typeof rawObj.avatar_url === 'string' ? rawObj.avatar_url : undefined) || (typeof rawObj.avatar === 'string' ? rawObj.avatar : undefined);
+  const userRole = normalizeRole(b);
+  const onlineStatus = normalizeOnlineStatus(b);
+  const lastActiveStatus = normalizeLastActive(b);
 
   return {
     id: b.id,
     fullName: [b.firstName, b.lastName].filter(Boolean).join(' ').trim() || b.email,
     email: b.email,
     phone: b.phoneNumber || '',
-    role: b.role,
+    role: userRole,
     status: isAct ? 'active' : 'inactive',
-    isOnline: false,
-    lastActive: 'Không rõ',
+    isOnline: onlineStatus,
+    lastActive: lastActiveStatus,
     createdAt: b.createdAt ? b.createdAt.split('T')[0] : '',
     firstName: b.firstName,
     lastName: b.lastName,
@@ -166,7 +225,12 @@ export const userApi = {
       payload.phoneNumber = data.phoneNumber !== undefined ? data.phoneNumber : data.phone;
     }
 
-    if (data.role !== undefined) payload.role = data.role;
+    if (data.roles !== undefined) {
+      payload.roles = Array.isArray(data.roles) ? data.roles : [data.roles];
+    } else if (data.role !== undefined) {
+      payload.roles = [data.role];
+      payload.role = data.role;
+    }
     if (data.active !== undefined) payload.active = data.active;
     else if (data.status !== undefined) payload.active = data.status === 'active';
 
@@ -213,22 +277,46 @@ export const userApi = {
 
   // Lấy thống kê số lượng người dùng (MySQL + Redis)
   getStatistics: async (): Promise<UserStatistics> => {
+    const defaultStats: UserStatistics = {
+      totalUsers: 0,
+      onlineUsers: 0,
+      offlineUsers: 0,
+      managementUsers: 0,
+      customerUsers: 0,
+      activeUsers: 0,
+      inactiveUsers: 0,
+    };
+
     const res = await clientFetch('v1/users/statistics');
     if (!res.ok) {
-      return { totalUsers: 0, onlineUsers: 0, offlineUsers: 0, managementUsers: 0, customerUsers: 0 };
+      return defaultStats;
     }
     const result = await res.json();
     if (result.success && result.data) {
-      const stats = result.data;
+      const stats = result.data as Record<string, unknown>;
+      const total = Number(stats.totalUsers || stats.total || 0);
+      const online = Number(stats.onlineUsers || stats.online || 0);
+      const mgmt = Number(stats.managementUsers || stats.management || stats.staffUsers || 0);
+      const cust = Number(stats.customerUsers || stats.customers || (total - mgmt > 0 ? total - mgmt : 0));
+      const offline = Number(stats.offlineUsers || stats.offline || (total - online > 0 ? total - online : 0));
+      const active = Number(stats.activeUsers || stats.active || 0);
+      const inactive = Number(stats.inactiveUsers || stats.inactive || stats.lockedUsers || (total - active > 0 ? total - active : 0));
+      const superAdmin = stats.superAdminUsers !== undefined ? Number(stats.superAdminUsers) : (stats.superAdmins !== undefined ? Number(stats.superAdmins) : undefined);
+      const manager = stats.managerUsers !== undefined ? Number(stats.managerUsers) : (stats.managers !== undefined ? Number(stats.managers) : undefined);
+
       return {
-        totalUsers: stats.totalUsers || 0,
-        onlineUsers: stats.onlineUsers || 0,
-        offlineUsers: stats.offlineUsers || 0,
-        managementUsers: stats.managementUsers || 0,
-        customerUsers: stats.customerUsers !== undefined ? stats.customerUsers : ((stats.totalUsers || 0) - (stats.managementUsers || 0)),
+        totalUsers: total,
+        onlineUsers: online,
+        offlineUsers: offline,
+        managementUsers: mgmt,
+        customerUsers: cust,
+        activeUsers: active,
+        inactiveUsers: inactive,
+        superAdminUsers: superAdmin,
+        managerUsers: manager,
       };
     }
-    return { totalUsers: 0, onlineUsers: 0, offlineUsers: 0, managementUsers: 0, customerUsers: 0 };
+    return defaultStats;
   },
 };
 
@@ -238,4 +326,8 @@ export interface UserStatistics {
   offlineUsers: number;
   managementUsers: number;
   customerUsers: number;
+  activeUsers: number;
+  inactiveUsers: number;
+  superAdminUsers?: number;
+  managerUsers?: number;
 }

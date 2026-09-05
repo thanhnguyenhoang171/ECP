@@ -31,6 +31,7 @@ export function useUser(id: string) {
     queryKey: ['users', id],
     queryFn: () => userApi.getById(id),
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
