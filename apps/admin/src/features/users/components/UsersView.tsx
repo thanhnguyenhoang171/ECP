@@ -58,6 +58,7 @@ import { useHotkeys } from '@/hooks/use-hotkeys';
 import { toast } from 'sonner';
 import { PageResponse } from '@/types/pagination';
 import { UserStatistics } from '../api/user.api';
+import { isForbiddenError } from '@/constants/errorMessages';
 import { formatDateTimeForFilename } from '@/lib/formatters';
 import { useRouter } from 'next/navigation';
 
@@ -104,7 +105,8 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
   const { 
     data: staffQueryData, 
     isLoading: isStaffLoading, 
-    isFetching: isStaffFetching 
+    isFetching: isStaffFetching,
+    error: staffError,
   } = useUsers(
     {
       page: staffPage,
@@ -116,6 +118,8 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
     },
     initialData
   );
+
+  const isStaffForbidden = isForbiddenError(staffError);
 
   const staffUsersData = staffQueryData || initialData;
   const staffUsers = staffUsersData?.data || [];
@@ -138,7 +142,8 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
   const { 
     data: customerQueryData, 
     isLoading: isCustomerLoading, 
-    isFetching: isCustomerFetching 
+    isFetching: isCustomerFetching,
+    error: customerError,
   } = useUsers(
     {
       page: customerPage,
@@ -149,6 +154,8 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
       active: customerActiveFilter === 'active' ? true : customerActiveFilter === 'inactive' ? false : undefined,
     }
   );
+
+  const isCustomerForbidden = isForbiddenError(customerError);
 
   const customerUsersData = customerQueryData || { data: [], pagination: { currentPage: 1, totalPages: 1, totalElements: 0, pageSize: 10 } };
   const customerUsers = customerUsersData.data || [];
@@ -676,7 +683,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
               </>
             }
             footer={
-              (isStaffLoading || staffUsers.length > 0) && (
+              !isStaffForbidden && (isStaffLoading || staffUsers.length > 0) && (
                 <NextPagination
                   isLoading={isStaffLoading}
                   currentPage={staffPagination.currentPage}
@@ -694,6 +701,11 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
               data={staffUsers}
               isLoading={isStaffLoading && !staffUsers.length}
               loadingRows={staffPagination.pageSize}
+              isForbidden={isStaffForbidden}
+              forbiddenState={{
+                title: 'Không có quyền xem nhân sự',
+                description: 'Tài khoản của bạn chưa được cấp quyền xem danh sách nhân sự (user:read). Vui lòng liên hệ Quản trị viên để được phân quyền.',
+              }}
               emptyState={{
                 title: 'Không tìm thấy nhân sự',
                 description: 'Không có tài khoản quản trị nào khớp với tìm kiếm.',
@@ -755,7 +767,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
               </>
             }
             footer={
-              (isCustomerLoading || customerUsers.length > 0) && (
+              !isCustomerForbidden && (isCustomerLoading || customerUsers.length > 0) && (
                 <NextPagination
                   isLoading={isCustomerLoading}
                   currentPage={customerPagination.currentPage}
@@ -773,6 +785,11 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
               data={customerUsers}
               isLoading={isCustomerLoading && !customerUsers.length}
               loadingRows={customerPagination.pageSize}
+              isForbidden={isCustomerForbidden}
+              forbiddenState={{
+                title: 'Không có quyền xem khách hàng',
+                description: 'Tài khoản của bạn chưa được cấp quyền xem danh sách khách hàng. Vui lòng liên hệ Quản trị viên để được phân quyền.',
+              }}
               emptyState={{
                 title: 'Không tìm thấy khách hàng',
                 description: 'Chưa có tài khoản khách hàng nào khớp với tìm kiếm.',

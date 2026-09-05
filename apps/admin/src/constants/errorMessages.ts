@@ -181,3 +181,42 @@ export const getApiErrorMessage = (
 
   return fallbackMessage;
 };
+
+/**
+ * Kiểm tra xem lỗi có phải là lỗi 403 Forbidden (không có quyền truy cập) hay không.
+ */
+export const isForbiddenError = (error: unknown): boolean => {
+  if (!error) {
+    return false;
+  }
+
+  if (error instanceof ApiError) {
+    if (error.status === 403 || error.code === 'AUTH_ACCESS_DENIED' || error.code === 'FORBIDDEN') {
+      return true;
+    }
+  }
+
+  if (typeof error === 'object' && error !== null) {
+    const errObj = error as Record<string, unknown>;
+    if (errObj.status === 403 || errObj.statusCode === 403) {
+      return true;
+    }
+    if (errObj.code === 'AUTH_ACCESS_DENIED' || errObj.code === 'FORBIDDEN') {
+      return true;
+    }
+  }
+
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    if (
+      msg.includes('403') ||
+      msg.includes('forbidden') ||
+      msg.includes('không có quyền') ||
+      msg.includes('access denied')
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+};

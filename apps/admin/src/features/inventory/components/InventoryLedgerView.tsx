@@ -7,9 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { SearchInput } from '@/components/common/view-control';
 import { cn } from '@/lib/utils';
 import { useInventoryLedgers } from '../hooks/use-inventory';
+import { isForbiddenError } from '@/constants/errorMessages';
 
 export default function InventoryLedgerView() {
-  const { data: ledgerData, isLoading } = useInventoryLedgers();
+  const { data: ledgerData, isLoading, error } = useInventoryLedgers();
+  const isForbidden = isForbiddenError(error);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(10);
@@ -165,7 +167,7 @@ export default function InventoryLedgerView() {
       <DataCard 
         search={<SearchInput placeholder="Tìm theo mã SKU, mã chứng từ..." value={searchTerm} onChange={(val) => { setSearchTerm(val); setPage(1); }} />}
         footer={
-          (isLoading || filteredLedgers.length > 0) && (
+          !isForbidden && (isLoading || filteredLedgers.length > 0) && (
             <NextPagination
               isLoading={isLoading}
               currentPage={page}
@@ -183,6 +185,11 @@ export default function InventoryLedgerView() {
           data={paginatedLedgers} 
           isLoading={isLoading && !filteredLedgers.length}
           loadingRows={size}
+          isForbidden={isForbidden}
+          forbiddenState={{
+            title: "Không có quyền xem sổ cái kho hàng",
+            description: "Tài khoản của bạn chưa được cấp quyền xem lịch sử biến động kho hàng (inventory-ledger:read). Vui lòng liên hệ Quản trị viên để được phân quyền.",
+          }}
           emptyState={{
             title: "Nhật ký kho trống",
             description: "Chưa có bất kỳ giao dịch kho hàng nào được ghi nhận.",

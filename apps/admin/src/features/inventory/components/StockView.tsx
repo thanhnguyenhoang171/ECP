@@ -49,6 +49,7 @@ import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { useStocks } from '../hooks/use-inventory';
+import { isForbiddenError } from '@/constants/errorMessages';
 
 import { formatDate } from '@/lib/formatters';
 
@@ -71,7 +72,8 @@ interface StockItem {
 }
 
 export default function StockView() {
-  const { data: apiStocks, isLoading } = useStocks();
+  const { data: apiStocks, isLoading, error } = useStocks();
+  const isForbidden = isForbiddenError(error);
 
   const stockItems = useMemo<StockItem[]>(() => {
     if (Array.isArray(apiStocks)) {
@@ -415,7 +417,7 @@ export default function StockView() {
           </>
         }
         footer={
-          (isLoading || filteredItems.length > 0) && (
+          !isForbidden && (isLoading || filteredItems.length > 0) && (
             <NextPagination
               isLoading={isLoading}
               currentPage={page}
@@ -433,6 +435,11 @@ export default function StockView() {
           data={paginatedItems}
           isLoading={isLoading && !filteredItems.length}
           loadingRows={size}
+          isForbidden={isForbidden}
+          forbiddenState={{
+            title: 'Không có quyền xem tồn kho',
+            description: 'Tài khoản của bạn chưa được cấp quyền xem danh sách tồn kho (inventory:read). Vui lòng liên hệ Quản trị viên để được phân quyền.',
+          }}
           emptyState={{
             title: 'Không tìm thấy dòng tồn kho nào',
             description: 'Hãy kiểm tra lại điều kiện lọc hoặc nhập thêm hàng hóa.',

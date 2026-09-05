@@ -16,7 +16,6 @@ import {
   DataTable, 
   type ColumnDef,
   Button,
-  Forbidden,
   DataCard,
   NextPagination
 } from '@/components/common';
@@ -162,10 +161,6 @@ export default function AuditLogsView() {
     }
   ], []);
 
-  if (!isSuperAdmin) {
-    return <Forbidden />;
-  }
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -234,7 +229,7 @@ export default function AuditLogsView() {
           </div>
         }
         footer={
-          (isApiLoading || totalItems > 0) && (
+          isSuperAdmin && (isApiLoading || totalItems > 0) && (
             <NextPagination
               isLoading={isApiLoading}
               currentPage={page}
@@ -251,6 +246,11 @@ export default function AuditLogsView() {
           columns={columns} 
           data={displayData} 
           isLoading={activeTab === 'SYSTEM' && isApiLoading && !displayData.length}
+          isForbidden={!isSuperAdmin}
+          forbiddenState={{
+            title: "Không có quyền xem nhật ký hoạt động",
+            description: "Chỉ Quản trị viên cấp cao (SUPER_ADMIN) mới có quyền truy cập nhật ký hoạt động của hệ thống.",
+          }}
           emptyState={{
             title: "Chưa có nhật ký hoạt động",
             description: "Hiện chưa ghi nhận nhật ký hoạt động nào trong hệ thống.",

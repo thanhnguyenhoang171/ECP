@@ -8,6 +8,9 @@ export const purchaseOrderApi = {
   getAll: async (): Promise<ClientPurchaseOrder[]> => {
     try {
       const res = await clientFetch('v1/purchase-orders');
+      if (res.status === 403) {
+        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem danh sách đơn mua hàng', 403);
+      }
       if (res.ok) {
         const result = await res.json();
         if (Array.isArray(result.data)) {
@@ -19,6 +22,9 @@ export const purchaseOrderApi = {
         }
       }
     } catch (e) {
+      if (e instanceof ApiError && e.status === 403) {
+        throw e;
+      }
       console.warn('Backend getAll purchase-orders failed, using mock fallback', e);
     }
 

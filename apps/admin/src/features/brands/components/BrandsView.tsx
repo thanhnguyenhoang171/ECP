@@ -32,6 +32,7 @@ import { Brand } from '../types/brand.interface';
 import { PageResponse } from '@/types/pagination';
 import { useBrands } from '../hooks/use-brands';
 import { useDeleteBrand, useUpdateBrand } from '../hooks/use-brand-mutation';
+import { isForbiddenError } from '@/constants/errorMessages';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { cn } from '@/lib/utils';
@@ -60,7 +61,7 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
 
   const activeFilter = searchParams.get('active');
 
-  const { data: queryData, isFetching, isLoading } = useBrands(
+  const { data: queryData, isFetching, isLoading, error } = useBrands(
     {
       page,
       size,
@@ -70,6 +71,8 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
     },
     initialData?.data?.length ? initialData : undefined,
   );
+
+  const isForbidden = isForbiddenError(error);
 
   const pageData = queryData || initialData;
   const brands = pageData?.data || [];
@@ -291,7 +294,7 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
           </>
         }
         footer={
-          (isLoading || totalPages > 0) && (
+          !isForbidden && (isLoading || totalPages > 0) && (
             <NextPagination
               isLoading={isLoading}
               currentPage={page}
@@ -309,6 +312,11 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
           data={brands}
           isLoading={isLoading && !brands.length}
           loadingRows={size}
+          isForbidden={isForbidden}
+          forbiddenState={{
+            title: 'Không có quyền xem thương hiệu',
+            description: 'Tài khoản của bạn chưa được cấp quyền xem danh sách thương hiệu (brand:read). Vui lòng liên hệ Quản trị viên để được phân quyền.',
+          }}
           onRowClick={(brand) => handleViewDetail(brand)}
           emptyState={{
             title: 'Không có thương hiệu nào',

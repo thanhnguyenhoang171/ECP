@@ -3,6 +3,7 @@ import { CategoryFormValues } from '../schemas/category.schema';
 import { PageResponse } from '@/types/pagination';
 import { clientFetch } from '@/lib/clientFetch';
 import { toApiPage, syncPagination } from '@/lib/utils';
+import { ApiError } from '@/constants/errorMessages';
 
 // Helper to map category response to frontend model
 const mapCategory = (cat: any): Category => {
@@ -62,7 +63,12 @@ export const categoryApi = {
       query.append('isFeatured', params.isFeatured.toString());
 
     const res = await clientFetch(`v1/categories?${query.toString()}`);
-    if (!res.ok) throw new Error('Failed to fetch categories');
+    if (!res.ok) {
+      if (res.status === 403) {
+        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem danh mục sản phẩm', 403);
+      }
+      throw new Error('Failed to fetch categories');
+    }
     const result: PageResponse<Category> = await res.json();
     
     if (result.data) {

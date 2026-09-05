@@ -37,6 +37,7 @@ import {
 } from '../hooks/use-roles';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { useHotkeys } from '@/hooks/use-hotkeys';
+import { isForbiddenError } from '@/constants/errorMessages';
 
 interface RolesViewProps {
   initialRoles?: Role[];
@@ -62,8 +63,10 @@ export default function RolesView({ initialRoles }: RolesViewProps) {
   const router = useRouter();
 
   // Fetch Roles & Permissions từ Backend
-  const { data: roles = [], isLoading: isRolesLoading, isFetching: isRolesFetching } = useRoles(initialRoles);
+  const { data: roles = [], isLoading: isRolesLoading, isFetching: isRolesFetching, error: rolesError } = useRoles(initialRoles);
   const { data: permissions = [], isLoading: isPermissionsLoading } = usePermissions();
+
+  const isForbidden = isForbiddenError(rolesError);
 
   const deleteMutation = useDeleteRole();
 
@@ -458,6 +461,11 @@ export default function RolesView({ initialRoles }: RolesViewProps) {
           data={processedRoles}
           isLoading={isRolesLoading}
           loadingRows={roles.length || 4}
+          isForbidden={isForbidden}
+          forbiddenState={{
+            title: 'Không có quyền xem vai trò',
+            description: 'Tài khoản của bạn chưa được cấp quyền xem danh sách vai trò hệ thống (role:read). Vui lòng liên hệ Quản trị viên để được phân quyền.',
+          }}
           emptyState={{
             title: searchTerm || typeFilter !== 'all' ? 'Không tìm thấy vai trò phù hợp' : 'Chưa có vai trò nào',
             description: searchTerm || typeFilter !== 'all' 

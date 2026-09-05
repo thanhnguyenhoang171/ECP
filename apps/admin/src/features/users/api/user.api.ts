@@ -133,6 +133,9 @@ export const userApi = {
 
     const res = await clientFetch(`v1/users?${queryParams.toString()}`);
     if (!res.ok) {
+      if (res.status === 403) {
+        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem danh sách người dùng', 403);
+      }
       throw new Error('Lỗi tải danh sách người dùng');
     }
 

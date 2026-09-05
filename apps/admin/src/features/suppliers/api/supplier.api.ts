@@ -8,6 +8,9 @@ export const supplierApi = {
   getAll: async (): Promise<ClientSupplier[]> => {
     try {
       const res = await clientFetch('v1/suppliers');
+      if (res.status === 403) {
+        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem danh sách nhà cung cấp', 403);
+      }
       if (res.ok) {
         const result = await res.json();
         let items = [];
@@ -25,6 +28,9 @@ export const supplierApi = {
         }));
       }
     } catch (e) {
+      if (e instanceof ApiError && e.status === 403) {
+        throw e;
+      }
       console.warn('Backend getAll suppliers failed, using mock fallback', e);
     }
 

@@ -45,6 +45,9 @@ export const inventoryApi = {
   getStocks: async (): Promise<InventoryItemResponse[]> => {
     try {
       const res = await clientFetch('v1/inventory/stocks');
+      if (res.status === 403) {
+        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem tồn kho', 403);
+      }
       if (res.ok) {
         const result = await res.json();
         let items: any[] = [];
@@ -70,6 +73,9 @@ export const inventoryApi = {
         }
       }
     } catch (e) {
+      if (e instanceof ApiError && e.status === 403) {
+        throw e;
+      }
       console.warn('Backend getStocks failed, using mock fallback', e);
     }
 
@@ -143,6 +149,9 @@ export const inventoryApi = {
   getLedgers: async (): Promise<InventoryLedgerItemResponse[]> => {
     try {
       const res = await clientFetch('v1/inventory/ledgers');
+      if (res.status === 403) {
+        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem sổ nhật ký biến động kho', 403);
+      }
       if (res.ok) {
         const result = await res.json();
         let items: any[] = [];
@@ -168,6 +177,9 @@ export const inventoryApi = {
         }
       }
     } catch (e) {
+      if (e instanceof ApiError && e.status === 403) {
+        throw e;
+      }
       console.warn('Backend getLedgers failed, using mock fallback', e);
     }
 
