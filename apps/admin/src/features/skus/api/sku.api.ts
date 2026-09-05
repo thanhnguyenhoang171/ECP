@@ -1,6 +1,7 @@
 import { clientFetch } from '@/lib/clientFetch';
 import { Sku } from '../types/sku.interface';
 import { PageResponse } from '@/types/pagination';
+import { ApiError } from '@/constants/errorMessages';
 
 export const skuApi = {
   getPaged: async (params: {
@@ -98,7 +99,10 @@ export const skuApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Thêm mới SKU thất bại');
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new ApiError(body.code, body?.message || 'Thêm mới SKU thất bại', res.status, body);
+    }
     const body = await res.json();
     return body.data || body;
   },
@@ -115,7 +119,10 @@ export const skuApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Cập nhật SKU thất bại');
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new ApiError(body.code, body?.message || 'Cập nhật SKU thất bại', res.status, body);
+    }
     const body = await res.json();
     return body.data || body;
   },

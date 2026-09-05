@@ -2,6 +2,7 @@ import { User } from '../types/user.interface';
 import { PageResponse, PaginationInfo } from '@/types/pagination';
 import { clientFetch } from '@/lib/clientFetch';
 import { toApiPage } from '@/lib/utils';
+import { ApiError } from '@/constants/errorMessages';
 
 export interface BackendUserResponse {
   id: string;
@@ -191,7 +192,7 @@ export const userApi = {
 
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || 'Tạo người dùng thất bại');
+      throw new ApiError(errJson.code, errJson.message || 'Tạo người dùng thất bại', res.status, errJson);
     }
 
     const result = await res.json();
@@ -257,7 +258,7 @@ export const userApi = {
 
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || 'Cập nhật người dùng thất bại');
+      throw new ApiError(errJson.code, errJson.message || 'Cập nhật người dùng thất bại', res.status, errJson);
     }
 
     const result = await res.json();
@@ -270,7 +271,8 @@ export const userApi = {
       method: 'DELETE',
     });
     if (!res.ok) {
-      throw new Error('Xóa người dùng thất bại');
+      const errJson = await res.json().catch(() => ({}));
+      throw new ApiError(errJson.code, errJson.message || 'Xóa người dùng thất bại', res.status, errJson);
     }
     return { success: true };
   },

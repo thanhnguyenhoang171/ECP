@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { inventoryApi } from '../api/inventory.api';
+import { getApiErrorMessage } from '@/constants/errorMessages';
 
 export function useStocks() {
   return useQuery({
@@ -29,9 +30,10 @@ export function useAdjustStock() {
       queryClient.invalidateQueries({ queryKey: ['stocks'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-ledgers'] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Adjust stock error:', error);
-      toast.error(error?.message || 'Có lỗi xảy ra khi điều chỉnh tồn kho');
+      const msg = getApiErrorMessage(error, 'Có lỗi xảy ra khi điều chỉnh tồn kho');
+      toast.error(msg, { id: msg });
     }
   });
 }

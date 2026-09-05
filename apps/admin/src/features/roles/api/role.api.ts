@@ -1,5 +1,6 @@
 import { Role, Permission, RoleRequest, PermissionRequest } from '../types/role.interface';
 import { clientFetch } from '@/lib/clientFetch';
+import { ApiError } from '@/constants/errorMessages';
 
 export const roleApi = {
   // Lấy tất cả vai trò trong hệ thống kèm quyền hạn
@@ -31,7 +32,7 @@ export const roleApi = {
     });
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || 'Tạo quyền hạn mới thất bại');
+      throw new ApiError(errJson.code, errJson.message || 'Tạo quyền hạn mới thất bại', res.status, errJson);
     }
     const result = await res.json();
     return result.data as Permission;
@@ -41,7 +42,8 @@ export const roleApi = {
   getByCode: async (codeOrId: string): Promise<Role> => {
     const res = await clientFetch(`v1/roles/${codeOrId}`);
     if (!res.ok) {
-      throw new Error('Không tìm thấy vai trò');
+      const errJson = await res.json().catch(() => ({}));
+      throw new ApiError(errJson.code, errJson.message || 'Không tìm thấy vai trò', res.status, errJson);
     }
     const result = await res.json();
     return result.data as Role;
@@ -56,7 +58,7 @@ export const roleApi = {
     });
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || 'Tạo vai trò thất bại');
+      throw new ApiError(errJson.code, errJson.message || 'Tạo vai trò thất bại', res.status, errJson);
     }
     const result = await res.json();
     return result.data as Role;
@@ -71,7 +73,7 @@ export const roleApi = {
     });
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || 'Cập nhật vai trò thất bại');
+      throw new ApiError(errJson.code, errJson.message || 'Cập nhật vai trò thất bại', res.status, errJson);
     }
     const result = await res.json();
     return result.data as Role;
@@ -84,7 +86,7 @@ export const roleApi = {
     });
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || 'Xóa vai trò thất bại');
+      throw new ApiError(errJson.code, errJson.message || 'Xóa vai trò thất bại', res.status, errJson);
     }
     return { success: true };
   },

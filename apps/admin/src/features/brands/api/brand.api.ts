@@ -3,6 +3,7 @@ import { BrandFormValues } from '../schemas/brand.schema';
 import { PageResponse } from '@/types/pagination';
 import { clientFetch } from '@/lib/clientFetch';
 import { toApiPage, syncPagination } from '@/lib/utils';
+import { ApiError } from '@/constants/errorMessages';
 
 export const brandApi = {
   // Get paged brand list
@@ -81,7 +82,7 @@ export const brandApi = {
     }
 
     const result = await res.json();
-    if (!res.ok) throw new Error(result.message || 'Failed to create brand');
+    if (!res.ok) throw new ApiError(result.code, result.message || 'Tạo thương hiệu thất bại', res.status, result);
     return result;
   },
 
@@ -121,7 +122,7 @@ export const brandApi = {
     }
 
     const result = await res.json();
-    if (!res.ok) throw new Error(result.message || 'Failed to update brand');
+    if (!res.ok) throw new ApiError(result.code, result.message || 'Cập nhật thương hiệu thất bại', res.status, result);
     return result;
   },
   // Delete brand
@@ -131,7 +132,7 @@ export const brandApi = {
     });
     if (!res.ok) {
       const result = await res.json();
-      throw new Error(result.message || 'Failed to delete brand');
+      throw new ApiError(result.code, result.message || 'Xóa thương hiệu thất bại', res.status, result);
     }
     return { success: true };
   },

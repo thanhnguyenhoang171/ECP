@@ -1,4 +1,5 @@
 import { clientFetch } from '@/lib/clientFetch';
+import { ApiError } from '@/constants/errorMessages';
 import { Product } from '../types/product.interface';
 import { ProductFormValues } from '../schemas/product.schema';
 
@@ -78,10 +79,15 @@ export const productApi = {
 
       if (res.ok) {
         const result = await res.json();
-        return result.data || result;
+        return (result.data || result) as Product;
       }
+      const errorData = await res.json().catch(() => ({}));
+      throw new ApiError(errorData.code, errorData.message || 'Tạo sản phẩm thất bại', res.status, errorData);
     } catch (error) {
-      console.warn('Backend create product failed, using mock fallback', error);
+      if (error instanceof ApiError || (error as Error)?.name !== 'TypeError') {
+        throw error;
+      }
+      console.warn('Backend create product failed due to network, using mock fallback', error);
     }
 
     // Fallback mock logic for testing UI without backend
@@ -150,7 +156,7 @@ export const productApi = {
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to update product');
+      throw new ApiError(errorData.code, errorData.message || 'Cập nhật sản phẩm thất bại', res.status, errorData);
     }
 
     const result = await res.json();
@@ -245,7 +251,7 @@ export const productApi = {
     });
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to delete product');
+      throw new ApiError(errorData.code, errorData.message || 'Xóa sản phẩm thất bại', res.status, errorData);
     }
   }
 };

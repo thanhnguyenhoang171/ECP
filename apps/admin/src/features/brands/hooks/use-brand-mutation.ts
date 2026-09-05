@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { brandApi } from '../api/brand.api';
 import { BrandFormValues } from '../schemas/brand.schema';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/constants/errorMessages';
 
 export const useCreateBrand = () => {
   const queryClient = useQueryClient();
@@ -12,8 +13,9 @@ export const useCreateBrand = () => {
       toast.success('Tạo thương hiệu thành công');
       queryClient.invalidateQueries({ queryKey: ['brands'] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Tạo thương hiệu thất bại');
+    onError: (error: unknown) => {
+      const msg = getApiErrorMessage(error, 'Tạo thương hiệu thất bại');
+      toast.error(msg, { id: msg });
     },
   });
 };
@@ -28,8 +30,9 @@ export const useUpdateBrand = () => {
       toast.success('Cập nhật thương hiệu thành công');
       queryClient.invalidateQueries({ queryKey: ['brands'] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Cập nhật thương hiệu thất bại');
+    onError: (error: unknown) => {
+      const msg = getApiErrorMessage(error, 'Cập nhật thương hiệu thất bại');
+      toast.error(msg, { id: msg });
     },
   });
 };
@@ -43,8 +46,9 @@ export const useDeleteBrand = () => {
       toast.success('Xóa thương hiệu thành công');
       queryClient.invalidateQueries({ queryKey: ['brands'] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Xóa thương hiệu thất bại');
+    onError: (error: unknown) => {
+      const msg = getApiErrorMessage(error, 'Xóa thương hiệu thất bại');
+      toast.error(msg, { id: msg });
     },
   });
 };

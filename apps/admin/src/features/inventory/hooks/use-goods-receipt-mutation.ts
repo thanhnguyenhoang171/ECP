@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { goodsReceiptApi } from '../api/goods-receipt.api';
 import { GoodsReceiptFormValues } from '../schemas/goods-receipt.schema';
+import { getApiErrorMessage } from '@/constants/errorMessages';
 
 export function useGoodsReceipts() {
   return useQuery({
@@ -31,9 +32,10 @@ export function useCreateGoodsReceipt() {
       queryClient.invalidateQueries({ queryKey: ['stocks'] });
       queryClient.invalidateQueries({ queryKey: ['ledger'] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Create goods receipt error:', error);
-      toast.error(error?.message || 'Có lỗi xảy ra khi tạo phiếu nhập kho');
+      const msg = getApiErrorMessage(error, 'Có lỗi xảy ra khi tạo phiếu nhập kho');
+      toast.error(msg, { id: msg });
     },
   });
 }
@@ -50,9 +52,10 @@ export function useConfirmGoodsReceipt() {
       queryClient.invalidateQueries({ queryKey: ['stocks'] });
       queryClient.invalidateQueries({ queryKey: ['ledger'] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Confirm goods receipt error:', error);
-      toast.error(error?.message || 'Có lỗi xảy ra khi xác nhận phiếu nhập kho');
+      const msg = getApiErrorMessage(error, 'Có lỗi xảy ra khi xác nhận phiếu nhập kho');
+      toast.error(msg, { id: msg });
     },
   });
 }
@@ -67,9 +70,10 @@ export function useUpdateGoodsReceiptStatus() {
       queryClient.invalidateQueries({ queryKey: ['goods-receipts'] });
       queryClient.invalidateQueries({ queryKey: ['goods-receipts', variables.id] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Update goods receipt status error:', error);
-      toast.error(error?.message || 'Có lỗi xảy ra khi cập nhật trạng thái phiếu nhập');
+      const msg = getApiErrorMessage(error, 'Có lỗi xảy ra khi cập nhật trạng thái phiếu nhập');
+      toast.error(msg, { id: msg });
     },
   });
 }

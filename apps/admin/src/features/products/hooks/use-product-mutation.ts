@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { ProductFormValues } from '../schemas/product.schema';
 import { productApi } from '../api/product.api';
+import { getApiErrorMessage } from '@/constants/errorMessages';
 
 export function useCreateProduct() {
   const queryClient = useQueryClient();
@@ -16,8 +17,9 @@ export function useCreateProduct() {
       toast.success('Tạo sản phẩm thành công');
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
-    onError: () => {
-      toast.error('Tạo sản phẩm thất bại');
+    onError: (error: unknown) => {
+      const msg = getApiErrorMessage(error, 'Tạo sản phẩm thất bại');
+      toast.error(msg, { id: msg });
     },
   });
 }
@@ -33,8 +35,9 @@ export function useUpdateProduct() {
       toast.success('Cập nhật sản phẩm thành công');
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
-    onError: () => {
-      toast.error('Cập nhật sản phẩm thất bại');
+    onError: (error: unknown) => {
+      const msg = getApiErrorMessage(error, 'Cập nhật sản phẩm thất bại');
+      toast.error(msg, { id: msg });
     },
   });
 }
@@ -50,8 +53,9 @@ export function useDeleteProduct() {
       toast.success('Xóa sản phẩm thành công');
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
-    onError: (err: any) => {
-      toast.error(err?.message || 'Xóa sản phẩm thất bại');
+    onError: (error: unknown) => {
+      const msg = getApiErrorMessage(error, 'Xóa sản phẩm thất bại');
+      toast.error(msg, { id: msg });
     },
   });
 }

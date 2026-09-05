@@ -1,6 +1,7 @@
 import { clientFetch } from '@/lib/clientFetch';
 import { clientDb, ClientGoodsReceipt } from '@/lib/clientDb';
 import { useAuthStore } from '@/store/authStore';
+import { ApiError } from '@/constants/errorMessages';
 
 export const goodsReceiptApi = {
   // Lấy danh sách phiếu nhập kho
@@ -81,14 +82,12 @@ export const goodsReceiptApi = {
         const errJson = await res.json().catch(() => ({}));
         if (errJson?.validationErrors) {
           const detail = Object.values(errJson.validationErrors).join(', ');
-          throw new Error(detail);
+          throw new ApiError(errJson.code, detail, res.status, errJson);
         }
-        if (errJson?.message) {
-          throw new Error(errJson.message);
-        }
+        throw new ApiError(errJson.code, errJson?.message || 'Tạo phiếu nhập kho thất bại', res.status, errJson);
       }
     } catch (e: any) {
-      if (e?.message && e.message !== 'Failed to fetch') {
+      if (e instanceof ApiError || (e?.message && e.message !== 'Failed to fetch')) {
         throw e;
       }
       console.warn('Backend create goods-receipt failed, using mock fallback', e);
@@ -107,8 +106,13 @@ export const goodsReceiptApi = {
         const result = await res.json();
         return result.data || result;
       }
-    } catch (e) {
-      console.warn('Backend confirm goods-receipt failed', e);
+      const errJson = await res.json().catch(() => ({}));
+      throw new ApiError(errJson.code, errJson?.message || 'Xác nhận phiếu nhập kho thất bại', res.status, errJson);
+    } catch (e: any) {
+      if (e instanceof ApiError || (e?.message && e.message !== 'Failed to fetch')) {
+        throw e;
+      }
+      console.warn('Backend confirm goods-receipt failed, using mock fallback', e);
     }
     return clientDb.saveGoodsReceipt({ id, status: 'RECEIVED' } as any);
   },
@@ -125,8 +129,13 @@ export const goodsReceiptApi = {
         const result = await res.json();
         return result.data || result;
       }
-    } catch (e) {
-      console.warn('Backend updateStatus goods-receipt failed', e);
+      const errJson = await res.json().catch(() => ({}));
+      throw new ApiError(errJson.code, errJson?.message || 'Cập nhật trạng thái phiếu nhập kho thất bại', res.status, errJson);
+    } catch (e: any) {
+      if (e instanceof ApiError || (e?.message && e.message !== 'Failed to fetch')) {
+        throw e;
+      }
+      console.warn('Backend updateStatus goods-receipt failed, using mock fallback', e);
     }
     return clientDb.saveGoodsReceipt({ id, status } as any);
   },

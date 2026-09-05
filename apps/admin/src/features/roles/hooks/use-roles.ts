@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { roleApi } from '../api/role.api';
 import { RoleRequest, Role, PermissionRequest } from '../types/role.interface';
+import { getApiErrorMessage } from '@/constants/errorMessages';
 
 export function useRoles(initialData?: Role[]) {
   return useQuery({
@@ -41,8 +42,9 @@ export function useCreatePermission() {
       queryClient.invalidateQueries({ queryKey: ['permissions'] });
       queryClient.invalidateQueries({ queryKey: ['roles'] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Tạo quyền hạn thất bại');
+    onError: (error: unknown) => {
+      const msg = getApiErrorMessage(error, 'Tạo quyền hạn thất bại');
+      toast.error(msg, { id: msg });
     },
   });
 }
@@ -56,8 +58,9 @@ export function useCreateRole() {
       toast.success(`Tạo vai trò "${newRole.name}" thành công`);
       queryClient.invalidateQueries({ queryKey: ['roles'] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Tạo vai trò thất bại');
+    onError: (error: unknown) => {
+      const msg = getApiErrorMessage(error, 'Tạo vai trò thất bại');
+      toast.error(msg, { id: msg });
     },
   });
 }
@@ -71,8 +74,9 @@ export function useUpdateRole() {
       toast.success(`Cập nhật vai trò "${updatedRole.name}" thành công`);
       queryClient.invalidateQueries({ queryKey: ['roles'] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Cập nhật vai trò thất bại');
+    onError: (error: unknown) => {
+      const msg = getApiErrorMessage(error, 'Cập nhật vai trò thất bại');
+      toast.error(msg, { id: msg });
     },
   });
 }
@@ -86,8 +90,9 @@ export function useDeleteRole() {
       toast.success('Xóa vai trò thành công');
       queryClient.invalidateQueries({ queryKey: ['roles'] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Xóa vai trò thất bại');
+    onError: (error: unknown) => {
+      const msg = getApiErrorMessage(error, 'Xóa vai trò thất bại');
+      toast.error(msg, { id: msg });
     },
   });
 }

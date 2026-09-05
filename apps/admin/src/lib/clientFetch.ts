@@ -103,7 +103,7 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
     // Handle network connection or unreachable backend errors
     console.error('Fetch error:', error);
     if (!skipToast) {
-      toast.error('Unable to connect to the server. Please check your network connection.', { id: 'network-fetch-error' });
+      toast.error(ErrorMessages['SYS_NETWORK_ERROR'], { id: 'network-fetch-error' });
     }
     throw error;
   }
@@ -161,7 +161,7 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
       const clonedResponse = response.clone();
       const data = await clonedResponse.json();
       
-      const businessCode = data?.error?.code || data?.errorCode || data?.code;
+      const businessCode = data?.code || data?.error?.code || data?.errorCode;
       const serverMessage = data?.message || data?.error?.message || data?.error;
 
       if (businessCode || serverMessage) {
