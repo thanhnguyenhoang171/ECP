@@ -65,6 +65,21 @@ public class UserResponse {
     @Schema(description = "Phone verification status", example = "false")
     private boolean isPhoneVerified;
 
+    @Schema(description = "Is user currently online in session?", example = "true")
+    @JsonProperty("isOnline")
+    private boolean isOnline;
+
+    public boolean getIsOnline() {
+        return isOnline;
+    }
+
+    public void setIsOnline(boolean isOnline) {
+        this.isOnline = isOnline;
+    }
+
+    @Schema(description = "User last login timestamp")
+    private LocalDateTime lastLoginAt;
+
 //    @Schema(description = "Cumulative loyalty points", example = "150")
 //    private Integer loyaltyPoints;
 //

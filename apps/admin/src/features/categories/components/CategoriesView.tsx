@@ -436,17 +436,17 @@ export default function CategoriesView({
        onSelect={setSort}
       />
 
-      {(Boolean(searchTerm) || Boolean(activeParam) || Boolean(levelParam) || Boolean(isFeaturedParam) || sort !== 'name,asc') && (
+      {(Boolean(searchTerm) || Boolean(activeParam) || Boolean(levelParam) || Boolean(isFeaturedParam) || sort !== 'createdAt,desc') && (
        <ResetFiltersButton
         onClick={() => {
          setSearchTerm('');
          updateUrl({
-          name: '',
-          id: '',
-          active: '',
-          level: '',
-          isFeatured: '',
-          sort: 'name,asc',
+          name: undefined,
+          id: undefined,
+          active: undefined,
+          level: undefined,
+          isFeatured: undefined,
+          sort: 'createdAt,desc',
           page: 1,
          });
         }}

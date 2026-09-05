@@ -20,6 +20,10 @@ export const useProducts = (
     queryFn: () => productApi.getPaged(params),
     placeholderData: (previousData) => previousData, // keep previous data while fetching next page
     initialData,
+    retry: (failureCount, err) => {
+      if ((err as unknown as { status?: number })?.status === 403) return false;
+      return failureCount < 2;
+    },
   });
 };
 

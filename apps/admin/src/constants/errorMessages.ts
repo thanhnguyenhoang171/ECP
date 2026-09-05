@@ -1,7 +1,7 @@
 export const ErrorMessages: Record<string, string> = {
   // --- Auth Errors (AUTH_*) ---
   "AUTH_INVALID_CREDENTIALS": "Vui lòng kiểm tra lại tài khoản hoặc mật khẩu.",
-  "AUTH_ACCESS_DENIED": "Tài khoản của bạn đã bị khóa hoặc vô hiệu hóa.",
+  "AUTH_ACCESS_DENIED": "Bạn không có quyền truy cập hoặc thực hiện thao tác này.",
   "AUTH_TOKEN_EXPIRED": "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.",
   
   // --- User Errors (USER_*) ---

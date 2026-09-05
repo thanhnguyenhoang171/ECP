@@ -34,6 +34,15 @@ public class UserUpdateRequest {
 
     private java.util.Set<String> roles;
 
+    public void setRole(String role) {
+        if (role != null && !role.trim().isEmpty()) {
+            if (this.roles == null) {
+                this.roles = new java.util.HashSet<>();
+            }
+            this.roles.add(role.trim().toUpperCase());
+        }
+    }
+
     private Boolean active;
 
     private String avatarUrl;

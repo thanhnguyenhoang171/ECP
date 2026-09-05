@@ -39,8 +39,16 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(readOnly = true)
     public RoleResponse getRoleByCode(String code) {
-        Role role = roleRepository.findByCode(code)
-                .orElseThrow(() -> new AppException("NOT_FOUND", "Role not found with code: " + code, HttpStatus.NOT_FOUND));
+        Role role;
+        try {
+            UUID id = UUID.fromString(code);
+            role = roleRepository.findById(id)
+                    .or(() -> roleRepository.findByCode(code))
+                    .orElseThrow(() -> new AppException("NOT_FOUND", "Role not found with identifier: " + code, HttpStatus.NOT_FOUND));
+        } catch (IllegalArgumentException e) {
+            role = roleRepository.findByCode(code)
+                    .orElseThrow(() -> new AppException("NOT_FOUND", "Role not found with code: " + code, HttpStatus.NOT_FOUND));
+        }
         return mapToRoleResponse(role);
     }
 

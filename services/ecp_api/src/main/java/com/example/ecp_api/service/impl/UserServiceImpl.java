@@ -108,7 +108,7 @@ public class UserServiceImpl implements UserService {
                 String.format("Created user account: %s (ID: %s)", user.getEmail(), user.getId())
         );
 
-        return userMapper.toResponse(user);
+        return mapToResponseWithOnlineStatus(user);
     }
 
     @Override
@@ -173,7 +173,7 @@ public class UserServiceImpl implements UserService {
                 String.format("Created user account: %s (ID: %s)", user.getEmail(), user.getId())
         );
 
-        return userMapper.toResponse(user);
+        return mapToResponseWithOnlineStatus(user);
     }
 
     @Override
@@ -270,7 +270,7 @@ public class UserServiceImpl implements UserService {
         });
 
         auditLogService.log("GOOGLE_LOGIN", email, "User logged in with Google ID: " + user.getId());
-        return userMapper.toResponse(user);
+        return mapToResponseWithOnlineStatus(user);
     }
 
     @Override
@@ -279,7 +279,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
 
-        return userMapper.toResponse(user);
+        return mapToResponseWithOnlineStatus(user);
     }
 
     @Override
@@ -288,7 +288,7 @@ public class UserServiceImpl implements UserService {
         Pageable finalPageable = PaginationUtils.applyStableSort(pageable,
                 Sort.Order.desc("createdAt"),
                 Sort.Order.asc("id"));
-        return userMapper.toPageResponse(userRepository.findAll(finalPageable));
+        return mapToPageResponseWithOnlineStatus(userRepository.findAll(finalPageable));
     }
 
     @Override
@@ -328,10 +328,11 @@ public class UserServiceImpl implements UserService {
         };
 
         Page<User> userPage = userRepository.findAll(spec, finalPageable);
-        return userMapper.toPageResponse(userPage);
+        return mapToPageResponseWithOnlineStatus(userPage);
     }
 
     @Override
+    @Transactional
     public UserResponse updateUser(UUID id, UserUpdateRequest request) {
         return updateUser(id, request, null);
     }
@@ -388,7 +389,7 @@ public class UserServiceImpl implements UserService {
 
             auditLogService.log("USER_UPDATE", operatorEmail, "Updated user with ID: " + user.getId());
 
-            return userMapper.toResponse(user);
+            return mapToResponseWithOnlineStatus(user);
         } catch (Exception e) {
             if (uploadedPublicId != null) {
                 try {
@@ -402,6 +403,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void deleteUser(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
@@ -632,5 +634,26 @@ public class UserServiceImpl implements UserService {
                 .managementUsers(managementUsers)
                 .customerUsers(customerUsers)
                 .build();
+    }
+
+    private UserResponse mapToResponseWithOnlineStatus(User user) {
+        if (user == null) return null;
+        UserResponse response = userMapper.toResponse(user);
+        if (response != null && StringUtils.hasText(user.getEmail())) {
+            response.setIsOnline(tokenService.isUserOnline(user.getEmail()));
+        }
+        return response;
+    }
+
+    private PageResponse<UserResponse> mapToPageResponseWithOnlineStatus(Page<User> userPage) {
+        PageResponse<UserResponse> pageResponse = userMapper.toPageResponse(userPage);
+        if (pageResponse != null && pageResponse.getData() != null) {
+            for (UserResponse resp : pageResponse.getData()) {
+                if (resp != null && StringUtils.hasText(resp.getEmail())) {
+                    resp.setIsOnline(tokenService.isUserOnline(resp.getEmail()));
+                }
+            }
+        }
+        return pageResponse;
     }
 }

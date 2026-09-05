@@ -20,6 +20,22 @@ export default function Providers({ children }: { children: React.ReactNode }): 
             staleTime: 60 * 1000,
             refetchOnWindowFocus: false,
             refetchOnReconnect: false,
+            retry: (failureCount, error: unknown): boolean => {
+              // Do not retry client-side errors (4xx: 400, 401, 403, 404)
+              const status = (error as { status?: number })?.status;
+              const message = (error as Error)?.message || '';
+              if (
+                (status && status >= 400 && status < 500) ||
+                message.includes('403') ||
+                message.toLowerCase().includes('forbidden') ||
+                message.includes('401') ||
+                message.includes('404')
+              ) {
+                return false;
+              }
+              // Retry at most 1 time for network / temporary 5xx errors
+              return failureCount < 1;
+            },
           },
         },
       }),

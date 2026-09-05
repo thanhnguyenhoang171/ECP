@@ -103,7 +103,7 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
     // Handle network connection or unreachable backend errors
     console.error('Fetch error:', error);
     if (!skipToast) {
-      toast.error('Unable to connect to the server. Please check your network connection.');
+      toast.error('Unable to connect to the server. Please check your network connection.', { id: 'network-fetch-error' });
     }
     throw error;
   }
@@ -123,16 +123,9 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
     }
   }
 
-  // Handle Forbidden access / Role revoked (403)
+  // Handle Forbidden access (403): User is authenticated but lacks permission for this action/resource
   if (response.status === 403) {
-    console.warn('[clientFetch] 403 Forbidden detected. Access rights changed, logging out...');
-    clearAuth();
-    if (typeof window !== 'undefined') {
-      fetch(`${APP_URL}/api/auth/logout`, { method: 'POST' }).finally(() => {
-        toast.error('Your access permissions have been updated. Please log in again.');
-        window.location.href = '/login';
-      });
-    }
+    console.warn(`[clientFetch] 403 Forbidden: User does not have permission for ${url}`);
   }
 
   // Handle 500+ Internal Server Errors
@@ -146,7 +139,7 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
     if (updatedState.isBlocked) {
       clearAuth();
       if (typeof window !== 'undefined') {
-        toast.error(ErrorMessages['SYS_TOO_MANY_ERRORS']);
+        toast.error(ErrorMessages['SYS_TOO_MANY_ERRORS'], { id: 'sys-too-many-errors' });
         
         // Clear auth cookies to prevent middleware redirect loops
         fetch('/api/auth/logout', { method: 'POST' });
@@ -157,7 +150,7 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
         }, 2000);
       }
     } else if (!skipToast) {
-      toast.error(ErrorMessages['SYS_INTERNAL_ERROR']);
+      toast.error(ErrorMessages['SYS_INTERNAL_ERROR'], { id: 'sys-internal-error' });
     }
   }
 
@@ -176,21 +169,21 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
           businessCode, 
           typeof serverMessage === 'string' ? serverMessage : undefined
         );
-        toast.error(errorMsg);
+        toast.error(errorMsg, { id: errorMsg });
       } else {
         // Fallback HTTP status code handling
         if (response.status === 403) {
-          toast.error(ErrorMessages['AUTH_ACCESS_DENIED']);
+          toast.error(ErrorMessages['AUTH_ACCESS_DENIED'], { id: 'auth-access-denied' });
         } else if (response.status < 500) {
-          toast.error(ErrorMessages['SYS_UNKNOWN_ERROR']);
+          toast.error(ErrorMessages['SYS_UNKNOWN_ERROR'], { id: 'sys-unknown-error' });
         }
       }
     } catch {
       // Fallback for non-JSON error responses
       if (response.status === 403) {
-        toast.error(ErrorMessages['AUTH_ACCESS_DENIED']);
+        toast.error(ErrorMessages['AUTH_ACCESS_DENIED'], { id: 'auth-access-denied' });
       } else if (response.status < 500) {
-        toast.error(ErrorMessages['SYS_UNKNOWN_ERROR']);
+        toast.error(ErrorMessages['SYS_UNKNOWN_ERROR'], { id: 'sys-unknown-error' });
       }
     }
   }
