@@ -37,8 +37,6 @@ import {
 } from '@/components/common/view-control';
 
 import { Product } from '../types/product.interface';
-import { Category } from '@/features/categories/types/category.interface';
-import { PageResponse } from '@/types/pagination';
 import { toast } from 'sonner';
 
 import { formatCurrency } from '@/lib/formatters';
@@ -50,15 +48,7 @@ import { useProducts } from '../hooks/use-products';
 import { useDeleteProduct } from '../hooks/use-product-mutation';
 import { useInfiniteCategories } from '@/features/categories/hooks/use-categories';
 
-interface ProductViewProps {
-  initialData: PageResponse<Product>;
-  categories: Category[];
-}
-
-export default function ProductView({
-  initialData,
-  categories,
-}: ProductViewProps) {
+export default function ProductView(): React.ReactElement {
   const router = useRouter();
   const deleteMutation = useDeleteProduct();
   const {
@@ -76,16 +66,13 @@ export default function ProductView({
   const categoryIdParam = searchParams.get('categoryId') || '';
   const isPublishedParam = searchParams.get('isPublished');
 
-  const { data: queryData, isFetching, isLoading, error } = useProducts(
-    {
-      page,
-      size,
-      sort,
-      search: name,
-      categoryId: categoryIdParam,
-    },
-    initialData?.data?.length ? initialData : undefined,
-  );
+  const { data: queryData, isFetching, isLoading, error } = useProducts({
+    page,
+    size,
+    sort,
+    search: name,
+    categoryId: categoryIdParam,
+  });
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
@@ -101,9 +88,9 @@ export default function ProductView({
   );
 
   const categoriesList = useMemo(() => {
-    if (!categoriesInfiniteData) return categories;
+    if (!categoriesInfiniteData) return [];
     return categoriesInfiniteData.pages.flatMap((p) => p.data || []);
-  }, [categoriesInfiniteData, categories]);
+  }, [categoriesInfiniteData]);
 
   const handleCategoryScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -112,10 +99,9 @@ export default function ProductView({
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const pageData = queryData || initialData;
-  const paginatedProducts = pageData.data || [];
-  const totalPages = pageData.pagination?.totalPages || 1;
-  const totalElements = pageData.pagination?.totalElements || 0;
+  const paginatedProducts = queryData?.data || [];
+  const totalPages = queryData?.pagination?.totalPages || 1;
+  const totalElements = queryData?.pagination?.totalElements || 0;
 
   const [searchTerm, setSearchTerm] = useDebounceSearch(name, (val) => updateUrl({ name: val, page: 1 }));
   const [copiedSku, setCopiedSku] = useState<string | null>(null);
