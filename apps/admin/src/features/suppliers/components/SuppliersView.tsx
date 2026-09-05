@@ -16,10 +16,12 @@ import {
 import { ClientSupplier } from '@/lib/clientDb';
 import { useSuppliers, useDeleteSupplier } from '../hooks/use-suppliers';
 import SupplierDetailDialog from './SupplierDetailDialog';
+import { isForbiddenError } from '@/constants/errorMessages';
 
 export default function SuppliersView() {
   const router = useRouter();
-  const { data: suppliers = [], isLoading } = useSuppliers();
+  const { data: suppliers = [], isLoading, error } = useSuppliers();
+  const isForbidden = isForbiddenError(error);
   const deleteMutation = useDeleteSupplier();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
@@ -133,7 +135,7 @@ export default function SuppliersView() {
       <DataCard 
         search={<SearchInput placeholder="Tìm tên NCC, SĐT..." value={searchTerm} onChange={(val) => { setSearchTerm(val); setPage(1); }} />}
         footer={
-          (isLoading || filteredSuppliers.length > 0) && (
+          !isForbidden && (isLoading || filteredSuppliers.length > 0) && (
             <NextPagination
               isLoading={isLoading}
               currentPage={page}
@@ -151,6 +153,11 @@ export default function SuppliersView() {
           data={paginatedSuppliers} 
           isLoading={isLoading && !filteredSuppliers.length}
           loadingRows={size}
+          isForbidden={isForbidden}
+          forbiddenState={{
+            title: "Không có quyền xem nhà cung cấp",
+            description: "Tài khoản của bạn chưa được cấp quyền xem danh sách nhà cung cấp (supplier:read). Vui lòng liên hệ Quản trị viên để được phân quyền.",
+          }}
           emptyState={{
             title: "Chưa có nhà cung cấp",
             description: "Thêm thông tin đối tác đầu tiên để thực hiện nhập kho.",

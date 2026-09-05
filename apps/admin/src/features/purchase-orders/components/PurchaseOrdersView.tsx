@@ -33,10 +33,12 @@ import { formatCurrency } from '@/lib/formatters';
 import { toast } from 'sonner';
 
 import { usePurchaseOrders, useUpdatePOStatus } from '../hooks/use-purchase-order-mutation';
+import { isForbiddenError } from '@/constants/errorMessages';
 
 export default function PurchaseOrdersView() {
   const router = useRouter();
-  const { data: poData, isLoading } = usePurchaseOrders();
+  const { data: poData, isLoading, error } = usePurchaseOrders();
+  const isForbidden = isForbiddenError(error);
   const updateStatusMutation = useUpdatePOStatus();
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -296,7 +298,7 @@ export default function PurchaseOrdersView() {
       <DataCard
         search={<SearchInput placeholder="Tìm theo mã PO, tên Nhà cung cấp..." value={searchTerm} onChange={(val) => { setSearchTerm(val); setPage(1); }} />}
         footer={
-          (isLoading || filteredOrders.length > 0) && (
+          !isForbidden && (isLoading || filteredOrders.length > 0) && (
             <NextPagination
               isLoading={isLoading}
               currentPage={page}
@@ -314,6 +316,11 @@ export default function PurchaseOrdersView() {
           data={paginatedOrders} 
           isLoading={isLoading && !filteredOrders.length}
           loadingRows={size}
+          isForbidden={isForbidden}
+          forbiddenState={{
+            title: "Không có quyền xem đơn mua hàng",
+            description: "Tài khoản của bạn chưa được cấp quyền xem danh sách đơn mua hàng (purchase-order:read). Vui lòng liên hệ Quản trị viên để được phân quyền.",
+          }}
           emptyState={{
             title: "Chưa có Đơn mua hàng nào",
             description: "Bắt đầu tạo đơn mua hàng đầu tiên từ nhà cung cấp.",

@@ -23,7 +23,12 @@ export const brandApi = {
     if (params.active !== undefined) query.append('active', params.active.toString());
 
     const res = await clientFetch(`v1/brands?${query.toString()}`);
-    if (!res.ok) throw new Error('Failed to fetch brands');
+    if (!res.ok) {
+      if (res.status === 403) {
+        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem thương hiệu', 403);
+      }
+      throw new Error('Failed to fetch brands');
+    }
     const result: PageResponse<Brand> = await res.json();
     return syncPagination<PageResponse<Brand>>(result);
   },

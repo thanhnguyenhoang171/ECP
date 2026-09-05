@@ -8,6 +8,9 @@ export const goodsReceiptApi = {
   getAll: async (): Promise<ClientGoodsReceipt[]> => {
     try {
       const res = await clientFetch('v1/goods-receipts');
+      if (res.status === 403) {
+        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem danh sách phiếu nhập kho', 403);
+      }
       if (res.ok) {
         const result = await res.json();
         if (Array.isArray(result.data)) {
@@ -19,6 +22,9 @@ export const goodsReceiptApi = {
         }
       }
     } catch (e) {
+      if (e instanceof ApiError && e.status === 403) {
+        throw e;
+      }
       console.warn('Backend getAll goods-receipts failed, using mock fallback', e);
     }
 

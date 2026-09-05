@@ -19,8 +19,8 @@ import {
   type ColumnDef,
   DataCard,
   Breadcrumbs,
-  Forbidden,
 } from '@/components/common';
+import { isForbiddenError } from '@/constants/errorMessages';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   SearchInput,
@@ -332,10 +332,12 @@ export default function ProductView({
     },
   ], [categoriesList, copiedSku, handleCopySku, handleNavigateDetail, isExporting]);
 
+  const isForbidden = isForbiddenError(error);
+
   const commonActions = (
     <>
       <ImportButton onClick={() => toast.info('Tính năng Nhập file đang phát triển')} disabled={isExporting} />
-      <ExportButton onExport={handleExport} isLoading={isExporting} />
+      <ExportButton onExport={handleExport} isLoading={isExporting} disabled={isExporting || isForbidden} />
       <AddNewButton onClick={handleCreate} disabled={isExporting} />
     </>
   );
@@ -347,23 +349,6 @@ export default function ProductView({
     );
 
   const breadcrumbItems = [{ label: 'Sản phẩm', icon: Package }];
-
-  const isForbidden =
-    (error as unknown as { status?: number })?.status === 403 ||
-    (error as Error)?.message?.includes('403') ||
-    (error as Error)?.message?.toLowerCase().includes('forbidden');
-
-  if (isForbidden) {
-    return (
-      <div className="space-y-6 pb-12">
-        <Breadcrumbs items={breadcrumbItems} />
-        <Forbidden
-          title="Không có quyền xem Sản phẩm"
-          description="Tài khoản của bạn chưa được cấp quyền xem danh mục sản phẩm (product:read). Vui lòng liên hệ với Quản trị viên để được phân quyền."
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6 pb-12">
@@ -473,7 +458,7 @@ export default function ProductView({
           </>
         }
         footer={
-          (isFetching || totalElements > 0) && (
+          !isForbidden && (isFetching || totalElements > 0) && (
             <NextPagination
               isLoading={isFetching}
               currentPage={page}
@@ -491,6 +476,11 @@ export default function ProductView({
           data={paginatedProducts}
           isLoading={isLoading && paginatedProducts.length === 0}
           loadingRows={size}
+          isForbidden={isForbidden}
+          forbiddenState={{
+            title: 'Không có quyền xem sản phẩm',
+            description: 'Tài khoản của bạn chưa được cấp quyền xem danh mục sản phẩm (product:read). Vui lòng liên hệ với Quản trị viên để được phân quyền.',
+          }}
           emptyState={{
             title: 'Không tìm thấy sản phẩm',
             description: 'Thử thay đổi bộ lọc tìm kiếm hoặc tạo sản phẩm mới.',

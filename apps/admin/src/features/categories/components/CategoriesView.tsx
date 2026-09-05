@@ -32,6 +32,7 @@ import { Category } from '../types/category.interface';
 import { PageResponse } from '@/types/pagination';
 import { useCategories, useParentCategories } from '../hooks/use-categories';
 import { useDeleteCategory, useUpdateCategory } from '../hooks/use-category-mutation';
+import { isForbiddenError } from '@/constants/errorMessages';
 
 import { formatDate, formatDateTimeForFilename } from '@/lib/formatters';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
@@ -74,7 +75,7 @@ export default function CategoriesView({
  const idParam = searchParams.get('id') || '';
 
  // TanStack Query
- const { data, isLoading, isFetching } = useCategories(
+ const { data, isLoading, isFetching, error } = useCategories(
   {
    page,
    size,
@@ -97,6 +98,8 @@ export default function CategoriesView({
   },
   initialData?.data?.length ? initialData : undefined,
  );
+
+ const isForbidden = isForbiddenError(error);
 
  // Nếu có dữ liệu từ API thì dùng, không thì dùng từ Server
  const { data: dynamicParentCategories } = useParentCategories();
@@ -323,9 +326,9 @@ export default function CategoriesView({
         Dạng bảng (Table)
       </button>
     </div>
-   <ImportButton onClick={() => router.push('/categories/import')} disabled={isLoading || isFetching} />
-   <ExportButton onExport={handleExportExcelFile} isLoading={isExporting} disabled={isLoading || isFetching} />
-   <AddNewButton onClick={handleCreate} disabled={isLoading || isFetching} />
+   <ImportButton onClick={() => router.push('/categories/import')} disabled={isForbidden} />
+   <ExportButton onExport={handleExportExcelFile} isLoading={isExporting} disabled={isLoading || isFetching || isForbidden} />
+   <AddNewButton onClick={handleCreate} />
   </>
  );
 
@@ -455,7 +458,7 @@ export default function CategoriesView({
      </>
     }
     footer={
-     viewMode === 'table' && (isLoading || categories.length > 0) && (
+     !isForbidden && viewMode === 'table' && (isLoading || categories.length > 0) && (
       <NextPagination
        isLoading={isLoading}
        currentPage={pagination.currentPage}
@@ -468,7 +471,18 @@ export default function CategoriesView({
      )
     }
    >
-        {viewMode === 'tree' ? (
+        {isForbidden ? (
+          <DataTable
+           columns={columns}
+           data={[]}
+           isLoading={false}
+           isForbidden={true}
+           forbiddenState={{
+            title: 'Không có quyền xem danh mục',
+            description: 'Tài khoản của bạn chưa được cấp quyền xem danh sách danh mục (category:read). Vui lòng liên hệ với Quản trị viên để được phân quyền.',
+           }}
+          />
+        ) : viewMode === 'tree' ? (
           <div className="p-4">
             <CategoryTreeView
               categories={categories}

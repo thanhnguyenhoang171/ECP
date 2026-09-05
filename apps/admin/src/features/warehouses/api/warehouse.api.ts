@@ -1,12 +1,16 @@
 import { clientFetch } from '@/lib/clientFetch';
 import { clientDb, ClientWarehouse } from '@/lib/clientDb';
 import { useAuthStore } from '@/store/authStore';
+import { ApiError } from '@/constants/errorMessages';
 
 export const warehouseApi = {
   // Lấy danh sách tất cả kho bãi
   getAll: async (): Promise<ClientWarehouse[]> => {
     try {
       const res = await clientFetch('v1/warehouses');
+      if (res.status === 403) {
+        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem danh sách kho hàng', 403);
+      }
       if (res.ok) {
         const result = await res.json();
         let items = [];
@@ -24,6 +28,9 @@ export const warehouseApi = {
         }));
       }
     } catch (e) {
+      if (e instanceof ApiError && e.status === 403) {
+        throw e;
+      }
       console.warn('Backend getAll warehouses failed, using mock fallback', e);
     }
 

@@ -16,10 +16,12 @@ import {
 import WarehouseDetailDialog from './WarehouseDetailDialog';
 import { useWarehouses, useDeleteWarehouse } from '../hooks/use-warehouses';
 import { ClientWarehouse } from '@/lib/clientDb';
+import { isForbiddenError } from '@/constants/errorMessages';
 
 export default function WarehousesView() {
   const router = useRouter();
-  const { data: warehouses = [], isLoading } = useWarehouses();
+  const { data: warehouses = [], isLoading, error } = useWarehouses();
+  const isForbidden = isForbiddenError(error);
   const deleteMutation = useDeleteWarehouse();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -137,7 +139,7 @@ export default function WarehousesView() {
       <DataCard 
         search={<SearchInput placeholder="Tìm tên kho, mã kho..." value={searchTerm} onChange={(val) => { setSearchTerm(val); setPage(1); }} />}
         footer={
-          (isLoading || filteredWarehouses.length > 0) && (
+          !isForbidden && (isLoading || filteredWarehouses.length > 0) && (
             <NextPagination
               isLoading={isLoading}
               currentPage={page}
@@ -155,6 +157,11 @@ export default function WarehousesView() {
           data={paginatedWarehouses} 
           isLoading={isLoading && !filteredWarehouses.length}
           loadingRows={size}
+          isForbidden={isForbidden}
+          forbiddenState={{
+            title: "Không có quyền xem kho bãi",
+            description: "Tài khoản của bạn chưa được cấp quyền xem danh sách kho bãi (warehouse:read). Vui lòng liên hệ Quản trị viên để được phân quyền.",
+          }}
           emptyState={{
             title: "Chưa có dữ liệu kho bãi",
             description: "Thêm kho hàng đầu tiên để bắt đầu quản lý tồn kho.",

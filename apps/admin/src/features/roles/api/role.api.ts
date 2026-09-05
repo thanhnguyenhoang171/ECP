@@ -7,6 +7,9 @@ export const roleApi = {
   getAll: async (): Promise<Role[]> => {
     const res = await clientFetch('v1/roles');
     if (!res.ok) {
+      if (res.status === 403) {
+        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem vai trò hệ thống', 403);
+      }
       throw new Error('Lỗi tải danh sách vai trò hệ thống');
     }
     const result = await res.json();

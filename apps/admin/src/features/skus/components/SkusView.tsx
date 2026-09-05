@@ -37,6 +37,7 @@ import { getSortOptions } from '@/types';
 import { cn } from '@/lib/utils';
 
 import { useSkus } from '../hooks/use-skus';
+import { isForbiddenError } from '@/constants/errorMessages';
 
 export default function SkusView() {
   const {
@@ -53,13 +54,15 @@ export default function SkusView() {
   const skuParam = searchParams.get('sku') || '';
   const activeParam = searchParams.get('active');
 
-  const { data: skusResponse, isFetching, refetch } = useSkus({
+  const { data: skusResponse, isFetching, error, refetch } = useSkus({
     page,
     size,
     sort,
     search: skuParam,
     isActive: activeParam ? activeParam === 'true' : undefined,
   });
+
+  const isForbidden = isForbiddenError(error);
 
   const rawData = skusResponse?.data;
   const apiSkus = Array.isArray(rawData)
@@ -197,7 +200,7 @@ export default function SkusView() {
           </>
         }
         footer={
-          (isFetching || totalItems > 0) && (
+          !isForbidden && (isFetching || totalItems > 0) && (
             <NextPagination 
               isLoading={isFetching}
               currentPage={page} 
@@ -214,6 +217,11 @@ export default function SkusView() {
           columns={columns}
           data={apiSkus}
           isLoading={isFetching}
+          isForbidden={isForbidden}
+          forbiddenState={{
+            title: 'Không có quyền xem mã SKU',
+            description: 'Tài khoản của bạn chưa được cấp quyền xem danh sách mã SKU (sku:read). Vui lòng liên hệ Quản trị viên để được phân quyền.',
+          }}
           emptyState={{
             title: 'Không tìm thấy mã SKU',
             description: 'Vui lòng cấu hình sản phẩm để hệ thống tự động sinh mã SKU.',

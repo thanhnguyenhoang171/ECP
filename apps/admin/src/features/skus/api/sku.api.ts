@@ -35,6 +35,9 @@ export const skuApi = {
 
     const res = await clientFetch(`v1/skus?${query.toString()}`);
     if (!res.ok) {
+      if (res.status === 403) {
+        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem danh sách SKU', 403);
+      }
       return {
         success: false,
         data: [],

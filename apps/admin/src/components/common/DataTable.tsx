@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { ShieldAlert } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -29,6 +30,12 @@ interface DataTableProps<T> {
   data: T[];
   isLoading?: boolean;
   loadingRows?: number;
+  isForbidden?: boolean;
+  forbiddenState?: {
+    title?: string;
+    description?: string;
+    icon?: React.ReactNode;
+  };
   emptyState?: {
     title?: string;
     description?: string;
@@ -47,8 +54,10 @@ export function DataTable<T>({
   data,
   isLoading,
   loadingRows = 5,
+  isForbidden,
+  forbiddenState,
   emptyState,
-  rowKey = (item: any) => item.id || item.uuid,
+  rowKey = (item: T) => ((item as Record<string, unknown>)?.id ?? (item as Record<string, unknown>)?.uuid ?? '') as string | number,
   onRowClick,
   className,
   tableClassName,
@@ -67,9 +76,26 @@ export function DataTable<T>({
     }
   };
 
+  if (isForbidden) {
+    return (
+      <div className="py-20">
+        <EmptyState
+          title={forbiddenState?.title || 'Không có quyền xem dữ liệu'}
+          description={
+            forbiddenState?.description ||
+            'Tài khoản của bạn chưa được cấp quyền xem danh sách dữ liệu này. Vui lòng liên hệ Quản trị viên để được phân quyền.'
+          }
+          icon={forbiddenState?.icon || <ShieldAlert className="h-10 w-10 text-rose-500" />}
+          iconColor="bg-rose-50 text-rose-500 dark:bg-rose-950/40"
+          note={null}
+        />
+      </div>
+    );
+  }
+
   if (!isLoading && safeData.length === 0) {
     return (
-      <div className='py-20'>
+      <div className="py-20">
         <EmptyState
           title={emptyState?.title || 'Không có dữ liệu'}
           description={emptyState?.description || 'Hiện không có dữ liệu nào để hiển thị.'}

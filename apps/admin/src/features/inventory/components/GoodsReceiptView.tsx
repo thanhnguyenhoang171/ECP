@@ -25,10 +25,12 @@ import {
   DeleteConfirmDialog 
 } from '@/components/common/view-control';
 import { toast } from 'sonner';
+import { isForbiddenError } from '@/constants/errorMessages';
 
 export default function GoodsReceiptView() {
   const router = useRouter();
-  const { data: receiptsData, isLoading } = useGoodsReceipts();
+  const { data: receiptsData, isLoading, error } = useGoodsReceipts();
+  const isForbidden = isForbiddenError(error);
   const confirmMutation = useConfirmGoodsReceipt();
   const updateStatusMutation = useUpdateGoodsReceiptStatus();
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -215,7 +217,7 @@ export default function GoodsReceiptView() {
       <DataCard
         search={<SearchInput placeholder="Tìm mã phiếu nhập, kho..." value={searchTerm} onChange={(val) => { setSearchTerm(val); setPage(1); }} />}
         footer={
-          (isLoading || filteredReceipts.length > 0) && (
+          !isForbidden && (isLoading || filteredReceipts.length > 0) && (
             <NextPagination
               isLoading={isLoading}
               currentPage={page}
@@ -233,6 +235,11 @@ export default function GoodsReceiptView() {
           data={paginatedReceipts} 
           isLoading={isLoading && !filteredReceipts.length}
           loadingRows={size}
+          isForbidden={isForbidden}
+          forbiddenState={{
+            title: "Không có quyền xem phiếu nhập kho",
+            description: "Tài khoản của bạn chưa được cấp quyền xem danh sách phiếu nhập kho (goods-receipt:read). Vui lòng liên hệ Quản trị viên để được phân quyền.",
+          }}
           emptyState={{
             title: "Chưa có phiếu nhập kho",
             description: "Bắt đầu tạo phiếu nhập kho đầu tiên để quản lý hàng tồn.",
