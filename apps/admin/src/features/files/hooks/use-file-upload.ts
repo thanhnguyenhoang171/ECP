@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { fileApi, CloudinaryFile } from '../api/file.api';
 import { ApiResponse } from '@/types/api.interface';
+import { getApiErrorMessage } from '@/constants/errorMessages';
 
 export interface UploadFileParams {
   file: File;
@@ -28,9 +29,10 @@ export function useUploadFile() {
         toast.success('Tải lên tập tin thành công');
       }
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error('File upload error:', error);
-      toast.error(error.message || 'Tải lên tập tin thất bại');
+      const msg = getApiErrorMessage(error, 'Tải lên tập tin thất bại');
+      toast.error(msg, { id: msg });
     },
   });
 }
@@ -46,9 +48,10 @@ export function useUploadMultipleFiles() {
         toast.success(`Tải lên ${response.data.length} tập tin thành công`);
       }
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error('Multiple files upload error:', error);
-      toast.error(error.message || 'Tải lên danh sách tập tin thất bại');
+      const msg = getApiErrorMessage(error, 'Tải lên danh sách tập tin thất bại');
+      toast.error(msg, { id: msg });
     },
   });
 }
@@ -64,9 +67,10 @@ export function useDeleteFile() {
         toast.success('Xóa tập tin thành công');
       }
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error('File deletion error:', error);
-      toast.error(error.message || 'Xóa tập tin thất bại');
+      const msg = getApiErrorMessage(error, 'Xóa tập tin thất bại');
+      toast.error(msg, { id: msg });
     },
   });
 }

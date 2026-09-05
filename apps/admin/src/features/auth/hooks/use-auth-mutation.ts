@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { authApi } from '../api/auth.api';
 import { useAuthStore } from '@/store/authStore';
-import { getErrorMessage } from '@/constants/errorMessages';
+import { getApiErrorMessage, ErrorMessages } from '@/constants/errorMessages';
 import { decodeJwtToken, extractRolesFromToken } from '@/lib/jwt';
 import { LoginResponse, RegisterResponse, LogoutResponse, User, UserAccountData } from '../types/auth.interface';
 
@@ -79,7 +79,7 @@ export function useLogin(): UseMutationResult<LoginResponse, unknown, Parameters
           console.error('[useLogin] Failed to logout restricted account:', e);
         });
         clearAuth();
-        toast.error('Your account does not have authorization to access the admin system.');
+        toast.error(ErrorMessages['AUTH_ACCESS_DENIED'], { id: 'auth-access-denied' });
         return;
       }
 
@@ -92,7 +92,7 @@ export function useLogin(): UseMutationResult<LoginResponse, unknown, Parameters
 
       // 4. Set authentication state and redirect immediately without blocking UI
       setAuth(accessToken, initialProfile);
-      toast.success('Welcome back!');
+      toast.success('Đăng nhập thành công!');
 
       router.refresh();
       router.push('/dashboard');
@@ -102,9 +102,8 @@ export function useLogin(): UseMutationResult<LoginResponse, unknown, Parameters
     },
     onError: (error: unknown) => {
       console.error('[useLogin] Login mutation failed:', error);
-      const err = error as { code?: string };
-      const message = err?.code ? getErrorMessage(err.code) : 'Login failed, please try again.';
-      toast.error(message);
+      const message = getApiErrorMessage(error, 'Đăng nhập thất bại, vui lòng thử lại.');
+      toast.error(message, { id: message });
     },
   });
 }
@@ -115,14 +114,13 @@ export function useRegister(): UseMutationResult<RegisterResponse, unknown, Para
   return useMutation({
     mutationFn: authApi.register,
     onSuccess: () => {
-      toast.success('Account registered successfully! Please log in.');
+      toast.success('Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
       router.push('/login');
     },
     onError: (error: unknown) => {
       console.error('[useRegister] Registration mutation failed:', error);
-      const err = error as { code?: string };
-      const message = err?.code ? getErrorMessage(err.code) : 'Registration failed, please try again.';
-      toast.error(message);
+      const message = getApiErrorMessage(error, 'Đăng ký thất bại, vui lòng thử lại.');
+      toast.error(message, { id: message });
     },
   });
 }
@@ -170,7 +168,7 @@ export function useGoogleLogin(): UseMutationResult<LoginResponse, unknown, stri
           console.error('[useGoogleLogin] Failed to logout restricted account:', e);
         });
         clearAuth();
-        toast.error('Your account does not have authorization to access the admin system.');
+        toast.error(ErrorMessages['AUTH_ACCESS_DENIED'], { id: 'auth-access-denied' });
         return;
       }
 
@@ -183,7 +181,7 @@ export function useGoogleLogin(): UseMutationResult<LoginResponse, unknown, stri
 
       // 4. Set authentication state and redirect immediately without blocking UI
       setAuth(accessToken, initialProfile);
-      toast.success('Google login successful!');
+      toast.success('Đăng nhập Google thành công!');
 
       router.refresh();
       router.push('/dashboard');
@@ -193,9 +191,8 @@ export function useGoogleLogin(): UseMutationResult<LoginResponse, unknown, stri
     },
     onError: (error: unknown) => {
       console.error('[useGoogleLogin] Google login failed:', error);
-      const err = error as { message?: string };
-      const message = err?.message || 'Google login failed, please try again.';
-      toast.error(message);
+      const message = getApiErrorMessage(error, 'Đăng nhập Google thất bại, vui lòng thử lại.');
+      toast.error(message, { id: message });
     },
   });
 }

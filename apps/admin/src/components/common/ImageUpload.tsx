@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { cn, getCloudinaryPublicId } from '@/lib/utils';
+import { getApiErrorMessage } from '@/constants/errorMessages';
 import { useUploadFile, useUploadMultipleFiles, useDeleteFile } from '@/features/files/hooks/use-file-upload';
 import { CloudinaryFile } from '@/features/files/api/file.api';
 
@@ -360,9 +361,10 @@ export const ImageUpload = ({
           }
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Upload error in onDrop:", error);
-      toast.error(error?.message || 'Tải ảnh lên thất bại');
+      const msg = getApiErrorMessage(error, 'Tải ảnh lên thất bại');
+      toast.error(msg, { id: msg });
       // Revert optimistic preview on upload failure
       setInternalImages(prev => prev.filter(img => !img.isUploading && !img.url.startsWith('blob:')));
     } finally {

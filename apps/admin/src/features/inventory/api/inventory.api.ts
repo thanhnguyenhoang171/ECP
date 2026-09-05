@@ -1,5 +1,6 @@
 import { clientFetch } from '@/lib/clientFetch';
 import { clientDb } from '@/lib/clientDb';
+import { ApiError } from '@/constants/errorMessages';
 
 export interface InventoryItemResponse {
   id: string;
@@ -119,7 +120,12 @@ export const inventoryApi = {
         const result = await res.json();
         return result.data || result;
       }
-    } catch (e) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new ApiError(errJson.code, errJson?.message || 'Điều chỉnh tồn kho thất bại', res.status, errJson);
+    } catch (e: any) {
+      if (e instanceof ApiError || (e?.message && e.message !== 'Failed to fetch')) {
+        throw e;
+      }
       console.warn('Backend adjustStock failed, using clientDb fallback', e);
     }
 

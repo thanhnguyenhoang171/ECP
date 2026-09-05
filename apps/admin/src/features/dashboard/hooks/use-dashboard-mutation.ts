@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dashboardApi } from "../api/dashboard.api";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/constants/errorMessages";
 
 export function usePurgeDatabase() {
   const queryClient = useQueryClient();
@@ -13,14 +14,14 @@ export function usePurgeDatabase() {
         // Làm mới toàn bộ cache của toàn bộ ứng dụng để đảm bảo dữ liệu được cập nhật sau khi xoá
         queryClient.clear();
       } else {
-        // toast.error is handled globally by clientFetch
-        toast.error('Xoá dữ liệu thất bại');
+        const msg = 'Xoá dữ liệu thất bại';
+        toast.error(msg, { id: msg });
       }
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("Mutation error:", error);
-      // toast.error is handled globally by clientFetch
-      toast.error('Xoá dữ liệu thất bại');  
+      const msg = getApiErrorMessage(error, 'Xoá dữ liệu thất bại');
+      toast.error(msg, { id: msg });  
     },
   });
 }

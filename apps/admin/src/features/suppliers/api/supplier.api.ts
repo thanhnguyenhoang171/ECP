@@ -1,6 +1,7 @@
 import { clientFetch } from '@/lib/clientFetch';
 import { clientDb, ClientSupplier } from '@/lib/clientDb';
 import { useAuthStore } from '@/store/authStore';
+import { ApiError } from '@/constants/errorMessages';
 
 export const supplierApi = {
   // Lấy danh sách tất cả nhà cung cấp
@@ -70,7 +71,12 @@ export const supplierApi = {
           isActive: item.active !== undefined ? item.active : (item.isActive || false)
         };
       }
+      const errJson = await res.json().catch(() => ({}));
+      throw new ApiError(errJson.code, errJson.message || 'Thêm nhà cung cấp thất bại', res.status, errJson);
     } catch (e) {
+      if (e instanceof ApiError || (e as Error)?.name !== 'TypeError') {
+        throw e;
+      }
       console.warn('Backend create supplier failed, using mock fallback', e);
     }
     
@@ -96,7 +102,12 @@ export const supplierApi = {
           isActive: item.active !== undefined ? item.active : (item.isActive || false)
         };
       }
+      const errJson = await res.json().catch(() => ({}));
+      throw new ApiError(errJson.code, errJson.message || 'Cập nhật nhà cung cấp thất bại', res.status, errJson);
     } catch (e) {
+      if (e instanceof ApiError || (e as Error)?.name !== 'TypeError') {
+        throw e;
+      }
       console.warn('Backend update supplier failed, using mock fallback', e);
     }
 
@@ -114,11 +125,10 @@ export const supplierApi = {
         return { success: true };
       } else {
         const body = await res.json().catch(() => ({}));
-        const msg = body?.message || 'Không thể xóa nhà cung cấp';
-        throw new Error(msg);
+        throw new ApiError(body.code, body?.message || 'Không thể xóa nhà cung cấp', res.status, body);
       }
     } catch (e: any) {
-      if (e?.message && e.message !== 'Failed to fetch') {
+      if (e instanceof ApiError || ((e as Error)?.message && (e as Error).message !== 'Failed to fetch')) {
         throw e;
       }
       console.warn('Backend delete supplier failed, using mock fallback', e);

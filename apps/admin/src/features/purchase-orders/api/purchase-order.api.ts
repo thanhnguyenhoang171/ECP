@@ -1,6 +1,7 @@
 import { clientFetch } from '@/lib/clientFetch';
 import { clientDb, ClientPurchaseOrder } from '@/lib/clientDb';
 import { useAuthStore } from '@/store/authStore';
+import { ApiError } from '@/constants/errorMessages';
 
 export const purchaseOrderApi = {
   // Lấy danh sách Đơn mua hàng
@@ -75,14 +76,12 @@ export const purchaseOrderApi = {
         const errJson = await res.json().catch(() => ({}));
         if (errJson?.validationErrors) {
           const detail = Object.values(errJson.validationErrors).join(', ');
-          throw new Error(detail);
+          throw new ApiError(errJson.code, detail, res.status, errJson);
         }
-        if (errJson?.message) {
-          throw new Error(errJson.message);
-        }
+        throw new ApiError(errJson.code, errJson?.message || 'Tạo đơn mua hàng thất bại', res.status, errJson);
       }
     } catch (e: any) {
-      if (e?.message && e.message !== 'Failed to fetch') {
+      if (e instanceof ApiError || (e?.message && e.message !== 'Failed to fetch')) {
         throw e;
       }
       console.warn('Backend create purchase-order failed, using mock fallback', e);
@@ -124,14 +123,12 @@ export const purchaseOrderApi = {
         const errJson = await res.json().catch(() => ({}));
         if (errJson?.validationErrors) {
           const detail = Object.values(errJson.validationErrors).join(', ');
-          throw new Error(detail);
+          throw new ApiError(errJson.code, detail, res.status, errJson);
         }
-        if (errJson?.message) {
-          throw new Error(errJson.message);
-        }
+        throw new ApiError(errJson.code, errJson?.message || 'Cập nhật đơn mua hàng thất bại', res.status, errJson);
       }
     } catch (e: any) {
-      if (e?.message && e.message !== 'Failed to fetch') {
+      if (e instanceof ApiError || (e?.message && e.message !== 'Failed to fetch')) {
         throw e;
       }
       console.warn('Backend update purchase-order failed', e);

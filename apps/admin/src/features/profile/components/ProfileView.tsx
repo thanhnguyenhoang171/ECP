@@ -65,6 +65,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { useMutation } from '@tanstack/react-query';
+import { getApiErrorMessage } from '@/constants/errorMessages';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -418,8 +419,9 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
         }));
       }
     },
-    onError: (err: any) => {
-      toast.error(err?.message || 'Cập nhật thất bại. Vui lòng thử lại.');
+    onError: (err: unknown) => {
+      const msg = getApiErrorMessage(err, 'Cập nhật thất bại. Vui lòng thử lại.');
+      toast.error(msg, { id: msg });
     },
   });
 
@@ -443,8 +445,9 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
         }));
       }
     },
-    onError: (err: any) => {
-      toast.error(err?.message || 'Cập nhật ảnh đại diện thất bại. Vui lòng thử lại.');
+    onError: (err: unknown) => {
+      const msg = getApiErrorMessage(err, 'Cập nhật ảnh đại diện thất bại. Vui lòng thử lại.');
+      toast.error(msg, { id: msg });
       // Rollback to original store avatar
       setAvatarUrl(user?.avatarUrl || '');
       useAuthStore.setState((state) => ({
@@ -475,8 +478,9 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
         }));
       }
     },
-    onError: (err: any) => {
-      toast.error(err?.message || 'Gỡ ảnh đại diện thất bại. Vui lòng thử lại.');
+    onError: (err: unknown) => {
+      const msg = getApiErrorMessage(err, 'Gỡ ảnh đại diện thất bại. Vui lòng thử lại.');
+      toast.error(msg, { id: msg });
       // Rollback to original store avatar
       setAvatarUrl(user?.avatarUrl || '');
       useAuthStore.setState((state) => ({
@@ -526,8 +530,9 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
         }));
       }
     },
-    onError: (err: any) => {
-      toast.error(err?.message || 'Cập nhật ảnh nền thất bại. Vui lòng thử lại.');
+    onError: (err: unknown) => {
+      const msg = getApiErrorMessage(err, 'Cập nhật ảnh nền thất bại. Vui lòng thử lại.');
+      toast.error(msg, { id: msg });
       setBannerUrl(user?.bannerUrl || '');
       useAuthStore.setState((state) => ({
         user: state.user ? { ...state.user, bannerUrl: user?.bannerUrl || '' } : state.user,
@@ -556,8 +561,9 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.Re
         }));
       }
     },
-    onError: (err: any) => {
-      toast.error(err?.message || 'Gỡ ảnh nền thất bại. Vui lòng thử lại.');
+    onError: (err: unknown) => {
+      const msg = getApiErrorMessage(err, 'Gỡ ảnh nền thất bại. Vui lòng thử lại.');
+      toast.error(msg, { id: msg });
       setBannerUrl(user?.bannerUrl || '');
       useAuthStore.setState((state) => ({
         user: state.user ? { ...state.user, bannerUrl: user?.bannerUrl || '' } : state.user,

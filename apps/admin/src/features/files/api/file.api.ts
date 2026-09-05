@@ -1,5 +1,6 @@
 import { clientFetch } from '@/lib/clientFetch';
 import { ApiResponse } from '@/types/api.interface';
+import { ApiError } from '@/constants/errorMessages';
 
 export interface CloudinaryFile {
   public_id: string;
@@ -92,7 +93,8 @@ export const fileApi = {
     });
     
     if (!res.ok) {
-      throw new Error('Failed to upload file');
+      const errJson = await res.json().catch(() => ({}));
+      throw new ApiError(errJson.code, errJson.message || 'Tải lên tập tin thất bại', res.status, errJson);
     }
     
     return res.json();
@@ -118,7 +120,8 @@ export const fileApi = {
     });
 
     if (!res.ok) {
-      throw new Error('Failed to upload files');
+      const errJson = await res.json().catch(() => ({}));
+      throw new ApiError(errJson.code, errJson.message || 'Tải lên danh sách tập tin thất bại', res.status, errJson);
     }
 
     return res.json();
@@ -137,7 +140,8 @@ export const fileApi = {
     });
 
     if (!res.ok) {
-      throw new Error('Failed to delete file');
+      const errJson = await res.json().catch(() => ({}));
+      throw new ApiError(errJson.code, errJson.message || 'Xóa tập tin thất bại', res.status, errJson);
     }
 
     return res.json();

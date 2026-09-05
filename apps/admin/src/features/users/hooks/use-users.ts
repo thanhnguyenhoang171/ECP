@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { userApi } from '../api/user.api';
 import { PageResponse } from '@/types/pagination';
 import { User } from '../types/user.interface';
+import { getApiErrorMessage } from '@/constants/errorMessages';
 
 export function useUsers(
   params: {
@@ -67,14 +68,15 @@ export function useCreateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: any) => userApi.create(data),
+    mutationFn: (data: Record<string, unknown>) => userApi.create(data),
     onSuccess: () => {
       toast.success('Thêm người dùng thành công');
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'statistics'] });
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Có lỗi xảy ra khi thêm người dùng');
+    onError: (error: unknown) => {
+      const msg = getApiErrorMessage(error, 'Có lỗi xảy ra khi thêm người dùng');
+      toast.error(msg, { id: msg });
     }
   });
 }
@@ -83,14 +85,15 @@ export function useUpdateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => userApi.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) => userApi.update(id, data),
     onSuccess: () => {
       toast.success('Cập nhật người dùng thành công');
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'statistics'] });
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Có lỗi xảy ra khi cập nhật người dùng');
+    onError: (error: unknown) => {
+      const msg = getApiErrorMessage(error, 'Có lỗi xảy ra khi cập nhật người dùng');
+      toast.error(msg, { id: msg });
     }
   });
 }

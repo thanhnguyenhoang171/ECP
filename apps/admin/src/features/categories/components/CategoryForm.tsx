@@ -31,6 +31,7 @@ import {
   useUpdateCategory,
 } from '../hooks/use-category-mutation';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/constants/errorMessages';
 
 import { 
   ImageUpload, 
@@ -157,11 +158,13 @@ export default function CategoryForm({
         await createMutation.mutateAsync(payload as any);
       }
       onSuccess();
-    } catch (error: any) {
-      if (error?.message?.includes('slug')) {
+    } catch (error: unknown) {
+      const code = (error as { code?: string })?.code;
+      if (code === 'CATEGORY_SLUG_EXISTS' || (error as Error)?.message?.includes('slug')) {
         form.setError('slug', { message: 'Đường dẫn (Slug) đã tồn tại' });
       } else {
-        toast.error(error?.message || 'Có lỗi xảy ra khi lưu danh mục');
+        const msg = getApiErrorMessage(error, 'Có lỗi xảy ra khi lưu danh mục');
+        toast.error(msg, { id: msg });
       }
     }
   }
