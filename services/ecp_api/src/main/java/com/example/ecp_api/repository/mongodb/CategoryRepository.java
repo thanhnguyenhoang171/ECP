@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -21,6 +22,6 @@ public interface CategoryRepository extends MongoRepository<Category, String> {
     List<Category> findByParentIdIsNullAndDeletedFalse(Sort sort);
     List<Category> findByParentIdIsNullAndActiveTrueAndDeletedFalse(Sort sort);
     
-    @org.springframework.data.mongodb.repository.Query("{ 'is_deleted' : false }")
+    @Query("{ 'is_deleted' : false }")
     Stream<Category> findAllByDeletedFalse();
 }

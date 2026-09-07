@@ -479,11 +479,13 @@ export default function ProductView(): React.ReactElement {
       <DeleteConfirmDialog
         isOpen={Boolean(deleteConfirmId)}
         onClose={() => setDeleteConfirmId(null)}
+        isLoading={deleteMutation.isPending}
         onConfirm={() => {
-          if (deleteConfirmId) {
-            deleteMutation.mutate(deleteConfirmId);
+          if (deleteConfirmId && !deleteMutation.isPending) {
+            deleteMutation.mutate(deleteConfirmId, {
+              onSuccess: () => setDeleteConfirmId(null),
+            });
           }
-          setDeleteConfirmId(null);
         }}
         description="Bạn có chắc chắn muốn xóa sản phẩm này không?"
       />
