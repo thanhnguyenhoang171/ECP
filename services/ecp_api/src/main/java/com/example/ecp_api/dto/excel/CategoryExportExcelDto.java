@@ -79,7 +79,7 @@ public class CategoryExportExcelDto {
     @ColumnWidth(12)
     private Integer order;
 
-    @ExcelProperty("Trạng thái (Hoạt động)")
+    @ExcelProperty("Trạng thái")
     @ColumnWidth(25)
     private String status;
 

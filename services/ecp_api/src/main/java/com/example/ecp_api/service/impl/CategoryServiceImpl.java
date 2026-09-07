@@ -35,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.io.OutputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -333,7 +334,7 @@ public class CategoryServiceImpl implements CategoryService {
                         java.net.URL parsedImageUrl = null;
                         try {
                             if (cat.getImage() != null && StringUtils.hasText(cat.getImage().getUrl())) {
-                                parsedImageUrl = new java.net.URL(cat.getImage().getUrl());
+                                parsedImageUrl = new URL(cat.getImage().getUrl());
                             }
                         } catch (Exception ignored) {
                         }
@@ -348,7 +349,7 @@ public class CategoryServiceImpl implements CategoryService {
                                 .parentSlug(parentSlug)
                                 .level(cat.getLevel())
                                 .order(cat.getOrder())
-                                .status(cat.isActive() ? "Hoạt động" : "Khóa")
+                                .status(cat.isActive() ? "Active" : "InActive")
                                 .createdAt(DateTimeUtils.format(cat.getCreatedAt()))
                                 .updatedAt(DateTimeUtils.format(cat.getUpdatedAt()))
                                 .build();
@@ -356,7 +357,7 @@ public class CategoryServiceImpl implements CategoryService {
                     .toList();
 
             EasyExcel.write(outputStream, com.example.ecp_api.dto.excel.CategoryExportExcelDto.class)
-                    .sheet("Danh sách loại hàng hoá")
+                    .sheet("Categories")
                     .doWrite(excelDtos);
         }
     }
@@ -369,9 +370,9 @@ public class CategoryServiceImpl implements CategoryService {
                 CategoryExcelDto.builder()
                         .index(1)
                         .id("") // Để trống để tạo mới
-                        .name("Áo thun nam")
-                        .description("Các loại áo thun dành cho nam giới")
-                        .slug("ao-thun-nam")
+                        .name("Bánh kẹo Thái Lan")
+                        .description("Các loại bánh kẹo và đồ ngọt nổi tiếng đến từ Thái Lan")
+                        .slug("banh-keo-thai-lan")
                         .parentSlug("")
                         .level(1)
                         .order(1)
@@ -379,12 +380,42 @@ public class CategoryServiceImpl implements CategoryService {
                 CategoryExcelDto.builder()
                         .index(2)
                         .id("") // Để trống để tạo mới
-                        .name("Áo thun polo")
-                        .description("Áo thun polo nam có cổ lịch lãm")
-                        .slug("ao-thun-polo")
-                        .parentSlug("ao-thun-nam") // Dùng Slug của danh mục cha
+                        .name("Snack Thái Lan")
+                        .description("Các loại snack và đồ ăn vặt đặc trưng của Thái Lan")
+                        .slug("snack-thai-lan")
+                        .parentSlug("banh-keo-thai-lan")
                         .level(2)
                         .order(2)
+                        .build(),
+                CategoryExcelDto.builder()
+                        .index(3)
+                        .id("") // Để trống để tạo mới
+                        .name("Kẹo Thái Lan")
+                        .description("Các loại kẹo truyền thống và hiện đại của Thái Lan")
+                        .slug("keo-thai-lan")
+                        .parentSlug("banh-keo-thai-lan")
+                        .level(2)
+                        .order(3)
+                        .build(),
+                CategoryExcelDto.builder()
+                        .index(4)
+                        .id("") // Để trống để tạo mới
+                        .name("Bánh Thái Lan")
+                        .description("Các loại bánh ngọt và bánh ăn vặt nổi tiếng của Thái Lan")
+                        .slug("banh-thai-lan")
+                        .parentSlug("banh-keo-thai-lan")
+                        .level(2)
+                        .order(4)
+                        .build(),
+                CategoryExcelDto.builder()
+                        .index(5)
+                        .id("") // Để trống để tạo mới
+                        .name("Trái cây sấy Thái Lan")
+                        .description("Các loại trái cây sấy và hoa quả sấy dẻo đến từ Thái Lan")
+                        .slug("trai-cay-say-thai-lan")
+                        .parentSlug("banh-keo-thai-lan")
+                        .level(2)
+                        .order(5)
                         .build()
         );
 
@@ -397,7 +428,7 @@ public class CategoryServiceImpl implements CategoryService {
                         sheet.createFreezePane(0, 1);
                     }
                 })
-                .sheet("Template Import Category")
+                .sheet("categories")
                 .doWrite(samples);
     }
 

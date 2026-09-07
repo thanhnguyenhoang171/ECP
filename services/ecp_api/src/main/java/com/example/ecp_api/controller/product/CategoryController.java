@@ -5,12 +5,14 @@ import com.example.ecp_api.dto.request.CategoryRequest;
 import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.dto.response.CategoryResponse;
 import com.example.ecp_api.dto.response.PageResponse;
+import com.example.ecp_api.exception.AppException;
 import com.example.ecp_api.service.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +25,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -127,5 +132,58 @@ public class CategoryController {
                 .success(true)
                 .code("CATEGORY_DELETED_SUCCESS")
                 .message("Category deleted successfully").build());
+    }
+
+    @GetMapping("/download-template")
+    @PreAuthorize("hasAuthority('category:create') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Donwload template for importing categories")
+    public void downloadTemplate(HttpServletResponse response) throws IOException {
+        // config file excel (.xlxx)
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+        // File name
+        String fileName = URLEncoder.encode("categoy_template", StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + fileName + ".xlsx");
+
+        // Write data in directly output stream of response
+        categoryService.downloadCategoryTemplate(response.getOutputStream());
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("hasAuthority('category:read') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Export all categories to Excel")
+    public void exportCategories(HttpServletResponse response) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+        String fileName = URLEncoder.encode("export_categories_" + System.currentTimeMillis(), StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + ".xlsx\"; filename*=UTF-8''" + fileName + ".xlsx");
+
+        categoryService.exportAllCategoriesToExcel(response.getOutputStream());
+    }
+
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('category:create') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Import categories from Excel file")
+    public ResponseEntity<ApiResponse<Void>> importCategories(@RequestParam("file") MultipartFile file) {
+        // Check file valid
+        if(file == null || file.isEmpty()) {
+            throw new AppException("FILE_REQUIRED", "Please select an Excel file to upload.", HttpStatus.BAD_REQUEST);
+        }
+
+        String fileName = file.getOriginalFilename();
+
+        if (fileName == null || (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls"))) {
+            throw new AppException("INVALID_FILE_TYPE", "Only supports Excel file formats (.xlsx, .xls).", HttpStatus.BAD_REQUEST);
+        }
+
+        categoryService.importCategoriesFromExcel(file);
+
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .code("CATEGORY_IMPORTED_SUCCESS")
+                .message("Nhập danh mục từ Excel thành công")
+                .build());
     }
 }

@@ -100,7 +100,7 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
   }, []);
 
   const confirmDelete = useCallback(() => {
-    if (deleteConfirmId) {
+    if (deleteConfirmId && !deleteMutation.isPending) {
       deleteMutation.mutate(deleteConfirmId, {
         onSuccess: () => setDeleteConfirmId(null),
       });
@@ -329,6 +329,7 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
       <DeleteConfirmDialog
         isOpen={!!deleteConfirmId}
         onClose={() => setDeleteConfirmId(null)}
+        isLoading={deleteMutation.isPending}
         onConfirm={confirmDelete}
         description={`Bạn có chắc chắn muốn xóa thương hiệu "${brandToDelete?.name || ''}" không? Hành động này không thể hoàn tác.`}
       />

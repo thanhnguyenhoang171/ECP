@@ -189,35 +189,70 @@ export const ViewActionButton = ({ onClick, disabled }: { onClick?: (e: React.Mo
 );
 
 // 5. Shared Dialogs
+export interface DeleteConfirmDialogProps {
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly onConfirm: () => unknown;
+  readonly title?: string;
+  readonly description?: string;
+  readonly isLoading?: boolean;
+}
+
 export const DeleteConfirmDialog = ({ 
   isOpen, 
   onClose, 
   onConfirm, 
   title = 'Xác nhận xóa', 
   description = 'Bạn có chắc chắn muốn xóa mục này? Hành động này không thể hoàn tác.',
-  isLoading = false
-}: { 
-  isOpen: boolean; 
-  onClose: () => void; 
-  onConfirm: () => void; 
-  title?: string; 
-  description?: string;
-  isLoading?: boolean;
-}) => (
-  <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-    <DialogContent className='sm:max-w-100'>
-      <DialogHeader>
-        <DialogTitle className='text-destructive flex items-center gap-2'>
-          <Trash2 className='h-5 w-5' /> {title}
-        </DialogTitle>
-        <DialogDescription className='py-4'>{description}</DialogDescription>
-      </DialogHeader>
-      <DialogFooter className='gap-2 sm:gap-0'>
-        <Button variant='outline' onClick={onClose} disabled={isLoading}>Hủy</Button>
-        <Button variant='destructive' onClick={onConfirm} disabled={isLoading}>
-          {isLoading ? <Loader2 className='mr-2 h-4 w-4 animate-spin' /> : null} Xác nhận xóa
-        </Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
-);
+  isLoading = false,
+}: DeleteConfirmDialogProps): React.JSX.Element => {
+  const [internalLoading, setInternalLoading] = React.useState<boolean>(false);
+  const effectiveLoading = isLoading || internalLoading;
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      setInternalLoading(false);
+    }
+  }, [isOpen]);
+
+  const handleConfirm = async (): Promise<void> => {
+    if (effectiveLoading) {
+      return;
+    }
+
+    try {
+      const result = onConfirm();
+      if (result instanceof Promise) {
+        setInternalLoading(true);
+        await result;
+      }
+    } catch {
+      // Errors should be handled by caller
+    } finally {
+      setInternalLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !effectiveLoading && onClose()}>
+      <DialogContent className='sm:max-w-100'>
+        <DialogHeader>
+          <DialogTitle className='text-destructive flex items-center gap-2'>
+            <Trash2 className='h-5 w-5' /> {title}
+          </DialogTitle>
+          <DialogDescription className='py-4'>{description}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter className='gap-2 sm:gap-0'>
+          <Button variant='outline' onClick={onClose} disabled={effectiveLoading}>
+            Hủy
+          </Button>
+          <Button variant='destructive' onClick={handleConfirm} disabled={effectiveLoading}>
+            {effectiveLoading ? <Loader2 className='mr-2 h-4 w-4 animate-spin' /> : null}
+            {effectiveLoading ? 'Đang xóa...' : 'Xác nhận xóa'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
