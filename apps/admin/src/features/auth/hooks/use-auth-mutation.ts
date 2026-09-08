@@ -38,6 +38,8 @@ const fetchAccountInfoInBackground = (
         phoneNumber: accountData.phoneNumber || accountData.phone || null,
         avatarUrl: accountData.avatarUrl || null,
         avatarPublicId: accountData.avatarPublicId || null,
+        bannerUrl: accountData.bannerUrl || null,
+        bannerPublicId: accountData.bannerPublicId || null,
         dob: accountData.dob || null,
         gender: accountData.gender || null,
         createdAt: accountData.createdAt || '',

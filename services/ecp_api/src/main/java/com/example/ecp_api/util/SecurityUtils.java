@@ -114,4 +114,11 @@ public class SecurityUtils {
         }
         return false;
     }
+
+    /**
+     * Check if current authenticated user has administrative privileges (Admin or Manager).
+     */
+    public static boolean isAdminOrManager() {
+        return isSuperAdmin() || isManager();
+    }
 }

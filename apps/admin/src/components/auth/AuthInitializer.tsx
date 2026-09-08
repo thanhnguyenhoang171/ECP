@@ -81,6 +81,8 @@ export default function AuthInitializer(): null {
           phoneNumber: profile.phoneNumber || profile.phone,
           avatarUrl: profile.avatarUrl,
           avatarPublicId: profile.avatarPublicId,
+          bannerUrl: profile.bannerUrl,
+          bannerPublicId: profile.bannerPublicId,
           dob: profile.dob,
           gender: profile.gender,
           createdAt: profile.createdAt,
