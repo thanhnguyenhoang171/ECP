@@ -42,7 +42,7 @@ public class BrandController {
                 .success(true)
                 .code("BRAND_CREATED_SUCCESS")
                 .message("Brand created successfully")
-                .data(brandService.createBrand(request, null)).build(), HttpStatus.CREATED);
+                .data(brandService.createBrand(request)).build(), HttpStatus.CREATED);
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -100,7 +100,7 @@ public class BrandController {
                 .success(true)
                 .code("BRAND_UPDATED_SUCCESS")
                 .message("Brand updated successfully")
-                .data(brandService.updateBrand(id, request, null)).build());
+                .data(brandService.updateBrand(id, request)).build());
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

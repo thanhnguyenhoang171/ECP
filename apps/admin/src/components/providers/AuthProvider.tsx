@@ -47,6 +47,9 @@ export default function AuthProvider({ children }: { readonly children: React.Re
                 phone: accountData.phoneNumber || accountData.phone || null,
                 phoneNumber: accountData.phoneNumber || accountData.phone || null,
                 avatarUrl: accountData.avatarUrl || null,
+                avatarPublicId: accountData.avatarPublicId || null,
+                bannerUrl: accountData.bannerUrl || null,
+                bannerPublicId: accountData.bannerPublicId || null,
               };
             }
           } catch (fetchErr) {

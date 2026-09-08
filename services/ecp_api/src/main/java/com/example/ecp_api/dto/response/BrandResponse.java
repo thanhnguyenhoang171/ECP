@@ -1,5 +1,7 @@
 package com.example.ecp_api.dto.response;
 
+import com.example.ecp_api.dto.view.Views;
+import com.fasterxml.jackson.annotation.JsonView;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -42,4 +44,11 @@ public class BrandResponse {
     @Schema(description = "Last update timestamp")
     private LocalDateTime updatedAt;
 
+    @JsonView(Views.Admin.class)
+    @Schema(description = "User who created the brand")
+    private String createdBy;
+
+    @JsonView(Views.Admin.class)
+    @Schema(description = "User who updated the brand")
+    private String updatedBy;
 }
