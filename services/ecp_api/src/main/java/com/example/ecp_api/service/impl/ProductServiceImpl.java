@@ -119,35 +119,29 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public ProductResponse createProduct(ProductRequest request, MultipartFile thumbnailFile, List<MultipartFile> imageFiles) {
-        List<String> uploadedPublicIds = new ArrayList<>();
+        com.example.ecp_api.dto.response.CloudinaryAsset uploadedThumbnail = cloudinaryService.uploadSafely(thumbnailFile, "products");
+        List<com.example.ecp_api.dto.response.CloudinaryAsset> uploadedGallery = cloudinaryService.uploadMultipleSafely(imageFiles, "products");
+
         try {
-            // Upload thumbnail file if provided
-            if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
-                Map result = cloudinaryService.upload(thumbnailFile, "products");
-                if (result != null && result.containsKey("secure_url")) {
-                    String url = (String) result.get("secure_url");
-                    String publicId = (String) result.get("public_id");
-                    if (publicId != null) uploadedPublicIds.add(publicId);
-                    request.setThumbnail(ProductImage.builder().url(url).publicId(publicId).build());
-                }
+            // Set thumbnail if uploaded
+            if (uploadedThumbnail != null) {
+                request.setThumbnail(ProductImage.builder()
+                        .url(uploadedThumbnail.url())
+                        .publicId(uploadedThumbnail.publicId())
+                        .build());
             }
 
-            // Upload gallery files if provided
-            if (imageFiles != null && !imageFiles.isEmpty()) {
+            // Set gallery images if uploaded
+            if (!uploadedGallery.isEmpty()) {
                 List<ProductImage> galleryImages = new ArrayList<>();
                 if (request.getImages() != null) {
                     galleryImages.addAll(request.getImages());
                 }
-                for (MultipartFile imgFile : imageFiles) {
-                    if (imgFile != null && !imgFile.isEmpty()) {
-                        Map result = cloudinaryService.upload(imgFile, "products");
-                        if (result != null && result.containsKey("secure_url")) {
-                            String url = (String) result.get("secure_url");
-                            String publicId = (String) result.get("public_id");
-                            if (publicId != null) uploadedPublicIds.add(publicId);
-                            galleryImages.add(ProductImage.builder().url(url).publicId(publicId).build());
-                        }
-                    }
+                for (com.example.ecp_api.dto.response.CloudinaryAsset asset : uploadedGallery) {
+                    galleryImages.add(ProductImage.builder()
+                            .url(asset.url())
+                            .publicId(asset.publicId())
+                            .build());
                 }
                 request.setImages(galleryImages);
             }
@@ -252,13 +246,8 @@ public class ProductServiceImpl implements ProductService {
         enrichCategoryInfo(resp);
         return resp;
         } catch (Exception e) {
-            for (String publicId : uploadedPublicIds) {
-                try {
-                    cloudinaryService.delete(publicId);
-                } catch (Exception delEx) {
-                    log.error("Failed to cleanup Cloudinary file {}: {}", publicId, delEx.getMessage());
-                }
-            }
+            cloudinaryService.rollbackSafely(uploadedThumbnail);
+            cloudinaryService.rollbackAssetsSafely(uploadedGallery);
             throw e;
         }
     }

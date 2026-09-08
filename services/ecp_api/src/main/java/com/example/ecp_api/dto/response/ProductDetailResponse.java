@@ -42,7 +42,10 @@ public class ProductDetailResponse {
         private String barcode;
         private String barcodeType;
         private java.math.BigDecimal price;
+
+        @com.fasterxml.jackson.annotation.JsonView(com.example.ecp_api.dto.view.Views.Admin.class)
         private java.math.BigDecimal costPrice;
+
         private java.math.BigDecimal compareAtPrice;
         private Integer stockQuantity;
         private Boolean active;

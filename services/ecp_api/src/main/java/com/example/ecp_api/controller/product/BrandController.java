@@ -6,11 +6,13 @@ import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.dto.response.BrandResponse;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.service.BrandService;
+import com.example.ecp_api.exception.AppException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +25,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -126,5 +131,53 @@ public class BrandController {
                 .success(true)
                 .code("BRAND_DELETED_SUCCESS")
                 .message("Brand deleted successfully").build());
+    }
+
+    @GetMapping("/download-template")
+    @PreAuthorize("hasAuthority('brand:create') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Download template brand for importing")
+    public void downloadTemplateBrand(HttpServletResponse response) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+        String fileName = URLEncoder.encode("brand_template", StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + fileName + ".xlsx");
+
+        brandService.downloadBrandTemplate(response.getOutputStream());
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("hasAuthority('brand:read') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Export all brands to Excel")
+    public void exportBrands(HttpServletResponse response) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+        String fileName = URLEncoder.encode("export_brands_" + System.currentTimeMillis(), StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + ".xlsx\"; filename*=UTF-8''" + fileName + ".xlsx");
+
+        brandService.exportAllBrandsToExcel(response.getOutputStream());
+    }
+
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('brand:create') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Import brands from Excel file")
+    public ResponseEntity<ApiResponse<Void>> importBrands(@RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new AppException("FILE_REQUIRED", "Please select an Excel file to upload.", HttpStatus.BAD_REQUEST);
+        }
+
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls"))) {
+            throw new AppException("INVALID_FILE_TYPE", "Only supports Excel file formats (.xlsx, .xls).", HttpStatus.BAD_REQUEST);
+        }
+
+        brandService.importBrandsFromExcel(file);
+
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .code("BRAND_IMPORTED_SUCCESS")
+                .message("Brands imported successfully")
+                .build());
     }
 }

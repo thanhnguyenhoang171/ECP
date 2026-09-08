@@ -213,4 +213,128 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         log.info("Generated upload signature for folder: {}", folderPath);
         return result;
     }
+
+    @Override
+    public com.example.ecp_api.dto.response.CloudinaryAsset uploadSafely(MultipartFile file, String folder) {
+        if (file == null || file.isEmpty()) {
+            return null;
+        }
+        Map<?, ?> result = this.upload(file, folder);
+        if (result != null && result.containsKey("secure_url")) {
+            return new com.example.ecp_api.dto.response.CloudinaryAsset(
+                    (String) result.get("secure_url"),
+                    (String) result.get("public_id")
+            );
+        }
+        return null;
+    }
+
+    @Override
+    public List<com.example.ecp_api.dto.response.CloudinaryAsset> uploadMultipleSafely(List<MultipartFile> files, String folder) {
+        if (files == null || files.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<com.example.ecp_api.dto.response.CloudinaryAsset> assets = new ArrayList<>();
+        for (MultipartFile file : files) {
+            com.example.ecp_api.dto.response.CloudinaryAsset asset = this.uploadSafely(file, folder);
+            if (asset != null) {
+                assets.add(asset);
+            }
+        }
+        return assets;
+    }
+
+    @Override
+    public void rollbackSafely(com.example.ecp_api.dto.response.CloudinaryAsset asset) {
+        if (asset != null && asset.publicId() != null && !asset.publicId().trim().isEmpty()) {
+            rollbackSafely(asset.publicId());
+        }
+    }
+
+    @Override
+    public void rollbackSafely(String publicId) {
+        if (publicId != null && !publicId.trim().isEmpty()) {
+            try {
+                this.delete(publicId);
+            } catch (Exception ex) {
+                log.error("Failed to rollback Cloudinary asset {}: {}", publicId, ex.getMessage());
+            }
+        }
+    }
+
+    @Override
+    public void rollbackSafely(List<String> publicIds) {
+        if (publicIds != null && !publicIds.isEmpty()) {
+            for (String publicId : publicIds) {
+                rollbackSafely(publicId);
+            }
+        }
+    }
+
+    @Override
+    public void rollbackAssetsSafely(List<com.example.ecp_api.dto.response.CloudinaryAsset> assets) {
+        if (assets != null && !assets.isEmpty()) {
+            for (com.example.ecp_api.dto.response.CloudinaryAsset asset : assets) {
+                rollbackSafely(asset);
+            }
+        }
+    }
+
+    @Override
+    public com.example.ecp_api.dto.response.CloudinaryAsset uploadSafely(byte[] data, String folder) {
+        if (data == null || data.length == 0) {
+            return null;
+        }
+        try {
+            String folderPath = "ecp_uploads";
+            if (folder != null && !folder.trim().isEmpty()) {
+                String subFolder = folder.trim();
+                while (subFolder.startsWith("/")) subFolder = subFolder.substring(1);
+                while (subFolder.endsWith("/")) subFolder = subFolder.substring(0, subFolder.length() - 1);
+                if (!subFolder.isEmpty()) {
+                    folderPath = folderPath + "/" + subFolder;
+                }
+            }
+            Map uploadResult = this.cloudinary.uploader().upload(data, ObjectUtils.asMap(
+                    "resource_type", "auto",
+                    "folder", folderPath
+            ));
+            String secureUrl = (String) uploadResult.get("secure_url");
+            String publicId = (String) uploadResult.get("public_id");
+            String optimizedUrl = CloudinaryUtils.optimizeURL(secureUrl);
+            return new com.example.ecp_api.dto.response.CloudinaryAsset(optimizedUrl, publicId);
+        } catch (Exception e) {
+            log.error("Cloudinary upload failed: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    @Override
+    public com.example.ecp_api.dto.response.CloudinaryAsset uploadFromUrlSafely(String url, String folder) {
+        if (url == null || url.trim().isEmpty() || !url.trim().startsWith("http")) {
+            return null;
+        }
+        try {
+            String folderPath = "ecp_uploads";
+            if (folder != null && !folder.trim().isEmpty()) {
+                String subFolder = folder.trim();
+                while (subFolder.startsWith("/")) subFolder = subFolder.substring(1);
+                while (subFolder.endsWith("/")) subFolder = subFolder.substring(0, subFolder.length() - 1);
+                if (!subFolder.isEmpty()) {
+                    folderPath = folderPath + "/" + subFolder;
+                }
+            }
+            Map uploadResult = this.cloudinary.uploader().upload(url.trim(), ObjectUtils.asMap(
+                    "resource_type", "auto",
+                    "folder", folderPath
+            ));
+            String secureUrl = (String) uploadResult.get("secure_url");
+            String publicId = (String) uploadResult.get("public_id");
+            String optimizedUrl = CloudinaryUtils.optimizeURL(secureUrl);
+            return new com.example.ecp_api.dto.response.CloudinaryAsset(optimizedUrl, publicId);
+        } catch (Exception e) {
+            log.error("Failed to upload URL to Cloudinary: {}", e.getMessage());
+            return null;
+        }
+    }
 }

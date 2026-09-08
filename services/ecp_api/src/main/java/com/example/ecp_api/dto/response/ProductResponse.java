@@ -88,9 +88,11 @@ public class ProductResponse {
     @Schema(description = "Last update timestamp")
     private LocalDateTime updatedAt;
 
+    @com.fasterxml.jackson.annotation.JsonView(com.example.ecp_api.dto.view.Views.Admin.class)
     @Schema(description = "Email of the user who created the product")
     private String createdBy;
 
+    @com.fasterxml.jackson.annotation.JsonView(com.example.ecp_api.dto.view.Views.Admin.class)
     @Schema(description = "Email of the user who last updated the product")
     private String updatedBy;
 
