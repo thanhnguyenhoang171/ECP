@@ -182,7 +182,7 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.JS
   const breadcrumbItems = [{ label: 'Hồ sơ cá nhân', icon: UserIcon }];
 
   return (
-    <div className="space-y-6 text-slate-900 pb-12">
+    <div className='space-y-6 text-slate-900 pb-20 sm:pb-12'>
       <Breadcrumbs items={breadcrumbItems} />
 
       {/* Top Header Controls */}
