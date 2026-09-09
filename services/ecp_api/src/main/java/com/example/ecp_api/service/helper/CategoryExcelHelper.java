@@ -99,9 +99,12 @@ public class CategoryExcelHelper {
         String oldParentId = category.getParentId();
         boolean parentChanged = false;
 
-        if (StringUtils.hasText(dto.getParentSlug())) {
-            Category parent = categoryRepository.findBySlugAndDeletedFalse(dto.getParentSlug())
-                    .orElseThrow(() -> new AppException("PARENT_NOT_FOUND", "Parent slug '" + dto.getParentSlug() + "': Category not found", HttpStatus.BAD_REQUEST));
+        String rawParent = StringUtils.hasText(dto.getParentCategory()) ? dto.getParentCategory().trim() : (StringUtils.hasText(dto.getParentSlug()) ? dto.getParentSlug().trim() : null);
+        if (StringUtils.hasText(rawParent)) {
+            Category parent = categoryRepository.findByNameAndDeletedFalse(rawParent)
+                    .orElseGet(() -> categoryRepository.findBySlugAndDeletedFalse(rawParent)
+                            .orElseGet(() -> categoryRepository.findBySlugAndDeletedFalse(SlugUtils.toSlug(rawParent))
+                                    .orElseThrow(() -> new AppException("PARENT_NOT_FOUND", "Parent category '" + rawParent + "' not found", HttpStatus.BAD_REQUEST))));
             
             if (!parent.getId().equals(oldParentId)) {
                 if (!isNew) {

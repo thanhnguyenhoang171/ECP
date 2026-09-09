@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.example.ecp_api.exception.AppException;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +25,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -115,6 +120,54 @@ public class ProductController {
                 .success(true)
                 .code("PRODUCT_DELETED_SUCCESS")
                 .message("Product deleted successfully")
+                .build());
+    }
+
+    @GetMapping("/download-template")
+    @PreAuthorize("hasAuthority('product:create') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Download template product for importing")
+    public void downloadTemplateProduct(HttpServletResponse response) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+        String fileName = URLEncoder.encode("product_template", StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + fileName + ".xlsx");
+
+        productService.downloadProductTemplate(response.getOutputStream());
+    }
+
+    @GetMapping("/export")
+    @PreAuthorize("hasAuthority('product:read') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Export all products to Excel")
+    public void exportProducts(HttpServletResponse response) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+        String fileName = URLEncoder.encode("export_products_" + System.currentTimeMillis(), StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + ".xlsx\"; filename*=UTF-8''" + fileName + ".xlsx");
+
+        productService.exportAllProductToExcel(response.getOutputStream());
+    }
+
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('product:create') or hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Import products from Excel file")
+    public ResponseEntity<ApiResponse<Void>> importProducts(@RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new AppException("FILE_REQUIRED", "Please select an Excel file to upload.", HttpStatus.BAD_REQUEST);
+        }
+
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls"))) {
+            throw new AppException("INVALID_FILE_TYPE", "Only supports Excel file formats (.xlsx, .xls).", HttpStatus.BAD_REQUEST);
+        }
+
+        productService.importProductFromExcel(file);
+
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .code("PRODUCT_IMPORTED_SUCCESS")
+                .message("Products imported successfully")
                 .build());
     }
 }

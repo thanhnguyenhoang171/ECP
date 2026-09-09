@@ -62,9 +62,13 @@ public class CategoryExcelDto {
     @ColumnWidth(25)
     private String slug;
 
-    @ExcelProperty("Slug danh mục cha")
+    @ExcelProperty("Danh mục cha")
     @ColumnWidth(30)
-    private String parentSlug;
+    private String parentCategory;
+
+    public String getParentSlug() {
+        return parentCategory;
+    }
 
     @ExcelProperty("Cấp độ")
     @ColumnWidth(10)

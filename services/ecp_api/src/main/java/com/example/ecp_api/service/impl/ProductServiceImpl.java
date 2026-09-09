@@ -1,10 +1,20 @@
 package com.example.ecp_api.service.impl;
 
+import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.context.AnalysisContext;
+import com.alibaba.excel.exception.ExcelDataConvertException;
+import com.alibaba.excel.read.listener.ReadListener;
+import com.alibaba.excel.write.handler.SheetWriteHandler;
+import com.alibaba.excel.write.metadata.holder.WriteSheetHolder;
+import com.alibaba.excel.write.metadata.holder.WriteWorkbookHolder;
+import com.example.ecp_api.dto.excel.ProductExcelDto;
+import com.example.ecp_api.dto.excel.ProductExportExcelDto;
 import com.example.ecp_api.dto.request.ProductFilterRequest;
 import com.example.ecp_api.dto.request.ProductRequest;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.ProductResponse;
 import com.example.ecp_api.entity.jpa.Sku;
+import com.example.ecp_api.entity.mongodb.Brand;
 import com.example.ecp_api.entity.mongodb.Product;
 
 import com.example.ecp_api.entity.mongodb.embedded.ProductVariant;
@@ -16,11 +26,10 @@ import com.example.ecp_api.repository.mongodb.CategoryRepository;
 import com.example.ecp_api.repository.mongodb.ProductRepository;
 import com.example.ecp_api.service.AuditLogService;
 import com.example.ecp_api.service.ProductService;
-import com.example.ecp_api.util.PaginationUtils;
-import com.example.ecp_api.util.ProductUtils;
-import com.example.ecp_api.util.SecurityUtils;
-import com.example.ecp_api.util.SlugUtils;
+import com.example.ecp_api.service.helper.ProductExcelHelper;
+import com.example.ecp_api.util.*;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.springframework.data.domain.*;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -30,8 +39,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.io.ByteArrayInputStream;
+import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,6 +54,8 @@ import com.example.ecp_api.entity.mongodb.embedded.ProductImage;
 import org.springframework.web.multipart.MultipartFile;
 import lombok.extern.slf4j.Slf4j;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -61,6 +75,7 @@ public class ProductServiceImpl implements ProductService {
     private final com.example.ecp_api.mapper.CategoryMapper categoryMapper;
     private final com.example.ecp_api.mapper.SupplierMapper supplierMapper;
     private final com.example.ecp_api.repository.jpa.SupplierRepository supplierRepository;
+    private final ProductExcelHelper productExcelHelper;
 
     @Override
     public PageResponse<ProductResponse> getAllProducts(ProductFilterRequest filter, Pageable pageable) {
@@ -542,5 +557,194 @@ public class ProductServiceImpl implements ProductService {
                         .build());
             }
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void downloadProductTemplate(OutputStream outputStream) {
+        List<ProductExcelDto> samples = List.of(
+                ProductExcelDto.builder()
+                        .index(1)
+                        .sku("TKN-ROLL-SPICY")
+                        .name("Rong biển cuộn Tao Kae Noi Big Roll vị cay")
+                        .slug("rong-bien-cuon-tao-kae-noi-big-roll-vi-cay")
+                        .brand("Tao Kae Noi")
+                        .category("Rong biển sấy & nướng giòn")
+                        .price(new BigDecimal("12000"))
+                        .compareAtPrice(new BigDecimal("15000"))
+                        .costPrice(new BigDecimal("8500"))
+                        .description("Rong biển nướng cuộn tròn giòn rụm, tẩm gia vị cay đặc trưng thơm nồng.")
+                        .published(true)
+                        .imageUrl("")
+                        .build(),
+                ProductExcelDto.builder()
+                        .index(2)
+                        .sku("BENTO-SQUID-RED")
+                        .name("Mực Bento Thái Lan gói đỏ vị cay ngọt 20g")
+                        .slug("muc-bento-thai-lan-goi-do-vi-cay-ngot-20g")
+                        .brand("Bento")
+                        .category("Mực & Hải sản cay tẩm vị")
+                        .price(new BigDecimal("28000"))
+                        .compareAtPrice(new BigDecimal("32000"))
+                        .costPrice(new BigDecimal("20000"))
+                        .description("Mực khô tẩm gia vị ớt cay ngọt chuẩn vị đường phố Thái Lan, dai giòn đậm đà.")
+                        .published(true)
+                        .imageUrl("")
+                        .build(),
+                ProductExcelDto.builder()
+                        .index(3)
+                        .sku("LAYS-TOMYUM-75G")
+                        .name("Snack khoai tây Lay's vị súp tôm Tom Yum 75g")
+                        .slug("snack-khoai-tay-lays-vi-sup-tom-tom-yum-75g")
+                        .brand("Lay's Thailand")
+                        .category("Snack khoai tây & Bánh que")
+                        .price(new BigDecimal("35000"))
+                        .compareAtPrice(new BigDecimal("39000"))
+                        .costPrice(new BigDecimal("25000"))
+                        .description("Khoai tây giòn rụm kết hợp cùng hương vị chua cay béo thơm của súp tôm Tom Yum Kung Thái.")
+                        .published(true)
+                        .imageUrl("")
+                        .build()
+        );
+
+        EasyExcel.write(outputStream, ProductExcelDto.class)
+                .registerWriteHandler(new SheetWriteHandler() {
+                    @Override
+                    public void afterSheetCreate(WriteWorkbookHolder writeWorkbookHolder, WriteSheetHolder writeSheetHolder) {
+                        Sheet sheet = writeSheetHolder.getSheet();
+                        sheet.createFreezePane(0, 1);
+                    }
+                })
+                .sheet("products")
+                .doWrite(samples);
+    }
+
+    @Override
+    @Transactional
+    public void importProductFromExcel(MultipartFile file) {
+        try {
+            byte[] fileBytes = file.getBytes();
+            Map<Integer, byte[]> rowImages = ExcelImageExtractor.extractImagesByRow(fileBytes);
+
+            List<ProductExcelDto> dataList = new ArrayList<>();
+            List<String> errorMessages = new ArrayList<>();
+
+            EasyExcel.read(new ByteArrayInputStream(fileBytes), ProductExcelDto.class, new ReadListener<ProductExcelDto>() {
+                @Override
+                public void invoke(ProductExcelDto data, AnalysisContext context) {
+                    int rowNum = context.readRowHolder().getRowIndex() + 1;
+                    data.setRowNumber(rowNum);
+                    if (rowImages.containsKey(rowNum)) {
+                        data.setEmbeddedImageBytes(rowImages.get(rowNum));
+                    }
+                    dataList.add(data);
+                }
+
+                @Override
+                public void onException(Exception exception, AnalysisContext context) {
+                    if (exception instanceof ExcelDataConvertException convertException) {
+                        int row = convertException.getRowIndex() + 1;
+                        int col = convertException.getColumnIndex() + 1;
+                        errorMessages.add("Row " + row + ", Column " + col + ": Invalid data format");
+                    } else {
+                        errorMessages.add("Error reading file at row " + (context.readRowHolder().getRowIndex() + 1) + ": " + exception.getMessage());
+                    }
+                }
+
+                @Override
+                public void doAfterAllAnalysed(AnalysisContext context) {}
+            }).sheet().doRead();
+
+            int successCount = 0;
+            for (ProductExcelDto dto : dataList) {
+                try {
+                    productExcelHelper.upsertProductForImport(dto);
+                    successCount++;
+                } catch (Exception e) {
+                    errorMessages.add("Row " + dto.getRowNumber() + ": " + e.getMessage());
+                }
+            }
+
+            if (!errorMessages.isEmpty()) {
+                String detailError = String.join("\n- ", errorMessages);
+                throw new AppException("IMPORT_PARTIAL_ERROR",
+                        "Import completed with " + successCount + " success(es) and " + errorMessages.size() + " failure(s).\nDetails:\n- " + detailError + "\n",
+                        HttpStatus.BAD_REQUEST);
+            }
+
+            auditLogService.log("PRODUCT_IMPORT", SecurityUtils.getCurrentUserEmail(), "Imported " + successCount + " products from Excel");
+        } catch (AppException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new AppException("PRODUCT_IMPORT_FAILED", "Failed to process file: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void exportAllProductToExcel(OutputStream outputStream) {
+        List<Product> allProducts = productRepository.findAll();
+        AtomicInteger index = new AtomicInteger(1);
+
+        List<String> categoryIds = allProducts.stream()
+                .map(Product::getCategoryId)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .toList();
+
+        Map<String, String> categoryNameMap = new HashMap<>();
+        if (!categoryIds.isEmpty()) {
+            categoryRepository.findAllById(categoryIds)
+                    .forEach(cat -> categoryNameMap.put(cat.getId(), cat.getName()));
+        }
+
+        List<ProductExportExcelDto> excelDtos = allProducts.stream()
+                .map(p -> {
+                    URL parsedThumbUrl = null;
+                    try {
+                        if (p.getThumbnail() != null && StringUtils.hasText(p.getThumbnail().getUrl())) {
+                            parsedThumbUrl = new URL(p.getThumbnail().getUrl());
+                        }
+                    } catch (Exception ignored) {
+                    }
+
+                    BigDecimal price = BigDecimal.ZERO;
+                    BigDecimal compareAtPrice = null;
+                    BigDecimal costPrice = null;
+                    if (p.getVariants() != null && !p.getVariants().isEmpty()) {
+                        ProductVariant v = p.getVariants().get(0);
+                        if (v.getPrice() != null) {
+                            price = v.getPrice();
+                        }
+                        compareAtPrice = v.getCompareAtPrice();
+                        costPrice = v.getCostPrice();
+                    }
+
+                    String categoryName = StringUtils.hasText(p.getCategoryId())
+                            ? categoryNameMap.getOrDefault(p.getCategoryId(), p.getCategoryId())
+                            : "";
+
+                    return ProductExportExcelDto.builder()
+                            .index(index.getAndIncrement())
+                            .id(p.getId())
+                            .sku(p.getSku())
+                            .name(p.getName())
+                            .slug(p.getSlug())
+                            .brand(StringUtils.hasText(p.getBrand()) ? p.getBrand() : "")
+                            .category(categoryName)
+                            .price(price)
+                            .compareAtPrice(compareAtPrice)
+                            .costPrice(costPrice)
+                            .thumbnail(parsedThumbUrl)
+                            .status(p.isPublished() ? "Published" : "Draft")
+                            .soldCount(p.getSoldCount())
+                            .createdAt(p.getCreatedAt() != null ? DateTimeUtils.format(p.getCreatedAt()) : "")
+                            .build();
+                })
+                .toList();
+
+        EasyExcel.write(outputStream, ProductExportExcelDto.class)
+                .sheet("Products")
+                .doWrite(excelDtos);
     }
 }

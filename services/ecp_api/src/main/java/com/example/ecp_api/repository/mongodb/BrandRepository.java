@@ -14,6 +14,8 @@ public interface BrandRepository extends MongoRepository<Brand, String> {
 
     Optional<Brand> findBySlugAndDeletedFalse(String slug);
 
+    Optional<Brand> findByNameAndDeletedFalse(String name);
+
     boolean existsByNameAndDeletedFalse(String name);
 
     boolean existsBySlugAndDeletedFalse(String slug);

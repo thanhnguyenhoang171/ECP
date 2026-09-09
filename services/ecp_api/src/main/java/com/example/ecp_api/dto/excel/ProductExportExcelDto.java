@@ -1,6 +1,5 @@
 package com.example.ecp_api.dto.excel;
 
-import com.alibaba.excel.annotation.ExcelIgnore;
 import com.alibaba.excel.annotation.ExcelProperty;
 import com.alibaba.excel.annotation.write.style.ColumnWidth;
 import com.alibaba.excel.annotation.write.style.ContentFontStyle;
@@ -15,6 +14,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.net.URL;
 
 @Data
 @NoArgsConstructor
@@ -40,14 +40,15 @@ import java.math.BigDecimal;
         fontHeightInPoints = 12,
         fontName = "Arial"
 )
-public class ProductExcelDto {
-
-    @ExcelIgnore
-    private Integer rowNumber;
+public class ProductExportExcelDto {
 
     @ExcelProperty("STT")
     @ColumnWidth(8)
     private Integer index;
+
+    @ExcelProperty("ID")
+    @ColumnWidth(25)
+    private String id;
 
     @ExcelProperty("Mã SKU")
     @ColumnWidth(20)
@@ -69,34 +70,31 @@ public class ProductExcelDto {
     @ColumnWidth(25)
     private String category;
 
-    public String getCategorySlug() {
-        return category;
-    }
-
     @ExcelProperty("Giá bán")
     @ColumnWidth(18)
     private BigDecimal price;
 
-    @ExcelProperty("Giá gốc (So sánh)")
-    @ColumnWidth(20)
+    @ExcelProperty("Giá gốc")
+    @ColumnWidth(18)
     private BigDecimal compareAtPrice;
 
     @ExcelProperty("Giá vốn")
     @ColumnWidth(18)
     private BigDecimal costPrice;
 
-    @ExcelProperty("Mô tả")
-    @ColumnWidth(40)
-    private String description;
-
-    @ExcelProperty("Hiển thị")
-    @ColumnWidth(12)
-    private Boolean published;
-
-    @ExcelProperty("Hình ảnh")
+    @ExcelProperty("Ảnh đại diện")
     @ColumnWidth(25)
-    private String imageUrl;
+    private URL thumbnail;
 
-    @ExcelIgnore
-    private byte[] embeddedImageBytes;
+    @ExcelProperty("Trạng thái")
+    @ColumnWidth(15)
+    private String status;
+
+    @ExcelProperty("Đã bán")
+    @ColumnWidth(12)
+    private Integer soldCount;
+
+    @ExcelProperty("Ngày tạo")
+    @ColumnWidth(20)
+    private String createdAt;
 }

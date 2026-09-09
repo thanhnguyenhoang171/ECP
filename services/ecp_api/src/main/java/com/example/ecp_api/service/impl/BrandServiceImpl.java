@@ -1,6 +1,7 @@
 package com.example.ecp_api.service.impl;
 
 import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.read.listener.ReadListener;
 import com.alibaba.excel.write.handler.SheetWriteHandler;
 import com.alibaba.excel.write.metadata.holder.WriteSheetHolder;
 import com.alibaba.excel.write.metadata.holder.WriteWorkbookHolder;
@@ -166,30 +167,30 @@ public class BrandServiceImpl implements BrandService {
                 BrandExcelDto.builder()
                         .index(1)
                         .id("") // Leave empty to create new
-                        .name("Apple")
-                        .description("Multinational technology company headquartered in Cupertino, California")
-                        .website("https://www.apple.com")
-                        .slug("apple")
+                        .name("Tao Kae Noi")
+                        .description("Thương hiệu rong biển sấy và nướng giòn hàng đầu Thái Lan")
+                        .website("https://www.taokaenoi.co.th")
+                        .slug("tao-kae-noi")
                         .active(true)
                         .logo("")
                         .build(),
                 BrandExcelDto.builder()
                         .index(2)
                         .id("") // Leave empty to create new
-                        .name("Samsung")
-                        .description("South Korean multinational manufacturing conglomerate")
-                        .website("https://www.samsung.com")
-                        .slug("samsung")
+                        .name("Bento")
+                        .description("Thương hiệu mực tẩm gia vị cay giòn nổi tiếng Thái Lan")
+                        .website("https://www.snnp.co.th")
+                        .slug("bento")
                         .active(true)
                         .logo("")
                         .build(),
                 BrandExcelDto.builder()
                         .index(3)
                         .id("") // Leave empty to create new
-                        .name("Sony")
-                        .description("Japanese multinational conglomerate corporation")
-                        .website("https://www.sony.com")
-                        .slug("sony")
+                        .name("Lay's Thailand")
+                        .description("Dòng bánh snack khoai tây hương vị ẩm thực Thái Lan")
+                        .website("https://www.lays.co.th")
+                        .slug("lays-thailand")
                         .active(true)
                         .logo("")
                         .build()
@@ -217,7 +218,7 @@ public class BrandServiceImpl implements BrandService {
             List<BrandExcelDto> dataList = new ArrayList<>();
             List<String> errorMessages = new ArrayList<>();
 
-            EasyExcel.read(new ByteArrayInputStream(fileBytes), BrandExcelDto.class, new com.alibaba.excel.read.listener.ReadListener<BrandExcelDto>() {
+            EasyExcel.read(new ByteArrayInputStream(fileBytes), BrandExcelDto.class, new ReadListener<BrandExcelDto>() {
                 @Override
                 public void invoke(BrandExcelDto data, com.alibaba.excel.context.AnalysisContext context) {
                     int rowNum = context.readRowHolder().getRowIndex() + 1;
