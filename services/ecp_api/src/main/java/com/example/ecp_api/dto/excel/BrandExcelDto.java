@@ -2,7 +2,10 @@ package com.example.ecp_api.dto.excel;
 
 import com.alibaba.excel.annotation.ExcelIgnore;
 import com.alibaba.excel.annotation.ExcelProperty;
-import com.alibaba.excel.annotation.write.style.*;
+import com.alibaba.excel.annotation.write.style.ColumnWidth;
+import com.alibaba.excel.annotation.write.style.ContentFontStyle;
+import com.alibaba.excel.annotation.write.style.HeadFontStyle;
+import com.alibaba.excel.annotation.write.style.HeadStyle;
 import com.alibaba.excel.enums.BooleanEnum;
 import com.alibaba.excel.enums.poi.FillPatternTypeEnum;
 import com.alibaba.excel.enums.poi.HorizontalAlignmentEnum;
@@ -31,14 +34,13 @@ import lombok.NoArgsConstructor;
         fontName = "Arial"
 )
 
-// Content style
+//Content Type
 @ContentFontStyle(
         fontHeightInPoints = 12,
         fontName = "Arial"
 )
 
-
-public class CategoryExcelDto {
+public class BrandExcelDto {
     @ExcelIgnore
     private Integer rowNumber;
 
@@ -50,7 +52,7 @@ public class CategoryExcelDto {
     @ColumnWidth(25)
     private String id;
 
-    @ExcelProperty("Tên danh mục")
+    @ExcelProperty("Tên thương hiệu")
     @ColumnWidth(30)
     private String name;
 
@@ -58,29 +60,21 @@ public class CategoryExcelDto {
     @ColumnWidth(40)
     private String description;
 
+    @ExcelProperty("Website")
+    @ColumnWidth(30)
+    private String website;
+
     @ExcelProperty("Slug")
     @ColumnWidth(25)
     private String slug;
 
-    @ExcelProperty("Danh mục cha")
-    @ColumnWidth(30)
-    private String parentCategory;
-
-    public String getParentSlug() {
-        return parentCategory;
-    }
-
-    @ExcelProperty("Cấp độ")
-    @ColumnWidth(10)
-    private Integer level;
-
-    @ExcelProperty("Thứ tự")
-    @ColumnWidth(12)
-    private Integer order;
+    @ExcelProperty("Trạng thái")
+    @ColumnWidth(15)
+    private Boolean active;
 
     @ExcelProperty("Hình ảnh")
     @ColumnWidth(25)
-    private String imageUrl;
+    private String logo;
 
     @ExcelIgnore
     private byte[] embeddedImageBytes;

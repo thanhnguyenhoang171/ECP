@@ -6,6 +6,8 @@ import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.ProductResponse;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.OutputStream;
 import java.util.List;
 
 public interface ProductService {
@@ -23,5 +25,11 @@ public interface ProductService {
     void deleteProduct(String id);
 
     void updateVariantCostPriceMAC(String skuId, int addedQuantity, java.math.BigDecimal newUnitCost);
+
+    void downloadProductTemplate(OutputStream outputStream);
+
+    void importProductFromExcel(MultipartFile file);
+
+    void exportAllProductToExcel(OutputStream outputStream);
 }
 

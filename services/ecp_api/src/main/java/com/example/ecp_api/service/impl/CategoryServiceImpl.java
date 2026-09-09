@@ -1,6 +1,9 @@
 package com.example.ecp_api.service.impl;
 
 import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.context.AnalysisContext;
+import com.alibaba.excel.exception.ExcelDataConvertException;
+import com.alibaba.excel.read.listener.ReadListener;
 import com.alibaba.excel.write.handler.SheetWriteHandler;
 import com.alibaba.excel.write.metadata.holder.WriteSheetHolder;
 import com.alibaba.excel.write.metadata.holder.WriteWorkbookHolder;
@@ -19,6 +22,7 @@ import com.example.ecp_api.service.CategoryService;
 import com.example.ecp_api.service.helper.CategoryHelper;
 import com.example.ecp_api.service.helper.CategoryExcelHelper;
 import com.example.ecp_api.util.DateTimeUtils;
+import com.example.ecp_api.util.ExcelImageExtractor;
 import com.example.ecp_api.util.PaginationUtils;
 import com.example.ecp_api.util.SecurityUtils;
 import com.example.ecp_api.util.SlugUtils;
@@ -34,6 +38,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.io.ByteArrayInputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.util.ArrayList;
@@ -71,15 +76,13 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional
     public CategoryResponse createCategory(CategoryRequest request, MultipartFile imageFile) {
-        String uploadedPublicId = null;
+        com.example.ecp_api.dto.response.CloudinaryAsset uploadedAsset = cloudinaryService.uploadSafely(imageFile, "categories");
         try {
-            if (imageFile != null && !imageFile.isEmpty()) {
-                Map result = cloudinaryService.upload(imageFile, "categories");
-                if (result != null && result.containsKey("secure_url")) {
-                    String url = (String) result.get("secure_url");
-                    uploadedPublicId = (String) result.get("public_id");
-                    request.setImage(ProductImage.builder().url(url).publicId(uploadedPublicId).build());
-                }
+            if (uploadedAsset != null) {
+                request.setImage(ProductImage.builder()
+                        .url(uploadedAsset.url())
+                        .publicId(uploadedAsset.publicId())
+                        .build());
             }
 
             // Auto generate Slug,
@@ -119,13 +122,7 @@ public class CategoryServiceImpl implements CategoryService {
 
             return categoryMapper.toResponse(savedCategory);
         } catch (Exception e) {
-            if (uploadedPublicId != null) {
-                try {
-                    cloudinaryService.delete(uploadedPublicId);
-                } catch (Exception delEx) {
-                    log.error("Failed to delete orphaned Cloudinary asset {}: {}", uploadedPublicId, delEx.getMessage());
-                }
-            }
+            cloudinaryService.rollbackSafely(uploadedAsset);
             throw e;
         }
     }
@@ -138,43 +135,43 @@ public class CategoryServiceImpl implements CategoryService {
                 Sort.Order.asc("id"));
 
         Query query = new Query().with(finalPageable);
-
-        if (StringUtils.hasText(filter.getKeyword())) {
-            String pattern = filter.getKeyword();
-            query.addCriteria(new Criteria().orOperator(
-                    Criteria.where("name").regex(pattern, "i"),
-                    Criteria.where("slug").regex(pattern, "i")
-            ));
+        if (filter != null) {
+            if (StringUtils.hasText(filter.getKeyword())) {
+                String pattern = filter.getKeyword();
+                query.addCriteria(new Criteria().orOperator(
+                        Criteria.where("name").regex(pattern, "i"),
+                        Criteria.where("slug").regex(pattern, "i")
+                ));
+            }
+            if (StringUtils.hasText(filter.getId())) {
+                query.addCriteria(Criteria.where("_id").is(filter.getId()));
+            }
+            if (StringUtils.hasText(filter.getName())) {
+                query.addCriteria(Criteria.where("name").regex(filter.getName(), "i"));
+            }
+            if (StringUtils.hasText(filter.getSlug())) {
+                query.addCriteria(Criteria.where("slug").regex(filter.getSlug(), "i"));
+            }
+            if (filter.getActive() != null) {
+                query.addCriteria(Criteria.where("is_active").is(filter.getActive()));
+            }
+            if (filter.getIsFeatured() != null) {
+                query.addCriteria(Criteria.where("is_featured").is(filter.getIsFeatured()));
+            }
+            if (StringUtils.hasText(filter.getParentId())) {
+                query.addCriteria(Criteria.where("parent_id").is(filter.getParentId()));
+            }
+            if (filter.getLevel() != null) {
+                query.addCriteria(Criteria.where("level").is(filter.getLevel()));
+            }
         }
-
-        if (StringUtils.hasText(filter.getId())) {
-            query.addCriteria(Criteria.where("_id").is(filter.getId()));
-        }
-
-        if (StringUtils.hasText(filter.getName())) {
-            query.addCriteria(Criteria.where("name").regex(filter.getName(), "i"));
-        }
-        if (StringUtils.hasText(filter.getParentId())) {
-            query.addCriteria(Criteria.where("parent_id").is(filter.getParentId()));
-        }
-        if (filter.getLevel() != null) {
-            query.addCriteria(Criteria.where("level").is(filter.getLevel()));
-        }
-        if (filter.getActive() != null) {
-            query.addCriteria(Criteria.where("is_active").is(filter.getActive()));
-        }
-        if (filter.getIsFeatured() != null) {
-            query.addCriteria(Criteria.where("is_featured").is(filter.getIsFeatured()));
-        }
-
-        // Exclude deleted items
         query.addCriteria(Criteria.where("is_deleted").is(false));
 
         long count = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), Category.class);
         List<Category> categories = mongoTemplate.find(query, Category.class);
 
-        Page<Category> categoryPage = new PageImpl<>(categories, finalPageable, count);
-        return categoryMapper.toPageResponse(categoryPage);
+        Page<Category> page = new PageImpl<>(categories, finalPageable, count);
+        return categoryMapper.toPageResponse(page);
     }
 
     // UPDATE A CATEGORY
@@ -187,15 +184,13 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional
     public CategoryResponse updateCategory(String id, CategoryRequest request, MultipartFile imageFile) {
-        String uploadedPublicId = null;
+        com.example.ecp_api.dto.response.CloudinaryAsset uploadedAsset = cloudinaryService.uploadSafely(imageFile, "categories");
         try {
-            if (imageFile != null && !imageFile.isEmpty()) {
-                Map result = cloudinaryService.upload(imageFile, "categories");
-                if (result != null && result.containsKey("secure_url")) {
-                    String url = (String) result.get("secure_url");
-                    uploadedPublicId = (String) result.get("public_id");
-                    request.setImage(ProductImage.builder().url(url).publicId(uploadedPublicId).build());
-                }
+            if (uploadedAsset != null) {
+                request.setImage(ProductImage.builder()
+                        .url(uploadedAsset.url())
+                        .publicId(uploadedAsset.publicId())
+                        .build());
             }
 
             Category category = categoryRepository.findById(id)
@@ -210,69 +205,59 @@ public class CategoryServiceImpl implements CategoryService {
             categoryMapper.updateCategoryFromRequest(request, category);
 
             // Delete old image from Cloudinary if replaced
-            if (uploadedPublicId != null && StringUtils.hasText(oldPublicId)) {
-                try {
-                    cloudinaryService.delete(oldPublicId);
-                } catch (Exception e) {
-                    log.warn("Could not delete previous category image {}: {}", oldPublicId, e.getMessage());
+            if (uploadedAsset != null && StringUtils.hasText(oldPublicId)) {
+                cloudinaryService.rollbackSafely(oldPublicId);
+            }
+
+            // Handle Slug Update (if not provided, check if name changed to regenerate)
+            if (!StringUtils.hasText(request.getSlug())) {
+                if (!category.getName().equals(oldName)) {
+                    category.setSlug(com.example.ecp_api.util.SlugUtils.toSlug(category.getName()));
+                } else {
+                    category.setSlug(oldSlug); // Restore old slug if name didn't change and slug was null in request
                 }
             }
 
-        // Handle Slug Update (if not provided, check if name changed to regenerate)
-        if (!StringUtils.hasText(request.getSlug())) {
-            if (!category.getName().equals(oldName)) {
-                category.setSlug(com.example.ecp_api.util.SlugUtils.toSlug(category.getName()));
-            } else {
-                category.setSlug(oldSlug); // Restore old slug if name didn't change and slug was null in request
+            // Check slug uniqueness if it's changed
+            if (!category.getSlug().equals(oldSlug)
+                    && categoryRepository.existsBySlugAndDeletedFalse(category.getSlug())) {
+                throw new AppException("CATEGORY_SLUG_EXISTS", "Category with Slug already exists", HttpStatus.BAD_REQUEST);
             }
-        }
 
-        // Check slug uniqueness if it's changed
-        if (!category.getSlug().equals(oldSlug)
-                && categoryRepository.existsBySlugAndDeletedFalse(category.getSlug())) {
-            throw new AppException("CATEGORY_SLUG_EXISTS", "Category with Slug already exists", HttpStatus.BAD_REQUEST);
-        }
- 
-        if (request.getActive() != null) {
-            category.setActive(request.getActive());
-        }
+            if (request.getActive() != null) {
+                category.setActive(request.getActive());
+            }
 
-        // Handle parent change & Hierarchy validation
-        boolean parentChanged = false;
-        if (StringUtils.hasText(request.getParentId())) {
-            if (!request.getParentId().equals(oldParentId)) {
-                categoryHelper.validateHierarchy(id, request.getParentId());
+            // Handle parent change & Hierarchy validation
+            boolean parentChanged = false;
+            if (StringUtils.hasText(request.getParentId())) {
+                if (!request.getParentId().equals(oldParentId)) {
+                    categoryHelper.validateHierarchy(id, request.getParentId());
 
-                Category parent = categoryRepository.findById(request.getParentId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Parent Category not found with id: " + request.getParentId()));
+                    Category parent = categoryRepository.findById(request.getParentId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Parent Category not found with id: " + request.getParentId()));
 
-                category.setLevel(parent.getLevel() + 1);
+                    category.setLevel(parent.getLevel() + 1);
+                    parentChanged = true;
+                }
+            } else if (oldParentId != null) {
+                category.setLevel(1);
+                category.setParentId(null);
                 parentChanged = true;
             }
-        } else if (oldParentId != null) {
-            category.setLevel(1);
-            category.setParentId(null);
-            parentChanged = true;
-        }
 
-        Category updatedCategory = categoryRepository.save(category);
+            Category updatedCategory = categoryRepository.save(category);
 
-        // Update descendants' paths and levels if parent changed
-        if (parentChanged) {
-            categoryHelper.updateDescendants(updatedCategory);
-        }
-
-        auditLogService.log("CATEGORY_UPDATE", SecurityUtils.getCurrentUserEmail(), "Updated category with ID: " + updatedCategory.getId());
-
-        return categoryMapper.toResponse(updatedCategory);
-        } catch (Exception e) {
-            if (uploadedPublicId != null) {
-                try {
-                    cloudinaryService.delete(uploadedPublicId);
-                } catch (Exception delEx) {
-                    log.error("Failed to delete orphaned Cloudinary asset {}: {}", uploadedPublicId, delEx.getMessage());
-                }
+            // Update descendants' paths and levels if parent changed
+            if (parentChanged) {
+                categoryHelper.updateDescendants(updatedCategory);
             }
+
+            auditLogService.log("CATEGORY_UPDATE", SecurityUtils.getCurrentUserEmail(), "Updated category with ID: " + updatedCategory.getId());
+
+            return categoryMapper.toResponse(updatedCategory);
+        } catch (Exception e) {
+            cloudinaryService.rollbackSafely(uploadedAsset);
             throw e;
         }
     }
@@ -365,57 +350,62 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional(readOnly = true)
     public void downloadCategoryTemplate(OutputStream outputStream) {
-        // Create specific sample data as requested
+        // Create specific sample data
         List<CategoryExcelDto> samples = List.of(
                 CategoryExcelDto.builder()
                         .index(1)
-                        .id("") // Để trống để tạo mới
-                        .name("Bánh kẹo Thái Lan")
-                        .description("Các loại bánh kẹo và đồ ngọt nổi tiếng đến từ Thái Lan")
-                        .slug("banh-keo-thai-lan")
-                        .parentSlug("")
+                        .id("") // Leave empty to create new
+                        .name("Đồ ăn vặt Thái Lan")
+                        .description("Tổng hợp các món ăn vặt, snack đường phố và đặc sản đóng gói Thái Lan")
+                        .slug("thai-snacks")
+                        .parentCategory("")
                         .level(1)
                         .order(1)
+                        .imageUrl("")
                         .build(),
                 CategoryExcelDto.builder()
                         .index(2)
-                        .id("") // Để trống để tạo mới
-                        .name("Snack Thái Lan")
-                        .description("Các loại snack và đồ ăn vặt đặc trưng của Thái Lan")
-                        .slug("snack-thai-lan")
-                        .parentSlug("banh-keo-thai-lan")
+                        .id("") // Leave empty to create new
+                        .name("Rong biển sấy & nướng giòn")
+                        .description("Rong biển cuộn, rong biển nướng vị truyền thống và vị cay nồng")
+                        .slug("seaweed-snacks")
+                        .parentCategory("Đồ ăn vặt Thái Lan")
                         .level(2)
                         .order(2)
+                        .imageUrl("")
                         .build(),
                 CategoryExcelDto.builder()
                         .index(3)
-                        .id("") // Để trống để tạo mới
-                        .name("Kẹo Thái Lan")
-                        .description("Các loại kẹo truyền thống và hiện đại của Thái Lan")
-                        .slug("keo-thai-lan")
-                        .parentSlug("banh-keo-thai-lan")
+                        .id("") // Leave empty to create new
+                        .name("Mực & Hải sản cay tẩm vị")
+                        .description("Mực khô tẩm gia vị, snack hải sản cay cay ngọt ngọt đặc trưng")
+                        .slug("spicy-squid-snacks")
+                        .parentCategory("Đồ ăn vặt Thái Lan")
                         .level(2)
                         .order(3)
+                        .imageUrl("")
                         .build(),
                 CategoryExcelDto.builder()
                         .index(4)
-                        .id("") // Để trống để tạo mới
-                        .name("Bánh Thái Lan")
-                        .description("Các loại bánh ngọt và bánh ăn vặt nổi tiếng của Thái Lan")
-                        .slug("banh-thai-lan")
-                        .parentSlug("banh-keo-thai-lan")
+                        .id("") // Leave empty to create new
+                        .name("Snack khoai tây & Bánh que")
+                        .description("Snack khoai tây vị lẩu Thái, súp tôm Tom Yum và bánh que giòn cay")
+                        .slug("chips-and-biscuits")
+                        .parentCategory("Đồ ăn vặt Thái Lan")
                         .level(2)
                         .order(4)
+                        .imageUrl("")
                         .build(),
                 CategoryExcelDto.builder()
                         .index(5)
-                        .id("") // Để trống để tạo mới
-                        .name("Trái cây sấy Thái Lan")
-                        .description("Các loại trái cây sấy và hoa quả sấy dẻo đến từ Thái Lan")
-                        .slug("trai-cay-say-thai-lan")
-                        .parentSlug("banh-keo-thai-lan")
+                        .id("") // Leave empty to create new
+                        .name("Trái cây sấy & Kẹo dẻo Thái")
+                        .description("Xoài sấy dẻo, kẹo dẻo trái cây và sầu riêng sấy thăng hoa Thái Lan")
+                        .slug("dried-fruits-and-candies")
+                        .parentCategory("Đồ ăn vặt Thái Lan")
                         .level(2)
                         .order(5)
+                        .imageUrl("")
                         .build()
         );
 
@@ -436,34 +426,39 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     public void importCategoriesFromExcel(MultipartFile file) {
         try {
+            byte[] fileBytes = file.getBytes();
+            Map<Integer, byte[]> rowImages = ExcelImageExtractor.extractImagesByRow(fileBytes);
+
             List<CategoryExcelDto> dataList = new java.util.ArrayList<>();
             List<String> errorMessages = new java.util.ArrayList<>();
 
-            EasyExcel.read(file.getInputStream(), CategoryExcelDto.class, new com.alibaba.excel.read.listener.ReadListener<CategoryExcelDto>() {
+            EasyExcel.read(new ByteArrayInputStream(fileBytes), CategoryExcelDto.class, new ReadListener<CategoryExcelDto>() {
                 @Override
-                public void invoke(CategoryExcelDto data, com.alibaba.excel.context.AnalysisContext context) {
-                    data.setRowNumber(context.readRowHolder().getRowIndex() + 1);
+                public void invoke(CategoryExcelDto data, AnalysisContext context) {
+                    int rowNum = context.readRowHolder().getRowIndex() + 1;
+                    data.setRowNumber(rowNum);
+                    if (rowImages.containsKey(rowNum)) {
+                        data.setEmbeddedImageBytes(rowImages.get(rowNum));
+                    }
                     dataList.add(data);
                 }
 
                 @Override
-                public void onException(Exception exception, com.alibaba.excel.context.AnalysisContext context) {
-                    if (exception instanceof com.alibaba.excel.exception.ExcelDataConvertException) {
-                        com.alibaba.excel.exception.ExcelDataConvertException convertException = (com.alibaba.excel.exception.ExcelDataConvertException) exception;
+                public void onException(Exception exception, AnalysisContext context) {
+                    if (exception instanceof ExcelDataConvertException convertException) {
                         int row = convertException.getRowIndex() + 1;
                         int col = convertException.getColumnIndex() + 1;
-                        // Thử lấy tên cột nếu có thể, không thì dùng số thứ tự cột
-                        errorMessages.add("Hàng " + row + ", Cột " + col + ": Dữ liệu không hợp lệ (Sai định dạng)");
+                        errorMessages.add("Row " + row + ", Column " + col + ": Invalid data format");
                     } else {
-                        errorMessages.add("Lỗi đọc file tại dòng " + (context.readRowHolder().getRowIndex() + 1) + ": " + exception.getMessage());
+                        errorMessages.add("Error reading file at row " + (context.readRowHolder().getRowIndex() + 1) + ": " + exception.getMessage());
                     }
                 }
 
                 @Override
-                public void doAfterAllAnalysed(com.alibaba.excel.context.AnalysisContext context) {}
+                public void doAfterAllAnalysed(AnalysisContext context) {}
             }).sheet().doRead();
 
-            // Sắp xếp dữ liệu để xử lý cha trước con
+            // Sort data to process parents before children
             dataList.sort((d1, d2) -> {
                 Integer l1 = d1.getLevel() != null ? d1.getLevel() : (StringUtils.hasText(d1.getParentSlug()) ? 2 : 1);
                 Integer l2 = d2.getLevel() != null ? d2.getLevel() : (StringUtils.hasText(d2.getParentSlug()) ? 2 : 1);
@@ -477,15 +472,15 @@ public class CategoryServiceImpl implements CategoryService {
                     categoryExcelHelper.upsertCategoryForImport(dto);
                     successCount++;
                 } catch (Exception e) {
-                    errorMessages.add("Hàng " + dto.getRowNumber() + ": " + e.getMessage());
+                    errorMessages.add("Row " + dto.getRowNumber() + ": " + e.getMessage());
                 }
             }
             
-            // Nếu có lỗi (bao gồm lỗi định dạng và lỗi nghiệp vụ)
+            // If errors occurred
             if (!errorMessages.isEmpty()) {
-                String detailError = String.join("\n", errorMessages);
+                String detailError = String.join("\n- ", errorMessages);
                 throw new AppException("IMPORT_PARTIAL_ERROR", 
-                    "Import hoàn tất với " + successCount + " thành công và " + errorMessages.size() + " thất bại. \n * Chi tiết: \n" + '-' + detailError + "\n", 
+                    "Import completed with " + successCount + " success(es) and " + errorMessages.size() + " failure(s).\nDetails:\n- " + detailError + "\n", 
                     HttpStatus.BAD_REQUEST);
             }
 
@@ -493,7 +488,7 @@ public class CategoryServiceImpl implements CategoryService {
         } catch (AppException e) {
             throw e; 
         } catch (Exception e) {
-            throw new AppException("CATEGORY_IMPORT_FAILED", "Lỗi xử lý file: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            throw new AppException("CATEGORY_IMPORT_FAILED", "Failed to process file: " + e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 }

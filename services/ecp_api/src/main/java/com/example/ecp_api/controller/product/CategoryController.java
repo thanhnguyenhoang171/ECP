@@ -143,7 +143,7 @@ public class CategoryController {
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
 
         // File name
-        String fileName = URLEncoder.encode("categoy_template", StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        String fileName = URLEncoder.encode("category_template", StandardCharsets.UTF_8).replaceAll("\\+", "%20");
         response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + fileName + ".xlsx");
 
         // Write data in directly output stream of response

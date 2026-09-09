@@ -7,6 +7,7 @@ import com.example.ecp_api.dto.response.PageResponse;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.OutputStream;
 import java.util.List;
 
 public interface BrandService {
@@ -29,4 +30,10 @@ public interface BrandService {
     BrandResponse updateBrand(String id, BrandRequest request, MultipartFile logoFile);
 
     void deleteBrand(String id);
+
+    void downloadBrandTemplate(OutputStream outputStream);
+
+    void importBrandsFromExcel(MultipartFile file);
+
+    void exportAllBrandsToExcel(OutputStream outputStream);
 }
