@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { UI } from '@/constants/uiMessages';
 
 export interface SpaciousDatePickerProps {
   readonly value?: string | null;
@@ -105,7 +106,8 @@ export const SpaciousDatePicker = ({
           )}
         >
           <span className={cn(displayValue ? (disabled ? 'text-slate-600 font-semibold' : 'text-slate-900 font-semibold') : 'text-slate-400')}>
-            {displayValue || 'Chọn ngày sinh...'}
+            {displayValue || UI.PROFILE_DOB_PLACEHOLDER}
+
           </span>
           <CalendarIcon size={18} className={disabled ? 'text-slate-400 shrink-0' : 'text-blue-600 shrink-0'} />
         </button>

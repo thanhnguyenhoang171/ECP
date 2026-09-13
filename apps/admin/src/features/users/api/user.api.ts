@@ -2,7 +2,7 @@ import { User } from '../types/user.interface';
 import { PageResponse, PaginationInfo } from '@/types/pagination';
 import { clientFetch } from '@/lib/clientFetch';
 import { toApiPage } from '@/lib/utils';
-import { ApiError } from '@/constants/errorMessages';
+import { ApiError, ErrorMessages } from '@/constants/errorMessages';
 
 export interface BackendUserResponse {
   id: string;
@@ -153,7 +153,7 @@ export const userApi = {
 
     return {
       success: true,
-      message: result.message || 'Lấy danh sách người dùng thành công',
+      message: result.message || ErrorMessages.USER_LIST_SUCCESS,
       data: items,
       pagination: pg,
     };
@@ -195,7 +195,7 @@ export const userApi = {
 
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
-      throw new ApiError(errJson.code, errJson.message || 'Tạo người dùng thất bại', res.status, errJson);
+      throw new ApiError(errJson.code, errJson.message || ErrorMessages.USER_CREATE_FAILED, res.status, errJson);
     }
 
     const result = await res.json();
@@ -261,7 +261,7 @@ export const userApi = {
 
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
-      throw new ApiError(errJson.code, errJson.message || 'Cập nhật người dùng thất bại', res.status, errJson);
+      throw new ApiError(errJson.code, errJson.message || ErrorMessages.USER_UPDATE_FAILED, res.status, errJson);
     }
 
     const result = await res.json();
@@ -275,7 +275,7 @@ export const userApi = {
     });
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
-      throw new ApiError(errJson.code, errJson.message || 'Xóa người dùng thất bại', res.status, errJson);
+      throw new ApiError(errJson.code, errJson.message || ErrorMessages.USER_DELETE_FAILED, res.status, errJson);
     }
     return { success: true };
   },

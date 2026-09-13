@@ -3,8 +3,13 @@ import { toast } from 'sonner';
 import { getErrorMessage, ErrorMessages } from '@/constants/errorMessages';
 
 const getAdminBackendUrl = (): string => {
-  const envUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL || process.env.NEXT_PUBLIC_API_URL;
-  return (envUrl && envUrl.startsWith('http')) ? envUrl : 'http://localhost:9090/api';
+  const envUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL ?? process.env.NEXT_PUBLIC_API_URL;
+  if (!envUrl) {
+    throw new Error(
+      '[clientFetch] Missing env: NEXT_PUBLIC_ADMIN_API_URL or NEXT_PUBLIC_API_URL must be set.'
+    );
+  }
+  return envUrl;
 };
 const API_URL = getAdminBackendUrl();
 
@@ -50,7 +55,11 @@ export const getRefreshedAccessToken = async (APP_URL: string): Promise<string |
 
 export const clientFetch = async (url: string, options: FetchOptions = {}) => {
   const { skipToast, ...fetchOptions } = options;
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? (typeof window !== 'undefined' ? window.location.origin : undefined);
+  if (!APP_URL) {
+    throw new Error('[clientFetch] Missing env: NEXT_PUBLIC_APP_URL must be set on the server.');
+  }
+
   
   const isAuthEndpoint = url.includes('/api/auth/') || url.includes('/login') || url.includes('/register');
   let currentToken = useAuthStore.getState().accessToken;

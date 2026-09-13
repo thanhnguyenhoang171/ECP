@@ -38,8 +38,17 @@ export default function NextProtectedRoute({ children }: { children: React.React
     );
   }
 
-  // Nếu đã initialized nhưng chưa login, useEffect ở trên sẽ redirect, ở đây return null
-  if (!isAuthenticated) return null;
+  // Nếu chưa đăng nhập hoặc vừa logout, hiển thị màn hình chuyển tiếp đồng bộ với giao diện admin / login
+  if (!isAuthenticated) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-slate-900 text-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-sky-500 border-t-transparent" />
+          <p className="text-sm text-slate-400 font-medium">Đang chuyển hướng...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Chặn người dùng có role là USER truy cập vào admin
   const isRestricted = user?.roles?.includes('ROLE_USER') && 

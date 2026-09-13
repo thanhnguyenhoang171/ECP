@@ -1,66 +1,77 @@
 services:
   api:
     image: ghcr.io/thanhnguyenhoang171/ecp/ecp-api:latest
+    pull_policy: always
     container_name: ecp_api
+    restart: always
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - '9091:9090'
+      - "${API_PORT:-9091}:9090"
     environment:
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
       SPRING_MONGODB_URI: ${SPRING_MONGODB_URI}
-      SPRING_REDIS_HOST: ${SPRING_REDIS_HOST}
-      SPRING_REDIS_PORT: ${SPRING_REDIS_PORT}
+      SPRING_REDIS_HOST: ${SPRING_REDIS_HOST:-localhost}
+      SPRING_REDIS_PORT: ${SPRING_REDIS_PORT:-6379}
       SPRING_REDIS_USERNAME: ${SPRING_REDIS_USERNAME:-}
       SPRING_REDIS_PASSWORD: ${SPRING_REDIS_PASSWORD:-}
-      SPRING_PROFILES_ACTIVE: prod
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       SPRING_JPA_DDL_AUTO: ${SPRING_JPA_DDL_AUTO:-update}
       JWT_SECRET: ${JWT_SECRET}
-      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
-      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
-      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
-      GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+      MINIO_SERVICE_ENABLE: ${MINIO_SERVICE_ENABLE:-true}
+      CLOUDINARY_SERVICE_ENABLE: ${CLOUDINARY_SERVICE_ENABLE:-false}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-172.17.0.1:9050}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-admin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-ecp-media}
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
       SWAGGER_USERNAME: ${SWAGGER_USERNAME:-admin}
       SWAGGER_PASSWORD: ${SWAGGER_PASSWORD:-swagger@123}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
-      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST}
-      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT}
-      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME}
-      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-smtp.gmail.com}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
     networks:
       - ecp_network
-    restart: always
 
   admin:
     image: ghcr.io/thanhnguyenhoang171/ecp/ecp-admin:latest
+    pull_policy: always
     container_name: ecp_admin
+    restart: always
     ports:
-      - '8081:80'
+      - "${ADMIN_PORT:-8081}:80"
     environment:
       ADMIN_INTERNAL_API_URL: ${ADMIN_INTERNAL_API_URL:-http://api:9090/api}
       NEXT_PUBLIC_ADMIN_API_URL: ${NEXT_PUBLIC_ADMIN_API_URL:-http://api:9090/api}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:9090/api}
-      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
     networks:
       - ecp_network
-    restart: always
 
   storefront:
     image: ghcr.io/thanhnguyenhoang171/ecp/ecp-storefront:latest
+    pull_policy: always
     container_name: ecp_storefront
+    restart: always
     ports:
-      - '3000:3000'
+      - "${STOREFRONT_PORT:-3000}:3000"
     environment:
       STOREFRONT_INTERNAL_API_URL: ${STOREFRONT_INTERNAL_API_URL:-http://api:9090/api}
       NEXT_PUBLIC_STOREFRONT_API_URL: ${NEXT_PUBLIC_STOREFRONT_API_URL:-/api}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_STOREFRONT_API_URL:-/api}
-      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
     networks:
       - ecp_network
-    restart: always
 
 networks:
   ecp_network:

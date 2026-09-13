@@ -17,6 +17,7 @@ import WarehouseDetailDialog from './WarehouseDetailDialog';
 import { useWarehouses, useDeleteWarehouse } from '../hooks/use-warehouses';
 import { ClientWarehouse } from '@/lib/clientDb';
 import { isForbiddenError } from '@/constants/errorMessages';
+import { UI } from '@/constants/uiMessages';
 
 export default function WarehousesView() {
   const router = useRouter();
@@ -90,7 +91,8 @@ export default function WarehousesView() {
           <span className="text-sm font-bold text-slate-700">{item.name}</span>
           <div className="flex items-center gap-1 text-[10px] text-slate-400">
             <MapPin size={10} />
-            {item.address || 'Không có địa chỉ'}
+            {item.address || UI.NO_ADDRESS}
+
           </div>
         </div>
       )

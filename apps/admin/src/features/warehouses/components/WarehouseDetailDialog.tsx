@@ -11,6 +11,7 @@ import {
   CheckCircle2, 
   XCircle 
 } from 'lucide-react';
+import { UI } from '@/constants/uiMessages';
 
 interface WarehouseDetailDialogProps {
   warehouseId: string | null;
@@ -33,7 +34,8 @@ export default function WarehouseDetailDialog({
       items: [
         { label: "Tên kho bãi", value: warehouse?.name, icon: Warehouse },
         { label: "Mã định danh kho", value: warehouse?.code, icon: Hash, fontMono: true },
-        { label: "Địa chỉ trụ sở/vị trí", value: warehouse?.address || 'Chưa cập nhật địa chỉ', icon: MapPin, colSpan: 2 },
+        { label: "Địa chỉ trụ sở/vị trí", value: warehouse?.address || UI.WAREHOUSE_ADDRESS_NOT_UPDATED, icon: MapPin, colSpan: 2 },
+
         { label: "Mã ID kho", value: warehouse?.id, icon: Hash, fontMono: true, colSpan: 2 },
       ]
     }
@@ -51,7 +53,8 @@ export default function WarehouseDetailDialog({
       header={{
         icon: Warehouse,
         title: warehouse?.name,
-        subtitle: `Mã kho: ${warehouse?.code || 'N/A'}`,
+        subtitle: `Mã kho: ${warehouse?.code || UI.NA}`,
+
         badge: warehouse ? (
           <Badge 
             className={

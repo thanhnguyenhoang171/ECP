@@ -5,7 +5,7 @@ import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.exception.AppException;
 import com.example.ecp_api.service.AdminFileService;
-import com.example.ecp_api.service.CloudinaryService;
+import com.example.ecp_api.service.MinioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,7 +27,7 @@ import java.util.Map;
 @Tag(name = "Files", description = "File Upload & Media Management APIs")
 public class FileController {
 
-    private final CloudinaryService cloudinaryService;
+    private final MinioService minioService;
     private final AdminFileService adminFileService;
 
     @GetMapping
@@ -43,10 +43,10 @@ public class FileController {
     }
 
     @GetMapping("/signature")
-    @Operation(summary = "Generate upload signature for direct client-to-cloud file/video upload")
+    @Operation(summary = "Generate upload signature / presigned URL for direct client-to-cloud file/video upload")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getUploadSignature(
             @RequestParam(value = "folder", required = false) String folder) {
-        Map<String, Object> result = cloudinaryService.generateUploadSignature(folder);
+        Map<String, Object> result = minioService.generateUploadSignature(folder);
         return ResponseEntity.ok(
                 ApiResponse.<Map<String, Object>>builder()
                         .success(true)
@@ -59,7 +59,7 @@ public class FileController {
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload a single file")
-    public ResponseEntity<ApiResponse<Map>> uploadFile(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> uploadFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "folder", required = false) String folder,
             @Parameter(description = "Maximum allowed file size in bytes (optional). Default: 50MB, Max cap: 500MB", example = "52428800")
@@ -75,10 +75,10 @@ public class FileController {
             );
         }
 
-        Map result = cloudinaryService.upload(file, folder);
+        Map<String, Object> result = minioService.upload(file, folder);
 
         return ResponseEntity.ok(
-                ApiResponse.<Map>builder()
+                ApiResponse.<Map<String, Object>>builder()
                         .success(true)
                         .code("FILE_UPLOAD_SUCCESS")
                         .message("File uploaded successfully")
@@ -89,7 +89,7 @@ public class FileController {
 
     @PostMapping(value = "/upload-multiple", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload multiple files")
-    public ResponseEntity<ApiResponse<List<Map>>> uploadMultipleFiles(
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> uploadMultipleFiles(
             @RequestPart("files") MultipartFile[] files,
             @RequestParam(value = "folder", required = false) String folder,
             @Parameter(description = "Maximum allowed file size in bytes per file (optional). Default: 50MB, Max cap: 500MB", example = "52428800")
@@ -107,8 +107,8 @@ public class FileController {
             }
         }
 
-        List<Map> results = cloudinaryService.uploadMultiple(files, folder);
-        return ResponseEntity.ok(ApiResponse.<List<Map>>builder()
+        List<Map<String, Object>> results = minioService.uploadMultiple(files, folder);
+        return ResponseEntity.ok(ApiResponse.<List<Map<String, Object>>>builder()
                 .success(true)
                 .code("FILES_UPLOAD_SUCCESS")
                 .message("Files uploaded successfully")
@@ -120,7 +120,7 @@ public class FileController {
     @DeleteMapping("/delete")
     @Operation(summary = "Delete a file by public_id")
     public ResponseEntity<ApiResponse<Void>> deleteFile(@RequestParam("public_id") String publicId) {
-        cloudinaryService.delete(publicId);
+        minioService.delete(publicId);
         return ResponseEntity.ok(
                 ApiResponse.<Void>builder()
                         .success(true)
@@ -133,7 +133,7 @@ public class FileController {
     @DeleteMapping("/delete-by-url")
     @Operation(summary = "Delete a file by URL")
     public ResponseEntity<ApiResponse<Void>> deleteFileByUrl(@RequestParam("url") String url) {
-        cloudinaryService.deleteByUrl(url);
+        minioService.deleteByUrl(url);
         return ResponseEntity.ok(
                 ApiResponse.<Void>builder()
                         .success(true)

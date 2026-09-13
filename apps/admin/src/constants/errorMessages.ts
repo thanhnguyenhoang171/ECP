@@ -100,6 +100,23 @@ export const ErrorMessages: Record<string, string> = {
   PURCHASE_ORDER_CODE_EXISTS: 'Mã đơn mua hàng đã tồn tại trong hệ thống.',
   RECEIPT_NOT_FOUND: 'Không tìm thấy phiếu nhập kho.',
   RECEIPT_CODE_EXISTS: 'Mã phiếu nhập kho đã tồn tại trong hệ thống.',
+
+  // --- 9. API operation fallbacks (used as last-resort in api files) ---
+  USER_CREATE_FAILED: 'Tạo người dùng thất bại',
+  USER_UPDATE_FAILED: 'Cập nhật người dùng thất bại',
+  USER_DELETE_FAILED: 'Xóa người dùng thất bại',
+  USER_LIST_SUCCESS: 'Lấy danh sách người dùng thành công',
+  SUPPLIER_CREATE_FAILED: 'Thêm nhà cung cấp thất bại',
+  SUPPLIER_UPDATE_FAILED: 'Cập nhật nhà cung cấp thất bại',
+  SUPPLIER_DELETE_FAILED: 'Không thể xóa nhà cung cấp',
+  WAREHOUSE_DELETE_FAILED: 'Không thể xóa kho bãi',
+  SKU_CREATE_FAILED: 'Thêm mới SKU thất bại',
+  SKU_UPDATE_FAILED: 'Cập nhật SKU thất bại',
+  ROLE_CREATE_PERMISSION_FAILED: 'Tạo quyền hạn mới thất bại',
+  ROLE_CREATE_FAILED: 'Tạo vai trò thất bại',
+  ROLE_UPDATE_FAILED: 'Cập nhật vai trò thất bại',
+  ROLE_DELETE_FAILED: 'Xóa vai trò thất bại',
+  ROLE_NOT_FOUND_FALLBACK: 'Không tìm thấy vai trò',
 };
 
 /**

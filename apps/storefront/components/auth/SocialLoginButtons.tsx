@@ -70,7 +70,8 @@ export default function SocialLoginButtons() {
   };
 
   const handleGoogleLogin = () => {
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
     if (!clientId) {
       toast.error('Chưa cấu hình Google Client ID (NEXT_PUBLIC_GOOGLE_CLIENT_ID) trên hệ thống!');
       return;

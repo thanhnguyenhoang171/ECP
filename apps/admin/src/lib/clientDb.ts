@@ -1,5 +1,7 @@
 'use client';
 
+import { UI } from '@/constants/uiMessages';
+
 // Types representing the database entities
 export interface ClientWarehouse {
   id: string;
@@ -509,7 +511,8 @@ export const clientDb = {
     const stocks = this.getStockItems();
 
     const wh = warehouses.find(w => w.id === receipt.warehouseId);
-    const warehouseName = wh ? wh.name : (receipt.warehouseName || 'Kho hàng không rõ');
+    const warehouseName = wh ? wh.name : (receipt.warehouseName || UI.UNKNOWN_WAREHOUSE);
+
 
     const totalQty = receipt.items.reduce((acc, it) => acc + it.quantity, 0);
 
@@ -522,7 +525,8 @@ export const clientDb = {
       totalItems: totalQty,
       status: 'COMPLETED', // default to completed on insert
       createdAt: new Date().toISOString(),
-      createdBy: receipt.createdBy || 'Thanh Nguyen',
+      createdBy: receipt.createdBy || '',
+
       note: receipt.note || '',
       items: receipt.items.map(item => {
         const matchingStock = stocks.find(s => s.id === item.skuId);
@@ -631,9 +635,11 @@ export const clientDb = {
       id: po.id || `po-${Math.random().toString(36).substring(2, 9)}`,
       code: po.code || randomCode,
       supplierId: po.supplierId,
-      supplierName: sup ? sup.name : (po.supplierName || 'Nhà cung cấp'),
+      supplierName: sup ? sup.name : (po.supplierName || UI.UNKNOWN_SUPPLIER),
+
       warehouseId: po.warehouseId,
-      warehouseName: wh ? wh.name : (po.warehouseName || 'Kho nhận'),
+      warehouseName: wh ? wh.name : (po.warehouseName || UI.UNKNOWN_WAREHOUSE_RECEIVE),
+
       expectedDeliveryDate: po.expectedDeliveryDate || '',
       note: po.note || '',
       totalItems: po.items.length,
@@ -641,7 +647,8 @@ export const clientDb = {
       totalAmount,
       status: 'APPROVED',
       createdAt: new Date().toISOString(),
-      createdBy: po.createdBy || 'Admin',
+      createdBy: po.createdBy || UI.ADMIN,
+
       items: po.items
     };
 

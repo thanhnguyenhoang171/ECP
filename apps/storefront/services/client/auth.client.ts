@@ -38,8 +38,14 @@ export async function registerClient(payload: RegisterPayload): Promise<AuthApiR
  * Refresh Token — POST /auth/refresh
  */
 export async function refreshTokenClient(refreshToken: string): Promise<AuthData> {
-  const envUrl = process.env.NEXT_PUBLIC_STOREFRONT_API_URL || process.env.NEXT_PUBLIC_API_URL;
-  const API_BASE_URL = (envUrl && envUrl.startsWith('/')) ? envUrl : '/api';
+  const envUrl = process.env.NEXT_PUBLIC_STOREFRONT_API_URL ?? process.env.NEXT_PUBLIC_API_URL;
+  if (!envUrl) {
+    throw new Error(
+      '[auth.client] Missing env: NEXT_PUBLIC_STOREFRONT_API_URL or NEXT_PUBLIC_API_URL must be set.'
+    );
+  }
+  const API_BASE_URL = envUrl;
+
   const res = await fetch(`${API_BASE_URL}/v1/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

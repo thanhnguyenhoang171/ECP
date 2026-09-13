@@ -34,6 +34,7 @@ import { toast } from 'sonner';
 
 import { usePurchaseOrders, useUpdatePOStatus } from '../hooks/use-purchase-order-mutation';
 import { isForbiddenError } from '@/constants/errorMessages';
+import { UI } from '@/constants/uiMessages';
 
 export default function PurchaseOrdersView() {
   const router = useRouter();
@@ -56,15 +57,17 @@ export default function PurchaseOrdersView() {
         return {
           id: item.id || item._id,
           code: item.code || item.poCode || `PO-${item.id}`,
-          supplierName: item.supplierName || item.supplier?.name || 'Nhà cung cấp',
-          warehouseName: item.warehouseName || item.warehouse?.name || 'Kho nhận',
+          supplierName: item.supplierName || item.supplier?.name || UI.UNKNOWN_SUPPLIER,
+          warehouseName: item.warehouseName || item.warehouse?.name || UI.UNKNOWN_WAREHOUSE_RECEIVE,
+
           totalItems: items.length || item.totalItems || 1,
           totalQuantity: calcQty || item.totalQuantity || 1,
           totalAmount: calcAmount || item.totalAmount || 0,
           status: item.status || 'APPROVED',
           expectedDeliveryDate: item.expectedDeliveryDate || new Date().toISOString(),
           createdAt: item.createdAt || new Date().toISOString(),
-          createdBy: item.createdBy || 'Quản trị viên'
+          createdBy: item.createdBy || UI.ADMIN
+
         };
       });
     }

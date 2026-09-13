@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils';
 
 import { useSkus } from '../hooks/use-skus';
 import { isForbiddenError } from '@/constants/errorMessages';
+import { UI } from '@/constants/uiMessages';
 
 export default function SkusView() {
   const {
@@ -112,7 +113,7 @@ export default function SkusView() {
       header: 'Mã vạch',
       cell: (sku) => (
         <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-medium">{sku.barcode || 'N/A'}</span>
+          <span className="text-sm font-medium">{sku.barcode || UI.NA}</span>
           {sku.barcodeType && <span className="text-[10px] text-slate-500">{sku.barcodeType}</span>}
         </div>
       )

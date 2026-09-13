@@ -80,53 +80,69 @@ export function convertToSlug(str: string): string {
 }
 
 /**
- * Trích xuất public_id từ URL hình ảnh Cloudinary
+ * Trích xuất public_id / objectName từ URL hình ảnh (hỗ trợ MinIO S3 và Cloudinary)
  */
 export function getCloudinaryPublicId(url: string): string | null {
-  if (!url || !url.includes("res.cloudinary.com")) return null;
-  try {
-    const parts = url.split("/upload/");
-    if (parts.length < 2) return null;
-    
-    const pathPart = parts[1];
-    const pathSegments = pathPart.split("/");
-    
-    // Tìm index của version segment (ví dụ: "v1782188427")
-    const versionIndex = pathSegments.findIndex(segment => 
-      /^v\d+$/.test(segment)
-    );
-    
-    let publicIdSegments: string[];
-    
-    if (versionIndex !== -1) {
-      // Nếu có version, toàn bộ phần sau version chính là public_id
-      publicIdSegments = pathSegments.slice(versionIndex + 1);
-    } else {
-      // Nếu không tìm thấy version (fallback), loại bỏ các transformation segments
-      publicIdSegments = pathSegments.filter(segment => {
-        if (!segment) return false;
-        
-        // Cấu hình transformation chứa dấu phẩy ',' hoặc bắt đầu bằng phím cấu hình (w_, h_, c_...)
-        const isTransformation = segment.includes(",") || 
-          /^(w|h|c|q|f|r|g|e|b|o|l|u|p|dl|dpr|co|bg|cs|cm|fl|x|y|z|zoom|bo|a|v)_\w+/.test(segment);
-          
-        return !isTransformation;
-      });
-    }
-    
-    if (publicIdSegments.length === 0) return null;
-    
-    const remainingPath = publicIdSegments.join("/");
-    const dotIndex = remainingPath.lastIndexOf(".");
-    if (dotIndex !== -1) {
-      return remainingPath.substring(0, dotIndex);
-    }
-    return remainingPath;
-  } catch (error) {
-    console.error("Error parsing Cloudinary URL:", error);
-    return null;
+  if (!url) return null;
+
+  // 1. MinIO / S3 objectName extraction
+  if (url.includes('ecp_uploads/')) {
+    const idx = url.indexOf('ecp_uploads/');
+    const objectPath = url.substring(idx);
+    const queryIdx = objectPath.indexOf('?');
+    return queryIdx !== -1 ? objectPath.substring(0, queryIdx) : objectPath;
   }
+
+  // 2. Legacy Cloudinary URL extraction
+  if (url.includes("res.cloudinary.com")) {
+    try {
+      const parts = url.split("/upload/");
+      if (parts.length < 2) return null;
+      
+      const pathPart = parts[1];
+      const pathSegments = pathPart.split("/");
+      
+      // Tìm index của version segment (ví dụ: "v1782188427")
+      const versionIndex = pathSegments.findIndex(segment => 
+        /^v\d+$/.test(segment)
+      );
+      
+      let publicIdSegments: string[];
+      
+      if (versionIndex !== -1) {
+        // Nếu có version, toàn bộ phần sau version chính là public_id
+        publicIdSegments = pathSegments.slice(versionIndex + 1);
+      } else {
+        // Nếu không tìm thấy version (fallback), loại bỏ các transformation segments
+        publicIdSegments = pathSegments.filter(segment => {
+          if (!segment) return false;
+          
+          // Cấu hình transformation chứa dấu phẩy ',' hoặc bắt đầu bằng phím cấu hình (w_, h_, c_...)
+          const isTransformation = segment.includes(",") || 
+            /^(w|h|c|q|f|r|g|e|b|o|l|u|p|dl|dpr|co|bg|cs|cm|fl|x|y|z|zoom|bo|a|v)_\w+/.test(segment);
+            
+          return !isTransformation;
+        });
+      }
+      
+      if (publicIdSegments.length === 0) return null;
+      
+      const remainingPath = publicIdSegments.join("/");
+      const dotIndex = remainingPath.lastIndexOf(".");
+      if (dotIndex !== -1) {
+        return remainingPath.substring(0, dotIndex);
+      }
+      return remainingPath;
+    } catch (error) {
+      console.error("Error parsing Cloudinary URL:", error);
+      return null;
+    }
+  }
+
+  return null;
 }
+
+export const getMediaPublicId = getCloudinaryPublicId;
 
 /**
  * Chuyển đổi tên sản phẩm thành mã SKU tự động

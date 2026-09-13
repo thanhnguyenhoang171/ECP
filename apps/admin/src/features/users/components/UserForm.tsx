@@ -32,6 +32,7 @@ import AvatarCropModal from '@/components/common/AvatarCropModal';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { User } from '../types/user.interface';
+import { UI } from '@/constants/uiMessages';
 
 interface UserFormProps {
   onSuccess: () => void;
@@ -83,7 +84,7 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
 
   const onSubmit = (values: UserFormValues) => {
     if (isUploading) {
-      toast.warning('Ảnh đang được tải lên Cloudinary, vui lòng chờ trong giây lát!');
+      toast.warning('Ảnh đang được tải lên, vui lòng chờ trong giây lát!');
       return;
     }
 
@@ -383,7 +384,8 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                       {currentAvatarUrl && (
                         <AvatarImage 
                           src={typeof currentAvatarUrl === 'string' ? currentAvatarUrl : ((currentAvatarUrl as any) instanceof File ? URL.createObjectURL(currentAvatarUrl as any) : '')} 
-                          alt={currentFullName || 'Avatar'} 
+                          alt={currentFullName || UI.AVATAR_ALT} 
+
                           className="object-cover" 
                         />
                       )}

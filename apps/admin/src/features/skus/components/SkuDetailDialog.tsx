@@ -14,6 +14,7 @@ import {
   XCircle,
   FileText
 } from 'lucide-react';
+import { UI } from '@/constants/uiMessages';
 
 interface SkuDetailDialogProps {
   sku: Sku | null;
@@ -34,8 +35,9 @@ export default function SkuDetailDialog({
       cols: 2,
       items: [
         { label: "Mã SKU", value: sku.skuCode, icon: Hash, fontMono: true },
-        { label: "Mã vạch (Barcode)", value: sku.barcode || 'N/A', icon: Barcode, fontMono: true },
-        { label: "Loại mã vạch", value: sku.barcodeType || 'N/A', icon: FileText },
+        { label: "Mã vạch (Barcode)", value: sku.barcode || UI.NA, icon: Barcode, fontMono: true },
+        { label: "Loại mã vạch", value: sku.barcodeType || UI.NA, icon: FileText },
+
         { label: "ID đơn vị SKU", value: sku.id, icon: Hash, fontMono: true },
       ]
     },
@@ -43,8 +45,9 @@ export default function SkuDetailDialog({
       title: "Sản phẩm & Biến thể",
       cols: 2,
       items: [
-        { label: "Sản phẩm sở hữu", value: sku.productName || 'N/A', icon: ShoppingBag },
-        { label: "Tên biến thể phân loại", value: sku.variantName || 'N/A', icon: SlidersHorizontal },
+        { label: "Sản phẩm sở hữu", value: sku.productName || UI.NA, icon: ShoppingBag },
+        { label: "Tên biến thể phân loại", value: sku.variantName || UI.NA, icon: SlidersHorizontal },
+
       ]
     }
   ];
@@ -58,7 +61,8 @@ export default function SkuDetailDialog({
       header={{
         icon: Layers,
         title: sku.skuCode,
-        subtitle: `Sản phẩm: ${sku.productName || 'N/A'} • Biến thể: ${sku.variantName || 'N/A'}`,
+        subtitle: `Sản phẩm: ${sku.productName || UI.NA} • Biến thể: ${sku.variantName || UI.NA}`,
+
         badge: (
           <Badge 
             className={

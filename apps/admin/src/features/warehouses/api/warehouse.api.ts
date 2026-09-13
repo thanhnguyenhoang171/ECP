@@ -1,7 +1,6 @@
 import { clientFetch } from '@/lib/clientFetch';
 import { clientDb, ClientWarehouse } from '@/lib/clientDb';
-import { useAuthStore } from '@/store/authStore';
-import { ApiError } from '@/constants/errorMessages';
+import { ApiError, ErrorMessages } from '@/constants/errorMessages';
 
 export const warehouseApi = {
   // Lấy danh sách tất cả kho bãi
@@ -120,7 +119,8 @@ export const warehouseApi = {
         return { success: true };
       } else {
         const body = await res.json().catch(() => ({}));
-        const msg = body?.message || 'Không thể xóa kho bãi';
+        const msg = body?.message || ErrorMessages.WAREHOUSE_DELETE_FAILED;
+
         throw new Error(msg);
       }
     } catch (e: any) {
@@ -131,7 +131,8 @@ export const warehouseApi = {
     }
 
     const success = clientDb.deleteWarehouse(id);
-    if (!success) throw new Error('Không thể xóa kho bãi');
+    if (!success) throw new Error(ErrorMessages.WAREHOUSE_DELETE_FAILED);
+
     return { success: true };
   },
 };

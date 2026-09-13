@@ -37,6 +37,7 @@ import {
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/formatters';
 import { toast } from 'sonner';
+import { UI } from '@/constants/uiMessages';
 
 interface UserDetailViewProps {
   id: string;
@@ -160,7 +161,8 @@ export function UserDetailView({ id }: UserDetailViewProps): React.JSX.Element {
       <Breadcrumbs items={breadcrumbItems} />
 
       <PageHeader
-        title={user?.fullName || 'Chi tiết tài khoản'}
+        title={user?.fullName || UI.USER_DETAIL_TITLE}
+
         description={user ? `Tài khoản: ${user.email}` : 'Thông tin chi tiết cá nhân và phân quyền tài khoản'}
         actions={
           <div className="flex items-center gap-2">
@@ -327,7 +329,8 @@ export function UserDetailView({ id }: UserDetailViewProps): React.JSX.Element {
                   <Skeleton className="h-5 w-36 rounded-md" />
                 ) : (
                   <p className="text-xs font-mono font-semibold text-slate-800">
-                    {user?.phone || 'Chưa cập nhật số điện thoại'}
+                    {user?.phone || UI.USER_PHONE_NOT_UPDATED}
+
                   </p>
                 )}
               </div>
