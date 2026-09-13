@@ -135,11 +135,13 @@ export function useLogout(): UseMutationResult<LogoutResponse, unknown, void> {
     mutationFn: () => authApi.logout(accessToken || undefined),
     onSuccess: () => {
       clearAuth();
+      sessionStorage.setItem('logout_success', '1');
       router.replace('/login');
     },
     onError: () => {
       // Clear auth state and redirect even if backend logout request fails
       clearAuth();
+      sessionStorage.setItem('logout_success', '1');
       router.replace('/login');
     },
   });
