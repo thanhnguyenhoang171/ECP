@@ -3,6 +3,7 @@
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+
 import { authApi } from '../api/auth.api';
 import { useAuthStore } from '@/store/authStore';
 import { getApiErrorMessage, ErrorMessages } from '@/constants/errorMessages';
@@ -128,7 +129,6 @@ export function useRegister(): UseMutationResult<RegisterResponse, unknown, Para
 }
 
 export function useLogout(): UseMutationResult<LogoutResponse, unknown, void> {
-  const router = useRouter();
   const { clearAuth, accessToken } = useAuthStore();
 
   return useMutation({
@@ -136,13 +136,16 @@ export function useLogout(): UseMutationResult<LogoutResponse, unknown, void> {
     onSuccess: () => {
       clearAuth();
       sessionStorage.setItem('logout_success', '1');
-      router.replace('/login');
+      // Dùng full page navigation để tránh race condition:
+      // router.replace (client-side) có thể unmount <Toaster> trước khi
+      // LoginView mount xong và đọc được sessionStorage signal.
+      window.location.replace('/login');
     },
     onError: () => {
       // Clear auth state and redirect even if backend logout request fails
       clearAuth();
       sessionStorage.setItem('logout_success', '1');
-      router.replace('/login');
+      window.location.replace('/login');
     },
   });
 }
