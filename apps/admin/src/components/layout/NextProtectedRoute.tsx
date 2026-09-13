@@ -20,9 +20,10 @@ export default function NextProtectedRoute({ children }: { children: React.React
   useEffect(() => {
     // Chỉ kiểm tra quyền sau khi đã hydrate từ storage VÀ AuthInitializer đã chạy xong
     if (isClient && hasHydrated && isInitialized && !isAuthenticated) {
-      router.replace('/login');
+      // Dùng hard navigation để tránh race condition với middleware khi logout
+      window.location.replace('/login');
     }
-  }, [isClient, hasHydrated, isInitialized, isAuthenticated, router]);
+  }, [isClient, hasHydrated, isInitialized, isAuthenticated]);
 
   // Chờ hydration từ localStorage.
   // Nếu tài khoản đã được khôi phục phiên từ storage (isAuthenticated === true),
@@ -38,16 +39,9 @@ export default function NextProtectedRoute({ children }: { children: React.React
     );
   }
 
-  // Nếu chưa đăng nhập hoặc vừa logout, hiển thị màn hình chuyển tiếp đồng bộ với giao diện admin / login
+  // Nếu chưa đăng nhập hoặc vừa logout, trả về null và chờ useEffect redirect
   if (!isAuthenticated) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-slate-900 text-white">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-sky-500 border-t-transparent" />
-          <p className="text-sm text-slate-400 font-medium">Đang chuyển hướng...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   // Chặn người dùng có role là USER truy cập vào admin
