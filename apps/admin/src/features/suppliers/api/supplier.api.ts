@@ -1,7 +1,6 @@
 import { clientFetch } from '@/lib/clientFetch';
 import { clientDb, ClientSupplier } from '@/lib/clientDb';
-import { useAuthStore } from '@/store/authStore';
-import { ApiError } from '@/constants/errorMessages';
+import { ApiError, ErrorMessages } from '@/constants/errorMessages';
 
 export const supplierApi = {
   // Lấy danh sách tất cả nhà cung cấp
@@ -78,7 +77,8 @@ export const supplierApi = {
         };
       }
       const errJson = await res.json().catch(() => ({}));
-      throw new ApiError(errJson.code, errJson.message || 'Thêm nhà cung cấp thất bại', res.status, errJson);
+      throw new ApiError(errJson.code, errJson.message || ErrorMessages.SUPPLIER_CREATE_FAILED, res.status, errJson);
+
     } catch (e) {
       if (e instanceof ApiError || (e as Error)?.name !== 'TypeError') {
         throw e;
@@ -109,7 +109,8 @@ export const supplierApi = {
         };
       }
       const errJson = await res.json().catch(() => ({}));
-      throw new ApiError(errJson.code, errJson.message || 'Cập nhật nhà cung cấp thất bại', res.status, errJson);
+      throw new ApiError(errJson.code, errJson.message || ErrorMessages.SUPPLIER_UPDATE_FAILED, res.status, errJson);
+
     } catch (e) {
       if (e instanceof ApiError || (e as Error)?.name !== 'TypeError') {
         throw e;
@@ -131,7 +132,8 @@ export const supplierApi = {
         return { success: true };
       } else {
         const body = await res.json().catch(() => ({}));
-        throw new ApiError(body.code, body?.message || 'Không thể xóa nhà cung cấp', res.status, body);
+        throw new ApiError(body.code, body?.message || ErrorMessages.SUPPLIER_DELETE_FAILED, res.status, body);
+
       }
     } catch (e: any) {
       if (e instanceof ApiError || ((e as Error)?.message && (e as Error).message !== 'Failed to fetch')) {
@@ -142,7 +144,8 @@ export const supplierApi = {
     
     // Fallback logic khi không có kết nối backend
     const success = clientDb.deleteSupplier(id);
-    if (!success) throw new Error('Không thể xóa nhà cung cấp');
+    if (!success) throw new Error(ErrorMessages.SUPPLIER_DELETE_FAILED);
+
     return { success: true };
   },
 };

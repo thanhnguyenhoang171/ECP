@@ -17,6 +17,7 @@ import { Breadcrumbs, AvatarCropModal } from '@/components/common';
 import { useAuthStore } from '@/store/authStore';
 import { authApi } from '@/features/auth/api/auth.api';
 import { getApiErrorMessage } from '@/constants/errorMessages';
+import { UI } from '@/constants/uiMessages';
 import { ProfileFormValues } from '@/features/profile/schemas/profile.schema';
 
 import { ProfileHeroBanner } from './ProfileHeroBanner';
@@ -70,7 +71,8 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.JS
   const { mutate: deleteAvatarMutate, isPending: isDeletingAvatar } = useMutation({
     mutationFn: authApi.deleteAvatar,
     onSuccess: (res) => {
-      toast.success(res?.message || 'Đã gỡ ảnh đại diện.');
+      toast.success(res?.message || UI.PROFILE_AVATAR_REMOVED);
+
       setPreviewAvatarUrl(null);
       if (res?.data) {
         const updatedData = res.data;

@@ -23,6 +23,7 @@ import {
   Settings,
   ShieldCheck,
   LogOut,
+  Loader2,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -256,13 +257,14 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
 
   useEffect(() => {
+    router.prefetch('/login');
     nprogress.start();
     const timer = setTimeout(() => nprogress.done(), 100);
     return () => {
       clearTimeout(timer);
       nprogress.done();
     };
-  }, [pathname]);
+  }, [pathname, router]);
 
   const user = useAuthStore((state) => state.user);
   const logoutMutation = useLogout();
@@ -350,17 +352,25 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
         <div className="p-4 border-t border-slate-800 shrink-0">
           <Button 
             variant="ghost" 
+            disabled={logoutMutation.isPending}
             className={cn(
               "w-full text-slate-400 hover:bg-red-500/10 hover:text-red-400 font-medium rounded-lg transition-all flex items-center gap-3",
-              isSidebarCollapsed && !mobile ? "justify-center px-0 text-xs font-bold" : "justify-start"
+              isSidebarCollapsed && !mobile ? "justify-center px-0 text-xs font-bold" : "justify-start",
+              logoutMutation.isPending && "opacity-70 cursor-not-allowed"
             )} 
             onClick={() => {
               handleLogout();
               if (mobile) handleNavigate();
             }}
           >
-            <LogOut size={18} />
-            {(!isSidebarCollapsed || mobile) && <span>Đăng xuất</span>}
+            {logoutMutation.isPending ? (
+              <Loader2 size={18} className="animate-spin text-red-400" />
+            ) : (
+              <LogOut size={18} />
+            )}
+            {(!isSidebarCollapsed || mobile) && (
+              <span>{logoutMutation.isPending ? 'Đang đăng xuất...' : 'Đăng xuất'}</span>
+            )}
           </Button>
         </div>
       </div>
@@ -433,11 +443,20 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
                   <span className="text-sm font-medium">Hồ sơ cá nhân</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="my-1 bg-slate-800" />
-                <DropdownMenuItem onClick={() => {
-                  handleLogout();
-                  handleNavigate();
-                }} className="text-rose-400 focus:text-rose-300 focus:bg-rose-950/40 cursor-pointer py-2 px-3 rounded-lg font-semibold">
-                  <span className="text-sm font-bold">Đăng xuất</span>
+                <DropdownMenuItem 
+                  disabled={logoutMutation.isPending}
+                  onClick={() => {
+                    handleLogout();
+                    handleNavigate();
+                  }} 
+                  className="text-rose-400 focus:text-rose-300 focus:bg-rose-950/40 cursor-pointer py-2 px-3 rounded-lg font-semibold flex items-center gap-2"
+                >
+                  {logoutMutation.isPending ? (
+                    <Loader2 size={14} className="animate-spin text-rose-400" />
+                  ) : null}
+                  <span className="text-sm font-bold">
+                    {logoutMutation.isPending ? 'Đang đăng xuất...' : 'Đăng xuất'}
+                  </span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

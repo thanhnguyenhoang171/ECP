@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/formatters';
 
 import { usePurchaseOrder, useUpdatePOStatus } from '../hooks/use-purchase-order-mutation';
+import { UI } from '@/constants/uiMessages';
 
 interface Props {
   poId: string;
@@ -52,15 +53,15 @@ export default function PurchaseOrderDetailView({ poId }: Props) {
       return {
         id: p.id || poId,
         code: p.code || p.poCode || `PO-${p.id}`,
-        supplierName: p.supplierName || p.supplier?.name || 'Nhà cung cấp',
-        supplierCode: p.supplierCode || p.supplier?.code || 'N/A',
-        supplierPhone: p.supplierPhone || p.supplier?.phone || 'N/A',
-        supplierEmail: p.supplierEmail || p.supplier?.email || 'N/A',
-        warehouseName: p.warehouseName || p.warehouse?.name || 'Kho nhận hàng',
+        supplierName: p.supplierName || p.supplier?.name || UI.UNKNOWN_SUPPLIER,
+        supplierCode: p.supplierCode || p.supplier?.code || UI.NA,
+        supplierPhone: p.supplierPhone || p.supplier?.phone || UI.NA,
+        supplierEmail: p.supplierEmail || p.supplier?.email || UI.NA,
+        warehouseName: p.warehouseName || p.warehouse?.name || UI.UNKNOWN_WAREHOUSE_RECEIVE,
         status: p.status || 'APPROVED',
         expectedDeliveryDate: p.expectedDeliveryDate || new Date().toISOString(),
         createdAt: p.createdAt || new Date().toISOString(),
-        createdBy: p.createdBy || 'Quản trị viên',
+        createdBy: p.createdBy || UI.ADMIN,
         note: p.note || '',
         items
       };

@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Permission } from '../types/role.interface';
+import { UI } from '@/constants/uiMessages';
 
 interface RoleDetailViewProps {
   id: string;
@@ -115,7 +116,8 @@ export default function RoleDetailView({ id }: RoleDetailViewProps) {
 
       <PageHeader
         title={`Vai trò: ${role.name}`}
-        description={role.description || 'Xem chi tiết thông tin và ma trận phân quyền được cấp cho vai trò.'}
+        description={role.description || UI.ROLE_DETAIL_DESCRIPTION}
+
         actions={
           <div className="flex items-center gap-2">
             <Button

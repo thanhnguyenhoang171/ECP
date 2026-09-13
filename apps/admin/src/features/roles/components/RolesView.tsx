@@ -38,6 +38,7 @@ import {
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { isForbiddenError } from '@/constants/errorMessages';
+import { UI } from '@/constants/uiMessages';
 
 interface RolesViewProps {
   initialRoles?: Role[];
@@ -231,7 +232,8 @@ export default function RolesView({ initialRoles }: RolesViewProps) {
       skeleton: <Skeleton className='h-4 w-48' />,
       cell: (role) => (
         <span className={cn('text-xs line-clamp-2', role.description ? 'text-slate-600' : 'text-slate-400 italic')}>
-          {role.description || 'Chưa có mô tả chi tiết'}
+          {role.description || UI.ROLE_NO_DESCRIPTION}
+
         </span>
       ),
     },

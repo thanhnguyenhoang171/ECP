@@ -48,6 +48,7 @@ import { useSuppliers } from '@/features/suppliers/hooks/use-suppliers';
 import { useWarehouses } from '@/features/warehouses/hooks/use-warehouses';
 import { useSkus } from '@/features/skus/hooks/use-skus';
 import { useCreatePurchaseOrder, useUpdatePurchaseOrder } from '../hooks/use-purchase-order-mutation';
+import { UI } from '@/constants/uiMessages';
 
 // Fallback Mock Suppliers
 const mockSuppliers = [
@@ -105,7 +106,8 @@ export default function PurchaseOrderForm({
         return {
           id: item.id,
           barcode: item.barcode || item.skuCode,
-          name: `${item.productName || 'Sản phẩm'} - ${item.variantName || item.skuCode}`,
+          name: `${item.productName || UI.UNKNOWN_PRODUCT} - ${item.variantName || item.skuCode}`,
+
           costPrice,
         };
       })

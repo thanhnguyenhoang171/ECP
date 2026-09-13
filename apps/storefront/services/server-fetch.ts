@@ -17,12 +17,19 @@ export async function serverFetch<T>(
   let baseUrl: string;
   if (typeof window !== 'undefined') {
     // Phía Client (Browser): Dùng relative path /api để đi qua Next.js proxy rewrite (giấu URL backend)
-    const clientEnv = process.env.NEXT_PUBLIC_STOREFRONT_API_URL || process.env.NEXT_PUBLIC_API_URL;
-    baseUrl = (clientEnv && clientEnv.startsWith('/')) ? clientEnv : '/api';
+    baseUrl = process.env.NEXT_PUBLIC_STOREFRONT_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? '/api';
   } else {
     // Phía Server (Node.js SSR/ISR): Dùng backend URL nội bộ
-    const serverEnv = process.env.STOREFRONT_INTERNAL_API_URL || process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL;
-    baseUrl = (serverEnv && serverEnv.startsWith('http')) ? serverEnv : 'http://localhost:9090/api';
+    const serverEnv =
+      process.env.STOREFRONT_INTERNAL_API_URL ??
+      process.env.INTERNAL_API_URL ??
+      process.env.NEXT_PUBLIC_API_URL;
+    if (!serverEnv) {
+      throw new Error(
+        '[serverFetch] Missing env: STOREFRONT_INTERNAL_API_URL, INTERNAL_API_URL, or NEXT_PUBLIC_API_URL must be set.'
+      );
+    }
+    baseUrl = serverEnv;
   }
 
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;

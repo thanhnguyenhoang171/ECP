@@ -4,9 +4,14 @@ import axios, { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig } 
 import Cookies from 'js-cookie';
 import { useAuthStore } from '@/store/authStore';
 
-const getClientApiBaseUrl = () => {
-  const envUrl = process.env.NEXT_PUBLIC_STOREFRONT_API_URL || process.env.NEXT_PUBLIC_API_URL;
-  return (envUrl && envUrl.startsWith('/')) ? envUrl : '/api';
+const getClientApiBaseUrl = (): string => {
+  const envUrl = process.env.NEXT_PUBLIC_STOREFRONT_API_URL ?? process.env.NEXT_PUBLIC_API_URL;
+  if (!envUrl) {
+    throw new Error(
+      '[axios-client] Missing env: NEXT_PUBLIC_STOREFRONT_API_URL or NEXT_PUBLIC_API_URL must be set.'
+    );
+  }
+  return envUrl;
 };
 const API_BASE_URL = getClientApiBaseUrl();
 const REFRESH_TOKEN_COOKIE = 'ecp_refresh_token';

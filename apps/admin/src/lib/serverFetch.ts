@@ -1,8 +1,13 @@
 import { cookies } from 'next/headers';
 
-const getAdminBackendUrl = () => {
-  const envUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL || process.env.NEXT_PUBLIC_API_URL;
-  return (envUrl && envUrl.startsWith('http')) ? envUrl : 'http://localhost:9090/api';
+const getAdminBackendUrl = (): string => {
+  const envUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL ?? process.env.NEXT_PUBLIC_API_URL;
+  if (!envUrl) {
+    throw new Error(
+      '[serverFetch] Missing env: NEXT_PUBLIC_ADMIN_API_URL or NEXT_PUBLIC_API_URL must be set.'
+    );
+  }
+  return envUrl;
 };
 const BACKEND_URL = getAdminBackendUrl();
 

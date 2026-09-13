@@ -1,7 +1,7 @@
 import { clientFetch } from '@/lib/clientFetch';
 import { Sku } from '../types/sku.interface';
 import { PageResponse } from '@/types/pagination';
-import { ApiError } from '@/constants/errorMessages';
+import { ApiError, ErrorMessages } from '@/constants/errorMessages';
 
 export const skuApi = {
   getPaged: async (params: {
@@ -104,7 +104,8 @@ export const skuApi = {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw new ApiError(body.code, body?.message || 'Thêm mới SKU thất bại', res.status, body);
+      throw new ApiError(body.code, body?.message || ErrorMessages.SKU_CREATE_FAILED, res.status, body);
+
     }
     const body = await res.json();
     return body.data || body;
@@ -124,7 +125,8 @@ export const skuApi = {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw new ApiError(body.code, body?.message || 'Cập nhật SKU thất bại', res.status, body);
+      throw new ApiError(body.code, body?.message || ErrorMessages.SKU_UPDATE_FAILED, res.status, body);
+
     }
     const body = await res.json();
     return body.data || body;

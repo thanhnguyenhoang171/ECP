@@ -17,6 +17,7 @@ import { ClientSupplier } from '@/lib/clientDb';
 import { useSuppliers, useDeleteSupplier } from '../hooks/use-suppliers';
 import SupplierDetailDialog from './SupplierDetailDialog';
 import { isForbiddenError } from '@/constants/errorMessages';
+import { UI } from '@/constants/uiMessages';
 
 export default function SuppliersView() {
   const router = useRouter();
@@ -62,7 +63,8 @@ export default function SuppliersView() {
         <div className="flex flex-col">
           <span className="text-sm font-bold text-slate-700">{item.name}</span>
           <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
-            <span className="flex items-center gap-1"><Building2 size={10} /> {item.address || 'Không có địa chỉ'}</span>
+            <span className="flex items-center gap-1"><Building2 size={10} /> {item.address || UI.NO_ADDRESS}</span>
+
           </div>
         </div>
       )
@@ -74,10 +76,12 @@ export default function SuppliersView() {
       headerClassName: 'w-[35%] min-w-[220px]',
       cell: (item: ClientSupplier) => (
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-medium text-slate-600">{item.contactName || 'N/A'}</span>
+          <span className="text-xs font-medium text-slate-600">{item.contactName || UI.NA}</span>
+
           <div className="flex items-center gap-3 text-[10px] text-slate-400">
-            <span className="flex items-center gap-1"><Phone size={10} /> {item.phone || 'N/A'}</span>
-            <span className="flex items-center gap-1"><Mail size={10} /> {item.email || 'N/A'}</span>
+            <span className="flex items-center gap-1"><Phone size={10} /> {item.phone || UI.NA}</span>
+            <span className="flex items-center gap-1"><Mail size={10} /> {item.email || UI.NA}</span>
+
           </div>
         </div>
       )

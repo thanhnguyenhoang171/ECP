@@ -1,6 +1,6 @@
 import { Role, Permission, RoleRequest, PermissionRequest } from '../types/role.interface';
 import { clientFetch } from '@/lib/clientFetch';
-import { ApiError } from '@/constants/errorMessages';
+import { ApiError, ErrorMessages } from '@/constants/errorMessages';
 
 export const roleApi = {
   // Lấy tất cả vai trò trong hệ thống kèm quyền hạn
@@ -35,7 +35,8 @@ export const roleApi = {
     });
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
-      throw new ApiError(errJson.code, errJson.message || 'Tạo quyền hạn mới thất bại', res.status, errJson);
+      throw new ApiError(errJson.code, errJson.message || ErrorMessages.ROLE_CREATE_PERMISSION_FAILED, res.status, errJson);
+
     }
     const result = await res.json();
     return result.data as Permission;
@@ -46,7 +47,8 @@ export const roleApi = {
     const res = await clientFetch(`v1/roles/${codeOrId}`);
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
-      throw new ApiError(errJson.code, errJson.message || 'Không tìm thấy vai trò', res.status, errJson);
+      throw new ApiError(errJson.code, errJson.message || ErrorMessages.ROLE_NOT_FOUND_FALLBACK, res.status, errJson);
+
     }
     const result = await res.json();
     return result.data as Role;
@@ -61,7 +63,8 @@ export const roleApi = {
     });
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
-      throw new ApiError(errJson.code, errJson.message || 'Tạo vai trò thất bại', res.status, errJson);
+      throw new ApiError(errJson.code, errJson.message || ErrorMessages.ROLE_CREATE_FAILED, res.status, errJson);
+
     }
     const result = await res.json();
     return result.data as Role;
@@ -76,7 +79,8 @@ export const roleApi = {
     });
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
-      throw new ApiError(errJson.code, errJson.message || 'Cập nhật vai trò thất bại', res.status, errJson);
+      throw new ApiError(errJson.code, errJson.message || ErrorMessages.ROLE_UPDATE_FAILED, res.status, errJson);
+
     }
     const result = await res.json();
     return result.data as Role;
@@ -89,7 +93,8 @@ export const roleApi = {
     });
     if (!res.ok) {
       const errJson = await res.json().catch(() => ({}));
-      throw new ApiError(errJson.code, errJson.message || 'Xóa vai trò thất bại', res.status, errJson);
+      throw new ApiError(errJson.code, errJson.message || ErrorMessages.ROLE_DELETE_FAILED, res.status, errJson);
+
     }
     return { success: true };
   },

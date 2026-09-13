@@ -15,6 +15,7 @@ import {
   CheckCircle2, 
   XCircle 
 } from 'lucide-react';
+import { UI } from '@/constants/uiMessages';
 
 interface SupplierDetailDialogProps {
   supplierId: string | null;
@@ -42,7 +43,8 @@ export default function SupplierDetailDialog({
       header={{
         icon: Building2,
         title: supplier?.name,
-        subtitle: `MST: ${supplier?.taxCode || 'Chưa cập nhật'}`,
+        subtitle: `MST: ${supplier?.taxCode || UI.SUPPLIER_TAX_CODE_NOT_UPDATED}`,
+
         badge: supplier ? (
           <Badge 
             className={
