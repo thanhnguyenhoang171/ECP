@@ -67,6 +67,13 @@ export default function LoginView(): React.ReactElement {
     }
   }, []);
 
+  useEffect(() => {
+    if (sessionStorage.getItem('logout_success') === '1') {
+      sessionStorage.removeItem('logout_success');
+      toast.success('Đăng xuất thành công!', { id: 'logout-success' });
+    }
+  }, []);
+
   const handleGoogleCredential = (credentialResponse: GoogleCredentialResponse): void => {
     if (!credentialResponse.credential) {
       toast.error('Không nhận được thông tin xác thực từ Google.');
