@@ -660,7 +660,7 @@ export const ImageUpload = ({
             {isUploading ? (
               <div className="flex flex-col items-center justify-center space-y-3">
                 <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                <p className="text-sm font-bold text-slate-500">Đang tải ảnh lên Cloudinary...</p>
+                <p className="text-sm font-bold text-slate-500">Đang tải ảnh lên...</p>
               </div>
             ) : (
               <div className="text-center space-y-2">

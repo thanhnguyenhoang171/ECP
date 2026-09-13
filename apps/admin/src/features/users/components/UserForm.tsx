@@ -84,7 +84,7 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
 
   const onSubmit = (values: UserFormValues) => {
     if (isUploading) {
-      toast.warning('Ảnh đang được tải lên Cloudinary, vui lòng chờ trong giây lát!');
+      toast.warning('Ảnh đang được tải lên, vui lòng chờ trong giây lát!');
       return;
     }
 

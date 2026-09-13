@@ -202,9 +202,17 @@ pnpm dev --filter storefront   # Customer Store -> http://localhost:3002
 | `SPRING_MONGODB_URI` | MongoDB Connection URI | `mongodb://admin:142857@mongodb:27017/ecp_mongo` |
 | `SPRING_REDIS_HOST` | Redis Cache Host | `redis` |
 | `JWT_SECRET` | Secret key for JWT signing | *(Required)* |
-| `CLOUDINARY_CLOUD_NAME` | Cloudinary Account Name | *(Required)* |
-| `CLOUDINARY_API_KEY` | Cloudinary API Key | *(Required)* |
-| `CLOUDINARY_API_SECRET` | Cloudinary API Secret | *(Required)* |
+| `MINIO_SERVICE_ENABLE` | Bật/tắt dịch vụ lưu trữ MinIO S3 | `true` |
+| `CLOUDINARY_SERVICE_ENABLE` | Bật/tắt dịch vụ lưu trữ Cloudinary | `false` |
+| `MINIO_ENDPOINT` | MinIO Host:Port endpoint | `172.17.0.1:9050` / `localhost:9050` |
+| `MINIO_ACCESS_KEY` | MinIO Access Key | `admin` |
+| `MINIO_SECRET_KEY` | MinIO Secret Key | *(Optional)* |
+| `MINIO_USE_SSL` | MinIO sử dụng HTTPS/SSL | `false` |
+| `MINIO_BUCKET_NAME` | MinIO S3 Bucket Name | `ecp-media` |
+| `MINIO_PUBLIC_URL` | URL công khai truy cập ảnh qua CDN/Domain | *(Optional)* |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary Account Name | *(Khi bật Cloudinary)* |
+| `CLOUDINARY_API_KEY` | Cloudinary API Key | *(Khi bật Cloudinary)* |
+| `CLOUDINARY_API_SECRET` | Cloudinary API Secret | *(Khi bật Cloudinary)* |
 
 ### Admin Dashboard (`apps/admin/.env.development`)
 
