@@ -12,7 +12,6 @@ import {
  Breadcrumbs,
 } from '@/components/common';
 import { Layers, Eye } from 'lucide-react';
-import { CategoryDetailDialog } from './CategoryDetailDialog';
 import { CategoryTreeView } from './CategoryTreeView';
 import {
  SearchInput,
@@ -127,17 +126,13 @@ export default function CategoriesView({
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const handleEdit = useCallback((category: Category) => {
+   router.push(`/categories/${category.id}/edit`);
+  }, [router]);
 
- const handleEdit = useCallback((category: Category) => {
-  router.push(`/categories/${category.id}/edit`);
- }, [router]);
-
- const handleViewDetail = useCallback((category: Category) => {
-  setSelectedCategory(category);
-  setIsDetailDialogOpen(true);
- }, []);
+  const handleViewDetail = useCallback((category: Category) => {
+   router.push(`/categories/${category.id}`);
+  }, [router]);
 
  const handleCreate = useCallback(() => {
   router.push('/categories/create');
@@ -497,6 +492,7 @@ export default function CategoriesView({
            data={categories}
            isLoading={isLoading && !categories.length}
            loadingRows={size}
+           onRowClick={(category) => handleViewDetail(category)}
            emptyState={{
             title: 'Không tìm thấy danh mục',
             description:
@@ -507,14 +503,6 @@ export default function CategoriesView({
           />
         )}
    </DataCard>
-
-   {/* Dialog hiển thị chi tiết category */}
-   <CategoryDetailDialog
-     isOpen={isDetailDialogOpen}
-     onOpenChange={setIsDetailDialogOpen}
-     category={selectedCategory}
-     parentCategories={parentCategories || []}
-   />
 
    <DeleteConfirmDialog
     isOpen={!!deleteConfirmId}
