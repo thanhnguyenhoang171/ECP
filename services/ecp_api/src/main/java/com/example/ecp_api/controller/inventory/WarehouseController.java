@@ -28,8 +28,8 @@ public class WarehouseController {
     @GetMapping
     @Operation(summary = "Get all warehouses with filtering")
     public ResponseEntity<PageResponse<WarehouseResponse>> getAllWarehouses(
-            WarehouseFilterRequest filter,
-            Pageable pageable) {
+            @org.springdoc.core.annotations.ParameterObject WarehouseFilterRequest filter,
+            @org.springdoc.core.annotations.ParameterObject Pageable pageable) {
         return ResponseEntity.ok(warehouseService.getAllWarehouses(filter, pageable));
     }
 

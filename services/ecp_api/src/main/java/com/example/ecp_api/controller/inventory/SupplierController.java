@@ -28,8 +28,8 @@ public class SupplierController {
     @GetMapping
     @Operation(summary = "Get all suppliers with filtering")
     public ResponseEntity<PageResponse<SupplierResponse>> getAllSuppliers(
-            SupplierRequestFilter filter,
-            Pageable pageable) {
+            @org.springdoc.core.annotations.ParameterObject SupplierRequestFilter filter,
+            @org.springdoc.core.annotations.ParameterObject Pageable pageable) {
         return ResponseEntity.ok(supplierService.getAllSuppliers(filter, pageable));
     }
 

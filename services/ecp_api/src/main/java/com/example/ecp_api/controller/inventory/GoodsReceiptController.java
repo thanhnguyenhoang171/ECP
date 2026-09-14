@@ -39,7 +39,8 @@ public class GoodsReceiptController {
     @GetMapping
     @Operation(summary = "Query Goods Receipts with filtering")
     public ResponseEntity<PageResponse<GoodsReceiptResponse>> getAllGoodsReceipts(
-            GoodsReceiptFilterRequest request, Pageable pageable) {
+            @org.springdoc.core.annotations.ParameterObject GoodsReceiptFilterRequest request,
+            @org.springdoc.core.annotations.ParameterObject Pageable pageable) {
         return ResponseEntity.ok(goodsReceiptService.getAllGoodsReceipts(request, pageable));
     }
 

@@ -39,7 +39,8 @@ public class PurchaseOrderController {
     @GetMapping
     @Operation(summary = "Query purchase orders with filtering")
     public ResponseEntity<PageResponse<PurchaseOrderResponse>> getAllPOs(
-            PurchaseOrderFilterRequest request, Pageable pageable) {
+            @org.springdoc.core.annotations.ParameterObject PurchaseOrderFilterRequest request,
+            @org.springdoc.core.annotations.ParameterObject Pageable pageable) {
         return ResponseEntity.ok(purchaseOrderService.getAllPurchaseOrders(request, pageable));
     }
 

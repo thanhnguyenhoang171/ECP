@@ -35,9 +35,13 @@ public class FileController {
     @Operation(summary = "Get list of all images and media files in the database",
                description = "Queries images from User Profiles, Products, and Categories with filter and pagination support.")
     public ResponseEntity<PageResponse<AdminFileResponse>> getAllFiles(
+            @Parameter(description = "Filter by media type", schema = @io.swagger.v3.oas.annotations.media.Schema(type = "string", allowableValues = {"ALL", "USER_AVATAR", "PRODUCT", "CATEGORY"}, defaultValue = "ALL"))
             @RequestParam(value = "type", required = false, defaultValue = "ALL") String type,
+            @Parameter(description = "Search keyword in reference name, URL, or owner email", example = "iphone")
             @RequestParam(value = "keyword", required = false) String keyword,
+            @Parameter(description = "Page number (1-based)", example = "1")
             @RequestParam(value = "page", required = false, defaultValue = "1") int page,
+            @Parameter(description = "Page size (1..100)", example = "20")
             @RequestParam(value = "size", required = false, defaultValue = "20") int size) {
         return ResponseEntity.ok(adminFileService.getAllMediaFiles(type, keyword, page, size));
     }

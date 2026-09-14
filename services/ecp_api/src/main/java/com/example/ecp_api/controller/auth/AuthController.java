@@ -4,6 +4,7 @@ import com.example.ecp_api.dto.request.*;
 import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.dto.response.AuthResponse;
 import com.example.ecp_api.dto.response.UserResponse;
+import com.example.ecp_api.exception.AppException;
 import com.example.ecp_api.security.CustomUserDetails;
 import com.example.ecp_api.security.CustomUserDetailsService;
 import com.example.ecp_api.security.JwtTokenProvider;
@@ -176,10 +177,14 @@ public class AuthController {
     @Operation(summary = "Refresh Access Token")
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
             @Parameter(hidden = true) @CookieValue(name = "refreshToken", required = false) String cookieRefreshToken,
+            @Parameter(description = "Refresh token string (can be entered directly here or via Request Body / Cookie)", example = "your-refresh-token")
+            @RequestParam(name = "refreshToken", required = false) String paramRefreshToken,
             @RequestBody(required = false) RefreshTokenRequest request) {
 
         String requestRefreshToken = null;
-        if (request != null && StringUtils.hasText(request.getRefreshToken())) {
+        if (StringUtils.hasText(paramRefreshToken)) {
+            requestRefreshToken = paramRefreshToken;
+        } else if (request != null && StringUtils.hasText(request.getRefreshToken())) {
             requestRefreshToken = request.getRefreshToken();
         } else {
             requestRefreshToken = cookieRefreshToken;
@@ -236,6 +241,8 @@ public class AuthController {
     @Operation(summary = "Logout user")
     public ResponseEntity<ApiResponse<Void>> logout(
             @Parameter(hidden = true) @CookieValue(name = "refreshToken", required = false) String cookieRefreshToken,
+            @Parameter(description = "Optional refresh token (if not passed via cookie or header)", example = "")
+            @RequestParam(name = "refreshToken", required = false) String paramRefreshToken,
             @RequestBody(required = false) RefreshTokenRequest logoutRequest,
             HttpServletRequest request,
             HttpServletResponse response) {
@@ -247,9 +254,14 @@ public class AuthController {
             accessToken = headerAuth.substring(7);
         }
 
-        String refreshToken = logoutRequest != null && StringUtils.hasText(logoutRequest.getRefreshToken())
-                ? logoutRequest.getRefreshToken()
-                : cookieRefreshToken;
+        String refreshToken = null;
+        if (StringUtils.hasText(paramRefreshToken)) {
+            refreshToken = paramRefreshToken;
+        } else if (logoutRequest != null && StringUtils.hasText(logoutRequest.getRefreshToken())) {
+            refreshToken = logoutRequest.getRefreshToken();
+        } else {
+            refreshToken = cookieRefreshToken;
+        }
 
         String username = SecurityUtils.getCurrentUserEmail();
         if (!StringUtils.hasText(username) || "anonymousUser".equalsIgnoreCase(username)) {
@@ -298,16 +310,20 @@ public class AuthController {
     }
 
     @PostMapping("/verify-email")
-    @Operation(summary = "Verify email with OTP code")
-    public ResponseEntity<ApiResponse<Void>> verifyOtpEmail(@Valid @RequestBody VerifyEmailRequest request) {
+    @Operation(summary = "Verify email with OTP code", description = "Enter the 6-digit OTP code sent to your email")
+    public ResponseEntity<ApiResponse<Void>> verifyOtpEmail(
+            @Parameter(description = "6-digit OTP verification code received via email", example = "123456", required = true)
+            @RequestParam("otp") String otp) {
+        if (!StringUtils.hasText(otp) || !otp.matches("^\\d{6}$")) {
+            throw new AppException("INVALID_OTP", "OTP code must be exactly 6 digits", HttpStatus.BAD_REQUEST);
+        }
         String email = SecurityUtils.getCurrentUserEmail();
-        emailVerificationService.verifyEmail(email, request.getOtp());
+        emailVerificationService.verifyEmail(email, otp);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
                 .code("EMAIL_VERIFIED_SUCCESS")
                 .message("Email verified successfully")
                 .build());
-
     }
 
     @PostMapping("/resend-verification")

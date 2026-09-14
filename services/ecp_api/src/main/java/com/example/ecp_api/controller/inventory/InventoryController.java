@@ -32,16 +32,16 @@ public class InventoryController {
     @GetMapping("/stocks")
     @Operation(summary = "Query inventory stock levels across warehouses")
     public ResponseEntity<PageResponse<InventoryResponse>> getStockLevels(
-            InventoryFilterRequest request,
-            @Parameter(hidden = true) @PageableDefault(sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @org.springdoc.core.annotations.ParameterObject InventoryFilterRequest request,
+            @org.springdoc.core.annotations.ParameterObject @PageableDefault(sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(inventoryService.getAllInventory(request, pageable));
     }
 
     @GetMapping("/ledgers")
     @Operation(summary = "Query inventory audit ledgers (stock movements)")
     public ResponseEntity<PageResponse<InventoryLedgerResponse>> getLedgerEntries(
-            InventoryLedgerFilterRequest request,
-            @Parameter(hidden = true) @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @org.springdoc.core.annotations.ParameterObject InventoryLedgerFilterRequest request,
+            @org.springdoc.core.annotations.ParameterObject @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(inventoryService.getAllLedgers(request, pageable));
     }
 

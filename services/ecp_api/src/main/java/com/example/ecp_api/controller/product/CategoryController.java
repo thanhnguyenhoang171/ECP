@@ -66,14 +66,9 @@ public class CategoryController {
 
     @GetMapping
     @Operation(summary = "Get categories with pagination and filtering")
-    @Parameters({
-            @Parameter(name = "page", example = "1", schema = @Schema(type = "integer", defaultValue = "1")),
-            @Parameter(name = "size", example = "20", schema = @Schema(type = "integer", defaultValue = "20")),
-            @Parameter(name = "sort", example = "displayOrder,asc")
-    })
     public ResponseEntity<PageResponse<CategoryResponse>> getAllCategories(
-            CategoryFilterRequest filter,
-            @Parameter(hidden = true) @PageableDefault(sort = "displayOrder", direction = Sort.Direction.ASC) Pageable pageable) {
+            @org.springdoc.core.annotations.ParameterObject CategoryFilterRequest filter,
+            @org.springdoc.core.annotations.ParameterObject @PageableDefault(sort = "displayOrder", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(categoryService.getAllCategories(filter, pageable));
     }
 
