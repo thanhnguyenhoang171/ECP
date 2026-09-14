@@ -27,14 +27,9 @@ public class StorefrontProductController {
 
     @GetMapping
     @Operation(summary = "Get all products for storefront catalog")
-    @Parameters({
-            @Parameter(name = "page", example = "1", schema = @Schema(type = "integer", defaultValue = "1")),
-            @Parameter(name = "size", example = "20", schema = @Schema(type = "integer", defaultValue = "20", maximum = "100")),
-            @Parameter(name = "sort", example = "createdAt,desc")
-    })
     public ResponseEntity<PageResponse<ProductResponse>> getAllProducts(
-            ProductFilterRequest filter,
-            @Parameter(hidden = true) @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @org.springdoc.core.annotations.ParameterObject ProductFilterRequest filter,
+            @org.springdoc.core.annotations.ParameterObject @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(productService.getAllProducts(filter, pageable));
     }
 

@@ -29,14 +29,9 @@ public class StorefrontBrandController {
 
     @GetMapping
     @Operation(summary = "Get all brands for storefront catalog")
-    @Parameters({
-            @Parameter(name = "page", example = "1", schema = @Schema(type = "integer", defaultValue = "1")),
-            @Parameter(name = "size", example = "20", schema = @Schema(type = "integer", defaultValue = "20")),
-            @Parameter(name = "sort", example = "createdAt,desc")
-    })
     public ResponseEntity<PageResponse<BrandResponse>> getAllBrands(
-            BrandFilterRequest filter,
-            @Parameter(hidden = true) @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @org.springdoc.core.annotations.ParameterObject BrandFilterRequest filter,
+            @org.springdoc.core.annotations.ParameterObject @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(brandService.getAllBrands(filter, pageable));
     }
 

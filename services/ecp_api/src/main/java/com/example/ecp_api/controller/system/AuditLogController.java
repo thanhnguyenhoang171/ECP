@@ -30,8 +30,8 @@ public class AuditLogController {
     @GetMapping
     @Operation(summary = "Get audit logs with optional filtering by action, user, status, and pagination")
     public ResponseEntity<PageResponse<AuditLogResponse>> getAuditLogs(
-            AuditLogFilterRequest filter,
-            @Parameter(hidden = true) @PageableDefault(sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
+            @org.springdoc.core.annotations.ParameterObject AuditLogFilterRequest filter,
+            @org.springdoc.core.annotations.ParameterObject @PageableDefault(sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(auditLogService.getAllLogs(filter, pageable));
     }
 

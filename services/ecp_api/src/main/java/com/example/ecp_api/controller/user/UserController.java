@@ -49,8 +49,8 @@ public class UserController {
     @GetMapping
     @Operation(summary = "Search users with filter parameters")
     public ResponseEntity<PageResponse<UserResponse>> getAllUsers(
-            UserFilterRequest request,
-            @Parameter(hidden = true) @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @org.springdoc.core.annotations.ParameterObject UserFilterRequest request,
+            @org.springdoc.core.annotations.ParameterObject @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(userService.searchUsers(request, pageable));
     }
 

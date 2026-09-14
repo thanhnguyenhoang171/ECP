@@ -29,14 +29,9 @@ public class StorefrontCategoryController {
 
     @GetMapping
     @Operation(summary = "Get all active categories for storefront navigation")
-    @Parameters({
-            @Parameter(name = "page", example = "1", schema = @Schema(type = "integer", defaultValue = "1")),
-            @Parameter(name = "size", example = "20", schema = @Schema(type = "integer", defaultValue = "20")),
-            @Parameter(name = "sort", example = "createdAt,desc")
-    })
     public ResponseEntity<PageResponse<CategoryResponse>> getAllCategories(
-            CategoryFilterRequest filter,
-            @Parameter(hidden = true) @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @org.springdoc.core.annotations.ParameterObject CategoryFilterRequest filter,
+            @org.springdoc.core.annotations.ParameterObject @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(categoryService.getAllCategories(filter, pageable));
     }
 

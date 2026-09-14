@@ -25,8 +25,8 @@ public class SkuController {
     @GetMapping
     @Operation(summary = "Get all SKUs with filtering")
     public ResponseEntity<PageResponse<SkuResponse>> getAllSkus(
-            SkuFilterRequest filter,
-            Pageable pageable) {
+            @org.springdoc.core.annotations.ParameterObject SkuFilterRequest filter,
+            @org.springdoc.core.annotations.ParameterObject Pageable pageable) {
         return ResponseEntity.ok(skuService.getAllSkus(filter, pageable));
     }
 
