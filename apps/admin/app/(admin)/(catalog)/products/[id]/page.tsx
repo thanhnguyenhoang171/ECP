@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useProductCompositeDetail } from '@/features/products/hooks/use-products';
+import ProductDetailLoading from './loading';
 import { useUpdateProduct } from '@/features/products/hooks/use-product-mutation';
 import { useCategories } from '@/features/categories/hooks/use-categories';
 import { useActiveBrands } from '@/features/brands/hooks/use-brands';
@@ -110,8 +111,9 @@ export default function UnifiedProductDetailPage() {
   const productId = (params?.id as string) || '';
 
   // Composite Single API Query (Product, Brand, Category, SKUs & Inventory in 1 Call)
-  const { data: compositeData, isFetching: isProductLoading, isError, refetch: refetchProduct } = useProductCompositeDetail(productId);
+  const { data: compositeData, isLoading: isProductQueryLoading, isFetching: isProductFetching, isError, refetch: refetchProduct } = useProductCompositeDetail(productId);
   const product = compositeData?.product || compositeData;
+  const isProductLoading = (isProductQueryLoading || !product) && !isError;
 
   const updateProductMutation = useUpdateProduct();
 
@@ -505,24 +507,21 @@ export default function UnifiedProductDetailPage() {
   ];
 
   if (isProductLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 text-slate-900 animate-spin" />
-          <p className="text-sm font-medium text-slate-500">Đang tải thông tin sản phẩm...</p>
-        </div>
-      </div>
-    );
+    return <ProductDetailLoading />;
   }
 
   if (isError || !product) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <Package className="w-16 h-16 text-slate-300" />
-        <h2 className="text-lg font-bold text-slate-800">Không tìm thấy sản phẩm</h2>
-        <Button onClick={() => router.push('/products')} variant="outline" className="gap-2">
-          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách sản phẩm
-        </Button>
+      <div className="space-y-6">
+        <Breadcrumbs items={breadcrumbItems} />
+        <div className="flex flex-col items-center justify-center py-16 bg-white border border-slate-200 rounded-2xl space-y-4">
+          <Package className="w-16 h-16 text-slate-300" />
+          <h2 className="text-lg font-bold text-slate-800">Không tìm thấy sản phẩm</h2>
+          <p className="text-xs text-slate-500">Sản phẩm bạn tìm kiếm có thể đã bị xóa hoặc không tồn tại.</p>
+          <Button onClick={() => router.push('/products')} variant="outline" className="gap-2 font-bold text-xs rounded-xl">
+            <ArrowLeft className="w-4 h-4" /> Quay lại danh sách sản phẩm
+          </Button>
+        </div>
       </div>
     );
   }
@@ -725,7 +724,7 @@ export default function UnifiedProductDetailPage() {
             <DataTable
               columns={skuColumns}
               data={displayVariants}
-              isLoading={isProductLoading}
+              isLoading={isProductFetching}
               emptyState={{
                 title: 'Chưa có biến thể SKU',
                 description: 'Bấm nút "Thêm biến thể SKU" để tạo kích thước, màu sắc hoặc mã phân loại.',
