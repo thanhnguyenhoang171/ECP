@@ -31,7 +31,7 @@ export default function ProductDetailLoading() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column (70%) */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Card 1: General Info */}
+          {/* Card 1: General Info & Pricing */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-2xs space-y-4">
             <Skeleton className="h-6 w-56 rounded-md border-b border-slate-100 pb-3" />
             <div className="space-y-4">
@@ -68,24 +68,48 @@ export default function ProductDetailLoading() {
               ))}
             </div>
           </div>
+
+          {/* Card 4: SEO Metadata */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-2xs space-y-4">
+            <Skeleton className="h-6 w-52 rounded-md border-b border-slate-100 pb-3" />
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-full rounded-md" />
+              <Skeleton className="h-16 w-full rounded-md" />
+            </div>
+          </div>
         </div>
 
         {/* Right Column (30%) */}
         <div className="space-y-6">
+          {/* Card 1: Business Status */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-2xs space-y-3">
-            <Skeleton className="h-5 w-36 rounded-md" />
-            <Skeleton className="h-6 w-full rounded-md" />
+            <Skeleton className="h-5 w-36 rounded-md border-b border-slate-100 pb-2" />
+            <Skeleton className="h-5 w-48 rounded-md mt-1" />
           </div>
 
+          {/* Card 2: Supplier Linkage */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-2xs space-y-3">
-            <Skeleton className="h-5 w-40 rounded-md" />
+            <Skeleton className="h-5 w-40 rounded-md border-b border-slate-100 pb-2" />
             <Skeleton className="h-9 w-full rounded-md" />
           </div>
 
+          {/* Card 3: Classification & Brand */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-2xs space-y-4">
-            <Skeleton className="h-5 w-44 rounded-md" />
-            <Skeleton className="h-9 w-full rounded-md" />
-            <Skeleton className="h-9 w-full rounded-md" />
+            <Skeleton className="h-5 w-44 rounded-md border-b border-slate-100 pb-2" />
+            <div className="space-y-3">
+              <Skeleton className="h-9 w-full rounded-md" />
+              <Skeleton className="h-9 w-full rounded-md" />
+            </div>
+          </div>
+
+          {/* Card 4: Badges */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-2xs space-y-3">
+            <Skeleton className="h-5 w-32 rounded-md border-b border-slate-100 pb-2" />
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-36 rounded-md" />
+              <Skeleton className="h-5 w-36 rounded-md" />
+              <Skeleton className="h-5 w-36 rounded-md" />
+            </div>
           </div>
         </div>
       </div>
