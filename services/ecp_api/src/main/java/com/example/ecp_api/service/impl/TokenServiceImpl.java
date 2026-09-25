@@ -14,9 +14,10 @@ public class TokenServiceImpl implements TokenService {
 
     private final RedisTemplate<String, String> redisTemplate;
 
-    private static final String ACCESS_TOKEN_PREFIX = "accessToken:";
-    private static final String REFRESH_TOKEN_PREFIX = "refreshToken:";
-    private static final String PRESENCE_PREFIX = "userPresence:";
+    private static final String ECP_PREFIX = "ecp:";
+    private static final String ACCESS_TOKEN_PREFIX = ECP_PREFIX + "accessToken:";
+    private static final String REFRESH_TOKEN_PREFIX = ECP_PREFIX + "refreshToken:";
+    private static final String PRESENCE_PREFIX = ECP_PREFIX + "userPresence:";
     private static final long PRESENCE_TTL_MINUTES = 10;
 
     @Override
