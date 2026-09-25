@@ -16,7 +16,7 @@ const BACKEND_URL = getAdminBackendUrl();
  */
 export async function serverFetch(url: string, options: RequestInit = {}) {
   const cookieStore = await cookies();
-  const refreshToken = cookieStore.get('refreshToken')?.value;
+  const refreshToken = cookieStore.get('ecp_refresh_token')?.value;
 
   if (!refreshToken) {
     throw new Error('No refresh token found in cookies');

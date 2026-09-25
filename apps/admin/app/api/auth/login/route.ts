@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       cookieOptions.maxAge = 7 * 24 * 60 * 60; // 7 days
     }
 
-    cookieStore.set('refreshToken', refreshToken, cookieOptions);
+    cookieStore.set('ecp_refresh_token', refreshToken, cookieOptions);
 
     // Return Access Token only — user profile will be fetched via /v1/users/account
     return NextResponse.json({
