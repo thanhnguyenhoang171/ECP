@@ -73,7 +73,7 @@ public class RoleController {
                 .build(), HttpStatus.CREATED);
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('role:update') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update an existing role and its permissions")
     public ResponseEntity<ApiResponse<RoleResponse>> updateRole(

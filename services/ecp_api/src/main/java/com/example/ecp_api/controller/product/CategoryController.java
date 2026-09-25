@@ -92,7 +92,7 @@ public class CategoryController {
                 .data(categoryService.getCategoryById(id)).build());
     }
 
-    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('category:update') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update category details (JSON)")
     public ResponseEntity<ApiResponse<CategoryResponse>> updateCategoryJson(
@@ -104,7 +104,7 @@ public class CategoryController {
                 .data(categoryService.updateCategory(id, request, null)).build());
     }
 
-    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('category:update') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update category details (Multipart)")
     public ResponseEntity<ApiResponse<CategoryResponse>> updateCategoryMultipart(

@@ -91,7 +91,7 @@ public class BrandController {
                 .data(brandService.getBrandById(id)).build());
     }
 
-    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('brand:update') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update brand details (JSON)")
     public ResponseEntity<ApiResponse<BrandResponse>> updateBrandJson(
@@ -103,7 +103,7 @@ public class BrandController {
                 .data(brandService.updateBrand(id, request)).build());
     }
 
-    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('brand:update') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update brand details (Multipart)")
     public ResponseEntity<ApiResponse<BrandResponse>> updateBrandMultipart(

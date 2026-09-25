@@ -54,7 +54,7 @@ public class PurchaseOrderController {
                 .data(purchaseOrderService.getPurchaseOrderById(id)).build());
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('purchase_order:update') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update a Purchase Order")
     public ResponseEntity<ApiResponse<PurchaseOrderResponse>> updatePO(
