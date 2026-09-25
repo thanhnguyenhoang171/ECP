@@ -76,7 +76,7 @@ public class UserController {
                 .build());
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('user:update') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update user details by ID")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(

@@ -34,7 +34,7 @@ public class AccountController {
                 .build());
     }
 
-    @PutMapping
+    @PatchMapping
     @Operation(summary = "Update current logged-in user account details", 
                description = "Updates profile details for current logged-in user. Allowed update fields: phoneNumber, firstName, lastName, dob, and gender.")
     public ResponseEntity<ApiResponse<UserResponse>> updateMyAccount(

@@ -92,7 +92,7 @@ public class ProductController {
                 .data(productService.getProductDetail(id)).build());
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('product:update') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update product details by ID (Partial update support)")
     public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(

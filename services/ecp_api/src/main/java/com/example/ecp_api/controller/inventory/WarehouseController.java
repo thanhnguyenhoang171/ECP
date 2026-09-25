@@ -54,7 +54,7 @@ public class WarehouseController {
                 .data(warehouseService.createWarehouse(request)).build(), HttpStatus.CREATED);
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('warehouse:update') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update warehouse details")
     public ResponseEntity<ApiResponse<WarehouseResponse>> updateWarehouse(@PathVariable String id, @Valid @RequestBody WarehouseRequest request) {

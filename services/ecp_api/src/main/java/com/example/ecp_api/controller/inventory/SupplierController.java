@@ -54,7 +54,7 @@ public class SupplierController {
                 .data(supplierService.createSupplier(request)).build(), HttpStatus.CREATED);
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('supplier:update') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update supplier details")
     public ResponseEntity<ApiResponse<SupplierResponse>> updateSupplier(@PathVariable String id, @Valid @RequestBody SupplierRequest request) {
