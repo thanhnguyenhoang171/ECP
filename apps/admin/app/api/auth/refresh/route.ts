@@ -10,7 +10,7 @@ const BACKEND_URL = getAdminBackendUrl();
 export async function POST() {
   try {
     const cookieStore = await cookies();
-    const refreshToken = cookieStore.get('refreshToken')?.value;
+    const refreshToken = cookieStore.get('ecp_refresh_token')?.value;
 
     if (!refreshToken) {
       return NextResponse.json({ success: false, message: 'Refresh token missing' }, { status: 401 });
@@ -28,7 +28,7 @@ export async function POST() {
 
     if (!response.ok) {
       // If refresh fails, clear the cookie
-      cookieStore.delete('refreshToken');
+      cookieStore.delete('ecp_refresh_token');
       return NextResponse.json(data, { status: response.status });
     }
 

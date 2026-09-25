@@ -12,10 +12,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     const authHeader = request.headers.get('Authorization');
     
     const cookieStore = await cookies();
-    const refreshToken = cookieStore.get('refreshToken')?.value;
+    const refreshToken = cookieStore.get('ecp_refresh_token')?.value;
 
-    // Always delete refreshToken cookie immediately to guarantee session termination
-    cookieStore.delete('refreshToken');
+    // Always delete auth cookie immediately to guarantee session termination
+    cookieStore.delete('ecp_refresh_token');
 
     // Notify backend about logout with short timeout to prevent blocking client
     if (authHeader || refreshToken) {

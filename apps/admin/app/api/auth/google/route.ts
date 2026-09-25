@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     // Set HttpOnly cookie for Refresh Token (7 days)
     const cookieStore = await cookies();
-    cookieStore.set('refreshToken', refreshToken, {
+    cookieStore.set('ecp_refresh_token', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',

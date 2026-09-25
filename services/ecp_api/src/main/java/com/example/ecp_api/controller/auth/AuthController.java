@@ -105,7 +105,7 @@ public class AuthController {
                     .build();
 
             // Set Refresh Token in HttpOnly Cookie
-            ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
+            ResponseCookie cookie = ResponseCookie.from("ecp_refresh_token", refreshToken)
                     .httpOnly(true)
                     .secure(true)
                     .path("/api/auth")
@@ -154,7 +154,7 @@ public class AuthController {
                 .tokenType("Bearer")
                 .build();
 
-        ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
+        ResponseCookie cookie = ResponseCookie.from("ecp_refresh_token", refreshToken)
                 .httpOnly(true)
                 .secure(true)
                 .path("/api/auth")
@@ -176,7 +176,7 @@ public class AuthController {
     @PostMapping("/refresh")
     @Operation(summary = "Refresh Access Token")
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
-            @Parameter(hidden = true) @CookieValue(name = "refreshToken", required = false) String cookieRefreshToken,
+            @Parameter(hidden = true) @CookieValue(name = "ecp_refresh_token", required = false) String cookieRefreshToken,
             @Parameter(description = "Refresh token string (can be entered directly here or via Request Body / Cookie)", example = "your-refresh-token")
             @RequestParam(name = "refreshToken", required = false) String paramRefreshToken,
             @RequestBody(required = false) RefreshTokenRequest request) {
@@ -240,7 +240,7 @@ public class AuthController {
     @PostMapping("/logout")
     @Operation(summary = "Logout user")
     public ResponseEntity<ApiResponse<Void>> logout(
-            @Parameter(hidden = true) @CookieValue(name = "refreshToken", required = false) String cookieRefreshToken,
+            @Parameter(hidden = true) @CookieValue(name = "ecp_refresh_token", required = false) String cookieRefreshToken,
             @Parameter(description = "Optional refresh token (if not passed via cookie or header)", example = "")
             @RequestParam(name = "refreshToken", required = false) String paramRefreshToken,
             @RequestBody(required = false) RefreshTokenRequest logoutRequest,
@@ -281,7 +281,7 @@ public class AuthController {
             auditLogService.log("LOGOUT", username, "User logged out successfully", "SUCCESS");
         }
 
-        ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
+        ResponseCookie cookie = ResponseCookie.from("ecp_refresh_token", "")
                 .httpOnly(true)
                 .secure(true)
                 .path("/api/auth")
