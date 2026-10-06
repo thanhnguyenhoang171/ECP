@@ -162,11 +162,14 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
     },
     {
       header: 'Mô tả',
-      className: 'w-[30%] min-w-[180px] text-xs text-slate-500 hidden md:table-cell',
-      headerClassName: 'w-[30%] min-w-[180px] hidden md:table-cell',
+      className: 'w-[30%] min-w-[160px] max-w-xs lg:max-w-md xl:max-w-lg text-xs text-slate-500 hidden md:table-cell',
+      headerClassName: 'w-[30%] min-w-[160px] max-w-xs lg:max-w-md xl:max-w-lg hidden md:table-cell',
       skeleton: <Skeleton className="h-4 w-40 rounded-md" />,
       cell: (brand) => (
-        <span className="line-clamp-1" title={brand.description || ''}>
+        <span
+          className="block truncate max-w-xs lg:max-w-md xl:max-w-lg"
+          title={brand.description || ''}
+        >
           {brand.description || '---'}
         </span>
       ),

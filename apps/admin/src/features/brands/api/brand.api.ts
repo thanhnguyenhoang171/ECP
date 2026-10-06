@@ -4,6 +4,7 @@ import { PageResponse } from '@/types/pagination';
 import { clientFetch } from '@/lib/clientFetch';
 import { toApiPage, syncPagination } from '@/lib/utils';
 import { ApiError } from '@/constants/errorMessages';
+import { fileApi } from '@/features/files/api/file.api';
 
 export const brandApi = {
   // Get paged brand list
@@ -53,10 +54,11 @@ export const brandApi = {
 
   // Create brand
   create: async (values: BrandFormValues): Promise<{ success: boolean; data: Brand }> => {
-    let logoFile: File | undefined = undefined;
     let logoUrl: string | undefined = undefined;
+
     if (values.logo instanceof File) {
-      logoFile = values.logo;
+      const uploadRes = await fileApi.uploadFile(values.logo, 'brands');
+      logoUrl = uploadRes.data?.url || uploadRes.data?.secure_url;
     } else if (typeof values.logo === 'string') {
       logoUrl = values.logo;
     }
@@ -66,25 +68,13 @@ export const brandApi = {
       logo: logoUrl,
     };
 
-    let res: Response;
-    if (logoFile) {
-      const formData = new FormData();
-      formData.append('brand', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-      formData.append('logoFile', logoFile);
-
-      res = await clientFetch('v1/brands', {
-        method: 'POST',
-        body: formData,
-      });
-    } else {
-      res = await clientFetch('v1/brands', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-    }
+    const res = await clientFetch('v1/brands', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
     const result = await res.json();
     if (!res.ok) throw new ApiError(result.code, result.message || 'Tạo thương hiệu thất bại', res.status, result);
@@ -93,10 +83,11 @@ export const brandApi = {
 
   // Update brand
   update: async (id: string, values: Partial<BrandFormValues>): Promise<{ success: boolean; data: Brand }> => {
-    let logoFile: File | undefined = undefined;
     let logoUrl: string | undefined = undefined;
+
     if (values.logo instanceof File) {
-      logoFile = values.logo;
+      const uploadRes = await fileApi.uploadFile(values.logo, 'brands');
+      logoUrl = uploadRes.data?.url || uploadRes.data?.secure_url;
     } else if (typeof values.logo === 'string') {
       logoUrl = values.logo;
     }
@@ -106,25 +97,13 @@ export const brandApi = {
       logo: logoUrl,
     };
 
-    let res: Response;
-    if (logoFile) {
-      const formData = new FormData();
-      formData.append('brand', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-      formData.append('logoFile', logoFile);
-
-      res = await clientFetch(`v1/brands/${id}`, {
-        method: 'PATCH',
-        body: formData,
-      });
-    } else {
-      res = await clientFetch(`v1/brands/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-    }
+    const res = await clientFetch(`v1/brands/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
     const result = await res.json();
     if (!res.ok) throw new ApiError(result.code, result.message || 'Cập nhật thương hiệu thất bại', res.status, result);

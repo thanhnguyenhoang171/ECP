@@ -9,26 +9,29 @@ import {
   Maximize2,
   AlertCircle,
   Loader2,
-  Camera
+  Camera,
+  Crop,
 } from 'lucide-react';
 import { Button, Card, CardContent } from './index';
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { cn, getCloudinaryPublicId } from '@/lib/utils';
 import { getApiErrorMessage } from '@/constants/errorMessages';
 import { useUploadFile, useUploadMultipleFiles, useDeleteFile } from '@/features/files/hooks/use-file-upload';
 import { CloudinaryFile } from '@/features/files/api/file.api';
+import { ImageCropModal } from './ImageCropModal';
 
 interface ImageValue {
   file?: File;
   url: string;
   publicId?: string;
   isUploading?: boolean;
+}
+
+interface CropTarget {
+  file?: File;
+  imageUrl: string;
+  index?: number;
+  isEditingExisting?: boolean;
 }
 
 interface ImageUploadProps {
@@ -51,6 +54,9 @@ interface ImageUploadProps {
   deferUpload?: boolean;
   allowReplace?: boolean;
   showRemove?: boolean;
+  enableCrop?: boolean;
+  cropShape?: 'rect' | 'round';
+  cropAspectRatio?: number;
 }
 
 /**
@@ -165,7 +171,7 @@ const extractImageValue = (ext: unknown, prevImages: readonly ImageValue[] = [])
 
 /**
  * A premium Image Upload component using react-dropzone.
- * Supports single/multiple images, optimistic instant previews, and background uploading.
+ * Supports single/multiple images, interactive cropping, optimistic instant previews, and background uploading.
  * Uses shadcn/ui components and Next.js Image for optimization.
  */
 export const ImageUpload = ({
@@ -188,18 +194,38 @@ export const ImageUpload = ({
   deferUpload = true,
   allowReplace,
   showRemove,
+  enableCrop,
+  cropShape,
+  cropAspectRatio,
 }: ImageUploadProps) => {
   const [internalImages, setInternalImages] = useState<ImageValue[]>([]);
+  const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
+  const [isCropModalOpen, setIsCropModalOpen] = useState<boolean>(false);
+  const [isCropSaving, setIsCropSaving] = useState<boolean>(false);
 
   const { mutateAsync: uploadFile, isPending: isUploadingSingle } = useUploadFile();
   const { mutateAsync: uploadMultiple, isPending: isUploadingMultiple } = useUploadMultipleFiles();
   const { mutate: deleteFile } = useDeleteFile();
   const isUploading = isUploadingSingle || isUploadingMultiple;
 
+  const isCropActive = enableCrop ?? (!multiple || Boolean(reqWidth && reqHeight) || variant === 'circle');
+
+  const effectiveCropAspect = cropAspectRatio ?? (
+    reqWidth && reqHeight
+      ? reqWidth / reqHeight
+      : aspectRatio === 'square' || variant === 'circle'
+      ? 1
+      : aspectRatio === 'video'
+      ? 16 / 9
+      : undefined
+  );
+
+  const effectiveCropShape = cropShape ?? (variant === 'circle' ? 'round' : 'rect');
+
   // Cleanup object URLs when component unmounts or images change
   useEffect(() => {
     return () => {
-      internalImages.forEach(img => {
+      internalImages.forEach((img) => {
         if (img.url.startsWith('blob:')) {
           URL.revokeObjectURL(img.url);
         }
@@ -209,9 +235,9 @@ export const ImageUpload = ({
 
   // Effect to sync internal state with external 'value' prop
   useEffect(() => {
-    setInternalImages(prevImages => {
+    setInternalImages((prevImages) => {
       // If any image is actively uploading or using a local blob URL, keep state intact until complete
-      const hasUploading = prevImages.some(img => img.isUploading || (img.url && img.url.startsWith('blob:')));
+      const hasUploading = prevImages.some((img) => img.isUploading || (img.url && img.url.startsWith('blob:')));
       if (hasUploading && (!value || (Array.isArray(value) && value.length === 0))) {
         return prevImages;
       }
@@ -223,7 +249,7 @@ export const ImageUpload = ({
 
       // 2. Map and filter valid images
       const newInternalImages: ImageValue[] = externalValues
-        .map(ext => extractImageValue(ext, prevImages))
+        .map((ext) => extractImageValue(ext, prevImages))
         .filter((img): img is ImageValue => img !== null);
 
       // 3. Check if internal state is already in sync with new internal images
@@ -282,8 +308,128 @@ export const ImageUpload = ({
     });
   };
 
+  const handleCropClose = (): void => {
+    if (cropTarget?.imageUrl.startsWith('blob:') && !cropTarget.isEditingExisting) {
+      URL.revokeObjectURL(cropTarget.imageUrl);
+    }
+    setCropTarget(null);
+    setIsCropModalOpen(false);
+  };
+
+  const handleOpenCropForExisting = (imageUrl: string, file?: File, index?: number): void => {
+    setCropTarget({
+      file,
+      imageUrl,
+      index,
+      isEditingExisting: true,
+    });
+    setIsCropModalOpen(true);
+  };
+
+  const handleCropSave = async (croppedFile: File): Promise<void> => {
+    if (!cropTarget) return;
+
+    const target = cropTarget;
+    setIsCropSaving(true);
+
+    try {
+      if (deferUpload) {
+        if (multiple && target.index !== undefined) {
+          const updatedImages = [...internalImages];
+          updatedImages[target.index] = {
+            file: croppedFile,
+            url: URL.createObjectURL(croppedFile),
+          };
+          setInternalImages(updatedImages);
+          onChange(updatedImages.map((img) => img.file || img.url));
+        } else {
+          const blobUrl = URL.createObjectURL(croppedFile);
+          setInternalImages([{ file: croppedFile, url: blobUrl }]);
+          onChange(croppedFile);
+        }
+        handleCropClose();
+      } else {
+        // Direct Cloudinary upload
+        onUploadingChange?.(true);
+
+        if (multiple && target.index !== undefined) {
+          const oldImage = internalImages[target.index];
+          const blobUrl = URL.createObjectURL(croppedFile);
+
+          const optimisticList = [...internalImages];
+          optimisticList[target.index] = {
+            file: croppedFile,
+            url: blobUrl,
+            isUploading: true,
+          };
+          setInternalImages(optimisticList);
+          handleCropClose();
+
+          const res = await uploadFile({ file: croppedFile, folder });
+
+          if (res.success && res.data) {
+            if (oldImage?.publicId) {
+              deleteFile(oldImage.publicId);
+            }
+            const updated = [...internalImages];
+            updated[target.index] = {
+              url: res.data.secure_url,
+              publicId: res.data.public_id,
+              isUploading: false,
+            };
+            setInternalImages(updated);
+            onChange(updated.map((img) => img.url));
+            if (onUploadComplete) {
+              onUploadComplete(res.data);
+            }
+          }
+        } else {
+          const oldImage = internalImages[0];
+          const blobUrl = URL.createObjectURL(croppedFile);
+          setInternalImages([{ file: croppedFile, url: blobUrl, isUploading: true }]);
+          handleCropClose();
+
+          const res = await uploadFile({ file: croppedFile, folder });
+          if (res.success && res.data) {
+            if (oldImage?.publicId) {
+              deleteFile(oldImage.publicId);
+            }
+            const secureUrl = res.data.secure_url;
+            setInternalImages([{ url: secureUrl, publicId: res.data.public_id, isUploading: false }]);
+            onChange(secureUrl);
+            if (onUploadComplete) {
+              onUploadComplete(res.data);
+            }
+          }
+        }
+      }
+    } catch (error: unknown) {
+      console.error('Error uploading cropped file:', error);
+      const msg = getApiErrorMessage(error, 'Tải ảnh đã cắt thất bại');
+      toast.error(msg, { id: msg });
+      setInternalImages((prev) => prev.filter((img) => !img.isUploading && !img.url.startsWith('blob:')));
+    } finally {
+      setIsCropSaving(false);
+      onUploadingChange?.(false);
+      handleCropClose();
+    }
+  };
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
+
+    // Interactive Crop on single image file selection
+    if (!multiple && isCropActive) {
+      const fileToCrop = acceptedFiles[0];
+      const blobUrl = URL.createObjectURL(fileToCrop);
+      setCropTarget({
+        file: fileToCrop,
+        imageUrl: blobUrl,
+        isEditingExisting: false,
+      });
+      setIsCropModalOpen(true);
+      return;
+    }
 
     if (reqWidth && reqHeight) {
       const croppedFiles = [];
@@ -296,13 +442,13 @@ export const ImageUpload = ({
 
     if (deferUpload) {
       if (multiple) {
-        const newImages = acceptedFiles.map(file => ({
+        const newImages = acceptedFiles.map((file) => ({
           file,
-          url: URL.createObjectURL(file)
+          url: URL.createObjectURL(file),
         }));
         const updatedImages = [...internalImages, ...newImages].slice(0, maxFiles);
         setInternalImages(updatedImages);
-        onChange(updatedImages.map(img => img.file || img.url));
+        onChange(updatedImages.map((img) => img.file || img.url));
       } else {
         const fileToUpload = acceptedFiles[0];
         setInternalImages([{ file: fileToUpload, url: URL.createObjectURL(fileToUpload) }]);
@@ -313,12 +459,12 @@ export const ImageUpload = ({
 
     // 1. Instant Optimistic Preview on FE
     if (multiple) {
-      const newBlobItems: ImageValue[] = acceptedFiles.map(file => ({
+      const newBlobItems: ImageValue[] = acceptedFiles.map((file) => ({
         file,
         url: URL.createObjectURL(file),
-        isUploading: true
+        isUploading: true,
       }));
-      setInternalImages(prev => [...prev, ...newBlobItems].slice(0, maxFiles));
+      setInternalImages((prev) => [...prev, ...newBlobItems].slice(0, maxFiles));
     } else {
       const fileToUpload = acceptedFiles[0];
       const blobUrl = URL.createObjectURL(fileToUpload);
@@ -332,16 +478,16 @@ export const ImageUpload = ({
       if (multiple) {
         const res = await uploadMultiple({ files: acceptedFiles, folder });
         if (res.success && res.data) {
-          const uploadedItems = res.data.map(file => ({
+          const uploadedItems = res.data.map((file) => ({
             url: file.secure_url,
             publicId: file.public_id,
-            isUploading: false
+            isUploading: false,
           }));
 
-          setInternalImages(prev => {
-            const nonBlob = prev.filter(img => !img.isUploading && !img.url.startsWith('blob:'));
+          setInternalImages((prev) => {
+            const nonBlob = prev.filter((img) => !img.isUploading && !img.url.startsWith('blob:'));
             const updated = [...nonBlob, ...uploadedItems].slice(0, maxFiles);
-            onChange(updated.map(img => img.url));
+            onChange(updated.map((img) => img.url));
             return updated;
           });
 
@@ -362,15 +508,15 @@ export const ImageUpload = ({
         }
       }
     } catch (error: unknown) {
-      console.error("Upload error in onDrop:", error);
+      console.error('Upload error in onDrop:', error);
       const msg = getApiErrorMessage(error, 'Tải ảnh lên thất bại');
       toast.error(msg, { id: msg });
       // Revert optimistic preview on upload failure
-      setInternalImages(prev => prev.filter(img => !img.isUploading && !img.url.startsWith('blob:')));
+      setInternalImages((prev) => prev.filter((img) => !img.isUploading && !img.url.startsWith('blob:')));
     } finally {
       onUploadingChange?.(false);
     }
-  }, [multiple, maxFiles, internalImages, onChange, uploadFile, uploadMultiple, folder, onUploadComplete, reqWidth, reqHeight, deferUpload, onUploadingChange]);
+  }, [multiple, isCropActive, reqWidth, reqHeight, deferUpload, maxFiles, internalImages, onChange, onUploadingChange, uploadMultiple, folder, onUploadComplete, uploadFile]);
 
   const onDropRejected = useCallback((fileRejections: FileRejection[]) => {
     fileRejections.forEach((rejection) => {
@@ -393,19 +539,19 @@ export const ImageUpload = ({
     onDrop,
     onDropRejected,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.svg']
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.svg'],
     },
     maxFiles: multiple ? maxFiles - internalImages.length : 1,
-    multiple: multiple,
+    multiple,
     maxSize,
-    disabled: disabled || (!multiple && !isReplaceAllowed && internalImages.length > 0) || (multiple && internalImages.length >= maxFiles)
+    disabled: disabled || (!multiple && !isReplaceAllowed && internalImages.length > 0) || (multiple && internalImages.length >= maxFiles),
   });
 
-  const handleRemove = (url: string, e: React.MouseEvent) => {
+  const handleRemove = (url: string, e: React.MouseEvent): void => {
     e.stopPropagation();
 
     if (!onRemove && !deferUpload && !url.startsWith('blob:')) {
-      const item = internalImages.find(img => img.url === url);
+      const item = internalImages.find((img) => img.url === url);
       const publicId = item?.publicId || getCloudinaryPublicId(url);
       
       if (publicId) {
@@ -413,11 +559,11 @@ export const ImageUpload = ({
       }
     }
 
-    const updatedImages = internalImages.filter(img => img.url !== url);
+    const updatedImages = internalImages.filter((img) => img.url !== url);
     setInternalImages(updatedImages);
     
     if (multiple) {
-      onChange(updatedImages.map(img => img.file || img.url));
+      onChange(updatedImages.map((img) => img.file || img.url));
     } else {
       onChange('');
     }
@@ -436,7 +582,7 @@ export const ImageUpload = ({
 
     return (
       <div className={cn(
-        "relative w-full group overflow-hidden border-2 border-slate-100 shadow-lg ring-1 ring-black/5 animate-in zoom-in-95 duration-200",
+        'relative w-full group overflow-hidden border-2 border-slate-100 shadow-lg ring-1 ring-black/5 animate-in zoom-in-95 duration-200',
         variant === 'circle' ? 'rounded-full' : 'rounded-2xl',
         aspectRatio === 'square' ? 'aspect-square' : aspectRatio === 'video' ? 'aspect-video' : 'h-full'
       )}>
@@ -465,8 +611,8 @@ export const ImageUpload = ({
               }
             }}
             className={cn(
-              "absolute inset-0 bg-slate-900/50 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-10",
-              !isRemoveVisible && isReplaceAllowed && "cursor-pointer"
+              'absolute inset-0 bg-slate-900/50 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-10',
+              !isRemoveVisible && isReplaceAllowed && 'cursor-pointer'
             )}
           >
             {!isRemoveVisible && isReplaceAllowed ? (
@@ -486,6 +632,22 @@ export const ImageUpload = ({
                 >
                   <Maximize2 size={15} />
                 </Button>
+
+                {isCropActive && (
+                  <Button 
+                    type="button" 
+                    variant="secondary" 
+                    size="icon" 
+                    title="Cắt / Chỉnh sửa ảnh"
+                    className="h-9 w-9 rounded-full shadow-xl bg-white hover:bg-amber-50 text-amber-600 border-none cursor-pointer"
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      handleOpenCropForExisting(validUrl, currentImage?.file); 
+                    }}
+                  >
+                    <Crop size={15} />
+                  </Button>
+                )}
 
                 {isReplaceAllowed && (
                   <Button 
@@ -547,13 +709,28 @@ export const ImageUpload = ({
               </div>
             ) : (
               <>
-                <button 
-                  type="button"
-                  className="absolute top-2 right-2 h-7 w-7 bg-white/90 backdrop-blur-md text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl hover:bg-red-50"
-                  onClick={(e) => handleRemove(img.url, e)}
-                >
-                  <X size={14} strokeWidth={3} />
-                </button>
+                <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10">
+                  <button 
+                    type="button"
+                    title="Cắt / Chỉnh sửa ảnh"
+                    className="h-7 w-7 bg-white/90 backdrop-blur-md text-amber-600 hover:text-amber-700 rounded-full flex items-center justify-center shadow-xl hover:bg-amber-50 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenCropForExisting(validUrl, img.file, i);
+                    }}
+                  >
+                    <Crop size={13} />
+                  </button>
+
+                  <button 
+                    type="button"
+                    title="Xóa ảnh"
+                    className="h-7 w-7 bg-white/90 backdrop-blur-md text-red-500 rounded-full flex items-center justify-center shadow-xl hover:bg-red-50 cursor-pointer"
+                    onClick={(e) => handleRemove(img.url, e)}
+                  >
+                    <X size={14} strokeWidth={3} />
+                  </button>
+                </div>
                 
                 <div className="absolute bottom-2 left-2 bg-slate-900/60 backdrop-blur-sm text-[10px] font-bold text-white px-2 py-0.5 rounded-lg border border-white/20">
                   #{i + 1}
@@ -568,11 +745,11 @@ export const ImageUpload = ({
         <Card 
           {...(getRootProps() as unknown as React.HTMLAttributes<HTMLDivElement>)}
           className={cn(
-            "aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all duration-300 shadow-none",
+            'aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all duration-300 shadow-none',
             isDragActive 
-              ? "border-primary bg-primary/5 scale-[0.98]" 
-              : "border-slate-200 bg-slate-50/50 hover:border-primary hover:bg-white hover:shadow-inner",
-            (disabled || isUploading) && "opacity-50 cursor-not-allowed pointer-events-none"
+              ? 'border-primary bg-primary/5 scale-[0.98]' 
+              : 'border-slate-200 bg-slate-50/50 hover:border-primary hover:bg-white hover:shadow-inner',
+            (disabled || isUploading) && 'opacity-50 cursor-not-allowed pointer-events-none'
           )}
         >
           <CardContent className="p-2 flex flex-col items-center justify-center w-full h-full text-center">
@@ -590,7 +767,7 @@ export const ImageUpload = ({
   );
 
   return (
-    <div className={cn("w-full group/container", className)}>
+    <div className={cn('w-full group/container', className)}>
       <input {...getInputProps()} />
       {!multiple && internalImages.length > 0 ? (
         renderSinglePreview()
@@ -600,14 +777,14 @@ export const ImageUpload = ({
         <Card 
           {...(getRootProps() as unknown as React.HTMLAttributes<HTMLDivElement>)}
           className={cn(
-            "relative border-2 border-dashed rounded-2xl transition-all duration-300 cursor-pointer flex flex-col items-center justify-center p-0 text-center overflow-hidden shadow-none",
+            'relative border-2 border-dashed rounded-2xl transition-all duration-300 cursor-pointer flex flex-col items-center justify-center p-0 text-center overflow-hidden shadow-none',
             isDragActive 
-              ? "border-primary bg-primary/5 ring-4 ring-primary/10" 
+              ? 'border-primary bg-primary/5 ring-4 ring-primary/10' 
               : isDragReject 
-                ? "border-destructive bg-destructive/5"
-                : "border-slate-200 bg-slate-50/30 hover:border-primary hover:bg-white hover:shadow-lg hover:-translate-y-0.5",
-            disabled && "opacity-50 cursor-not-allowed grayscale",
-            aspectRatio === 'square' ? "aspect-square" : aspectRatio === 'video' ? "aspect-video" : "min-h-[140px]"
+                ? 'border-destructive bg-destructive/5'
+                : 'border-slate-200 bg-slate-50/30 hover:border-primary hover:bg-white hover:shadow-lg hover:-translate-y-0.5',
+            disabled && 'opacity-50 cursor-not-allowed grayscale',
+            aspectRatio === 'square' ? 'aspect-square' : aspectRatio === 'video' ? 'aspect-video' : 'min-h-[140px]'
           )}
         >
           <CardContent className="p-2 sm:p-4 md:p-6 flex flex-col items-center justify-center w-full h-full">
@@ -619,7 +796,7 @@ export const ImageUpload = ({
             ) : (
               <div className="flex flex-col items-center justify-center w-full px-1 gap-1 relative z-10">
                 <p className="text-[11px] sm:text-xs md:text-sm font-bold text-slate-700 tracking-tight text-center leading-tight">
-                  {isDragActive ? "Thả tải lên" : "Tải ảnh lên"}
+                  {isDragActive ? 'Thả tải lên' : 'Tải ảnh lên'}
                 </p>
                 {description && (
                   <p className="text-[9px] sm:text-[10px] md:text-xs text-slate-400 font-medium text-center leading-tight line-clamp-2">
@@ -650,8 +827,8 @@ export const ImageUpload = ({
         <Card 
           {...(getRootProps() as unknown as React.HTMLAttributes<HTMLDivElement>)}
           className={cn(
-            "border-2 border-dashed rounded-2xl transition-all duration-300 cursor-pointer group/empty shadow-none",
-            isDragActive ? "border-primary bg-primary/5" : "border-slate-200"
+            'border-2 border-dashed rounded-2xl transition-all duration-300 cursor-pointer group/empty shadow-none',
+            isDragActive ? 'border-primary bg-primary/5' : 'border-slate-200'
           )}
         >
           <CardContent className="p-6 md:p-8 flex flex-col items-center justify-center bg-slate-50/50 hover:border-primary hover:bg-white hover:shadow-lg transition-all w-full min-h-[140px]">
@@ -674,8 +851,23 @@ export const ImageUpload = ({
           </CardContent>
         </Card>
       )}
+
+      {/* Interactive Crop Modal */}
+      {isCropModalOpen && cropTarget && (
+        <ImageCropModal
+          isOpen={isCropModalOpen}
+          onClose={handleCropClose}
+          imageSrc={cropTarget.imageUrl}
+          file={cropTarget.file}
+          aspectRatio={effectiveCropAspect}
+          cropShape={effectiveCropShape}
+          targetWidth={reqWidth}
+          targetHeight={reqHeight}
+          lockAspect={Boolean(cropAspectRatio || (reqWidth && reqHeight) || variant === 'circle')}
+          onCropSave={handleCropSave}
+          isSaving={isCropSaving}
+        />
+      )}
     </div>
   );
 };
-
-

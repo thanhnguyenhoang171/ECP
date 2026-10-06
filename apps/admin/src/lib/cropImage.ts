@@ -3,24 +3,58 @@ export const createImage = (url: string): Promise<HTMLImageElement> =>
     const image = new Image();
     image.addEventListener('load', () => resolve(image));
     image.addEventListener('error', (error) => reject(error));
-    image.setAttribute('crossOrigin', 'anonymous');
+    if (!url.startsWith('blob:') && !url.startsWith('data:')) {
+      image.setAttribute('crossOrigin', 'anonymous');
+    }
     image.src = url;
   });
 
-function rotateSize(width: number, height: number, rotation: number) {
+const rotateSize = (
+  width: number,
+  height: number,
+  rotation: number
+): { width: number; height: number } => {
   const rotRad = (rotation * Math.PI) / 180;
 
   return {
     width: Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
     height: Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
   };
+};
+
+export interface PixelCrop {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
-export async function getCroppedImg(
+export interface CropOptions {
+  rotation?: number;
+  outputType?: string;
+  fileName?: string;
+  targetWidth?: number;
+  targetHeight?: number;
+}
+
+export const getCroppedImg = async (
   imageSrc: string,
-  pixelCrop: { x: number; y: number; width: number; height: number },
-  rotation = 0
-): Promise<File | null> {
+  pixelCrop: PixelCrop,
+  optionsOrRotation: number | CropOptions = 0
+): Promise<File | null> => {
+  const options: CropOptions =
+    typeof optionsOrRotation === 'number'
+      ? { rotation: optionsOrRotation }
+      : optionsOrRotation;
+
+  const {
+    rotation = 0,
+    outputType = 'image/jpeg',
+    fileName = `cropped-${Date.now()}.${outputType === 'image/png' ? 'png' : outputType === 'image/webp' ? 'webp' : 'jpg'}`,
+    targetWidth,
+    targetHeight,
+  } = options;
+
   const image = await createImage(imageSrc);
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
@@ -48,8 +82,11 @@ export async function getCroppedImg(
     return null;
   }
 
-  croppedCanvas.width = pixelCrop.width;
-  croppedCanvas.height = pixelCrop.height;
+  const destWidth = targetWidth || pixelCrop.width;
+  const destHeight = targetHeight || pixelCrop.height;
+
+  croppedCanvas.width = destWidth;
+  croppedCanvas.height = destHeight;
 
   croppedCtx.drawImage(
     canvas,
@@ -59,20 +96,25 @@ export async function getCroppedImg(
     pixelCrop.height,
     0,
     0,
-    pixelCrop.width,
-    pixelCrop.height
+    destWidth,
+    destHeight
   );
 
   return new Promise((resolve) => {
-    croppedCanvas.toBlob((blob) => {
-      if (blob) {
-        const croppedFile = new File([blob], `avatar-${Date.now()}.jpg`, {
-          type: 'image/jpeg',
-        });
-        resolve(croppedFile);
-      } else {
-        resolve(null);
-      }
-    }, 'image/jpeg', 0.95);
+    croppedCanvas.toBlob(
+      (blob) => {
+        if (blob) {
+          const croppedFile = new File([blob], fileName, {
+            type: outputType,
+            lastModified: Date.now(),
+          });
+          resolve(croppedFile);
+        } else {
+          resolve(null);
+        }
+      },
+      outputType,
+      0.95
+    );
   });
-}
+};

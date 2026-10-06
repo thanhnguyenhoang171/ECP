@@ -40,10 +40,16 @@ export const getRefreshedAccessToken = async (APP_URL: string): Promise<string |
         }
       }
       useAuthStore.getState().clearAuth();
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('session_expired', '1');
+      }
       return null;
     } catch (e) {
       console.error('[clientFetch] Failed to refresh token:', e);
       useAuthStore.getState().clearAuth();
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('session_expired', '1');
+      }
       return null;
     } finally {
       refreshTokenPromise = null;
@@ -53,7 +59,7 @@ export const getRefreshedAccessToken = async (APP_URL: string): Promise<string |
   return refreshTokenPromise;
 };
 
-export const clientFetch = async (url: string, options: FetchOptions = {}) => {
+export const clientFetch = async (url: string, options: FetchOptions = {}): Promise<Response> => {
   const { skipToast, ...fetchOptions } = options;
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? (typeof window !== 'undefined' ? window.location.origin : undefined);
   if (!APP_URL) {
@@ -68,6 +74,14 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
   // On page refresh before auth store is initialized, wait for session refresh if token is not in memory
   if (!currentToken && !isInitialized && !isAuthEndpoint && typeof window !== 'undefined') {
     currentToken = await getRefreshedAccessToken(APP_URL);
+    if (!currentToken) {
+      sessionStorage.setItem('session_expired', '1');
+      window.location.replace('/login');
+      return new Response(JSON.stringify({ error: 'Session expired' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
   }
 
   const { clearAuth, isBlocked, incrementErrorCount } = useAuthStore.getState();
@@ -86,6 +100,9 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
   }
 
   const headers = new Headers(fetchOptions.headers);
+  if (!headers.has('Accept')) {
+    headers.set('Accept', 'application/json');
+  }
   
   if (currentToken) {
     headers.set('Authorization', `Bearer ${currentToken}`);
@@ -127,7 +144,8 @@ export const clientFetch = async (url: string, options: FetchOptions = {}) => {
       response = await fetch(finalUrl, { ...fetchOptions, headers });
     } else {
       if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+        sessionStorage.setItem('session_expired', '1');
+        window.location.replace('/login');
       }
     }
   }

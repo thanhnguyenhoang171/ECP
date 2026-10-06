@@ -4,6 +4,7 @@ import { PageResponse } from '@/types/pagination';
 import { clientFetch } from '@/lib/clientFetch';
 import { toApiPage, syncPagination } from '@/lib/utils';
 import { ApiError } from '@/constants/errorMessages';
+import { fileApi } from '@/features/files/api/file.api';
 
 // Helper to map category response to frontend model
 const mapCategory = (cat: any): Category => {
@@ -85,10 +86,13 @@ export const categoryApi = {
   ): Promise<{ success: boolean; data: Category }> => {
     const { imageUrl, imagePublicId, ...rest } = values;
 
-    let imageFile: File | undefined = undefined;
     let mappedUrl: string | undefined = undefined;
+    let finalPublicId = imagePublicId;
+
     if (imageUrl instanceof File) {
-      imageFile = imageUrl;
+      const uploadRes = await fileApi.uploadFile(imageUrl, 'categories');
+      mappedUrl = uploadRes.data?.url || uploadRes.data?.secure_url;
+      finalPublicId = uploadRes.data?.public_id;
     } else if (typeof imageUrl === 'string') {
       mappedUrl = imageUrl;
     }
@@ -96,29 +100,17 @@ export const categoryApi = {
     const payload = {
       ...rest,
       imageUrl: mappedUrl,
-      imagePublicId: imagePublicId || undefined,
-      image: mappedUrl ? { url: mappedUrl, publicId: imagePublicId } : undefined,
+      imagePublicId: finalPublicId || undefined,
+      image: mappedUrl ? { url: mappedUrl, publicId: finalPublicId } : undefined,
     };
 
-    let res: Response;
-    if (imageFile) {
-      const formData = new FormData();
-      formData.append('category', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-      formData.append('imageFile', imageFile);
-
-      res = await clientFetch(`v1/categories/${id}`, {
-        method: 'PATCH',
-        body: formData,
-      });
-    } else {
-      res = await clientFetch(`v1/categories/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-    }
+    const res = await clientFetch(`v1/categories/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
     const result = await res.json();
     if (!res.ok) throw new Error(result.message || 'Failed to update category');
@@ -134,10 +126,13 @@ export const categoryApi = {
   ): Promise<{ success: boolean; data: Category }> => {
     const { imageUrl, imagePublicId, ...rest } = values;
 
-    let imageFile: File | undefined = undefined;
     let mappedUrl: string | undefined = undefined;
+    let finalPublicId = imagePublicId;
+
     if (imageUrl instanceof File) {
-      imageFile = imageUrl;
+      const uploadRes = await fileApi.uploadFile(imageUrl, 'categories');
+      mappedUrl = uploadRes.data?.url || uploadRes.data?.secure_url;
+      finalPublicId = uploadRes.data?.public_id;
     } else if (typeof imageUrl === 'string') {
       mappedUrl = imageUrl;
     }
@@ -145,29 +140,17 @@ export const categoryApi = {
     const payload = {
       ...rest,
       imageUrl: mappedUrl,
-      imagePublicId: imagePublicId || undefined,
-      image: mappedUrl ? { url: mappedUrl, publicId: imagePublicId } : undefined,
+      imagePublicId: finalPublicId || undefined,
+      image: mappedUrl ? { url: mappedUrl, publicId: finalPublicId } : undefined,
     };
 
-    let res: Response;
-    if (imageFile) {
-      const formData = new FormData();
-      formData.append('category', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-      formData.append('imageFile', imageFile);
-
-      res = await clientFetch('v1/categories', {
-        method: 'POST',
-        body: formData,
-      });
-    } else {
-      res = await clientFetch('v1/categories', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-    }
+    const res = await clientFetch('v1/categories', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
     const result = await res.json();
     if (!res.ok) throw new Error(result.message || 'Failed to create category');
