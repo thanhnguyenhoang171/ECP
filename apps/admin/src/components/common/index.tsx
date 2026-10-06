@@ -31,6 +31,7 @@ export { DataCard } from "./DataCard";
 export { Breadcrumbs, type BreadcrumbItem } from "./Breadcrumbs";
 export { ImageUpload } from "./ImageUpload";
 export { AvatarCropModal } from "./AvatarCropModal";
+export { ImageCropModal, type ImageCropModalProps } from "./ImageCropModal";
 export * from "./view-control/FormLayout";
 export { default as Forbidden } from "./Forbidden";
 export { FormActionsBar } from "./FormActionsBar";

@@ -39,29 +39,18 @@ public class ProductController {
 
     private final ProductService productService;
 
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(
+            consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE },
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
     @PreAuthorize("hasAuthority('product:create') or hasRole('SUPER_ADMIN')")
-    @Operation(summary = "Create a new product (JSON)")
-    public ResponseEntity<ApiResponse<ProductResponse>> createProductJson(@Valid @RequestBody ProductRequest request) {
+    @Operation(summary = "Create a new product")
+    public ResponseEntity<ApiResponse<ProductResponse>> createProduct(@Valid @RequestBody ProductRequest request) {
         return new ResponseEntity<>(ApiResponse.<ProductResponse>builder()
                 .success(true)
                 .code("PRODUCT_CREATED_SUCCESS")
                 .message("Product created successfully")
-                .data(productService.createProduct(request, null, null)).build(), HttpStatus.CREATED);
-    }
-
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAuthority('product:create') or hasRole('SUPER_ADMIN')")
-    @Operation(summary = "Create a new product (Multipart)")
-    public ResponseEntity<ApiResponse<ProductResponse>> createProductMultipart(
-            @RequestPart("product") @Valid ProductRequest request,
-            @RequestPart(value = "thumbnailFile", required = false) MultipartFile thumbnailFile,
-            @RequestPart(value = "imageFiles", required = false) List<MultipartFile> imageFiles) {
-        return new ResponseEntity<>(ApiResponse.<ProductResponse>builder()
-                .success(true)
-                .code("PRODUCT_CREATED_SUCCESS")
-                .message("Product created successfully")
-                .data(productService.createProduct(request, thumbnailFile, imageFiles)).build(), HttpStatus.CREATED);
+                .data(productService.createProduct(request)).build(), HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -92,12 +81,16 @@ public class ProductController {
                 .data(productService.getProductDetail(id)).build());
     }
 
-    @PatchMapping("/{id}")
+    @PatchMapping(
+            value = "/{id}",
+            consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE },
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
     @PreAuthorize("hasAuthority('product:update') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update product details by ID (Partial update support)")
     public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(
             @PathVariable String id,
-            @RequestBody ProductRequest request) {
+            @Valid @RequestBody ProductRequest request) {
         return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
                 .success(true)
                 .code("PRODUCT_UPDATED_SUCCESS")

@@ -2,39 +2,35 @@ import { clientFetch } from '@/lib/clientFetch';
 import { ApiError } from '@/constants/errorMessages';
 import { Product } from '../types/product.interface';
 import { ProductFormValues } from '../schemas/product.schema';
+import { fileApi } from '@/features/files/api/file.api';
 
 export const productApi = {
   create: async (data: ProductFormValues): Promise<Product> => {
     try {
-      const formData = new FormData();
-      let hasFiles = false;
-
       // Process Thumbnail
-      let thumbnailFile: File | undefined = undefined;
       let thumbnailObj: any = undefined;
       if (data.thumbnail instanceof File) {
-        thumbnailFile = data.thumbnail;
-        hasFiles = true;
+        const uploadRes = await fileApi.uploadFile(data.thumbnail, 'products');
+        thumbnailObj = { url: uploadRes.data?.url || uploadRes.data?.secure_url, publicId: uploadRes.data?.public_id };
       } else if (typeof data.thumbnail === 'string' && data.thumbnail.trim() !== '') {
         thumbnailObj = { url: data.thumbnail };
-      } else if (data.thumbnail && typeof data.thumbnail === 'object' && data.thumbnail.url) {
+      } else if (data.thumbnail && typeof data.thumbnail === 'object' && (data.thumbnail as any).url) {
         thumbnailObj = data.thumbnail;
       }
 
       // Process Gallery Images
-      const imageFiles: File[] = [];
       const imageObjs: any[] = [];
       if (Array.isArray(data.images)) {
-        data.images.forEach(img => {
+        for (const img of data.images) {
           if (img instanceof File) {
-            imageFiles.push(img);
-            hasFiles = true;
+            const uploadRes = await fileApi.uploadFile(img, 'products');
+            imageObjs.push({ url: uploadRes.data?.url || uploadRes.data?.secure_url, publicId: uploadRes.data?.public_id });
           } else if (typeof img === 'string' && img.trim() !== '') {
             imageObjs.push({ url: img });
-          } else if (img && typeof img === 'object' && img.url) {
+          } else if (img && typeof img === 'object' && (img as any).url) {
             imageObjs.push(img);
           }
-        });
+        }
       }
 
       // Build JSON Payload
@@ -55,27 +51,11 @@ export const productApi = {
         }))
       };
 
-      let res: Response;
-      if (hasFiles) {
-        formData.append('product', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-        if (thumbnailFile) {
-          formData.append('thumbnailFile', thumbnailFile);
-        }
-        imageFiles.forEach(f => {
-          formData.append('imageFiles', f);
-        });
-
-        res = await clientFetch('v1/products', {
-          method: 'POST',
-          body: formData,
-        });
-      } else {
-        res = await clientFetch('v1/products', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-      }
+      const res = await clientFetch('v1/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
       if (res.ok) {
         const result = await res.json();

@@ -8,9 +8,6 @@ import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.exception.AppException;
 import com.example.ecp_api.service.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -39,29 +36,19 @@ public class CategoryController {
 
     private final CategoryService categoryService;
 
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(
+            consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE },
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
     @PreAuthorize("hasAuthority('category:create') or hasRole('SUPER_ADMIN')")
-    @Operation(summary = "Create a new category (JSON)")
-    public ResponseEntity<ApiResponse<CategoryResponse>> createCategoryJson(
+    @Operation(summary = "Create a new category")
+    public ResponseEntity<ApiResponse<CategoryResponse>> createCategory(
             @Valid @RequestBody CategoryRequest request) {
         return new ResponseEntity<>(ApiResponse.<CategoryResponse>builder()
                 .success(true)
                 .code("CATEGORY_CREATED_SUCCESS")
                 .message("Category created successfully")
-                .data(categoryService.createCategory(request, null)).build(), HttpStatus.CREATED);
-    }
-
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAuthority('category:create') or hasRole('SUPER_ADMIN')")
-    @Operation(summary = "Create a new category (Multipart)")
-    public ResponseEntity<ApiResponse<CategoryResponse>> createCategoryMultipart(
-            @RequestPart("category") @Valid CategoryRequest request,
-            @RequestPart(value = "iconFile", required = false) MultipartFile iconFile) {
-        return new ResponseEntity<>(ApiResponse.<CategoryResponse>builder()
-                .success(true)
-                .code("CATEGORY_CREATED_SUCCESS")
-                .message("Category created successfully")
-                .data(categoryService.createCategory(request, iconFile)).build(), HttpStatus.CREATED);
+                .data(categoryService.createCategory(request)).build(), HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -92,30 +79,20 @@ public class CategoryController {
                 .data(categoryService.getCategoryById(id)).build());
     }
 
-    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(
+            value = "/{id}",
+            consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE },
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
     @PreAuthorize("hasAuthority('category:update') or hasRole('SUPER_ADMIN')")
-    @Operation(summary = "Update category details (JSON)")
-    public ResponseEntity<ApiResponse<CategoryResponse>> updateCategoryJson(
+    @Operation(summary = "Update category details")
+    public ResponseEntity<ApiResponse<CategoryResponse>> updateCategory(
             @PathVariable String id, @Valid @RequestBody CategoryRequest request) {
         return ResponseEntity.ok(ApiResponse.<CategoryResponse>builder()
                 .success(true)
                 .code("CATEGORY_UPDATED_SUCCESS")
                 .message("Category updated successfully")
-                .data(categoryService.updateCategory(id, request, null)).build());
-    }
-
-    @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAuthority('category:update') or hasRole('SUPER_ADMIN')")
-    @Operation(summary = "Update category details (Multipart)")
-    public ResponseEntity<ApiResponse<CategoryResponse>> updateCategoryMultipart(
-            @PathVariable String id,
-            @RequestPart("category") @Valid CategoryRequest request,
-            @RequestPart(value = "iconFile", required = false) MultipartFile iconFile) {
-        return ResponseEntity.ok(ApiResponse.<CategoryResponse>builder()
-                .success(true)
-                .code("CATEGORY_UPDATED_SUCCESS")
-                .message("Category updated successfully")
-                .data(categoryService.updateCategory(id, request, iconFile)).build());
+                .data(categoryService.updateCategory(id, request)).build());
     }
 
     @DeleteMapping("/{id}")

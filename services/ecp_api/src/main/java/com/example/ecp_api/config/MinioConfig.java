@@ -38,35 +38,39 @@ public class MinioConfig {
     @Bean
     public MinioClient minioClient() {
         String rawEndpoint = endpoint.trim();
-        String host = rawEndpoint;
-        int port = useSsl ? 443 : 9000;
+        boolean effectiveSsl = useSsl;
 
-        if (rawEndpoint.startsWith("http://")) {
-            rawEndpoint = rawEndpoint.substring(7);
-        } else if (rawEndpoint.startsWith("https://")) {
+        if (rawEndpoint.startsWith("https://")) {
+            effectiveSsl = true;
             rawEndpoint = rawEndpoint.substring(8);
+        } else if (rawEndpoint.startsWith("http://")) {
+            rawEndpoint = rawEndpoint.substring(7);
         }
 
         if (rawEndpoint.contains("/")) {
             rawEndpoint = rawEndpoint.substring(0, rawEndpoint.indexOf("/"));
         }
 
+        int port = effectiveSsl ? 443 : 9000;
+        String host = rawEndpoint;
+
         if (rawEndpoint.contains(":")) {
             String[] parts = rawEndpoint.split(":");
             host = parts[0];
             try {
                 port = Integer.parseInt(parts[1]);
+                if (port == 443) {
+                    effectiveSsl = true;
+                }
             } catch (NumberFormatException e) {
                 log.warn("Invalid port in MinIO endpoint '{}', defaulting to {}", rawEndpoint, port);
             }
-        } else {
-            host = rawEndpoint;
         }
 
-        log.info("Connecting to MinIO at host: {}, port: {}, useSSL: {}", host, port, useSsl);
+        log.info("Connecting to MinIO at host: {}, port: {}, useSSL: {}", host, port, effectiveSsl);
 
         return MinioClient.builder()
-                .endpoint(host, port, useSsl)
+                .endpoint(host, port, effectiveSsl)
                 .credentials(accessKey, secretKey)
                 .build();
     }

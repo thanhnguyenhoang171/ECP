@@ -1,14 +1,12 @@
 'use client';
 import React, { useEffect, useSyncExternalStore } from 'react';
-import { useRouter } from 'next/navigation';
 
 import { useAuthStore } from '@/store/authStore';
 import { Forbidden } from '@/components/common';
 
 const emptySubscribe = () => () => {};
 
-export default function NextProtectedRoute({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
+export default function NextProtectedRoute({ children }: { readonly children: React.ReactNode }): React.ReactElement | null {
   const { isAuthenticated, hasHydrated, isInitialized, user } = useAuthStore();
   
   const isClient = useSyncExternalStore(
@@ -20,6 +18,9 @@ export default function NextProtectedRoute({ children }: { children: React.React
   useEffect(() => {
     // Chỉ kiểm tra quyền sau khi đã hydrate từ storage VÀ AuthInitializer đã chạy xong
     if (isClient && hasHydrated && isInitialized && !isAuthenticated) {
+      if (typeof window !== 'undefined' && !sessionStorage.getItem('logout_success')) {
+        sessionStorage.setItem('session_expired', '1');
+      }
       // Dùng hard navigation để tránh race condition với middleware khi logout
       window.location.replace('/login');
     }

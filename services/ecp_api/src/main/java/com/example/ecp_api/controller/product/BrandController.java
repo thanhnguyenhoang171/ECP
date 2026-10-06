@@ -39,28 +39,18 @@ public class BrandController {
 
     private final BrandService brandService;
 
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(
+            consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE },
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
     @PreAuthorize("hasAuthority('brand:create') or hasRole('SUPER_ADMIN')")
-    @Operation(summary = "Create a new brand (JSON)")
-    public ResponseEntity<ApiResponse<BrandResponse>> createBrandJson(@Valid @RequestBody BrandRequest request) {
+    @Operation(summary = "Create a new brand")
+    public ResponseEntity<ApiResponse<BrandResponse>> createBrand(@Valid @RequestBody BrandRequest request) {
         return new ResponseEntity<>(ApiResponse.<BrandResponse>builder()
                 .success(true)
                 .code("BRAND_CREATED_SUCCESS")
                 .message("Brand created successfully")
                 .data(brandService.createBrand(request)).build(), HttpStatus.CREATED);
-    }
-
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAuthority('brand:create') or hasRole('SUPER_ADMIN')")
-    @Operation(summary = "Create a new brand (Multipart)")
-    public ResponseEntity<ApiResponse<BrandResponse>> createBrandMultipart(
-            @RequestPart("brand") @Valid BrandRequest request,
-            @RequestPart(value = "logoFile", required = false) MultipartFile logoFile) {
-        return new ResponseEntity<>(ApiResponse.<BrandResponse>builder()
-                .success(true)
-                .code("BRAND_CREATED_SUCCESS")
-                .message("Brand created successfully")
-                .data(brandService.createBrand(request, logoFile)).build(), HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -91,30 +81,20 @@ public class BrandController {
                 .data(brandService.getBrandById(id)).build());
     }
 
-    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(
+            value = "/{id}",
+            consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE },
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
     @PreAuthorize("hasAuthority('brand:update') or hasRole('SUPER_ADMIN')")
-    @Operation(summary = "Update brand details (JSON)")
-    public ResponseEntity<ApiResponse<BrandResponse>> updateBrandJson(
+    @Operation(summary = "Update brand details")
+    public ResponseEntity<ApiResponse<BrandResponse>> updateBrand(
             @PathVariable String id, @Valid @RequestBody BrandRequest request) {
         return ResponseEntity.ok(ApiResponse.<BrandResponse>builder()
                 .success(true)
                 .code("BRAND_UPDATED_SUCCESS")
                 .message("Brand updated successfully")
                 .data(brandService.updateBrand(id, request)).build());
-    }
-
-    @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAuthority('brand:update') or hasRole('SUPER_ADMIN')")
-    @Operation(summary = "Update brand details (Multipart)")
-    public ResponseEntity<ApiResponse<BrandResponse>> updateBrandMultipart(
-            @PathVariable String id,
-            @RequestPart("brand") @Valid BrandRequest request,
-            @RequestPart(value = "logoFile", required = false) MultipartFile logoFile) {
-        return ResponseEntity.ok(ApiResponse.<BrandResponse>builder()
-                .success(true)
-                .code("BRAND_UPDATED_SUCCESS")
-                .message("Brand updated successfully")
-                .data(brandService.updateBrand(id, request, logoFile)).build());
     }
 
     @DeleteMapping("/{id}")

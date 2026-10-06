@@ -20,6 +20,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ErrorMessages } from '@/constants/errorMessages';
+import { useAuthStore } from '@/store/authStore';
 
 import { loginSchema, LoginFormValues } from '@/features/auth/schemas/auth.schema';
 import { useLogin, useGoogleLogin } from '../hooks/use-auth-mutation';
@@ -71,6 +73,43 @@ export default function LoginView(): React.ReactElement {
     if (sessionStorage.getItem('logout_success') === '1') {
       sessionStorage.removeItem('logout_success');
       toast.success('Đăng xuất thành công!', { id: 'logout-success' });
+      return;
+    }
+
+    const isExpiredSession = sessionStorage.getItem('session_expired') === '1';
+
+    let isExpiredQuery = false;
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      isExpiredQuery = params.get('reason') === 'session_expired' || params.get('expired') === '1';
+    }
+
+    let hadStaleSession = false;
+    try {
+      const stored = localStorage.getItem('cacao-auth-storage');
+      if (stored) {
+        const parsed = JSON.parse(stored) as { state?: { isAuthenticated?: boolean; user?: unknown } };
+        if (parsed?.state?.isAuthenticated || Boolean(parsed?.state?.user)) {
+          hadStaleSession = true;
+        }
+      }
+    } catch (e) {
+      console.error('[LoginView] Error parsing local auth storage:', e);
+    }
+
+    if (isExpiredSession || isExpiredQuery || hadStaleSession) {
+      sessionStorage.removeItem('session_expired');
+      if (hadStaleSession) {
+        useAuthStore.getState().clearAuth();
+      }
+      toast.error(ErrorMessages['AUTH_TOKEN_EXPIRED'], { id: 'session-expired' });
+
+      if (isExpiredQuery && typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('reason');
+        url.searchParams.delete('expired');
+        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+      }
     }
   }, []);
 

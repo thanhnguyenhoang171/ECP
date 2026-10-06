@@ -42,6 +42,9 @@ export default function AuthInitializer(): null {
 
         if (!accessToken) {
           clearAuth();
+          if (typeof window !== 'undefined' && !sessionStorage.getItem('logout_success')) {
+            sessionStorage.setItem('session_expired', '1');
+          }
           setInitialized(true);
           return;
         }
@@ -89,6 +92,9 @@ export default function AuthInitializer(): null {
       } catch (err) {
         console.error('[AuthInitializer] Session initialization failed:', err);
         clearAuth();
+        if (typeof window !== 'undefined' && !sessionStorage.getItem('logout_success')) {
+          sessionStorage.setItem('session_expired', '1');
+        }
       } finally {
         setInitialized(true);
       }
