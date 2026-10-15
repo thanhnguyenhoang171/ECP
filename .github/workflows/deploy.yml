@@ -255,10 +255,14 @@ jobs:
           INTERNAL_API_URL: ${{ secrets.INTERNAL_API_URL }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+          API_CONTAINER_NAME: ${{ secrets.API_CONTAINER_NAME || 'ecp_api' }}
+          ADMIN_CONTAINER_NAME: ${{ secrets.ADMIN_CONTAINER_NAME || 'ecp_admin' }}
+          STOREFRONT_CONTAINER_NAME: ${{ secrets.STOREFRONT_CONTAINER_NAME || 'ecp_storefront' }}
         run: |
           node -e '
           const fs = require("fs");
           const envVars = [
+            "API_CONTAINER_NAME", "ADMIN_CONTAINER_NAME", "STOREFRONT_CONTAINER_NAME",
             "SPRING_DATASOURCE_URL", "SPRING_DATASOURCE_USERNAME", "SPRING_DATASOURCE_PASSWORD",
             "SPRING_MONGODB_URI", "MYSQL_ROOT_PASSWORD", "MYSQL_DATABASE", "MYSQL_USER",
             "MYSQL_PASSWORD", "MONGO_ROOT_USER", "MONGO_ROOT_PASSWORD",

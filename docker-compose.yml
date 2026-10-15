@@ -2,7 +2,7 @@ services:
   api:
     image: ghcr.io/thanhnguyenhoang171/ecp/ecp-api:latest
     pull_policy: always
-    container_name: ecp_api
+    container_name: ${API_CONTAINER_NAME:-ecp_api}
     restart: always
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -59,7 +59,7 @@ services:
   admin:
     image: ghcr.io/thanhnguyenhoang171/ecp/ecp-admin:latest
     pull_policy: always
-    container_name: ecp_admin
+    container_name: ${ADMIN_CONTAINER_NAME:-ecp_admin}
     restart: always
     ports:
       - "${ADMIN_PORT:-8081}:80"
@@ -81,7 +81,7 @@ services:
   storefront:
     image: ghcr.io/thanhnguyenhoang171/ecp/ecp-storefront:latest
     pull_policy: always
-    container_name: ecp_storefront
+    container_name: ${STOREFRONT_CONTAINER_NAME:-ecp_storefront}
     restart: always
     ports:
       - "${STOREFRONT_PORT:-3000}:3000"
