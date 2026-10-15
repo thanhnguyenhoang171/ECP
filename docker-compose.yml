@@ -49,10 +49,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '4.0'
-          memory: 4096M
+          cpus: '${API_CPU_LIMIT:-4.0}'
+          memory: ${API_MEM_LIMIT:-4096M}
         reservations:
-          memory: 1536M
+          memory: ${API_MEM_RESERVATION:-1536M}
     networks:
       - ecp_network
 
@@ -73,8 +73,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
-          memory: 1024M
+          cpus: '${ADMIN_CPU_LIMIT:-2.0}'
+          memory: ${ADMIN_MEM_LIMIT:-1024M}
     networks:
       - ecp_network
 
@@ -95,8 +95,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
-          memory: 1536M
+          cpus: '${STOREFRONT_CPU_LIMIT:-2.0}'
+          memory: ${STOREFRONT_MEM_LIMIT:-1536M}
     networks:
       - ecp_network
 
