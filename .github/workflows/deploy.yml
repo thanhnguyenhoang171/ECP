@@ -229,7 +229,7 @@ jobs:
           HIKARI_MAX_POOL_SIZE: ${{ secrets.HIKARI_MAX_POOL_SIZE || '30' }}
           HIKARI_MIN_IDLE: ${{ secrets.HIKARI_MIN_IDLE || '10' }}
           LOGGING_LEVEL_HIKARI: ${{ secrets.LOGGING_LEVEL_HIKARI || 'WARN' }}
-          JAVA_TOOL_OPTIONS: ${{ secrets.JAVA_TOOL_OPTIONS || '-Xms1536m -Xmx3584m -XX:+UseG1GC -XX:+UseStringDeduplication' }}
+          JAVA_TOOL_OPTIONS: ${{ secrets.JAVA_TOOL_OPTIONS || '' }}
           MINIO_SERVICE_ENABLE: ${{ secrets.MINIO_SERVICE_ENABLE || 'true' }}
           CLOUDINARY_SERVICE_ENABLE: ${{ secrets.CLOUDINARY_SERVICE_ENABLE || 'false' }}
           MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT || '172.17.0.1:9050' }}
