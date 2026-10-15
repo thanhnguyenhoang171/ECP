@@ -8,7 +8,13 @@ services:
       - "host.docker.internal:host-gateway"
     ports:
       - "${API_PORT:-9091}:9090"
+    env_file:
+      - .env
     environment:
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:-}
+      HIKARI_MAX_POOL_SIZE: ${HIKARI_MAX_POOL_SIZE:-30}
+      HIKARI_MIN_IDLE: ${HIKARI_MIN_IDLE:-10}
+      LOGGING_LEVEL_HIKARI: ${LOGGING_LEVEL_HIKARI:-WARN}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
@@ -40,6 +46,13 @@ services:
       SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
       SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
       SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4096M
+        reservations:
+          memory: 1536M
     networks:
       - ecp_network
 
@@ -50,11 +63,18 @@ services:
     restart: always
     ports:
       - "${ADMIN_PORT:-8081}:80"
+    env_file:
+      - .env
     environment:
       ADMIN_INTERNAL_API_URL: ${ADMIN_INTERNAL_API_URL:-http://api:9090/api}
       NEXT_PUBLIC_ADMIN_API_URL: ${NEXT_PUBLIC_ADMIN_API_URL:-http://api:9090/api}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:9090/api}
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1024M
     networks:
       - ecp_network
 
@@ -65,11 +85,18 @@ services:
     restart: always
     ports:
       - "${STOREFRONT_PORT:-3000}:3000"
+    env_file:
+      - .env
     environment:
       STOREFRONT_INTERNAL_API_URL: ${STOREFRONT_INTERNAL_API_URL:-http://api:9090/api}
       NEXT_PUBLIC_STOREFRONT_API_URL: ${NEXT_PUBLIC_STOREFRONT_API_URL:-/api}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_STOREFRONT_API_URL:-/api}
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1536M
     networks:
       - ecp_network
 
