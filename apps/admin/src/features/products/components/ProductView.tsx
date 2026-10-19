@@ -39,13 +39,14 @@ import {
 import { Product } from '../types/product.interface';
 import { toast } from 'sonner';
 
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatDateTimeForFilename } from '@/lib/formatters';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { getSortOptions } from '@/types';
 import { cn } from '@/lib/utils';
 import { useProducts } from '../hooks/use-products';
 import { useDeleteProduct } from '../hooks/use-product-mutation';
+import { productApi } from '../api/product.api';
 import { useInfiniteCategories } from '@/features/categories/hooks/use-categories';
 
 export default function ProductView(): React.ReactElement {
@@ -126,12 +127,28 @@ export default function ProductView(): React.ReactElement {
 
   useHotkeys('+', handleCreate);
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async (): Promise<void> => {
     setIsExporting(true);
-    setTimeout(() => {
+    try {
+      const blob = await productApi.export();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      try {
+        link.href = url;
+        link.download = `san-pham_${formatDateTimeForFilename()}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+      } finally {
+        link.remove();
+        window.URL.revokeObjectURL(url);
+      }
       toast.success('Xuất danh sách sản phẩm thành công');
+    } catch (error) {
+      console.error('Product export error:', error);
+      toast.error('Có lỗi xảy ra khi xuất file Excel');
+    } finally {
       setIsExporting(false);
-    }, 1000);
+    }
   }, []);
 
   const sortOptions = useMemo(() => getSortOptions(['NAME', 'PRICE']), []);
@@ -322,8 +339,8 @@ export default function ProductView(): React.ReactElement {
 
   const commonActions = (
     <>
-      <ImportButton onClick={() => toast.info('Tính năng Nhập file đang phát triển')} disabled={isExporting} />
-      <ExportButton onExport={handleExport} isLoading={isExporting} disabled={isExporting || isForbidden} />
+      <ImportButton onClick={() => router.push('/products/import')} disabled={isExporting || isForbidden} />
+      <ExportButton onExport={handleExport} isLoading={isExporting} disabled={isLoading || isFetching || isForbidden} />
       <AddNewButton onClick={handleCreate} disabled={isExporting} />
     </>
   );

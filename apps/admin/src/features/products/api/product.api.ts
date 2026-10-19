@@ -4,7 +4,51 @@ import { Product } from '../types/product.interface';
 import { ProductFormValues } from '../schemas/product.schema';
 import { fileApi } from '@/features/files/api/file.api';
 
+interface ProductImportResponse {
+  success: boolean;
+  message: string;
+  code?: string;
+  error?: string;
+}
+
 export const productApi = {
+  export: async (): Promise<Blob> => {
+    const res = await clientFetch('v1/products/export');
+    if (!res.ok) {
+      throw new Error('Không thể xuất danh sách sản phẩm');
+    }
+    return res.blob();
+  },
+
+  template: async (): Promise<Blob> => {
+    const res = await clientFetch('v1/products/download-template');
+    if (!res.ok) {
+      throw new Error('Không thể tải file mẫu sản phẩm');
+    }
+    return res.blob();
+  },
+
+  import: async (file: File): Promise<ProductImportResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await clientFetch('v1/products/import', {
+      method: 'POST',
+      body: formData,
+      skipToast: true,
+    });
+    const result: ProductImportResponse = await res.json();
+    if (!res.ok || !result.success) {
+      throw new ApiError(
+        result.code || 'PRODUCT_IMPORT_FAILED',
+        result.message || result.error || 'Nhập dữ liệu sản phẩm thất bại',
+        res.status,
+        result,
+      );
+    }
+    return result;
+  },
+
   create: async (data: ProductFormValues): Promise<Product> => {
     try {
       // Process Thumbnail

@@ -7,7 +7,6 @@ import ProductForm from '@/features/products/components/ProductForm';
 import { useProductDetail } from '@/features/products/hooks/use-products';
 import { PageHeader, Breadcrumbs } from '@/components/common';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
 
 export default function EditProductPage() {
   const params = useParams();
@@ -117,8 +116,8 @@ export default function EditProductPage() {
       <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-2xs">
         <ProductForm
           initialData={initialData as any}
+          onCancel={() => router.push(`/products/${productId}`)}
           onSuccess={() => {
-            toast.success('Cập nhật sản phẩm thành công');
             router.push(`/products/${productId}`);
             router.refresh();
           }}

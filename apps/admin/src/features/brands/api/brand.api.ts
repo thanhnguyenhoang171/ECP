@@ -6,7 +6,51 @@ import { toApiPage, syncPagination } from '@/lib/utils';
 import { ApiError } from '@/constants/errorMessages';
 import { fileApi } from '@/features/files/api/file.api';
 
+interface BrandImportResponse {
+  success: boolean;
+  message: string;
+  code?: string;
+  error?: string;
+}
+
 export const brandApi = {
+  export: async (): Promise<Blob> => {
+    const res = await clientFetch('v1/brands/export');
+    if (!res.ok) {
+      throw new Error('Không thể xuất danh sách thương hiệu');
+    }
+    return res.blob();
+  },
+
+  template: async (): Promise<Blob> => {
+    const res = await clientFetch('v1/brands/download-template');
+    if (!res.ok) {
+      throw new Error('Không thể tải file mẫu thương hiệu');
+    }
+    return res.blob();
+  },
+
+  import: async (file: File): Promise<BrandImportResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await clientFetch('v1/brands/import', {
+      method: 'POST',
+      body: formData,
+      skipToast: true,
+    });
+    const result: BrandImportResponse = await res.json();
+    if (!res.ok || !result.success) {
+      throw new ApiError(
+        result.code || 'BRAND_IMPORT_FAILED',
+        result.message || result.error || 'Nhập dữ liệu thương hiệu thất bại',
+        res.status,
+        result,
+      );
+    }
+    return result;
+  },
+
   // Get paged brand list
   getPaged: async (params: {
     page: number;

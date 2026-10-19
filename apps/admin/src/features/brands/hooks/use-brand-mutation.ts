@@ -1,8 +1,24 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { brandApi } from '../api/brand.api';
 import { BrandFormValues } from '../schemas/brand.schema';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/constants/errorMessages';
+
+export const useImportBrand = (): UseMutationResult<
+  Awaited<ReturnType<typeof brandApi.import>>,
+  Error,
+  File
+> => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => brandApi.import(file),
+    onSettled: async () => {
+      // Imports may save valid rows even when other rows fail validation.
+      await queryClient.invalidateQueries({ queryKey: ['brands'] });
+    },
+  });
+};
 
 export const useCreateBrand = () => {
   const queryClient = useQueryClient();

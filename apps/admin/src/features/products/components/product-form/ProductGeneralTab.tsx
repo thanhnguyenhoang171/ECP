@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
+import { toast } from 'sonner';
 import { UseFormReturn, useFieldArray } from 'react-hook-form';
-import { Plus, Trash2, ChevronDown, Check, Search } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, Check, Search, Tag, Layers } from 'lucide-react';
 import {
   FormControl,
   FormField,
@@ -11,13 +13,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
 import {
   Popover,
   PopoverContent,
@@ -33,8 +28,67 @@ import {
 import { ProductFormValues } from '../../schemas/product.schema';
 import { Category } from '@/features/categories/types/category.interface';
 import { Brand } from '@/features/brands/types/brand.interface';
+import { useCreateCategory } from '@/features/categories/hooks/use-category-mutation';
+import { categorySchema } from '@/features/categories/schemas/category.schema';
 import { useCreateBrand } from '@/features/brands/hooks/use-brand-mutation';
 import { cn, convertToSlug, convertToSku } from '@/lib/utils';
+
+interface BrandSelectLabelProps {
+  readonly brand: Brand;
+}
+
+const BrandSelectLabel = ({ brand }: BrandSelectLabelProps): React.JSX.Element => (
+  <span className='flex min-w-0 items-center gap-2'>
+    <span className='flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-slate-50 p-0.5'>
+      {brand.logo ? (
+        <Image
+          src={brand.logo}
+          alt=''
+          width={28}
+          height={28}
+          className='h-full w-full object-contain'
+          unoptimized
+        />
+      ) : (
+        <Tag className='h-3.5 w-3.5 text-slate-400' />
+      )}
+    </span>
+    <span className='truncate'>{brand.name}</span>
+  </span>
+);
+
+interface CategorySelectLabelProps {
+  readonly category: Category;
+}
+
+const CategorySelectLabel = ({ category }: CategorySelectLabelProps): React.JSX.Element => {
+  const image: unknown = category.imageUrl || category.image;
+  const imageUrl = typeof image === 'string'
+    ? image
+    : image && typeof image === 'object' && 'url' in image && typeof image.url === 'string'
+      ? image.url
+      : undefined;
+
+  return (
+    <span className='flex min-w-0 items-center gap-2'>
+      <span className='flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-slate-50 p-0.5'>
+        {imageUrl ? (
+          <Image
+            src={imageUrl}
+            alt=''
+            width={28}
+            height={28}
+            className='h-full w-full object-contain'
+            unoptimized
+          />
+        ) : (
+          <Layers className='h-3.5 w-3.5 text-slate-400' />
+        )}
+      </span>
+      <span className='truncate'>{category.name}</span>
+    </span>
+  );
+};
 
 const CreatableBrandSelect = ({
   value,
@@ -84,7 +138,9 @@ const CreatableBrandSelect = ({
           className="w-full h-11 justify-between bg-white border-slate-200 text-left font-normal"
         >
           {selectedBrand ? (
-            <span className="truncate font-medium text-slate-900">{selectedBrand.name}</span>
+            <span className="min-w-0 font-medium text-slate-900">
+              <BrandSelectLabel brand={selectedBrand} />
+            </span>
           ) : (
             <span className="text-slate-400">Chọn hoặc nhập tên thương hiệu...</span>
           )}
@@ -117,8 +173,8 @@ const CreatableBrandSelect = ({
                   setOpen(false);
                 }}
               >
-                <span>{brand.name}</span>
-                {brand.id === value && <Check className="h-3.5 w-3.5 text-blue-600" />}
+                <BrandSelectLabel brand={brand} />
+                {brand.id === value && <Check className="ml-2 h-3.5 w-3.5 shrink-0 text-blue-600" />}
               </button>
             ))}
 
@@ -138,6 +194,137 @@ const CreatableBrandSelect = ({
                 <Plus className="h-3.5 w-3.5 text-blue-600" />
                 <span>
                   {createBrandMutation.isPending ? 'Đang tạo...' : `Tạo mới thương hiệu "${search.trim()}"`}
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+interface CreatableCategorySelectProps {
+  readonly value?: string;
+  readonly onChange: (categoryId: string) => void;
+  readonly categories: readonly Category[];
+}
+
+const CreatableCategorySelect = ({
+  value,
+  onChange,
+  categories,
+}: CreatableCategorySelectProps): React.JSX.Element => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [createdCategories, setCreatedCategories] = useState<Category[]>([]);
+  const createCategoryMutation = useCreateCategory();
+  const availableCategories = [
+    ...categories,
+    ...createdCategories.filter((created) => !categories.some((category) => category.id === created.id)),
+  ];
+  const normalizedSearch = search.trim().toLocaleLowerCase('vi');
+  const selectedCategory = availableCategories.find((category) => category.id === value);
+  const filteredCategories = availableCategories.filter((category) =>
+    category.name.toLocaleLowerCase('vi').includes(normalizedSearch),
+  );
+  const isExactMatch = availableCategories.some((category) =>
+    category.name.trim().toLocaleLowerCase('vi') === normalizedSearch,
+  );
+
+  const handleCreate = async (): Promise<void> => {
+    if (!normalizedSearch || isExactMatch || createCategoryMutation.isPending) {
+      return;
+    }
+    const parsed = categorySchema.safeParse({ name: search.trim() });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message || 'Tên danh mục không hợp lệ');
+      return;
+    }
+    try {
+      const result = await createCategoryMutation.mutateAsync(parsed.data);
+      if (!result.success || !result.data) {
+        toast.error('Không thể tạo danh mục. Vui lòng thử lại.');
+        return;
+      }
+      setCreatedCategories((previous) => [...previous, result.data]);
+      onChange(result.data.id);
+      setSearch('');
+      setOpen(false);
+    } catch (error) {
+      console.error('Quick category creation failed:', error);
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type='button'
+          variant='outline'
+          role='combobox'
+          aria-expanded={open}
+          aria-label='Danh mục chính'
+          className='w-full h-11 justify-between bg-white border-slate-200 text-left font-normal'
+        >
+          {selectedCategory ? (
+            <span className='min-w-0 font-medium text-slate-900'>
+              <CategorySelectLabel category={selectedCategory} />
+            </span>
+          ) : (
+            <span className='truncate text-slate-400'>Chọn hoặc nhập tên danh mục...</span>
+          )}
+          <ChevronDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className='w-[320px] max-w-[calc(100vw-2rem)] p-2' align='start'>
+        <div className='space-y-2'>
+          <div className='relative'>
+            <Search className='absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400' />
+            <Input
+              aria-label='Tìm hoặc nhập tên danh mục mới'
+              placeholder='Tìm hoặc nhập tên mới...'
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              disabled={createCategoryMutation.isPending}
+              className='pl-8 h-9 text-xs'
+            />
+          </div>
+          <div className='max-h-48 overflow-y-auto space-y-1 custom-scrollbar'>
+            {filteredCategories.map((category) => (
+              <button
+                key={category.id}
+                type='button'
+                disabled={createCategoryMutation.isPending}
+                className={cn(
+                  'w-full text-left px-3 py-2 text-xs rounded-md flex items-center justify-between transition-colors',
+                  category.id === value ? 'bg-blue-50 text-blue-700 font-bold' : 'hover:bg-slate-100 text-slate-700',
+                )}
+                onClick={() => {
+                  onChange(category.id);
+                  setOpen(false);
+                  setSearch('');
+                }}
+              >
+                <CategorySelectLabel category={category} />
+                {category.id === value && <Check className='ml-2 h-3.5 w-3.5 shrink-0 text-blue-600' />}
+              </button>
+            ))}
+            {filteredCategories.length === 0 && (
+              <p className='p-3 text-center text-xs text-slate-400'>
+                {normalizedSearch ? 'Không tìm thấy danh mục phù hợp.' : 'Chưa có danh mục nào.'}
+              </p>
+            )}
+            {normalizedSearch && !isExactMatch && (
+              <button
+                type='button'
+                disabled={createCategoryMutation.isPending}
+                className='w-full text-left px-3 py-2 text-xs rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold flex items-center gap-2 border border-blue-200 transition-colors'
+                onClick={handleCreate}
+              >
+                <Plus className='h-3.5 w-3.5 shrink-0 text-blue-600' />
+                <span className='min-w-0 break-words'>
+                  {createCategoryMutation.isPending ? 'Đang tạo...' : `Tạo mới danh mục "${search.trim()}"`}
                 </span>
               </button>
             )}
@@ -367,20 +554,13 @@ export const ProductGeneralTab = ({ form, categories, brands = [], isSlugEditedR
             render={({ field }) => (
               <FormItem>
                 <AdminFormLabel required>Danh mục chính</AdminFormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="h-11 bg-white border-slate-200">
-                      <SelectValue placeholder="Chọn danh mục" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <CreatableCategorySelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    categories={categories}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

@@ -28,30 +28,46 @@ import {
 import { ProductFormValues } from '../../schemas/product.schema';
 import { VariantAttributes } from './VariantAttributes';
 import { MarginIndicator } from './MarginIndicator';
-import { convertToSlug } from '@/lib/utils';
+
+const generateRandomVariantSku = (existingSkus: ReadonlySet<string>): string => {
+  let sku: string;
+  do {
+    const bytes = crypto.getRandomValues(new Uint8Array(8));
+    const code = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
+    sku = `SKU-${code}`;
+  } while (existingSkus.has(sku));
+  return sku;
+};
 
 interface ProductVariantsTabProps {
   form: UseFormReturn<ProductFormValues>;
   onUploadingChange?: (isUploading: boolean) => void;
 }
 
-export const ProductVariantsTab = ({ form, onUploadingChange }: ProductVariantsTabProps) => {
+export const ProductVariantsTab = ({ form, onUploadingChange }: ProductVariantsTabProps): React.JSX.Element => {
   const { fields: variantFields, append: appendVariant, remove: removeVariant } = useFieldArray({
     control: form.control,
     name: "variants",
   });
 
-  const handleAutoGenerateAllSkus = () => {
-    const mainSku = form.getValues('sku') || 'PROD';
-    variantFields.forEach((v, index) => {
-      const attrs = form.getValues(`variants.${index}.attributes`) || [];
-      const attrStr = attrs
-        .map(a => a.value)
-        .filter(Boolean)
-        .map(val => convertToSlug(val).toUpperCase())
-        .join('-');
-      const generated = attrStr ? `${mainSku}-${attrStr}` : `${mainSku}-${index + 1}`;
-      form.setValue(`variants.${index}.sku`, generated, { shouldValidate: true });
+  const getExistingSkus = (): Set<string> => new Set([
+    form.getValues('sku') || '',
+    ...form.getValues('variants').map((variant) => variant.sku || ''),
+  ].map((sku) => sku.trim().toUpperCase()));
+
+  const handleAutoGenerateSku = (index: number): void => {
+    form.setValue(`variants.${index}.sku`, generateRandomVariantSku(getExistingSkus()), {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
+
+  const handleAutoGenerateAllSkus = (): void => {
+    const existingSkus = getExistingSkus();
+    variantFields.forEach((_, index) => {
+      const generated = generateRandomVariantSku(existingSkus);
+      existingSkus.add(generated);
+      form.setValue(`variants.${index}.sku`, generated, { shouldValidate: true, shouldDirty: true });
     });
   };
 
@@ -181,22 +197,13 @@ export const ProductVariantsTab = ({ form, onUploadingChange }: ProductVariantsT
                             <button
                               type="button"
                               className="text-[9px] text-blue-600 font-bold hover:underline"
-                              onClick={() => {
-                                const main = form.getValues('sku') || 'PROD';
-                                const attrs = form.getValues(`variants.${index}.attributes`) || [];
-                                const attrStr = attrs
-                                  .map(a => a.value)
-                                  .filter(Boolean)
-                                  .map(v => convertToSlug(v).toUpperCase())
-                                  .join('-');
-                                form.setValue(`variants.${index}.sku`, attrStr ? `${main}-${attrStr}` : main, { shouldValidate: true });
-                              }}
+                              onClick={() => handleAutoGenerateSku(index)}
                             >
                               Tự sinh
                             </button>
                           </div>
                           <FormControl>
-                            <Input placeholder="Vd: IP15-TITAN-256" {...field} className="h-9 font-mono text-xs uppercase" />
+                            <Input placeholder="Vd: SKU-A1B2C3D4E5F67890" {...field} className="h-9 font-mono text-xs uppercase" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

@@ -16,7 +16,6 @@ import {
   FormActionsBar,
 } from '@/components/common';
 import { useCategories } from '@/features/categories/hooks/use-categories';
-import { Category } from '@/features/categories/types/category.interface';
 import { useActiveBrands } from '@/features/brands/hooks/use-brands';
 import { Brand } from '@/features/brands/types/brand.interface';
 import { useCreateProduct, useUpdateProduct } from '../hooks/use-product-mutation';
@@ -32,23 +31,17 @@ import { ProductVariantsTab } from './product-form/ProductVariantsTab';
 
 interface ProductFormProps {
   onSuccess: () => void;
+  onCancel: () => void;
   initialData?: ProductFormValues & { id?: string };
   isDialog?: boolean;
 }
 
-export default function ProductForm({ onSuccess, initialData, isDialog = false }: ProductFormProps) {
+export default function ProductForm({ onSuccess, onCancel, initialData, isDialog = false }: ProductFormProps): React.JSX.Element {
   const { data: categoriesData } = useCategories({ page: 0, size: 100 });
-  const fetchedCategories = categoriesData?.data || [];
+  const categories = categoriesData?.data || [];
 
   const { data: activeBrands } = useActiveBrands();
   const brands = activeBrands || [];
-
-  // Sử dụng mock data nếu API không trả về danh mục nào để test UI
-  const categories = fetchedCategories.length > 0 ? fetchedCategories : [
-    { id: 'c1', name: 'Snack & Bánh kẹo Thái', slug: 'snack-banh-keo', level: 1 },
-    { id: 'c2', name: 'Nước giải khát & Trà sữa', slug: 'nuoc-giai-khat', level: 1 },
-    { id: 'c3', name: 'Gia vị & Đồ đóng hộp Thái', slug: 'gia-vi-do-dong-hop', level: 1 },
-  ] as Category[];
 
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
@@ -291,7 +284,7 @@ export default function ProductForm({ onSuccess, initialData, isDialog = false }
 
         {/* Sticky Actions Bar */}
         <FormActionsBar
-          onCancel={onSuccess}
+          onCancel={onCancel}
           isSubmitting={isLoading || isImageUploading}
           submitText={isImageUploading ? 'Đang tải ảnh lên...' : (initialData?.id ? 'Cập nhật sản phẩm' : 'Lưu sản phẩm')}
           activeTabLabel={tabs.find(t => t.id === activeTab)?.label}
