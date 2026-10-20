@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, Star } from 'lucide-react';
+import { Heart, Play, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import ProductGrid from './ProductGrid';
+import { ProductDescription } from './ProductDescription';
 import { Product } from '@/types/product';
 import { formatVND } from '@/utils/formatters';
 import { useWishlistStore } from '@/store/wishlistStore';
@@ -17,6 +18,7 @@ interface ProductDetailClientProps {
 
 export default function ProductDetailClient({ product, relatedProducts }: ProductDetailClientProps): React.JSX.Element {
   const [selectedImage, setSelectedImage] = useState(product.images[0]);
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [variantIndex, setVariantIndex] = useState(0);
   const variants = product.variants || [];
   const variant = variants[variantIndex];
@@ -30,10 +32,18 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
       <div className='grid gap-8 lg:grid-cols-2'>
         <div className='space-y-4 min-w-0'>
           <div className='relative aspect-square overflow-hidden rounded-2xl border bg-white'>
-            <Image src={selectedImage || '/product-placeholder.svg'} alt={product.name} fill sizes='(max-width: 1024px) 100vw, 50vw' className='object-contain p-4' priority />
+            {selectedVideo ? <video key={selectedVideo} src={selectedVideo} controls playsInline autoPlay preload='metadata' className='h-full w-full object-contain' aria-label={`Video ${product.name}`} />
+              : <Image src={selectedImage || '/product-placeholder.svg'} alt={product.name} fill sizes='(max-width: 1024px) 100vw, 50vw' className='object-contain p-4' priority />}
+
           </div>
           <div className='flex gap-3 overflow-x-auto'>
-            {product.images.map((image, index) => <button key={`${image}-${index}`} type='button' aria-label={`Xem ảnh ${index + 1}`} aria-pressed={selectedImage === image} onClick={() => setSelectedImage(image)} className={`relative h-20 w-20 shrink-0 rounded-xl border bg-white ${selectedImage === image ? 'border-blue-600' : 'border-slate-200'}`}>
+            {product.videos?.map((video, index) => (
+              <button key={`${video.url}-${index}`} type='button' aria-label={`Xem video ${index + 1}`} aria-pressed={selectedVideo === video.url} onClick={() => setSelectedVideo(video.url)} className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border bg-slate-950 ${selectedVideo === video.url ? 'border-blue-600 ring-1 ring-blue-600' : 'border-slate-200'}`}>
+                <video src={`${video.url}#t=0.1`} muted playsInline preload='metadata' aria-hidden='true' className='pointer-events-none h-full w-full object-cover' />
+                <span className='absolute inset-0 flex items-center justify-center bg-black/15'><Play className='h-8 w-8 rounded-full bg-black/55 p-1.5 text-white' fill='currentColor' aria-hidden='true' /></span>
+              </button>
+            ))}
+            {product.images.map((image, index) => <button key={`${image}-${index}`} type='button' aria-label={`Xem ảnh ${index + 1}`} aria-pressed={!selectedVideo && selectedImage === image} onClick={() => { setSelectedVideo(null); setSelectedImage(image); }} className={`relative h-20 w-20 shrink-0 rounded-xl border bg-white ${!selectedVideo && selectedImage === image ? 'border-blue-600' : 'border-slate-200'}`}>
               <Image src={image} alt='' fill sizes='80px' className='object-contain p-2' />
             </button>)}
           </div>
@@ -58,19 +68,18 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
             <legend className='text-sm font-bold'>Chọn phân loại</legend>
             <div className='flex flex-wrap gap-2'>
               {variants.map((item, index) => <button key={item.skuId || item.sku || index} type='button' aria-pressed={variantIndex === index}
-                onClick={() => { setVariantIndex(index); setSelectedImage(item.image || product.images[0]); }}
+                onClick={() => { setSelectedVideo(null); setVariantIndex(index); setSelectedImage(item.image || product.images[0]); }}
                 className={`rounded-xl border px-4 py-3 text-sm ${variantIndex === index ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white'}`}>
-                {Object.entries(item.attributes || {}).map(([key, value]) => `${key}: ${value}`).join(' / ') || item.sku || 'Mặc định'}
+                {Object.entries(item.attributes || {}).map(([key, value]) => `${key}: ${value}`).join(' / ') || (variants.length === 1 ? 'Mặc định' : `Phân loại ${index + 1}`)}
               </button>)}
             </div>
-            <p className='text-xs text-slate-500'>SKU: {variant?.sku}{variant?.barcode ? ` · Mã vạch: ${variant.barcode}` : ''}</p>
           </fieldset> : <p className='text-sm text-slate-500'>Sản phẩm hiện chưa có phân loại đang bán.</p>}
           <button type='button' onClick={() => { const added = toggleItem(product); toast.success(added ? 'Đã thêm vào yêu thích' : 'Đã xóa khỏi yêu thích'); }} className='inline-flex items-center gap-2 rounded-xl border px-5 py-3 text-sm'>
             <Heart className='h-4 w-4 text-rose-500' /> Yêu thích
           </button>
         </div>
       </div>
-      <section className='space-y-4 border-t pt-8'><h2 className='text-xl font-bold'>Mô tả sản phẩm</h2><p className='whitespace-pre-wrap text-sm leading-7 text-slate-600'>{product.description || 'Chưa có mô tả cho sản phẩm này.'}</p></section>
+      <section className='space-y-4 border-t pt-8'><h2 className='text-xl font-bold'>Mô tả sản phẩm</h2><ProductDescription description={product.description} /></section>
       {specifications.length > 0 && <section className='space-y-4'><h2 className='text-xl font-bold'>Thông số sản phẩm</h2><dl className='divide-y rounded-xl border p-4'>
         {specifications.map(([key, value]) => <div key={key} className='grid grid-cols-2 gap-4 py-3 text-sm'><dt className='font-semibold'>{key}</dt><dd>{String(value)}</dd></div>)}
       </dl></section>}

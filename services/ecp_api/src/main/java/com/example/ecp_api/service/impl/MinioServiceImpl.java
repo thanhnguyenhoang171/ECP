@@ -79,7 +79,7 @@ public class MinioServiceImpl implements MinioService {
             result.put("original_filename", originalFilename);
             result.put("bytes", file.getSize());
             result.put("format", extension);
-            result.put("resource_type", contentType.startsWith("image/") ? "image" : "raw");
+            result.put("resource_type", contentType.startsWith("image/") ? "image" : contentType.startsWith("video/") ? "video" : "raw");
 
             return result;
         } catch (AppException ae) {

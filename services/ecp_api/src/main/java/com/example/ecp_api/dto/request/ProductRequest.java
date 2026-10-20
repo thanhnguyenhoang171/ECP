@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import com.example.ecp_api.entity.mongodb.embedded.ProductImage;
+import com.example.ecp_api.entity.mongodb.embedded.ProductVideo;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +52,9 @@ public class ProductRequest {
 
     @Schema(description = "List of product gallery images")
     private List<ProductImage> images;
+
+    @jakarta.validation.Valid
+    private List<ProductVideo> videos;
 
     @Schema(description = "Dynamic specifications (Map of Key-Value pairs)", example = "{\"RAM\": \"12GB\", \"Chip\": \"A17 Pro\"}")
     private Map<String, Object> specifications;

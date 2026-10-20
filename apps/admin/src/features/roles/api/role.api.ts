@@ -2,6 +2,17 @@ import { Role, Permission, RoleRequest, PermissionRequest } from '../types/role.
 import { clientFetch } from '@/lib/clientFetch';
 import { ApiError, ErrorMessages } from '@/constants/errorMessages';
 
+interface ApiRole extends Omit<Role, 'isSystem'> {
+  system?: boolean;
+  isSystem?: boolean;
+}
+
+const normalizeRole = (role: ApiRole): Role => ({
+  ...role,
+  isSystem: role.isSystem ?? role.system ?? false,
+  permissions: role.permissions ?? [],
+});
+
 export const roleApi = {
   // Lấy tất cả vai trò trong hệ thống kèm quyền hạn
   getAll: async (): Promise<Role[]> => {
@@ -13,14 +24,14 @@ export const roleApi = {
       throw new Error('Lỗi tải danh sách vai trò hệ thống');
     }
     const result = await res.json();
-    return (result.data || []) as Role[];
+    return (result.data ?? []).map((role: ApiRole) => normalizeRole(role));
   },
 
   // Lấy tất cả quyền hạn có sẵn trong hệ thống
   getAllPermissions: async (): Promise<Permission[]> => {
     const res = await clientFetch('v1/roles/permissions');
     if (!res.ok) {
-      throw new Error('Lỗi tải danh sách quyền hạn hệ thống');
+      throw new ApiError(res.status === 403 ? 'AUTH_ACCESS_DENIED' : 'PERMISSION_LIST_FAILED', 'Không thể tải danh sách quyền hạn hệ thống', res.status);
     }
     const result = await res.json();
     return (result.data || []) as Permission[];
@@ -51,7 +62,7 @@ export const roleApi = {
 
     }
     const result = await res.json();
-    return result.data as Role;
+    return normalizeRole(result.data);
   },
 
   // Tạo vai trò tùy chỉnh mới
@@ -67,13 +78,13 @@ export const roleApi = {
 
     }
     const result = await res.json();
-    return result.data as Role;
+    return normalizeRole(result.data);
   },
 
   // Cập nhật vai trò và ma trận phân quyền
   update: async (id: string, data: RoleRequest): Promise<Role> => {
     const res = await clientFetch(`v1/roles/${id}`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
@@ -83,7 +94,7 @@ export const roleApi = {
 
     }
     const result = await res.json();
-    return result.data as Role;
+    return normalizeRole(result.data);
   },
 
   // Xóa vai trò tùy chỉnh

@@ -35,6 +35,7 @@ export const getProductFormValues = (product?: Product): ProductFormValues => ({
   description: product?.description || '',
   thumbnail: toFormImage(product?.thumbnail),
   images: product?.images?.map(toFormImage) || [],
+  videos: product?.videos || [],
   specifications: toPairs(product?.specifications),
   isPublished: product?.isPublished ?? product?.published ?? true,
   isFeatured: product?.isFeatured ?? product?.featured ?? false,

@@ -24,6 +24,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge, FormSection, FormGrid, AdminFormLabel, FormActionsBar } from '@/components/common';
 import { cn } from '@/lib/utils';
+import { getApiErrorMessage } from '@/constants/errorMessages';
 import { Role, Permission, RoleRequest } from '../types/role.interface';
 import { usePermissions, useCreateRole, useUpdateRole } from '../hooks/use-roles';
 import { roleSchema, RoleFormValues } from '../schemas/role.schema';
@@ -57,11 +58,13 @@ export default function RoleForm({
   initialData,
   roleId,
   isLoadingData = false,
-}: RoleFormProps) {
+}: RoleFormProps): React.JSX.Element {
   const isEdit = !!initialData || !!roleId;
   const isSystem = initialData?.isSystem ?? false;
 
-  const { data: permissions = [], isLoading: isPermissionsLoading } = usePermissions();
+  const permissionQuery = usePermissions();
+  const { data: permissions = [], isLoading: isPermissionsLoading } = permissionQuery;
+  const permissionsUnavailable = !permissionQuery.isSuccess;
   const createMutation = useCreateRole();
   const updateMutation = useUpdateRole();
 
@@ -159,7 +162,10 @@ export default function RoleForm({
   const assignedCount = selectedPermissionCodes.length;
   const coveragePercent = Math.round((assignedCount / totalCount) * 100);
 
-  const onSubmit = (values: RoleFormValues) => {
+  const onSubmit = (values: RoleFormValues): void => {
+    if (permissionsUnavailable || createMutation.isPending || updateMutation.isPending) {
+      return;
+    }
     const payload: RoleRequest = {
       code: values.code.trim().toUpperCase(),
       name: values.name.trim(),
@@ -298,7 +304,13 @@ export default function RoleForm({
           title="Ma trận phân quyền hệ thống"
           description="Lựa chọn các đặc quyền nghiệp vụ chi tiết được cấp phát cho vai trò này."
         >
-          <div className="space-y-4">
+          {permissionQuery.isError && (
+            <div role='alert' className='mb-4 space-y-2 rounded-xl border border-red-200 bg-red-50 p-4'>
+              <p className='text-sm text-red-700'>{getApiErrorMessage(permissionQuery.error, 'Không thể tải danh sách quyền hạn. Vui lòng thử lại trước khi lưu.')}</p>
+              <Button type='button' variant='outline' disabled={permissionQuery.isFetching} onClick={() => { void permissionQuery.refetch(); }}>Thử lại</Button>
+            </div>
+          )}
+          <fieldset disabled={permissionsUnavailable || isSubmitting} className='min-w-0 space-y-4'>
             {/* Header controls: Progress & Search & Quick Select */}
             <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -464,13 +476,14 @@ export default function RoleForm({
                 })}
               </div>
             )}
-          </div>
+          </fieldset>
         </FormSection>
 
         {/* Sticky Form Actions Bar */}
         <FormActionsBar
           onCancel={onCancel}
           isSubmitting={isSubmitting}
+          submitDisabled={permissionsUnavailable}
           submitText={isEdit ? 'Lưu thay đổi vai trò' : 'Tạo vai trò mới'}
         />
       </form>

@@ -8,6 +8,14 @@ const productImageSchema = z.union([
   }),
 ]);
 
+const productVideoSchema = z.union([
+  z.object({ url: z.string().url(), publicId: z.string().optional() }),
+  z.custom<File>((value) => typeof File !== 'undefined' && value instanceof File
+    && ['video/mp4', 'video/webm'].includes(value.type) && value.size > 0 && value.size <= 50 * 1024 * 1024, {
+    message: 'Video phải là MP4 hoặc WebM, dung lượng tối đa 50 MB',
+  }),
+]);
+
 export const productAttributeSchema = z.object({
   key: z.string().min(1, "Tên thuộc tính không được để trống"),
   value: z.string().min(1, "Giá trị không được để trống"),
@@ -41,6 +49,7 @@ export const productSchema = z.object({
   description: z.string().optional().or(z.literal("")),
   thumbnail: productImageSchema.optional(),
   images: z.array(productImageSchema).default([]),
+  videos: z.array(productVideoSchema).default([]),
   specifications: z.array(productSpecificationSchema).default([]),
   variants: z.array(productVariantSchema).min(1, "Phải có ít nhất một biến thể"),
   isPublished: z.boolean().default(true),

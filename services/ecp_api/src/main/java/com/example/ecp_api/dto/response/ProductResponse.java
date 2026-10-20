@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import com.example.ecp_api.entity.mongodb.embedded.ProductImage;
+import com.example.ecp_api.entity.mongodb.embedded.ProductVideo;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +52,8 @@ public class ProductResponse {
 
     @Schema(description = "List of product gallery images")
     private List<ProductImage> images;
+
+    private List<ProductVideo> videos;
 
     @Schema(description = "Dynamic specifications")
     private Map<String, Object> specifications;

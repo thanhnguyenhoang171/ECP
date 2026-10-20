@@ -60,6 +60,11 @@ export interface CategoryInfo {
   name?: string;
 }
 
+export interface ProductVideo {
+  url: string;
+  publicId?: string;
+}
+
 export interface Product {
   id: string;
   sku: string;
@@ -74,6 +79,7 @@ export interface Product {
   description?: string;
   thumbnail?: { url?: string; publicId?: string } | string | null;
   images?: Array<{ url?: string; publicId?: string } | string>;
+  videos?: ProductVideo[];
   specifications?: Record<string, AttributeValue> | ProductSpecificationItem[];
   variants?: ProductVariant[];
   isPublished: boolean;
@@ -87,6 +93,8 @@ export interface Product {
   createdAt?: string;
   updatedAt?: string;
 
+  createdBy?: string;
+  updatedBy?: string;
   price?: number;
   costPrice?: number;
   compareAtPrice?: number;

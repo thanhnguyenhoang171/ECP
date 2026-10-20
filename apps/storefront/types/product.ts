@@ -1,3 +1,8 @@
+export interface ProductVideo {
+  url: string;
+  publicId?: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -9,6 +14,7 @@ export interface Product {
   rating: number;
   reviewCount: number;
   images: string[];
+  videos?: ProductVideo[];
   category: string;
   isNew?: boolean;
   isFeatured?: boolean;
@@ -54,6 +60,7 @@ export interface BackendProduct {
   description?: string;
   thumbnail?: string | { url?: string } | null;
   images?: Array<string | { url?: string }>;
+  videos?: ProductVideo[];
   categoryId?: string;
   categoryName?: string;
   category?: { id?: string; name?: string } | string;

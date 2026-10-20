@@ -9,6 +9,7 @@ import { useUIStore } from '@/store/uiStore';
 export interface FormActionsBarProps {
   onCancel: () => void;
   isSubmitting?: boolean;
+  submitDisabled?: boolean;
   submitText: string;
   activeTabLabel?: string;
   isDialog?: boolean;
@@ -17,6 +18,7 @@ export interface FormActionsBarProps {
 export function FormActionsBar({
   onCancel,
   isSubmitting = false,
+  submitDisabled = false,
   submitText,
   activeTabLabel,
   isDialog = false,
@@ -38,7 +40,7 @@ export function FormActionsBar({
         <Button
           type="submit"
           className="bg-blue-600 hover:bg-blue-700 min-w-36 shadow-lg shadow-blue-200 h-11 font-bold text-xs uppercase tracking-widest"
-          disabled={isSubmitting}
+          disabled={isSubmitting || submitDisabled}
         >
           {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
           {submitText}
@@ -78,7 +80,7 @@ export function FormActionsBar({
           <Button
             type="submit"
             className="bg-blue-600 hover:bg-blue-700 px-10 font-bold text-xs uppercase tracking-wider shadow-lg shadow-blue-200"
-            disabled={isSubmitting}
+            disabled={isSubmitting || submitDisabled}
           >
             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {submitText}

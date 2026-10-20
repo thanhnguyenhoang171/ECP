@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import Cropper, { type Area, type Point } from 'react-easy-crop';
+import Cropper, { type Area, type MediaSize, type Point, type Size } from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
 import {
   Crop,
   ZoomIn,
   ZoomOut,
+  Maximize,
   RotateCw,
   RotateCcw,
   Check,
@@ -76,6 +77,20 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
   const [currentAspect, setCurrentAspect] = useState<number | undefined>(initialAspect);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
+  const [mediaSize, setMediaSize] = useState<MediaSize | null>(null);
+  const [cropSize, setCropSize] = useState<Size | null>(null);
+  const [freeAspect, setFreeAspect] = useState<Size | null>(null);
+  const freeWidth = freeAspect?.width ?? mediaSize?.naturalWidth ?? 1;
+  const freeHeight = freeAspect?.height ?? mediaSize?.naturalHeight ?? 1;
+  const effectiveAspect = currentAspect ?? freeWidth / freeHeight;
+  const radians = rotation * Math.PI / 180;
+  const rotatedWidth = mediaSize ? Math.abs(Math.cos(radians)) * mediaSize.width + Math.abs(Math.sin(radians)) * mediaSize.height : 0;
+  const rotatedHeight = mediaSize ? Math.abs(Math.sin(radians)) * mediaSize.width + Math.abs(Math.cos(radians)) * mediaSize.height : 0;
+  const fitZoom = cropSize && rotatedWidth > 0 && rotatedHeight > 0
+    ? Math.min(cropSize.width / rotatedWidth, cropSize.height / rotatedHeight)
+    : 1;
+  const minZoom = Math.min(1, fitZoom);
+
   // Sync aspect ratio when modal opens or initialAspect changes
   useEffect(() => {
     if (isOpen) {
@@ -83,8 +98,21 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
       setZoom(1);
       setRotation(0);
       setCurrentAspect(initialAspect);
+      setFreeAspect(null);
     }
   }, [isOpen, initialAspect]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setCrop({ x: 0, y: 0 });
+      setZoom(fitZoom);
+    }
+  }, [isOpen, imageSrc, fitZoom]);
+
+  const handleFitImage = (): void => {
+    setCrop({ x: 0, y: 0 });
+    setZoom(fitZoom);
+  };
 
   const onCropCompleteHandler = useCallback((_croppedArea: Area, areaPixels: Area): void => {
     setCroppedAreaPixels(areaPixels);
@@ -92,9 +120,10 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 
   const handleReset = (): void => {
     setCrop({ x: 0, y: 0 });
-    setZoom(1);
+    setZoom(fitZoom);
     setRotation(0);
     setCurrentAspect(initialAspect);
+    setFreeAspect(null);
   };
 
   const handleRotate = (): void => {
@@ -137,7 +166,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && !isLoading && onClose()}>
-      <DialogContent className="sm:max-w-xl w-[95vw] p-0 overflow-hidden bg-white border border-slate-200 text-slate-900 shadow-2xl rounded-2xl gap-0">
+      <DialogContent className="sm:max-w-xl w-[95vw] p-0 max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white border border-slate-200 text-slate-900 shadow-2xl rounded-2xl gap-0">
         {/* Header */}
         <DialogHeader className="p-5 pb-4 border-b border-slate-100 bg-slate-50/50 flex flex-row items-center justify-between space-y-0">
           <div className="flex items-center gap-3">
@@ -156,13 +185,17 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
         </DialogHeader>
 
         {/* Cropper Viewport */}
-        <div className="relative w-full h-84 sm:h-96 bg-slate-950 flex items-center justify-center overflow-hidden select-none">
+        <div className="relative w-full h-64 sm:h-96 bg-slate-950 flex items-center justify-center overflow-hidden select-none">
           <Cropper
             image={imageSrc}
             crop={crop}
             zoom={zoom}
+            minZoom={minZoom}
+            restrictPosition={false}
+            onMediaLoaded={setMediaSize}
+            onCropSizeChange={setCropSize}
             rotation={rotation}
-            aspect={currentAspect}
+            aspect={effectiveAspect}
             cropShape={cropShape}
             showGrid={true}
             onCropChange={setCrop}
@@ -188,9 +221,8 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 
         {/* Controls Toolbar */}
         <div className="p-4 bg-slate-50/80 border-t border-slate-100 space-y-3">
-          {/* Aspect Presets (if not strictly locked) */}
-          {!lockAspect && (
-            <div className="flex items-center justify-between pb-1 border-b border-slate-200/60">
+          {/* Shared aspect controls across image editors. */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200/60">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 Tỷ lệ khung:
               </span>
@@ -206,6 +238,8 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
                       type="button"
                       variant={isSelected ? 'default' : 'outline'}
                       size="sm"
+                      aria-pressed={isSelected}
+                      disabled={isLoading || (lockAspect && !isSelected)}
                       className={`h-7 px-2.5 text-xs font-semibold rounded-lg ${
                         isSelected
                           ? 'bg-blue-600 text-white hover:bg-blue-700'
@@ -219,6 +253,18 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
                 })}
               </div>
             </div>
+          {!lockAspect && currentAspect === undefined && (
+            <div className='flex items-center gap-2 text-xs text-slate-600'>
+              <label className='flex min-w-0 flex-1 items-center gap-2'>
+                Rộng
+                <input aria-label='Chiều rộng tỷ lệ tự do' type='number' min={1} value={freeWidth} disabled={isLoading} onChange={(event) => setFreeAspect({ width: Math.max(1, Number(event.target.value)), height: freeHeight })} className='h-8 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2' />
+              </label>
+              <span>:</span>
+              <label className='flex min-w-0 flex-1 items-center gap-2'>
+                Cao
+                <input aria-label='Chiều cao tỷ lệ tự do' type='number' min={1} value={freeHeight} disabled={isLoading} onChange={(event) => setFreeAspect({ width: freeWidth, height: Math.max(1, Number(event.target.value)) })} className='h-8 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2' />
+              </label>
+            </div>
           )}
 
           {/* Zoom Slider */}
@@ -228,7 +274,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
               variant="outline"
               size="icon"
               className="h-8 w-8 rounded-lg text-slate-600 border-slate-200 bg-white hover:bg-slate-100 hover:text-slate-900 shrink-0 shadow-sm"
-              onClick={() => setZoom((prev) => Math.max(1, prev - 0.2))}
+              onClick={() => setZoom((prev) => Math.max(minZoom, prev - 0.2))}
               title="Thu nhỏ"
             >
               <ZoomOut size={16} />
@@ -236,7 +282,8 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 
             <input
               type="range"
-              min={1}
+              aria-label='Độ phóng to ảnh'
+              min={minZoom}
               max={3}
               step={0.02}
               value={zoom}
@@ -257,8 +304,8 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
           </div>
 
           {/* Secondary Tools: Rotate & Reset */}
-          <div className="flex items-center justify-between pt-0.5">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
                 variant="outline"
@@ -277,6 +324,9 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
                 className="h-8 px-3 text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl gap-1.5"
               >
                 <RotateCcw size={13} /> Khôi phục
+              </Button>
+              <Button type='button' variant='ghost' size='sm' onClick={handleFitImage} disabled={!mediaSize || isLoading} className='h-8 gap-1.5 rounded-xl px-2 text-xs text-slate-500 hover:bg-slate-200/60'>
+                <Maximize size={13} /> Lấy toàn bộ ảnh
               </Button>
             </div>
 
@@ -301,7 +351,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
           <Button
             type="button"
             onClick={handleConfirmCrop}
-            disabled={isLoading}
+            disabled={isLoading || !croppedAreaPixels}
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl px-5 h-9 gap-2 shadow-md shadow-blue-500/20"
           >
             {isLoading ? (

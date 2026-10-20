@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -55,18 +56,16 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional
     public RoleResponse createRole(RoleRequest request) {
-        if (roleRepository.existsByCode(request.getCode())) {
+        String code = request.getCode().trim().toUpperCase(Locale.ROOT);
+        if (roleRepository.existsByCode(code)) {
             throw new AppException("CONFLICT", "Role code already exists: " + request.getCode(), HttpStatus.CONFLICT);
         }
 
-        Set<Permission> permissions = new HashSet<>();
-        if (request.getPermissionCodes() != null && !request.getPermissionCodes().isEmpty()) {
-            permissions = permissionRepository.findByCodeIn(request.getPermissionCodes());
-        }
+        Set<Permission> permissions = resolvePermissions(request.getPermissionCodes());
 
         Role role = Role.builder()
-                .code(request.getCode().toUpperCase())
-                .name(request.getName())
+                .code(code)
+                .name(request.getName().trim())
                 .description(request.getDescription())
                 .isSystem(false)
                 .permissions(permissions)
@@ -81,16 +80,18 @@ public class RoleServiceImpl implements RoleService {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new AppException("NOT_FOUND", "Role not found with ID: " + id, HttpStatus.NOT_FOUND));
 
-        if (role.isSystem() && !role.getCode().equalsIgnoreCase(request.getCode())) {
+        String code = request.getCode().trim().toUpperCase(Locale.ROOT);
+        if (role.isSystem() && !role.getCode().equals(code)) {
             throw new AppException("FORBIDDEN", "System roles cannot have their code changed", HttpStatus.FORBIDDEN);
         }
 
-        Set<Permission> permissions = new HashSet<>();
-        if (request.getPermissionCodes() != null && !request.getPermissionCodes().isEmpty()) {
-            permissions = permissionRepository.findByCodeIn(request.getPermissionCodes());
-        }
+        Set<Permission> permissions = resolvePermissions(request.getPermissionCodes());
 
-        role.setName(request.getName());
+        if (!role.getCode().equals(code) && roleRepository.existsByCode(code)) {
+            throw new AppException("CONFLICT", "Mã vai trò đã tồn tại: " + code, HttpStatus.CONFLICT);
+        }
+        role.setCode(code);
+        role.setName(request.getName().trim());
         role.setDescription(request.getDescription());
         role.setPermissions(permissions);
 
@@ -144,6 +145,18 @@ public class RoleServiceImpl implements RoleService {
                 .build();
 
         return mapToPermissionResponse(permissionRepository.save(permission));
+    }
+
+    private Set<Permission> resolvePermissions(Set<String> codes) {
+        if (codes == null || codes.isEmpty()) {
+            return new HashSet<>();
+        }
+        Set<Permission> permissions = permissionRepository.findByCodeIn(codes);
+        Set<String> foundCodes = permissions.stream().map(Permission::getCode).collect(Collectors.toSet());
+        if (!foundCodes.containsAll(codes)) {
+            throw new AppException("ROLE_PERMISSION_INVALID", "Có quyền hạn không còn tồn tại. Vui lòng tải lại danh sách quyền", HttpStatus.BAD_REQUEST);
+        }
+        return permissions;
     }
 
     private RoleResponse mapToRoleResponse(Role role) {
