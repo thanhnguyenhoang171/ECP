@@ -6,7 +6,8 @@
     "dev": "node scripts/run-dev.mjs",
     "build": "next build",
     "start": "node scripts/run-start.mjs",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "check:upload-proxy": "node scripts/check-upload-proxy.mts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
