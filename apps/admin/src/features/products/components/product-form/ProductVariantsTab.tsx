@@ -28,15 +28,24 @@ import {
 import { ProductFormValues } from '../../schemas/product.schema';
 import { VariantAttributes } from './VariantAttributes';
 import { MarginIndicator } from './MarginIndicator';
-import { convertToSlug, generateRandomSku } from '@/lib/utils';
 import { toast } from 'sonner';
+
+const generateRandomVariantSku = (existingSkus: ReadonlySet<string>): string => {
+  let sku: string;
+  do {
+    const bytes = crypto.getRandomValues(new Uint8Array(8));
+    const code = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
+    sku = `SKU-${code}`;
+  } while (existingSkus.has(sku));
+  return sku;
+};
 
 interface ProductVariantsTabProps {
   form: UseFormReturn<ProductFormValues>;
   onUploadingChange?: (isUploading: boolean) => void;
 }
 
-export const ProductVariantsTab = ({ form, onUploadingChange }: ProductVariantsTabProps) => {
+export const ProductVariantsTab = ({ form, onUploadingChange }: ProductVariantsTabProps): React.JSX.Element => {
   const { fields: variantFields, append: appendVariant, remove: removeVariant } = useFieldArray({
     control: form.control,
     name: 'variants',
@@ -47,15 +56,24 @@ export const ProductVariantsTab = ({ form, onUploadingChange }: ProductVariantsT
   const [bulkCompareAtPrice, setBulkCompareAtPrice] = useState<string>('');
   const [bulkCostPrice, setBulkCostPrice] = useState<string>('');
 
+  const getExistingSkus = (): Set<string> => new Set([
+    form.getValues('sku') || '',
+    ...form.getValues('variants').map((variant) => variant.sku || ''),
+  ].map((sku) => sku.trim().toUpperCase()));
+
+  const handleAutoGenerateSku = (index: number): void => {
+    form.setValue(`variants.${index}.sku`, generateRandomVariantSku(getExistingSkus()), {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
+
   const handleAutoGenerateAllSkus = (): void => {
-    let mainSku = form.getValues('sku');
-    if (!mainSku) {
-      mainSku = generateRandomSku('SKU', 8);
-      form.setValue('sku', mainSku, { shouldValidate: true, shouldDirty: true });
-    }
+    const existingSkus = getExistingSkus();
     variantFields.forEach((_, index) => {
-      const randomPart = generateRandomSku('', 4);
-      form.setValue(`variants.${index}.sku`, `${mainSku}-${randomPart}`, { shouldValidate: true, shouldDirty: true });
+      const generated = generateRandomVariantSku(existingSkus);
+      existingSkus.add(generated);
+      form.setValue(`variants.${index}.sku`, generated, { shouldValidate: true, shouldDirty: true });
     });
     toast.success('Đã tự động sinh mã SKU ngẫu nhiên cho tất cả biến thể');
   };
@@ -87,16 +105,10 @@ export const ProductVariantsTab = ({ form, onUploadingChange }: ProductVariantsT
 
   const handleDuplicateVariant = (index: number): void => {
     const current = form.getValues(`variants.${index}`);
-    let mainSku = form.getValues('sku');
-    if (!mainSku) {
-      mainSku = generateRandomSku('SKU', 8);
-      form.setValue('sku', mainSku, { shouldValidate: true, shouldDirty: true });
-    }
-    const randomPart = generateRandomSku('', 4);
     appendVariant({
       ...current,
       skuId: undefined,
-      sku: `${mainSku}-${randomPart}`,
+      sku: generateRandomVariantSku(getExistingSkus()),
       attributes: current.attributes?.map((a) => ({ ...a })) || [],
     });
     toast.success('Đã sao chép cấu hình biến thể mới');
@@ -348,29 +360,14 @@ export const ProductVariantsTab = ({ form, onUploadingChange }: ProductVariantsT
                             <AdminFormLabel className="text-xs">Mã SKU</AdminFormLabel>
                             <button
                               type="button"
-                              className="text-[10px] text-blue-600 font-bold hover:underline"
-                              onClick={() => {
-                                let main = form.getValues('sku');
-                                if (!main) {
-                                  main = generateRandomSku('SKU', 8);
-                                  form.setValue('sku', main, { shouldValidate: true, shouldDirty: true });
-                                }
-                                const randomPart = generateRandomSku('', 4);
-                                form.setValue(`variants.${index}.sku`, `${main}-${randomPart}`, {
-                                  shouldValidate: true,
-                                  shouldDirty: true,
-                                });
-                              }}
+                              className="text-[9px] text-blue-600 font-bold hover:underline"
+                              onClick={() => handleAutoGenerateSku(index)}
                             >
                               Tự sinh
                             </button>
                           </div>
                           <FormControl>
-                            <Input
-                              placeholder="Vd: SKU-A8F2K9M1-X7P2"
-                              {...field}
-                              className="h-9 font-mono text-xs uppercase border-slate-200"
-                            />
+                            <Input placeholder="Vd: SKU-A1B2C3D4E5F67890" {...field} className="h-9 font-mono text-xs uppercase" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

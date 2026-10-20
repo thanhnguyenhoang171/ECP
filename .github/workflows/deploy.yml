@@ -224,6 +224,12 @@ jobs:
           SPRING_REDIS_USERNAME: ${{ secrets.SPRING_REDIS_USERNAME }}
           SPRING_REDIS_PASSWORD: ${{ secrets.SPRING_REDIS_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          SPRING_PROFILES_ACTIVE: ${{ secrets.SPRING_PROFILES_ACTIVE || 'prod' }}
+          SPRING_JPA_DDL_AUTO: ${{ secrets.SPRING_JPA_DDL_AUTO || 'update' }}
+          HIKARI_MAX_POOL_SIZE: ${{ secrets.HIKARI_MAX_POOL_SIZE || '30' }}
+          HIKARI_MIN_IDLE: ${{ secrets.HIKARI_MIN_IDLE || '10' }}
+          LOGGING_LEVEL_HIKARI: ${{ secrets.LOGGING_LEVEL_HIKARI || 'WARN' }}
+          JAVA_TOOL_OPTIONS: ${{ secrets.JAVA_TOOL_OPTIONS || '' }}
           MINIO_SERVICE_ENABLE: ${{ secrets.MINIO_SERVICE_ENABLE || 'true' }}
           CLOUDINARY_SERVICE_ENABLE: ${{ secrets.CLOUDINARY_SERVICE_ENABLE || 'false' }}
           MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT || '172.17.0.1:9050' }}
@@ -249,21 +255,52 @@ jobs:
           INTERNAL_API_URL: ${{ secrets.INTERNAL_API_URL }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+          API_CONTAINER_NAME: ${{ secrets.API_CONTAINER_NAME || 'ecp_api' }}
+          ADMIN_CONTAINER_NAME: ${{ secrets.ADMIN_CONTAINER_NAME || 'ecp_admin' }}
+          STOREFRONT_CONTAINER_NAME: ${{ secrets.STOREFRONT_CONTAINER_NAME || 'ecp_storefront' }}
+          COMPOSE_PROJECT_NAME: ${{ secrets.COMPOSE_PROJECT_NAME || 'ecp' }}
+          API_PORT: ${{ secrets.API_PORT || '9091' }}
+          ADMIN_PORT: ${{ secrets.ADMIN_PORT || '8081' }}
+          STOREFRONT_PORT: ${{ secrets.STOREFRONT_PORT || '3000' }}
+          API_CPU_LIMIT: ${{ secrets.API_CPU_LIMIT || '4.0' }}
+          API_MEM_LIMIT: ${{ secrets.API_MEM_LIMIT || '4096M' }}
+          API_MEM_RESERVATION: ${{ secrets.API_MEM_RESERVATION || '1536M' }}
+          ADMIN_CPU_LIMIT: ${{ secrets.ADMIN_CPU_LIMIT || '2.0' }}
+          ADMIN_MEM_LIMIT: ${{ secrets.ADMIN_MEM_LIMIT || '1024M' }}
+          STOREFRONT_CPU_LIMIT: ${{ secrets.STOREFRONT_CPU_LIMIT || '2.0' }}
+          STOREFRONT_MEM_LIMIT: ${{ secrets.STOREFRONT_MEM_LIMIT || '1536M' }}
+          ADMIN_INTERNAL_API_URL: ${{ secrets.ADMIN_INTERNAL_API_URL || 'http://api:9090/api' }}
+          TELEGRAM_ENABLED: ${{ secrets.TELEGRAM_ENABLED || 'false' }}
+          SPRING_MAIL_SENDER_NAME: ${{ secrets.SPRING_MAIL_SENDER_NAME || 'Cacao Shop' }}
+          SPRING_FLYWAY_ENABLED: ${{ secrets.SPRING_FLYWAY_ENABLED || 'true' }}
+          SPRING_JPA_SHOW_SQL: ${{ secrets.SPRING_JPA_SHOW_SQL || 'false' }}
+          JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION || '3600000' }}
+          JWT_REFRESH_EXPIRATION: ${{ secrets.JWT_REFRESH_EXPIRATION || '86400000' }}
         run: |
           node -e '
           const fs = require("fs");
           const envVars = [
+            "COMPOSE_PROJECT_NAME",
+            "API_CONTAINER_NAME", "ADMIN_CONTAINER_NAME", "STOREFRONT_CONTAINER_NAME",
+            "API_PORT", "ADMIN_PORT", "STOREFRONT_PORT",
+            "API_CPU_LIMIT", "API_MEM_LIMIT", "API_MEM_RESERVATION",
+            "ADMIN_CPU_LIMIT", "ADMIN_MEM_LIMIT",
+            "STOREFRONT_CPU_LIMIT", "STOREFRONT_MEM_LIMIT",
             "SPRING_DATASOURCE_URL", "SPRING_DATASOURCE_USERNAME", "SPRING_DATASOURCE_PASSWORD",
             "SPRING_MONGODB_URI", "MYSQL_ROOT_PASSWORD", "MYSQL_DATABASE", "MYSQL_USER",
             "MYSQL_PASSWORD", "MONGO_ROOT_USER", "MONGO_ROOT_PASSWORD",
             "SPRING_REDIS_HOST", "SPRING_REDIS_PORT", "SPRING_REDIS_USERNAME", "SPRING_REDIS_PASSWORD",
-            "JWT_SECRET", "MINIO_SERVICE_ENABLE", "CLOUDINARY_SERVICE_ENABLE",
+            "JWT_SECRET", "JWT_EXPIRATION", "JWT_REFRESH_EXPIRATION",
+            "SPRING_PROFILES_ACTIVE", "SPRING_JPA_DDL_AUTO", "SPRING_FLYWAY_ENABLED", "SPRING_JPA_SHOW_SQL",
+            "HIKARI_MAX_POOL_SIZE", "HIKARI_MIN_IDLE", "LOGGING_LEVEL_HIKARI", "JAVA_TOOL_OPTIONS",
+            "MINIO_SERVICE_ENABLE", "CLOUDINARY_SERVICE_ENABLE",
             "MINIO_ENDPOINT", "MINIO_ACCESS_KEY", "MINIO_SECRET_KEY", "MINIO_USE_SSL",
             "MINIO_BUCKET_NAME", "MINIO_PUBLIC_URL",
             "CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET",
-            "SWAGGER_USERNAME", "SWAGGER_PASSWORD", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID",
-            "SPRING_MAIL_HOST", "SPRING_MAIL_PORT", "SPRING_MAIL_USERNAME", "SPRING_MAIL_PASSWORD",
-            "NEXT_PUBLIC_ADMIN_API_URL", "NEXT_PUBLIC_STOREFRONT_API_URL",
+            "SWAGGER_USERNAME", "SWAGGER_PASSWORD",
+            "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "TELEGRAM_ENABLED",
+            "SPRING_MAIL_HOST", "SPRING_MAIL_PORT", "SPRING_MAIL_USERNAME", "SPRING_MAIL_PASSWORD", "SPRING_MAIL_SENDER_NAME",
+            "ADMIN_INTERNAL_API_URL", "NEXT_PUBLIC_ADMIN_API_URL", "NEXT_PUBLIC_STOREFRONT_API_URL",
             "STOREFRONT_INTERNAL_API_URL", "INTERNAL_API_URL", "NEXT_PUBLIC_API_URL",
             "NEXT_PUBLIC_GOOGLE_CLIENT_ID"
           ];
@@ -322,8 +359,10 @@ jobs:
               exit 1
             fi
 
-            # Kiểm tra backend API đã bắt đầu lắng nghe trên port 9091 chưa
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9091/ || true)
+            # Kiểm tra backend API đã bắt đầu lắng nghe trên port đã cấu hình chưa
+            API_PORT_VAL=$(grep -E '^API_PORT=' .env | cut -d '=' -f2)
+            API_PORT_VAL=${API_PORT_VAL:-9091}
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${API_PORT_VAL}/ || true)
             if [ "$HTTP_CODE" != "000" ]; then
               echo "Backend API và các container đã hoạt động bình thường (HTTP $HTTP_CODE)!"
               break

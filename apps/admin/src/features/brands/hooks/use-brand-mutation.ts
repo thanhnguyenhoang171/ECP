@@ -4,6 +4,22 @@ import { BrandFormValues } from '../schemas/brand.schema';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/constants/errorMessages';
 
+export const useImportBrand = (): UseMutationResult<
+  Awaited<ReturnType<typeof brandApi.import>>,
+  Error,
+  File
+> => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => brandApi.import(file),
+    onSettled: async () => {
+      // Imports may save valid rows even when other rows fail validation.
+      await queryClient.invalidateQueries({ queryKey: ['brands'] });
+    },
+  });
+};
+
 export const useCreateBrand = () => {
   const queryClient = useQueryClient();
 
@@ -49,16 +65,6 @@ export const useDeleteBrand = () => {
     onError: (error: unknown) => {
       const msg = getApiErrorMessage(error, 'Xóa thương hiệu thất bại');
       toast.error(msg, { id: msg });
-    },
-  });
-};
-
-export const useImportBrand = (): UseMutationResult<Awaited<ReturnType<typeof brandApi.import>>, Error, File> => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (file: File) => brandApi.import(file),
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['brands'] });
     },
   });
 };

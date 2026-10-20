@@ -23,10 +23,13 @@ export default function CreateProductPage() {
         description="Điền thông tin chi tiết để tạo sản phẩm và các biến thể kho hàng."
       />
 
-      <ProductForm onCancel={() => router.push('/products')} onSuccess={() => {
-        router.push('/products');
-        router.refresh();
-      }} />
+      <ProductForm
+        onCancel={() => router.push('/products')}
+        onSuccess={() => {
+          router.push('/products');
+          router.refresh();
+        }}
+      />
     </div>
   );
 }

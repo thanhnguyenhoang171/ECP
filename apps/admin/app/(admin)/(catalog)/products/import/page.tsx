@@ -2,13 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Download,
-  FileText,
-  AlertCircle,
-  Loader2,
-  Package
-} from 'lucide-react';
+import { AlertCircle, Download, FileText, Loader2, Package } from 'lucide-react';
 import { Button, FileUpload, PageHeader, Breadcrumbs } from '@/components/common';
 import { Card, CardContent } from '@/components/ui/card';
 import ExcelPreviewDialog from '@/features/categories/components/ExcelPreviewDialog';
@@ -23,7 +17,7 @@ export default function ProductImportPage(): React.JSX.Element {
   const { isSidebarCollapsed } = useUIStore();
 
   const [file, setFile] = useState<File | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -34,6 +28,7 @@ export default function ProductImportPage(): React.JSX.Element {
     if (!file || isImporting) {
       return;
     }
+
     setImportError(null);
 
     importMutation.mutate(file, {
@@ -47,12 +42,12 @@ export default function ProductImportPage(): React.JSX.Element {
         const message = error.message || 'Đã có lỗi xảy ra khi nhập dữ liệu';
         setImportError(message);
         toast.error('Nhập dữ liệu thất bại');
-      }
+      },
     });
   };
 
   const handleDownloadTemplate = async (): Promise<void> => {
-    setIsDownloading(true);
+    setIsDownloadingTemplate(true);
     try {
       toast.info('Đang chuẩn bị tệp mẫu...');
       const blob = await productApi.template();
@@ -68,10 +63,10 @@ export default function ProductImportPage(): React.JSX.Element {
         window.URL.revokeObjectURL(url);
       }
     } catch (error) {
-      console.error('Product template download failed:', error);
+      console.error('Product template download error:', error);
       toast.error('Không thể tải file mẫu. Vui lòng thử lại sau.');
     } finally {
-      setIsDownloading(false);
+      setIsDownloadingTemplate(false);
     }
   };
 
@@ -119,7 +114,7 @@ export default function ProductImportPage(): React.JSX.Element {
               progress={isImporting ? 50 : 0}
               accept={{
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-                'application/vnd.ms-excel': ['.xls']
+                'application/vnd.ms-excel': ['.xls'],
               }}
               description="Chỉ hỗ trợ file Excel (.xlsx, .xls)"
             />
@@ -131,11 +126,16 @@ export default function ProductImportPage(): React.JSX.Element {
                   variant="outline"
                   size="sm"
                   className="text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50"
+                  disabled={isImporting || file.name.toLowerCase().endsWith('.xls')}
                   onClick={() => setIsPreviewOpen(true)}
-                  disabled={file.name.toLowerCase().endsWith('.xls') || isImporting}
                 >
-                  Xem trước dữ liệu Excel (.xlsx)
+                  Xem trước dữ liệu Excel
                 </Button>
+                {file.name.toLowerCase().endsWith('.xls') && (
+                  <p className="ml-3 text-xs text-slate-500 self-center">
+                    Xem trước hỗ trợ .xlsx. Bạn vẫn có thể nhập file .xls.
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -159,7 +159,7 @@ export default function ProductImportPage(): React.JSX.Element {
                   size="sm"
                   className="h-auto p-0 text-blue-600 font-bold hover:text-blue-700 mt-2 block"
                   onClick={handleDownloadTemplate}
-                  disabled={isDownloading || isImporting}
+                  disabled={isDownloadingTemplate || isImporting}
                 >
                   <Download className="h-3 w-3 mr-1 inline shrink-0" /> Tải file mẫu (.xlsx)
                 </Button>
@@ -173,12 +173,12 @@ export default function ProductImportPage(): React.JSX.Element {
               <AlertCircle className="h-3 w-3 text-blue-500" /> Lưu ý khi nhập dữ liệu
             </h5>
             <ul className="text-xs text-slate-500 space-y-2 list-disc pl-4 leading-relaxed">
-              <li>Hệ thống tự tạo SKU và Slug nếu bỏ trống.</li>
-              <li>Tên sản phẩm là bắt buộc, giá bán phải lớn hơn 0.</li>
-              <li>Hệ thống cập nhật theo Slug hoặc SKU; nếu chưa có sẽ tạo mới.</li>
-              <li>Danh mục nhận tên hoặc Slug của danh mục đã tồn tại.</li>
-              <li>Giá được áp dụng cho biến thể đầu tiên.</li>
-              <li>Nếu file có lỗi, một số dòng hợp lệ có thể đã được lưu. Kiểm tra danh sách trước khi nhập lại.</li>
+              <li>Hệ thống tự tạo mã SKU và Slug nếu bỏ trống.</li>
+              <li>Một số dòng hợp lệ có thể đã được lưu khi file có lỗi. Hãy kiểm tra danh sách trước khi nhập lại.</li>
+              <li>Tên sản phẩm là bắt buộc; giá bán phải lớn hơn 0.</li>
+              <li>Hệ thống tìm sản phẩm theo Slug hoặc mã SKU để cập nhật; nếu chưa có sẽ tạo mới.</li>
+              <li>Cột Danh mục nhận tên hoặc Slug của danh mục đã có trong hệ thống.</li>
+              <li>Giá bán, giá vốn và giá so sánh được áp dụng cho biến thể đầu tiên của sản phẩm.</li>
               <li>Định dạng cột phải khớp chính xác với file mẫu.</li>
             </ul>
           </div>

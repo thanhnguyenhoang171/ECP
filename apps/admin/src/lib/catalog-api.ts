@@ -6,13 +6,14 @@ export interface CatalogResult<T> {
   success: boolean;
   data: T;
   message?: string;
+  error?: string;
   code?: string;
 }
 
 export const readCatalogResult = async <T>(response: Response, fallback: string): Promise<CatalogResult<T>> => {
   const result: CatalogResult<T> = await response.json();
   if (!response.ok || !result.success) {
-    throw new ApiError(result.code || 'CATALOG_REQUEST_FAILED', result.message || fallback, response.status, result);
+    throw new ApiError(result.code || 'CATALOG_REQUEST_FAILED', result.message || result.error || fallback, response.status, result);
   }
   return result;
 };

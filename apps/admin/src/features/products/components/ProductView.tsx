@@ -145,8 +145,8 @@ export default function ProductView(): React.ReactElement {
       }
       toast.success('Xuất danh sách sản phẩm thành công');
     } catch (error) {
-      console.error('Product export failed:', error);
-      toast.error('Không thể xuất danh sách sản phẩm');
+      console.error('Product export error:', error);
+      toast.error('Có lỗi xảy ra khi xuất file Excel');
     } finally {
       setIsExporting(false);
     }
@@ -341,7 +341,7 @@ export default function ProductView(): React.ReactElement {
   const commonActions = (
     <>
       <ImportButton onClick={() => router.push('/products/import')} disabled={isExporting || isForbidden} />
-      <ExportButton onExport={handleExport} isLoading={isExporting} disabled={isExporting || isForbidden} />
+      <ExportButton onExport={handleExport} isLoading={isExporting} disabled={isExporting || isLoading || isFetching || isForbidden} />
       <AddNewButton onClick={handleCreate} disabled={isExporting} />
     </>
   );

@@ -2,13 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Download,
-  FileText,
-  AlertCircle,
-  Loader2,
-  Tag
-} from 'lucide-react';
+import { AlertCircle, Download, FileText, Loader2, Tag } from 'lucide-react';
 import { Button, FileUpload, PageHeader, Breadcrumbs } from '@/components/common';
 import { Card, CardContent } from '@/components/ui/card';
 import ExcelPreviewDialog from '@/features/categories/components/ExcelPreviewDialog';
@@ -23,7 +17,7 @@ export default function BrandImportPage(): React.JSX.Element {
   const { isSidebarCollapsed } = useUIStore();
 
   const [file, setFile] = useState<File | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -34,6 +28,7 @@ export default function BrandImportPage(): React.JSX.Element {
     if (!file || isImporting) {
       return;
     }
+
     setImportError(null);
 
     importMutation.mutate(file, {
@@ -47,12 +42,12 @@ export default function BrandImportPage(): React.JSX.Element {
         const message = error.message || 'Đã có lỗi xảy ra khi nhập dữ liệu';
         setImportError(message);
         toast.error('Nhập dữ liệu thất bại');
-      }
+      },
     });
   };
 
   const handleDownloadTemplate = async (): Promise<void> => {
-    setIsDownloading(true);
+    setIsDownloadingTemplate(true);
     try {
       toast.info('Đang chuẩn bị tệp mẫu...');
       const blob = await brandApi.template();
@@ -68,10 +63,10 @@ export default function BrandImportPage(): React.JSX.Element {
         window.URL.revokeObjectURL(url);
       }
     } catch (error) {
-      console.error('Brand template download failed:', error);
+      console.error('Brand template download error:', error);
       toast.error('Không thể tải file mẫu. Vui lòng thử lại sau.');
     } finally {
-      setIsDownloading(false);
+      setIsDownloadingTemplate(false);
     }
   };
 
@@ -131,11 +126,16 @@ export default function BrandImportPage(): React.JSX.Element {
                   variant="outline"
                   size="sm"
                   className="text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50"
+                  disabled={isImporting || file.name.toLowerCase().endsWith('.xls')}
                   onClick={() => setIsPreviewOpen(true)}
-                  disabled={file.name.toLowerCase().endsWith('.xls') || isImporting}
                 >
-                  Xem trước dữ liệu Excel (.xlsx)
+                  Xem trước dữ liệu Excel
                 </Button>
+                {file.name.toLowerCase().endsWith('.xls') && (
+                  <p className="ml-3 text-xs text-slate-500 self-center">
+                    Xem trước hỗ trợ .xlsx. Bạn vẫn có thể nhập file .xls.
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -159,7 +159,7 @@ export default function BrandImportPage(): React.JSX.Element {
                   size="sm"
                   className="h-auto p-0 text-blue-600 font-bold hover:text-blue-700 mt-2 block"
                   onClick={handleDownloadTemplate}
-                  disabled={isDownloading || isImporting}
+                  disabled={isDownloadingTemplate || isImporting}
                 >
                   <Download className="h-3 w-3 mr-1 inline shrink-0" /> Tải file mẫu (.xlsx)
                 </Button>
@@ -173,10 +173,10 @@ export default function BrandImportPage(): React.JSX.Element {
               <AlertCircle className="h-3 w-3 text-blue-500" /> Lưu ý khi nhập dữ liệu
             </h5>
             <ul className="text-xs text-slate-500 space-y-2 list-disc pl-4 leading-relaxed">
-              <li>Hệ thống tự tạo Slug nếu bỏ trống.</li>
+              <li>Hệ thống sẽ tự động tạo Slug nếu bỏ trống.</li>
+              <li>Một số dòng hợp lệ có thể đã được lưu khi file có lỗi. Hãy kiểm tra danh sách trước khi nhập lại.</li>
               <li>Tên thương hiệu là bắt buộc và không được trùng lặp.</li>
-              <li>Điền ID hoặc Slug để cập nhật thương hiệu đã tồn tại.</li>
-              <li>Nếu file có lỗi, một số dòng hợp lệ có thể đã được lưu. Kiểm tra danh sách trước khi nhập lại.</li>
+              <li>Hệ thống tìm thương hiệu theo ID hoặc Slug để cập nhật; nếu chưa có sẽ tạo mới.</li>
               <li>Định dạng cột phải khớp chính xác với file mẫu.</li>
             </ul>
           </div>

@@ -6,6 +6,27 @@ import type { ProductFormValues } from '../schemas/product.schema';
 import { productApi } from '../api/product.api';
 import { getApiErrorMessage } from '@/constants/errorMessages';
 
+export const useImportProduct = (): UseMutationResult<
+  Awaited<ReturnType<typeof productApi.import>>,
+  Error,
+  File
+> => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => productApi.import(file),
+    onSettled: async () => {
+      // Valid rows may already be saved when other rows fail validation.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['products'] }),
+        queryClient.invalidateQueries({ queryKey: ['product'] }),
+        queryClient.invalidateQueries({ queryKey: ['product-composite-detail'] }),
+        queryClient.invalidateQueries({ queryKey: ['skus'] }),
+      ]);
+    },
+  });
+};
+
 export function useCreateProduct() {
   const queryClient = useQueryClient();
 
@@ -64,18 +85,3 @@ export function useDeleteProduct() {
     },
   });
 }
-
-export const useImportProduct = (): UseMutationResult<Awaited<ReturnType<typeof productApi.import>>, Error, File> => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (file: File) => productApi.import(file),
-    onSettled: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['products'] }),
-        queryClient.invalidateQueries({ queryKey: ['product'] }),
-        queryClient.invalidateQueries({ queryKey: ['product-composite-detail'] }),
-        queryClient.invalidateQueries({ queryKey: ['skus'] }),
-      ]);
-    },
-  });
-};
