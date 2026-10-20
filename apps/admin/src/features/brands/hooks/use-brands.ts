@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { brandApi } from '../api/brand.api';
 import { PageResponse } from '@/types/pagination';
 import { Brand } from '../types/brand.interface';
@@ -21,10 +21,10 @@ export const useBrands = (
   });
 };
 
-export const useActiveBrands = () => {
+export const useActiveBrands = (name = ''): UseQueryResult<PageResponse<Brand>, Error> => {
   return useQuery({
-    queryKey: ['brands', 'active'],
-    queryFn: () => brandApi.getActive(),
+    queryKey: ['brands', 'active', name],
+    queryFn: () => brandApi.getActive({ name }),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 };

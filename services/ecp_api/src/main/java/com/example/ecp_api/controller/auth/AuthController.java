@@ -19,6 +19,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -48,7 +49,7 @@ public class AuthController {
     private final CustomUserDetailsService customUserDetailsService;
     private final EmailVerificationService emailVerificationService;
 
-    @PostMapping("/register")
+    @PostMapping(value = "/register", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Register a new user account")
     public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody RegisterRequest request) {
         UserResponse response = userService.registerUserByEmail(request);
@@ -61,7 +62,7 @@ public class AuthController {
         return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
     }
 
-    @PostMapping("/login")
+    @PostMapping(value = "/login", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Login to the system")
     public ResponseEntity<ApiResponse<AuthResponse>> authenticateUser(
             @Valid @RequestBody LoginRequest loginRequest,
@@ -128,7 +129,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/google")
+    @PostMapping(value = "/google", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Login or Register with Google")
     public ResponseEntity<ApiResponse<AuthResponse>> googleLogin(
             @Valid @RequestBody GoogleLoginRequest googleLoginRequest,
@@ -173,7 +174,7 @@ public class AuthController {
                 .build());
     }
 
-    @PostMapping("/refresh")
+    @PostMapping(value = "/refresh", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Refresh Access Token")
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
             @Parameter(hidden = true) @CookieValue(name = "ecp_refresh_token", required = false) String cookieRefreshToken,
@@ -237,7 +238,7 @@ public class AuthController {
                         .message("Invalid or expired refresh token").build());
     }
 
-    @PostMapping("/logout")
+    @PostMapping(value = "/logout", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Logout user")
     public ResponseEntity<ApiResponse<Void>> logout(
             @Parameter(hidden = true) @CookieValue(name = "ecp_refresh_token", required = false) String cookieRefreshToken,

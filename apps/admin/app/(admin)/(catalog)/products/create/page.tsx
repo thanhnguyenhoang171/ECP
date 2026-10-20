@@ -5,7 +5,6 @@ import { Package } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ProductForm from '@/features/products/components/ProductForm';
 import { PageHeader, Breadcrumbs } from '@/components/common';
-import { toast } from 'sonner';
 
 export default function CreateProductPage() {
   const router = useRouter();
@@ -24,8 +23,7 @@ export default function CreateProductPage() {
         description="Điền thông tin chi tiết để tạo sản phẩm và các biến thể kho hàng."
       />
 
-      <ProductForm onSuccess={() => {
-        toast.success('Tạo sản phẩm mới thành công');
+      <ProductForm onCancel={() => router.push('/products')} onSuccess={() => {
         router.push('/products');
         router.refresh();
       }} />

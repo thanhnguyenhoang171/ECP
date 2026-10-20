@@ -29,6 +29,7 @@ export default function EditBrandPage() {
       />
 
       <BrandForm
+        onCancel={() => router.push('/brands')}
         id={id}
         initialData={brand}
         isLoadingData={isLoading && !brand}

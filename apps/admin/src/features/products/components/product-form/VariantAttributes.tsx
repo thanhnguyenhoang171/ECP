@@ -25,12 +25,12 @@ export const VariantAttributes = ({ control, variantIndex }: VariantAttributesPr
     <div className="space-y-3">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
-          <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-2">Thuộc tính:</h5>
+          <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-2">Thuộc tính:</h5>
           {suggestions.map((s) => (
             <button
               key={s}
               type="button"
-              className="px-2 py-0.5 text-[9px] font-bold bg-slate-100 hover:bg-blue-50 hover:text-blue-600 rounded text-slate-500 transition-colors"
+              className="px-2 py-0.5 text-[9px] font-bold bg-slate-100 hover:bg-slate-200 rounded text-slate-700 hover:text-slate-900 transition-colors border border-slate-200/60"
               onClick={() => append({ key: s, value: '' })}
             >
               + {s}

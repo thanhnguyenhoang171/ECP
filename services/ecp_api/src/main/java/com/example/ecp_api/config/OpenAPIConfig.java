@@ -38,6 +38,13 @@ public class OpenAPIConfig {
                                 | **2-storefront** | E-Commerce Storefront | `/v1/storefront/**` | End Users & Customers catalog features |
                                 | **3-all-apis** | Full System Reference | `/**` | All Endpoints |
                                 
+                                ### Request formats
+                                DTO request bodies accept `application/json` or `application/x-www-form-urlencoded`.
+                                In URL-encoded forms, enter nested objects, maps and arrays as JSON strings
+                                (for example, `variants=[{"sku":"SKU-1","price":100}]`).
+                                File uploads and Excel imports use `multipart/form-data`.
+                                Endpoints without request bodies use path and query parameters as documented.
+
                                 ### Authentication Instructions
                                 1. Login via `POST /v1/auth/login` to obtain an Access Token.
                                 2. Click the **Authorize** button above and paste your token in format: `Bearer <your-token>`.

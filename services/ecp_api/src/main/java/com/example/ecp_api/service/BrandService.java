@@ -23,6 +23,8 @@ public interface BrandService {
 
     List<BrandResponse> getActiveBrands();
 
+    PageResponse<BrandResponse> getActiveBrands(String name, Pageable pageable);
+
     default BrandResponse updateBrand(String id, BrandRequest request) {
         return updateBrand(id, request, null);
     }

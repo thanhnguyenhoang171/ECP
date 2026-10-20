@@ -18,6 +18,7 @@ public interface CategoryService {
     CategoryResponse getCategoryById(String id);
     PageResponse<CategoryResponse> getAllCategories(CategoryFilterRequest filter, Pageable pageable);
     List<CategoryResponse> getParentCategories();
+    PageResponse<CategoryResponse> getActiveCategories(String name, Pageable pageable);
     void deleteCategory(String id);
     void exportAllCategoriesToExcel(OutputStream outputStream);
     void downloadCategoryTemplate(OutputStream outputStream);

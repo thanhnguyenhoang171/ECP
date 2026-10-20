@@ -5,7 +5,6 @@ import { Layers } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CategoryForm from '@/features/categories/components/CategoryForm';
 import { PageHeader, Breadcrumbs } from '@/components/common';
-import { toast } from 'sonner';
 import { useParentCategories } from '@/features/categories/hooks/use-categories';
 
 function CreateCategoryFormWrapper() {
@@ -29,11 +28,11 @@ function CreateCategoryFormWrapper() {
       />
 
       <CategoryForm 
+        onCancel={() => router.push('/categories')}
         parentCategories={parentCategories || []}
-        initialData={parentIdParam ? ({ parentId: parentIdParam } as any) : undefined}
+        initialData={parentIdParam ? { parentId: parentIdParam } : undefined}
         isParentLocked={!!parentIdParam}
         onSuccess={() => {
-          toast.success('Tạo danh mục mới thành công');
           router.push('/categories');
           router.refresh();
         }} 

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { UseFormReturn, useFieldArray } from 'react-hook-form';
-import { Plus, Trash2, ChevronDown, Check, Search } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import {
   FormControl,
   FormField,
@@ -11,18 +11,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { 
   ImageUpload,
@@ -31,133 +19,17 @@ import {
   AdminFormLabel,
 } from '@/components/common';
 import { ProductFormValues } from '../../schemas/product.schema';
-import { Category } from '@/features/categories/types/category.interface';
-import { Brand } from '@/features/brands/types/brand.interface';
-import { useCreateBrand } from '@/features/brands/hooks/use-brand-mutation';
-import { cn, convertToSlug, convertToSku } from '@/lib/utils';
-
-const CreatableBrandSelect = ({
-  value,
-  onChange,
-  brands,
-}: {
-  value?: string;
-  onChange: (brandId: string, brandName: string) => void;
-  brands: Brand[];
-}) => {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const createBrandMutation = useCreateBrand();
-
-  const selectedBrand = brands.find((b) => b.id === value);
-  const filteredBrands = brands.filter((b) =>
-    b.name.toLowerCase().includes(search.toLowerCase())
-  );
-  const isExactMatch = brands.some(
-    (b) => b.name.toLowerCase() === search.trim().toLowerCase()
-  );
-
-  const handleCreateNewBrand = async () => {
-    if (!search.trim()) return;
-    try {
-      const res = await createBrandMutation.mutateAsync({
-        name: search.trim(),
-        active: true,
-      });
-      if (res.data) {
-        onChange(res.data.id, res.data.name);
-        setOpen(false);
-        setSearch('');
-      }
-    } catch (e) {
-      // Error is handled in mutation toast
-    }
-  };
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          role="combobox"
-          className="w-full h-11 justify-between bg-white border-slate-200 text-left font-normal"
-        >
-          {selectedBrand ? (
-            <span className="truncate font-medium text-slate-900">{selectedBrand.name}</span>
-          ) : (
-            <span className="text-slate-400">Chọn hoặc nhập tên thương hiệu...</span>
-          )}
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[320px] p-2" align="start">
-        <div className="space-y-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-            <Input
-              placeholder="Tìm hoặc nhập tên mới..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-9 text-xs"
-            />
-          </div>
-
-          <div className="max-h-48 overflow-y-auto space-y-1 custom-scrollbar">
-            {filteredBrands.map((brand) => (
-              <button
-                key={brand.id}
-                type="button"
-                className={cn(
-                  "w-full text-left px-3 py-2 text-xs rounded-md flex items-center justify-between transition-colors",
-                  brand.id === value ? "bg-blue-50 text-blue-700 font-bold" : "hover:bg-slate-100 text-slate-700"
-                )}
-                onClick={() => {
-                  onChange(brand.id, brand.name);
-                  setOpen(false);
-                }}
-              >
-                <span>{brand.name}</span>
-                {brand.id === value && <Check className="h-3.5 w-3.5 text-blue-600" />}
-              </button>
-            ))}
-
-            {filteredBrands.length === 0 && !isExactMatch && search.trim() === '' && (
-              <div className="p-3 text-center text-xs text-slate-400">
-                Chưa có thương hiệu nào.
-              </div>
-            )}
-
-            {search.trim() !== '' && !isExactMatch && (
-              <button
-                type="button"
-                disabled={createBrandMutation.isPending}
-                className="w-full text-left px-3 py-2 text-xs rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold flex items-center gap-2 border border-blue-200 transition-colors"
-                onClick={handleCreateNewBrand}
-              >
-                <Plus className="h-3.5 w-3.5 text-blue-600" />
-                <span>
-                  {createBrandMutation.isPending ? 'Đang tạo...' : `Tạo mới thương hiệu "${search.trim()}"`}
-                </span>
-              </button>
-            )}
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-};
+import { convertToSlug, convertToSku } from '@/lib/utils';
+import { ActiveCatalogSelect } from './ActiveCatalogSelect';
 
 interface ProductGeneralTabProps {
   form: UseFormReturn<ProductFormValues>;
-  categories: Category[];
-  brands?: Brand[];
   isSlugEditedRef: React.MutableRefObject<boolean>;
   nameValue: string;
   onUploadingChange?: (isUploading: boolean) => void;
 }
 
-export const ProductGeneralTab = ({ form, categories, brands = [], isSlugEditedRef, nameValue, onUploadingChange }: ProductGeneralTabProps) => {
+export const ProductGeneralTab = ({ form, isSlugEditedRef, nameValue, onUploadingChange }: ProductGeneralTabProps) => {
   const { fields: specFields, append: appendSpec, remove: removeSpec } = useFieldArray({
     control: form.control,
     name: "specifications",
@@ -192,9 +64,8 @@ export const ProductGeneralTab = ({ form, categories, brands = [], isSlugEditedR
                 <FormItem>
                   <AdminFormLabel>Thương hiệu</AdminFormLabel>
                   <FormControl>
-                    <CreatableBrandSelect
+                    <ActiveCatalogSelect kind='brands'
                       value={field.value}
-                      brands={brands}
                       onChange={(brandId, brandName) => {
                         field.onChange(brandId);
                         form.setValue('brand', brandName, { shouldValidate: true });
@@ -258,8 +129,8 @@ export const ProductGeneralTab = ({ form, categories, brands = [], isSlugEditedR
                       variant="ghost"
                       className="h-auto p-0 text-[10px] text-blue-600 font-bold"
                       onClick={() => {
-                        const generatedSku = convertToSku(nameValue);
-                        form.setValue('sku', generatedSku, { shouldValidate: true });
+                        const generatedSku = convertToSku();
+                        form.setValue('sku', generatedSku, { shouldValidate: true, shouldDirty: true });
                       }}
                     >
                       Sinh tự động
@@ -267,7 +138,7 @@ export const ProductGeneralTab = ({ form, categories, brands = [], isSlugEditedR
                   </div>
                   <FormControl>
                     <Input 
-                      placeholder="Tự động tạo (Ví dụ: BENTO-20G-RED) hoặc nhập tùy chỉnh" 
+                      placeholder="Tự động tạo ngẫu nhiên (Ví dụ: SKU-7X8K2M9P) hoặc nhập tùy chỉnh" 
                       {...field} 
                       className="h-11 font-mono uppercase border-slate-200 focus:border-blue-500" 
                     />
@@ -367,20 +238,13 @@ export const ProductGeneralTab = ({ form, categories, brands = [], isSlugEditedR
             render={({ field }) => (
               <FormItem>
                 <AdminFormLabel required>Danh mục chính</AdminFormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="h-11 bg-white border-slate-200">
-                      <SelectValue placeholder="Chọn danh mục" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <ActiveCatalogSelect
+                    kind='categories'
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

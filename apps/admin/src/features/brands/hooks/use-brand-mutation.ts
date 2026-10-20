@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { brandApi } from '../api/brand.api';
 import { BrandFormValues } from '../schemas/brand.schema';
 import { toast } from 'sonner';
@@ -49,6 +49,16 @@ export const useDeleteBrand = () => {
     onError: (error: unknown) => {
       const msg = getApiErrorMessage(error, 'Xóa thương hiệu thất bại');
       toast.error(msg, { id: msg });
+    },
+  });
+};
+
+export const useImportBrand = (): UseMutationResult<Awaited<ReturnType<typeof brandApi.import>>, Error, File> => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => brandApi.import(file),
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['brands'] });
     },
   });
 };

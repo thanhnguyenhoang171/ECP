@@ -203,6 +203,9 @@ public class CategoryServiceImpl implements CategoryService {
             String oldSlug = category.getSlug();
 
             categoryMapper.updateCategoryFromRequest(request, category);
+            if (request.getImage() != null && !StringUtils.hasText(request.getImage().getUrl())) {
+                category.setImage(null);
+            }
 
             // Delete old image from Cloudinary if replaced
             if (uploadedAsset != null && StringUtils.hasText(oldPublicId)) {
@@ -240,7 +243,7 @@ public class CategoryServiceImpl implements CategoryService {
                     category.setLevel(parent.getLevel() + 1);
                     parentChanged = true;
                 }
-            } else if (oldParentId != null) {
+            } else if (request.getParentId() != null && oldParentId != null) {
                 category.setLevel(1);
                 category.setParentId(null);
                 parentChanged = true;
@@ -287,6 +290,16 @@ public class CategoryServiceImpl implements CategoryService {
                 .filter(c -> !c.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found or deleted with id: " + id));
         return categoryMapper.toResponse(category);
+    }
+
+    @Override
+    public PageResponse<CategoryResponse> getActiveCategories(String name, Pageable pageable) {
+        CategoryFilterRequest filter = new CategoryFilterRequest();
+        filter.setActive(true);
+        if (StringUtils.hasText(name)) {
+            filter.setName(java.util.regex.Pattern.quote(name.trim()));
+        }
+        return getAllCategories(filter, pageable);
     }
 
     // GET CATEGORY PARENTS

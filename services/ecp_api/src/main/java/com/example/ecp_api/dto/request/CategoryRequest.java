@@ -14,7 +14,10 @@ import com.example.ecp_api.entity.mongodb.embedded.ProductImage;
 @Builder
 @Schema(description = "Request object for creating or updating a category")
 public class CategoryRequest {
-    @NotBlank(message = "Category name is required")
+    public interface Create {}
+
+    @NotBlank(message = "Category name is required", groups = Create.class)
+    @jakarta.validation.constraints.Pattern(regexp = "(?s).*\\S.*", message = "Category name cannot be blank")
     @Schema(description = "Category name", example = "Electronics", requiredMode = Schema.RequiredMode.REQUIRED)
     private String name;
 
@@ -41,4 +44,8 @@ public class CategoryRequest {
 
     @Schema(description = "Featured category status for homepage display", example = "true")
     private Boolean isFeatured;
+
+    private String metaTitle;
+    private String metaDescription;
+    private String metaKeywords;
 }

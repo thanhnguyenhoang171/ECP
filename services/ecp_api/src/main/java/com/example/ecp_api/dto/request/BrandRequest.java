@@ -13,8 +13,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @Schema(description = "Request object for creating or updating a brand")
 public class BrandRequest {
+    public interface Create {}
 
-    @NotBlank(message = "Brand name is required")
+
+    @NotBlank(message = "Brand name is required", groups = Create.class)
+    @jakarta.validation.constraints.Pattern(regexp = "(?s).*\\S.*", message = "Brand name cannot be blank")
     @Schema(description = "Name of the brand", example = "Apple", requiredMode = Schema.RequiredMode.REQUIRED)
     private String name;
 

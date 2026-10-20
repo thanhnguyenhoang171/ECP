@@ -1,9 +1,17 @@
 'use client';
 
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, type UseQueryResult } from '@tanstack/react-query';
 import { categoryApi } from '../api/category.api';
 import { PageResponse } from '@/types/pagination';
 import { Category } from '../types/category.interface';
+
+export const useActiveCategories = (name = ''): UseQueryResult<PageResponse<Category>, Error> => {
+  return useQuery({
+    queryKey: ['categories', 'active', name],
+    queryFn: () => categoryApi.getActive({ name }),
+    staleTime: 5 * 60 * 1000,
+  });
+};
 
 export function useCategories(
   params: {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { Tag, Globe } from 'lucide-react';
+import { Tag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -17,6 +17,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   SearchInput,
+  ImportButton,
+  ExportButton,
   AddNewButton,
   FilterPopover,
   SortPopover,
@@ -31,12 +33,14 @@ import { Label } from '@/components/ui/label';
 import { Brand } from '../types/brand.interface';
 import { PageResponse } from '@/types/pagination';
 import { useBrands } from '../hooks/use-brands';
-import { useDeleteBrand, useUpdateBrand } from '../hooks/use-brand-mutation';
+import { useDeleteBrand } from '../hooks/use-brand-mutation';
 import { isForbiddenError } from '@/constants/errorMessages';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { cn } from '@/lib/utils';
-import { formatDate } from '@/lib/formatters';
+import { formatDateTimeForFilename } from '@/lib/formatters';
+import { brandApi } from '../api/brand.api';
+import { toast } from 'sonner';
 
 interface BrandsViewProps {
   initialData?: PageResponse<Brand>;
@@ -45,7 +49,6 @@ interface BrandsViewProps {
 export default function BrandsView({ initialData }: BrandsViewProps) {
   const router = useRouter();
   const deleteMutation = useDeleteBrand();
-  const updateMutation = useUpdateBrand();
 
   const {
     sort,
@@ -81,6 +84,31 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
 
   const [searchTerm, setSearchTerm] = useDebounceSearch(name, (val) => updateUrl({ name: val, page: 1 }));
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const [isExporting, setIsExporting] = useState(false);
+  const handleExport = async (): Promise<void> => {
+    setIsExporting(true);
+    try {
+      const blob = await brandApi.export();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      try {
+        link.href = url;
+        link.download = `thuong-hieu_${formatDateTimeForFilename()}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+      } finally {
+        link.remove();
+        window.URL.revokeObjectURL(url);
+      }
+      toast.success('Xuất file Excel thành công');
+    } catch (error) {
+      console.error('Brand export failed:', error);
+      toast.error('Không thể xuất danh sách thương hiệu');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleCreate = useCallback(() => {
     router.push('/brands/create');
@@ -226,10 +254,11 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
         title="Quản lý thương hiệu"
         description="Danh sách các thương hiệu sản phẩm trên hệ thống. Bạn có thể thêm mới, cập nhật hoặc thay đổi trạng thái."
         actions={
-          <AddNewButton
-            label="Thêm thương hiệu"
-            onClick={handleCreate}
-          />
+          <>
+            <ImportButton onClick={() => router.push('/brands/import')} disabled={isForbidden} />
+            <ExportButton onExport={handleExport} isLoading={isExporting} disabled={isLoading || isFetching || isForbidden} />
+            <AddNewButton label="Thêm thương hiệu" onClick={handleCreate} />
+          </>
         }
       />
 

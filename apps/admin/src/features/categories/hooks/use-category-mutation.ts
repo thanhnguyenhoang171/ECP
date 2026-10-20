@@ -1,6 +1,6 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { categoryApi } from '../api/category.api';
 import { CategoryFormValues } from '../schemas/category.schema';
@@ -31,7 +31,7 @@ export function useUpdateCategory() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, values }: { id: string; values: CategoryFormValues }) =>
+    mutationFn: ({ id, values }: { id: string; values: Partial<CategoryFormValues> }) =>
       categoryApi.update(id, values),
     onSuccess: (result, variables) => {
       if (result.success) {
@@ -73,20 +73,15 @@ export function useDeleteCategory() {
   });
 }
 
-export function useImportCategory() {
+export function useImportCategory(): UseMutationResult<Awaited<ReturnType<typeof categoryApi.import>>, Error, File> {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (file: File) => categoryApi.import(file),
-    onSuccess: (result) => {
-      if (result.success) {
-        toast.success('Nhập dữ liệu danh mục thành công');
-        queryClient.invalidateQueries({ queryKey: ['categories'] });
-      }
-    },
-    onError: (error) => {
-      console.error("Import error:", error);
-      // toast.error is handled globally by clientFetch
+    onSettled: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['categories'] }),
+        queryClient.invalidateQueries({ queryKey: ['category'] }),
+      ]);
     },
   });
 }

@@ -2,10 +2,9 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Download, 
-  Upload, 
-  FileText, 
+import {
+  Download,
+  FileText,
   AlertCircle,
   Loader2,
   Layers
@@ -19,54 +18,60 @@ import { useImportCategory } from '@/features/categories/hooks/use-category-muta
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/store/uiStore';
 
-export default function CategoryImportPage() {
+export default function CategoryImportPage(): React.JSX.Element {
   const router = useRouter();
   const { isSidebarCollapsed } = useUIStore();
-  
+
   const [file, setFile] = useState<File | null>(null);
-  const [isImporting, setIsImporting] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
 
   const importMutation = useImportCategory();
+  const isImporting = importMutation.isPending;
 
-  const handleImport = () => {
-    if (!file) return;
-
-    setIsImporting(true);
+  const handleImport = (): void => {
+    if (!file || isImporting) {
+      return;
+    }
     setImportError(null);
-    
+
     importMutation.mutate(file, {
       onSuccess: () => {
-        setIsImporting(false);
         setFile(null);
         toast.success('Nhập danh sách danh mục thành công');
         router.push('/categories');
         router.refresh();
       },
-      onError: (error: any) => {
-        setIsImporting(false);
-        const message = error?.message || error?.error || 'Đã có lỗi xảy ra khi nhập dữ liệu';
+      onError: (error: Error) => {
+        const message = error.message || 'Đã có lỗi xảy ra khi nhập dữ liệu';
         setImportError(message);
         toast.error('Nhập dữ liệu thất bại');
       }
     });
   };
 
-  const handleDownloadTemplate = async () => {
+  const handleDownloadTemplate = async (): Promise<void> => {
+    setIsDownloading(true);
     try {
       toast.info('Đang chuẩn bị tệp mẫu...');
       const blob = await categoryApi.template();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'mau_nhap_danh_muc.xlsx');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+      try {
+        link.href = url;
+        link.download = 'mau_nhap_danh_muc.xlsx';
+        document.body.appendChild(link);
+        link.click();
+      } finally {
+        link.remove();
+        window.URL.revokeObjectURL(url);
+      }
     } catch (error) {
+      console.error('Category template download failed:', error);
       toast.error('Không thể tải file mẫu. Vui lòng thử lại sau.');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -79,8 +84,8 @@ export default function CategoryImportPage() {
     <div className="space-y-6 pb-24">
       <Breadcrumbs items={breadcrumbItems} />
 
-      <PageHeader 
-        title="Nhập danh mục từ Excel" 
+      <PageHeader
+        title="Nhập danh mục từ Excel"
         description="Tải lên file Excel chứa danh sách danh mục để nhập nhanh vào hệ thống."
       />
 
@@ -104,10 +109,10 @@ export default function CategoryImportPage() {
           )}
 
           <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
-            <FileUpload 
+            <FileUpload
               value={file}
-              onChange={(f) => {
-                setFile(f);
+              onChange={(value: File | File[] | null) => {
+                setFile(Array.isArray(value) ? value[0] ?? null : value);
                 setImportError(null);
               }}
               isUploading={isImporting}
@@ -121,14 +126,15 @@ export default function CategoryImportPage() {
 
             {file && (
               <div className="flex justify-end mt-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
                   className="text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50"
                   onClick={() => setIsPreviewOpen(true)}
+                  disabled={file.name.toLowerCase().endsWith('.xls') || isImporting}
                 >
-                  Xem trước dữ liệu Excel
+                  Xem trước dữ liệu Excel (.xlsx)
                 </Button>
               </div>
             )}
@@ -148,11 +154,12 @@ export default function CategoryImportPage() {
                 <p className="text-xs text-blue-700 leading-relaxed">
                   Tải xuống file Excel mẫu để đảm bảo dữ liệu của bạn đúng định dạng yêu cầu của hệ thống.
                 </p>
-                <Button 
-                  variant="link" 
-                  size="sm" 
+                <Button
+                  variant="link"
+                  size="sm"
                   className="h-auto p-0 text-blue-600 font-bold hover:text-blue-700 mt-2 block"
                   onClick={handleDownloadTemplate}
+                  disabled={isDownloading || isImporting}
                 >
                   <Download className="h-3 w-3 mr-1 inline shrink-0" /> Tải file mẫu (.xlsx)
                 </Button>
@@ -166,9 +173,10 @@ export default function CategoryImportPage() {
               <AlertCircle className="h-3 w-3 text-blue-500" /> Lưu ý khi nhập dữ liệu
             </h5>
             <ul className="text-xs text-slate-500 space-y-2 list-disc pl-4 leading-relaxed">
-              <li>Hệ thống sẽ tự động tạo Slug nếu bỏ trống.</li>
-              <li>Tên danh mục là bắt buộc và không được trùng lặp.</li>
-              <li>Nếu là danh mục con, hãy điền đúng Slug của danh mục cha.</li>
+              <li>Hệ thống tự tạo Slug nếu bỏ trống.</li>
+              <li>Tên danh mục là bắt buộc.</li>
+              <li>Điền Slug danh mục cha nếu muốn tạo danh mục con.</li>
+              <li>Nếu file có lỗi, một số dòng hợp lệ có thể đã được lưu. Kiểm tra danh sách trước khi nhập lại.</li>
               <li>Định dạng cột phải khớp chính xác với file mẫu.</li>
             </ul>
           </div>
@@ -199,16 +207,16 @@ export default function CategoryImportPage() {
             )}
           </div>
           <div className="flex gap-3 w-full md:w-auto justify-end">
-            <Button 
-              type="button" 
-              variant="ghost" 
-              onClick={() => router.push('/categories')} 
-              className="font-bold text-xs uppercase tracking-wider text-slate-500 hover:bg-slate-100" 
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => router.push('/categories')}
+              className="font-bold text-xs uppercase tracking-wider text-slate-500 hover:bg-slate-100"
               disabled={isImporting}
             >
               Hủy bỏ
             </Button>
-            <Button 
+            <Button
               type="button"
               onClick={handleImport}
               disabled={!file || isImporting}
@@ -228,7 +236,7 @@ export default function CategoryImportPage() {
       </div>
 
       {/* Excel Data Preview Dialog */}
-      <ExcelPreviewDialog 
+      <ExcelPreviewDialog
         file={file}
         isOpen={isPreviewOpen}
         onOpenChange={setIsPreviewOpen}

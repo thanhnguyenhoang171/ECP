@@ -5,7 +5,6 @@ import { Layers } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import CategoryForm from '@/features/categories/components/CategoryForm';
 import { PageHeader, Breadcrumbs } from '@/components/common';
-import { toast } from 'sonner';
 import { useParentCategories, useCategory } from '@/features/categories/hooks/use-categories';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -45,6 +44,7 @@ export default function EditCategoryPage({ params }: EditCategoryPageProps) {
         </div>
       ) : category ? (
         <CategoryForm 
+        onCancel={() => router.push('/categories')}
           id={id}
           initialData={{
             name: category.name,
@@ -63,7 +63,6 @@ export default function EditCategoryPage({ params }: EditCategoryPageProps) {
           }}
           parentCategories={parentCategories || []}
           onSuccess={() => {
-            toast.success('Cập nhật danh mục thành công');
             router.push('/categories');
             router.refresh();
           }} 

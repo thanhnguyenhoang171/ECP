@@ -11,6 +11,7 @@ export const productSpecificationSchema = z.object({
 });
 
 export const productVariantSchema = z.object({
+  skuId: z.string().optional(),
   sku: z.string().optional().or(z.literal("")),
   barcode: z.string().optional().or(z.literal("")),
   barcodeType: z.string().optional().or(z.literal("")),

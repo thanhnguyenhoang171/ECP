@@ -1,5 +1,25 @@
 export type AttributeValue = string | number | boolean;
 
+export interface ProductDetail {
+  product: Product;
+  brand?: { id: string; name: string } | null;
+  category?: { id: string; name: string } | null;
+  supplier?: { id: string; name?: string; supplierName?: string } | null;
+  skus: Array<{
+    id: string;
+    skuCode: string;
+    variantName?: string;
+    barcode?: string;
+    barcodeType?: string;
+    price: number;
+    costPrice?: number;
+    compareAtPrice?: number;
+    stockQuantity: number;
+    active: boolean;
+    attributes?: Record<string, AttributeValue>;
+  }>;
+}
+
 export interface ProductVariant {
   sku: string;
   skuId?: string;
@@ -11,6 +31,7 @@ export interface ProductVariant {
   image?: { url?: string; publicId?: string } | string | null;
   attributes: Record<string, AttributeValue>;
   isActive?: boolean;
+  active?: boolean;
   createdAt?: string;
   updatedAt?: string;
   stock?: number;

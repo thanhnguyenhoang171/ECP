@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -43,7 +44,7 @@ public class SupplierController {
                 .data(supplierService.getSupplierById(id)).build());
     }
 
-    @PostMapping
+    @PostMapping(consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('supplier:create') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Create a new supplier")
     public ResponseEntity<ApiResponse<SupplierResponse>> createSupplier(@Valid @RequestBody SupplierRequest request) {
@@ -54,7 +55,7 @@ public class SupplierController {
                 .data(supplierService.createSupplier(request)).build(), HttpStatus.CREATED);
     }
 
-    @PatchMapping("/{id}")
+    @PatchMapping(value = "/{id}", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('supplier:update') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update supplier details")
     public ResponseEntity<ApiResponse<SupplierResponse>> updateSupplier(@PathVariable String id, @Valid @RequestBody SupplierRequest request) {

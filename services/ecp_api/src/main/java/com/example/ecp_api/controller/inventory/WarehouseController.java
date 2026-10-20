@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -43,7 +44,7 @@ public class WarehouseController {
                 .data(warehouseService.getWarehouseById(id)).build());
     }
 
-    @PostMapping
+    @PostMapping(consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('warehouse:create') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Create a new warehouse")
     public ResponseEntity<ApiResponse<WarehouseResponse>> createWarehouse(@Valid @RequestBody WarehouseRequest request) {
@@ -54,7 +55,7 @@ public class WarehouseController {
                 .data(warehouseService.createWarehouse(request)).build(), HttpStatus.CREATED);
     }
 
-    @PatchMapping("/{id}")
+    @PatchMapping(value = "/{id}", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('warehouse:update') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update warehouse details")
     public ResponseEntity<ApiResponse<WarehouseResponse>> updateWarehouse(@PathVariable String id, @Valid @RequestBody WarehouseRequest request) {

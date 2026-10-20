@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,7 +26,7 @@ public class GoodsReceiptController {
 
     private final GoodsReceiptService goodsReceiptService;
 
-    @PostMapping
+    @PostMapping(consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('goods_receipt:create') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Create a Goods Receipt (GR) and automatically update physical warehouse inventory balances")
     public ResponseEntity<ApiResponse<GoodsReceiptResponse>> createGoodsReceipt(@Valid @RequestBody GoodsReceiptRequest request) {

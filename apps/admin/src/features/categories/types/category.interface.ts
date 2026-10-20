@@ -11,8 +11,8 @@ export interface Category {
   order?: number;
   sortOrder?: number;
   isFeatured?: boolean;
-  image?: any;
-  imageUrl?: any;
+  image?: { url?: string; publicId?: string } | string | null;
+  imageUrl?: string | null;
   imagePublicId?: string;
   metaTitle?: string;
   metaDescription?: string;

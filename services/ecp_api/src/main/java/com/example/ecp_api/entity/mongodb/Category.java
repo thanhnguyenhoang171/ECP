@@ -63,6 +63,10 @@ public class Category {
     @Builder.Default
     private boolean isFeatured = false;
 
+    private String metaTitle;
+    private String metaDescription;
+    private String metaKeywords;
+
     @CreatedDate
     @Field("created_at")
     private LocalDateTime createdAt;

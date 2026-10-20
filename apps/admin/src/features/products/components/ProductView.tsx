@@ -39,11 +39,12 @@ import {
 import { Product } from '../types/product.interface';
 import { toast } from 'sonner';
 
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatDateTimeForFilename } from '@/lib/formatters';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { getSortOptions } from '@/types';
 import { cn } from '@/lib/utils';
+import { productApi } from '../api/product.api';
 import { useProducts } from '../hooks/use-products';
 import { useDeleteProduct } from '../hooks/use-product-mutation';
 import { useInfiniteCategories } from '@/features/categories/hooks/use-categories';
@@ -72,6 +73,7 @@ export default function ProductView(): React.ReactElement {
     sort,
     search: name,
     categoryId: categoryIdParam,
+    isPublished: isPublishedParam === null ? undefined : isPublishedParam === 'true',
   });
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -126,12 +128,28 @@ export default function ProductView(): React.ReactElement {
 
   useHotkeys('+', handleCreate);
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async (): Promise<void> => {
     setIsExporting(true);
-    setTimeout(() => {
+    try {
+      const blob = await productApi.export();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      try {
+        link.href = url;
+        link.download = `san-pham_${formatDateTimeForFilename()}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+      } finally {
+        link.remove();
+        window.URL.revokeObjectURL(url);
+      }
       toast.success('Xuất danh sách sản phẩm thành công');
+    } catch (error) {
+      console.error('Product export failed:', error);
+      toast.error('Không thể xuất danh sách sản phẩm');
+    } finally {
       setIsExporting(false);
-    }, 1000);
+    }
   }, []);
 
   const sortOptions = useMemo(() => getSortOptions(['NAME', 'PRICE']), []);
@@ -311,18 +329,18 @@ export default function ProductView(): React.ReactElement {
       cell: (product) => (
         <div className="flex justify-end gap-1">
           <ViewActionButton onClick={() => handleNavigateDetail(product.id)} disabled={isExporting} />
-          <EditActionButton onClick={() => handleNavigateDetail(product.id)} disabled={isExporting} />
+          <EditActionButton onClick={() => router.push(`/products/${product.id}/edit`)} disabled={isExporting} />
           <DeleteActionButton onClick={() => setDeleteConfirmId(product.id)} disabled={isExporting} />
         </div>
       ),
     },
-  ], [categoriesList, copiedSku, handleCopySku, handleNavigateDetail, isExporting]);
+  ], [categoriesList, copiedSku, handleCopySku, handleNavigateDetail, isExporting, router]);
 
   const isForbidden = isForbiddenError(error);
 
   const commonActions = (
     <>
-      <ImportButton onClick={() => toast.info('Tính năng Nhập file đang phát triển')} disabled={isExporting} />
+      <ImportButton onClick={() => router.push('/products/import')} disabled={isExporting || isForbidden} />
       <ExportButton onExport={handleExport} isLoading={isExporting} disabled={isExporting || isForbidden} />
       <AddNewButton onClick={handleCreate} disabled={isExporting} />
     </>
