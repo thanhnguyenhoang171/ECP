@@ -164,7 +164,9 @@ export const ProductGeneralTab = ({ form, isSlugEditedRef, nameValue, onUploadin
             render={({ field }) => (
               <FormItem>
                 <FormControl>
-                  <RichTextEditor value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} disabled={form.formState.isSubmitting} onUploadingChange={onUploadingChange} />
+                  <RichTextEditor value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} disabled={form.formState.isSubmitting} onUploadingChange={onUploadingChange} onImageSelected={(file, src) => {
+                    form.setValue('descriptionImages', [...(form.getValues('descriptionImages') || []), { file, src }], { shouldDirty: true });
+                  }} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

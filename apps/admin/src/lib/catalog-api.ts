@@ -1,3 +1,4 @@
+import type { UploadTaskContext } from '@/lib/background-task-queue';
 import { ApiError } from '@/constants/errorMessages';
 import { clientFetch } from '@/lib/clientFetch';
 import { fileApi } from '@/features/files/api/file.api';
@@ -23,8 +24,9 @@ export interface CatalogImage {
   publicId?: string;
 }
 
-export const resolveCatalogImage = async (image: unknown, folder: string): Promise<CatalogImage> => {
+export const resolveCatalogImage = async (image: unknown, folder: string, task?: UploadTaskContext): Promise<CatalogImage> => {
   if (typeof File !== 'undefined' && image instanceof File) {
+    if (task) { return task.upload(image, folder); }
     const result = await fileApi.uploadFile(image, folder);
     const url = result.data?.secure_url || result.data?.url;
     if (!result.success || !url) {

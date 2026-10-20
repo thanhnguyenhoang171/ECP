@@ -1,5 +1,7 @@
 'use client';
 
+import { useBackgroundCatalogSave } from '@/features/files/hooks/use-background-catalog-save';
+import { productApi } from '../api/product.api';
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm, useWatch, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,6 +40,7 @@ interface ProductFormProps {
 }
 
 export default function ProductForm({ onSuccess, onCancel, initialData, inventory }: ProductFormProps): React.JSX.Element {
+  const enqueueSave = useBackgroundCatalogSave();
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
 
@@ -86,9 +89,29 @@ export default function ProductForm({ onSuccess, onCancel, initialData, inventor
     const payload = {
       ...values,
       sku: finalParentSku,
+      descriptionImages: values.descriptionImages?.filter((image) => values.description?.includes(image.src)),
     };
 
     try {
+      const entityId = initialData?.id;
+      if (enqueueSave({
+        title: `${entityId ? 'Cập nhật' : 'Tạo'} sản phẩm: ${payload.name}`,
+        resourceKey: `products:${entityId || `new:${payload.name}`}`,
+        values: payload,
+        queryKeys: [['products'], ['product'], ['product-composite-detail'], ['skus']],
+        save: async (context) => {
+          const result = entityId
+            ? await productApi.update(entityId, payload, context)
+            : await productApi.create(payload, context);
+          return `/products/${result.id}`;
+        },
+      })) {
+        form.reset(payload);
+        onSuccess();
+        if (entityId) { onCancel(); }
+        return;
+      }
+
       if (initialData?.id) {
         const savedProduct = await updateMutation.mutateAsync({ id: initialData.id, values: payload });
         form.reset(getProductFormValues(savedProduct));

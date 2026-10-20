@@ -1,3 +1,4 @@
+import type { UploadTaskContext } from '@/lib/background-task-queue';
 import { ApiError } from '@/constants/errorMessages';
 import { fileApi } from '@/features/files/api/file.api';
 import { clientFetch } from '@/lib/clientFetch';
@@ -33,8 +34,9 @@ export interface ProductListParams {
   isBestSeller?: boolean;
 }
 
-const toImage = async (image: unknown): Promise<ProductImage | null> => {
+const toImage = async (image: unknown, task?: UploadTaskContext): Promise<ProductImage | null> => {
   if (typeof File !== 'undefined' && image instanceof File) {
+    if (task) { return task.upload(image, 'products'); }
     const result = await fileApi.uploadFile(image, 'products');
     const url = result.data?.secure_url || result.data?.url;
     if (!result.success || !url) {
@@ -54,20 +56,37 @@ const toImage = async (image: unknown): Promise<ProductImage | null> => {
 const toRecord = (items: readonly { key: string; value: string }[]): Record<string, string> =>
   Object.fromEntries(items.filter((item) => item.key.trim()).map(({ key, value }) => [key.trim(), value]));
 
-const toPayload = async (data: ProductFormValues, clearThumbnail = false) => {
-  const images = await Promise.all(data.images.map(toImage));
-  const variants = await Promise.all(data.variants.map(async (variant) => ({
-    ...variant,
-    image: await toImage(variant.image),
-    attributes: toRecord(variant.attributes),
-  })));
+const toPayload = async (data: ProductFormValues, clearThumbnail = false, task?: UploadTaskContext) => {
+  const { descriptionImages = [], ...values } = data;
+  let description = data.description || '';
+  for (const item of descriptionImages) {
+    if (!description.includes(item.src)) { continue; }
+    const image = await toImage(item.file, task);
+    if (image) {
+      const escapedUrl = image.url.replaceAll('&', '&amp;').replaceAll('"', '&quot;');
+      description = description.replaceAll(item.src, escapedUrl);
+    }
+  }
+  const images: ProductImage[] = [];
+  for (const item of data.images) {
+    const image = await toImage(item, task);
+    if (image) { images.push(image); }
+  }
+  const variants = [];
+  for (const variant of data.variants) {
+    variants.push({ ...variant, image: await toImage(variant.image, task), attributes: toRecord(variant.attributes) });
+  }
+  const videos: ProductImage[] = [];
+  for (const item of data.videos) {
+    const video = await toImage(item, task);
+    if (video) { videos.push(video); }
+  }
   return {
-    ...data,
-    thumbnail: await toImage(data.thumbnail) || (clearThumbnail ? { url: '' } : null),
-    images: images.filter((image): image is ProductImage => image !== null),
-    videos: (await Promise.all(data.videos.map(toImage))).filter((video): video is ProductImage => video !== null),
+    ...values,
+    description,
+    thumbnail: await toImage(data.thumbnail, task) || (clearThumbnail ? { url: '' } : null),
+    images, videos, variants,
     specifications: toRecord(data.specifications),
-    variants,
   };
 };
 
@@ -133,18 +152,22 @@ export const productApi = {
     return result;
   },
 
-  create: async (data: ProductFormValues): Promise<Product> => {
-    const payload = await toPayload(data);
+  create: async (data: ProductFormValues, task?: UploadTaskContext): Promise<Product> => {
+    const payload = await toPayload(data, false, task);
+    task?.saving();
     const response = await clientFetch('v1/products', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      signal: task?.signal, skipToast: Boolean(task),
     });
     return readProduct(response, 'Tạo sản phẩm thất bại');
   },
 
-  update: async (id: string, data: ProductFormValues): Promise<Product> => {
-    const payload = await toPayload(data, true);
+  update: async (id: string, data: ProductFormValues, task?: UploadTaskContext): Promise<Product> => {
+    const payload = await toPayload(data, true, task);
+    task?.saving();
     const response = await clientFetch(`v1/products/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      signal: task?.signal, skipToast: Boolean(task),
     });
     return readProduct(response, 'Cập nhật sản phẩm thất bại');
   },

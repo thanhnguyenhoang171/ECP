@@ -1,3 +1,4 @@
+import type { UploadTaskContext } from '@/lib/background-task-queue';
 import { Brand } from '../types/brand.interface';
 import { BrandFormValues } from '../schemas/brand.schema';
 import { PageResponse } from '@/types/pagination';
@@ -62,13 +63,15 @@ export const brandApi = {
   },
 
   // Create brand
-  create: async (values: BrandFormValues): Promise<{ success: boolean; data: Brand }> => {
+  create: async (values: BrandFormValues, task?: UploadTaskContext): Promise<{ success: boolean; data: Brand }> => {
     const payload = {
       ...values,
-      logo: values.logo === undefined ? undefined : (await resolveCatalogImage(values.logo, 'brands')).url,
+      logo: values.logo === undefined ? undefined : (await resolveCatalogImage(values.logo, 'brands', task)).url,
     };
 
+    task?.saving();
     const res = await clientFetch('v1/brands', {
+      signal: task?.signal, skipToast: Boolean(task),
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -80,13 +83,15 @@ export const brandApi = {
   },
 
   // Update brand
-  update: async (id: string, values: Partial<BrandFormValues>): Promise<{ success: boolean; data: Brand }> => {
+  update: async (id: string, values: Partial<BrandFormValues>, task?: UploadTaskContext): Promise<{ success: boolean; data: Brand }> => {
     const payload = {
       ...values,
-      logo: values.logo === undefined ? undefined : (await resolveCatalogImage(values.logo, 'brands')).url,
+      logo: values.logo === undefined ? undefined : (await resolveCatalogImage(values.logo, 'brands', task)).url,
     };
 
+    task?.saving();
     const res = await clientFetch(`v1/brands/${id}`, {
+      signal: task?.signal, skipToast: Boolean(task),
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

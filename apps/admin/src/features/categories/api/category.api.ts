@@ -1,3 +1,4 @@
+import type { UploadTaskContext } from '@/lib/background-task-queue';
 import { Category } from '../types/category.interface';
 import { CategoryFormValues } from '../schemas/category.schema';
 import { PageResponse } from '@/types/pagination';
@@ -17,9 +18,9 @@ const mapCategory = (category: Category): Category => {
   };
 };
 
-const toPayload = async (values: Partial<CategoryFormValues>) => {
+const toPayload = async (values: Partial<CategoryFormValues>, task?: UploadTaskContext) => {
   const { imageUrl, imagePublicId, ...rest } = values;
-  const image = imageUrl === undefined ? undefined : await resolveCatalogImage(imageUrl, 'categories');
+  const image = imageUrl === undefined ? undefined : await resolveCatalogImage(imageUrl, 'categories', task);
   return {
     ...rest,
     parentId: values.parentId === 'none' ? '' : values.parentId,
@@ -98,18 +99,22 @@ export const categoryApi = {
     return syncPagination<PageResponse<Category>>(result);
   },
 
-  update: async (id: string, values: Partial<CategoryFormValues>): Promise<{ success: boolean; data: Category }> => {
-    const payload = await toPayload(values);
+  update: async (id: string, values: Partial<CategoryFormValues>, task?: UploadTaskContext): Promise<{ success: boolean; data: Category }> => {
+    const payload = await toPayload(values, task);
+    task?.saving();
     const response = await clientFetch(`v1/categories/${id}`, {
+      signal: task?.signal, skipToast: Boolean(task),
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
     });
     const result = await readCatalogResult<Category>(response, 'Cập nhật danh mục thất bại');
     return { ...result, data: mapCategory(result.data) };
   },
 
-  create: async (values: CategoryFormValues): Promise<{ success: boolean; data: Category }> => {
-    const payload = await toPayload(values);
+  create: async (values: CategoryFormValues, task?: UploadTaskContext): Promise<{ success: boolean; data: Category }> => {
+    const payload = await toPayload(values, task);
+    task?.saving();
     const response = await clientFetch('v1/categories', {
+      signal: task?.signal, skipToast: Boolean(task),
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
     });
     const result = await readCatalogResult<Category>(response, 'Tạo danh mục thất bại');
