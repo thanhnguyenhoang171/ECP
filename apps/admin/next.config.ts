@@ -37,6 +37,8 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react'],
     // File uploads use /api/proxy; allow slow uploads beyond the 30s proxy default.
     proxyTimeout: 5 * 60 * 1000,
+    // Match the API's multipart request limit; the 10MB default truncates uploads.
+    proxyClientMaxBodySize: '500mb',
   },
   // Nén tài nguyên
   compress: true,
