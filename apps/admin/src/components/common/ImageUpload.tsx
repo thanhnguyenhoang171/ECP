@@ -519,8 +519,14 @@ export const ImageUpload = ({
   }, [multiple, isCropActive, reqWidth, reqHeight, deferUpload, maxFiles, internalImages, onChange, onUploadingChange, uploadMultiple, folder, onUploadComplete, uploadFile]);
 
   const onDropRejected = useCallback((fileRejections: FileRejection[]) => {
+    if (fileRejections.some((rejection) => rejection.errors.some((error) => error.code === 'too-many-files'))) {
+      toast.error(`Chỉ có thể thêm tối đa ${Math.max(0, maxFiles - internalImages.length)} ảnh nữa (tối đa ${maxFiles} ảnh).`);
+    }
     fileRejections.forEach((rejection) => {
       const { errors, file } = rejection;
+      if (errors.every((error) => error.code === 'too-many-files')) {
+        return;
+      }
       if (errors[0]?.code === 'file-invalid-type') {
         toast.error(`"${file.name}" không phải là định dạng hình ảnh hợp lệ.`);
       } else if (errors[0]?.code === 'file-too-large') {
@@ -530,7 +536,7 @@ export const ImageUpload = ({
         toast.error(errors[0]?.message);
       }
     });
-  }, [maxSize]);
+  }, [maxSize, maxFiles, internalImages.length]);
 
   const isReplaceAllowed = allowReplace ?? (variant === 'circle' || !multiple);
   const isRemoveVisible = showRemove ?? (variant !== 'circle');

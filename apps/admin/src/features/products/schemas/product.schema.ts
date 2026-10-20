@@ -1,5 +1,13 @@
 import * as z from "zod";
 
+const productImageSchema = z.union([
+  z.string(),
+  z.object({ url: z.string(), publicId: z.string().optional() }),
+  z.custom<File>((value) => typeof File !== 'undefined' && value instanceof File, {
+    message: 'Vui lòng chọn tệp ảnh hợp lệ',
+  }),
+]);
+
 export const productAttributeSchema = z.object({
   key: z.string().min(1, "Tên thuộc tính không được để trống"),
   value: z.string().min(1, "Giá trị không được để trống"),
@@ -19,7 +27,7 @@ export const productVariantSchema = z.object({
   compareAtPrice: z.coerce.number().min(0, "Giá so sánh phải lớn hơn hoặc bằng 0").optional().or(z.literal(0)),
   costPrice: z.coerce.number().min(0, "Giá vốn phải lớn hơn hoặc bằng 0").optional().or(z.literal(0)),
   attributes: z.array(productAttributeSchema).default([]),
-  image: z.string().optional().or(z.literal("")),
+  image: productImageSchema.optional(),
   isActive: z.boolean().default(true),
 });
 
@@ -31,8 +39,8 @@ export const productSchema = z.object({
   brandId: z.string().optional().or(z.literal("")),
   categoryId: z.string().min(1, "Vui lòng chọn danh mục"),
   description: z.string().optional().or(z.literal("")),
-  thumbnail: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
-  images: z.array(z.union([z.string(), z.record(z.string(), z.unknown())])).default([]),
+  thumbnail: productImageSchema.optional(),
+  images: z.array(productImageSchema).default([]),
   specifications: z.array(productSpecificationSchema).default([]),
   variants: z.array(productVariantSchema).min(1, "Phải có ít nhất một biến thể"),
   isPublished: z.boolean().default(true),

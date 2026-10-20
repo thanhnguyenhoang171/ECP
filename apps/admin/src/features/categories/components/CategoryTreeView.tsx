@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Category } from '../types/category.interface';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import {
   Edit,
   Trash2,
   Layers,
+  Package,
   Image as ImageIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -31,6 +33,7 @@ export function CategoryTreeView({
   onDelete,
   onAddSub,
 }: CategoryTreeViewProps) {
+  const router = useRouter();
   // Build parent-child hierarchy tree
   const parentCategories = categories.filter(
     (c) => !c.parentId || c.parentId === '0' || c.level === 1
@@ -134,6 +137,17 @@ export function CategoryTreeView({
               className="h-7 px-2 text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-200 gap-1 cursor-pointer"
             >
               <Plus className="w-3 h-3" /> Sub-Category
+            </Button>
+
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => router.push(`/products?categoryId=${category.id}`)}
+              className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 cursor-pointer"
+              title="Xem sản phẩm của danh mục"
+              aria-label={`Xem sản phẩm của danh mục ${category.name}`}
+            >
+              <Package className="w-3.5 h-3.5" />
             </Button>
 
             <Button

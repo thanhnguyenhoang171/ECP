@@ -283,7 +283,7 @@ export const ProductGeneralTab = ({ form, isSlugEditedRef, nameValue, onUploadin
                 <FormControl>
                   <ImageUpload 
                     multiple 
-                    maxFiles={5}
+                    maxFiles={Number.POSITIVE_INFINITY}
                     value={Array.isArray(field.value) ? field.value.map((v) => (typeof v === 'string' || (typeof window !== 'undefined' && v instanceof File) ? v : (v as { url?: string })?.url || '')).filter(Boolean) : []} 
                     onChange={field.onChange}
                     onUploadingChange={onUploadingChange}

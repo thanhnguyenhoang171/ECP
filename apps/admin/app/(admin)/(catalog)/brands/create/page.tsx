@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import BrandForm from '@/features/brands/components/BrandForm';
 import { PageHeader, Breadcrumbs } from '@/components/common';
 
-export default function CreateBrandPage() {
+export default function CreateBrandPage(): React.JSX.Element {
   const router = useRouter();
 
   const breadcrumbItems = [

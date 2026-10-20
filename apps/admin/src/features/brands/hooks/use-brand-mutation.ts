@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { brandApi } from '../api/brand.api';
 import { BrandFormValues } from '../schemas/brand.schema';
+import type { Brand } from '../types/brand.interface';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/constants/errorMessages';
 
@@ -20,7 +21,11 @@ export const useImportBrand = (): UseMutationResult<
   });
 };
 
-export const useCreateBrand = () => {
+export const useCreateBrand = (): UseMutationResult<
+  { success: boolean; data: Brand },
+  unknown,
+  BrandFormValues
+> => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -36,7 +41,11 @@ export const useCreateBrand = () => {
   });
 };
 
-export const useUpdateBrand = () => {
+export const useUpdateBrand = (): UseMutationResult<
+  { success: boolean; data: Brand },
+  unknown,
+  { id: string; values: Partial<BrandFormValues> }
+> => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -53,7 +62,7 @@ export const useUpdateBrand = () => {
   });
 };
 
-export const useDeleteBrand = () => {
+export const useDeleteBrand = (): UseMutationResult<{ success: boolean }, unknown, string> => {
   const queryClient = useQueryClient();
 
   return useMutation({

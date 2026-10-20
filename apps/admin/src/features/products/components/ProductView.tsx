@@ -48,6 +48,7 @@ import { productApi } from '../api/product.api';
 import { useProducts } from '../hooks/use-products';
 import { useDeleteProduct } from '../hooks/use-product-mutation';
 import { useInfiniteCategories } from '@/features/categories/hooks/use-categories';
+import { useInfiniteBrands } from '@/features/brands/hooks/use-brands';
 
 export default function ProductView(): React.ReactElement {
   const router = useRouter();
@@ -65,6 +66,7 @@ export default function ProductView(): React.ReactElement {
   } = useViewParams('name,asc');
 
   const categoryIdParam = searchParams.get('categoryId') || '';
+  const brandIdParam = searchParams.get('brandId') || '';
   const isPublishedParam = searchParams.get('isPublished');
 
   const { data: queryData, isFetching, isLoading, error } = useProducts({
@@ -73,6 +75,7 @@ export default function ProductView(): React.ReactElement {
     sort,
     search: name,
     categoryId: categoryIdParam,
+    brandId: brandIdParam,
     isPublished: isPublishedParam === null ? undefined : isPublishedParam === 'true',
   });
 
@@ -100,6 +103,15 @@ export default function ProductView(): React.ReactElement {
       fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const brands = useInfiniteBrands(isFilterOpen || Boolean(brandIdParam));
+  const brandsList = useMemo(() => brands.data?.pages.flatMap((brandPage) => brandPage.data || []) ?? [], [brands.data]);
+  const handleBrandScroll = (event: React.UIEvent<HTMLDivElement>): void => {
+    const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 30 && brands.hasNextPage && !brands.isFetchingNextPage && !brands.isFetchNextPageError) {
+      void brands.fetchNextPage();
+    }
+  };
 
   const paginatedProducts = queryData?.data || [];
   const totalPages = queryData?.pagination?.totalPages || 1;
@@ -384,10 +396,10 @@ export default function ProductView(): React.ReactElement {
         extra={
           <>
             <FilterPopover
-              activeCount={(categoryIdParam ? 1 : 0) + (isPublishedParam ? 1 : 0)}
-              onClear={() => updateUrl({ categoryId: '', isPublished: '', page: 1 })}
+              activeCount={(categoryIdParam ? 1 : 0) + (brandIdParam ? 1 : 0) + (isPublishedParam ? 1 : 0)}
+              onClear={() => updateUrl({ categoryId: '', brandId: '', isPublished: '', page: 1 })}
               onOpenChange={(open) => {
-                if (open) setIsFilterOpen(true);
+                setIsFilterOpen(open);
               }}
             >
               <div className="space-y-4">
@@ -426,6 +438,27 @@ export default function ProductView(): React.ReactElement {
                   </div>
                 </div>
 
+                <div className='space-y-2'>
+                  <h4 className='font-medium text-xs leading-none text-slate-900'>Thương hiệu</h4>
+                  <div className='flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar' onScroll={handleBrandScroll}>
+                    <button type='button' className={filterBtnClass(!brandIdParam)} onClick={() => updateUrl({ brandId: '', page: 1 })}>
+                      Tất cả thương hiệu
+                    </button>
+                    {brands.isLoading ? Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className='h-7 w-full rounded-md' />)
+                      : brandsList.map((brand) => (
+                        <button type='button' key={brand.id} aria-pressed={brandIdParam === brand.id} className={filterBtnClass(brandIdParam === brand.id)} onClick={() => updateUrl({ brandId: brand.id, page: 1 })}>
+                          {brand.name}
+                        </button>
+                      ))}
+                    {brands.isSuccess && brandsList.length === 0 && <p className='px-2.5 py-1.5 text-xs text-slate-500'>Chưa có thương hiệu.</p>}
+                    {brands.isError && <div className='space-y-1 px-2.5 py-1.5'>
+                      <p role='alert' className='text-xs text-red-600'>Không thể tải thương hiệu.</p>
+                      <button type='button' disabled={brands.isFetching} className='text-xs text-blue-600' onClick={() => { void (brands.isFetchNextPageError ? brands.fetchNextPage() : brands.refetch()); }}>Thử lại</button>
+                    </div>}
+                    {brands.isFetchingNextPage && <div className='flex justify-center py-1'><Loader2 className='h-4 w-4 animate-spin text-blue-600' /></div>}
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <h4 className="font-medium text-xs leading-none text-slate-900">Trạng thái kinh doanh</h4>
                   <div className="flex flex-col gap-1">
@@ -454,13 +487,14 @@ export default function ProductView(): React.ReactElement {
 
             <SortPopover options={sortOptions} currentValue={sort} onSelect={setSort} />
 
-            {(Boolean(searchTerm) || Boolean(categoryIdParam) || isPublishedParam !== null || sort !== 'name,asc') && (
+            {(Boolean(searchTerm) || Boolean(categoryIdParam) || Boolean(brandIdParam) || isPublishedParam !== null || sort !== 'name,asc') && (
               <ResetFiltersButton
                 onClick={() => {
                   setSearchTerm('');
                   updateUrl({
                     name: undefined,
                     categoryId: undefined,
+                    brandId: undefined,
                     isPublished: undefined,
                     sort: 'name,asc',
                     page: 1,

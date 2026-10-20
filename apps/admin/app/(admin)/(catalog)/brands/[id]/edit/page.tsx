@@ -7,7 +7,7 @@ import BrandForm from '@/features/brands/components/BrandForm';
 import { PageHeader, Breadcrumbs } from '@/components/common';
 import { useBrand } from '@/features/brands/hooks/use-brands';
 
-export default function EditBrandPage() {
+export default function EditBrandPage(): React.JSX.Element {
   const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
