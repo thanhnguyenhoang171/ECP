@@ -54,6 +54,10 @@ public class CategoryResponse {
     @Schema(description = "Featured category status for homepage display", example = "true")
     private Boolean isFeatured;
 
+    private String metaTitle;
+    private String metaDescription;
+    private String metaKeywords;
+
     @com.fasterxml.jackson.annotation.JsonView(com.example.ecp_api.dto.view.Views.Admin.class)
     @Schema(description = "Email of the user who created the category")
     private String createdBy;

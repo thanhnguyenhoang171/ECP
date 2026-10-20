@@ -26,14 +26,14 @@ export const MarginIndicator = ({ control, variantIndex }: MarginIndicatorProps)
       {costPrice > 0 && (
         <div className={cn(
           "text-[10px] px-2 py-0.5 rounded font-bold flex items-center gap-1",
-          profit >= 0 ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-rose-50 text-rose-700 border border-rose-100"
+          profit >= 0 ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-rose-50 text-rose-800 border border-rose-200"
         )}>
           <Coins size={10} />
           Lãi: {formatCurrency(profit)} ({margin}%)
         </div>
       )}
       {compareAtPrice > price && (
-        <div className="text-[10px] px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 rounded font-bold flex items-center gap-1">
+        <div className="text-[10px] px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded font-bold flex items-center gap-1">
           <TrendingUp size={10} />
           Khuyến mãi: -{discount}%
         </div>

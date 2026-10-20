@@ -45,7 +45,8 @@ import { useUIStore } from '@/store/uiStore';
 
 interface CategoryFormProps {
   onSuccess: () => void;
-  initialData?: CategoryFormValues;
+  onCancel: () => void;
+  initialData?: Partial<CategoryFormValues>;
   parentCategories?: Category[];
   id?: string;
   isDialog?: boolean;
@@ -54,6 +55,7 @@ interface CategoryFormProps {
 
 export default function CategoryForm({
   onSuccess,
+  onCancel,
   initialData,
   parentCategories = [],
   id,
@@ -100,6 +102,9 @@ export default function CategoryForm({
   useEffect(() => {
     if (initialData) {
       form.reset({
+        name: '',
+        slug: '',
+        active: true,
         ...initialData,
         parentId: initialData.parentId || '',
         imageUrl: initialData.imageUrl,
@@ -148,14 +153,14 @@ export default function CategoryForm({
 
     const payload = {
       ...values,
-      parentId: (values.parentId === '' || values.parentId === 'none') ? null : values.parentId
+      parentId: values.parentId === 'none' ? '' : values.parentId,
     };
 
     try {
       if (id) {
-        await updateMutation.mutateAsync({ id, values: payload as any });
+        await updateMutation.mutateAsync({ id, values: payload });
       } else {
-        await createMutation.mutateAsync(payload as any);
+        await createMutation.mutateAsync(payload);
       }
       onSuccess();
     } catch (error: unknown) {
@@ -537,7 +542,7 @@ export default function CategoryForm({
 
         {/* Actions Bar */}
         <FormActionsBar
-          onCancel={onSuccess}
+          onCancel={onCancel}
           isSubmitting={isLoading || isImageUploading}
           submitText={isImageUploading ? 'Đang tải ảnh lên...' : (id ? 'Cập nhật danh mục' : 'Lưu danh mục')}
           activeTabLabel={tabs.find(t => t.id === activeTab)?.label}

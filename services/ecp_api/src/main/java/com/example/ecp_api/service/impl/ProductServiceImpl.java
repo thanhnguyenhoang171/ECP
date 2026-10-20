@@ -85,6 +85,14 @@ public class ProductServiceImpl implements ProductService {
 
         Query query = new Query().with(finalPageable);
 
+        if (StringUtils.hasText(filter.getSearch())) {
+            String pattern = java.util.regex.Pattern.quote(filter.getSearch().trim());
+            query.addCriteria(new Criteria().orOperator(
+                    Criteria.where("name").regex(pattern, "i"),
+                    Criteria.where("sku").regex(pattern, "i"),
+                    Criteria.where("product_variants.sku").regex(pattern, "i")));
+        }
+
         if (StringUtils.hasText(filter.getId())) {
             query.addCriteria(Criteria.where("_id").is(filter.getId()));
         }
@@ -407,7 +415,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         if (request.getThumbnail() != null) {
-            existingProduct.setThumbnail(request.getThumbnail());
+            existingProduct.setThumbnail(StringUtils.hasText(request.getThumbnail().getUrl()) ? request.getThumbnail() : null);
         }
 
         if (request.getImages() != null) {
@@ -435,22 +443,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         if (request.getVariants() != null && !request.getVariants().isEmpty()) {
-            List<ProductVariant> updatedVariants = new ArrayList<>();
-            for (ProductRequest.ProductVariantRequest varReq : request.getVariants()) {
-                ProductVariant variant = ProductVariant.builder()
-                        .sku(StringUtils.hasText(varReq.getSku()) ? varReq.getSku() : ProductUtils.generateVariantSku(existingProduct.getSku(), varReq.getAttributes()))
-                        .barcode(varReq.getBarcode())
-                        .barcodeType(varReq.getBarcodeType())
-                        .price(varReq.getPrice())
-                        .costPrice(varReq.getCostPrice())
-                        .compareAtPrice(varReq.getCompareAtPrice())
-                        .attributes(varReq.getAttributes())
-                        .image(varReq.getImage())
-                        .active(varReq.getIsActive() != null ? varReq.getIsActive() : true)
-                        .build();
-                updatedVariants.add(variant);
-            }
-            existingProduct.setVariants(updatedVariants);
+            synchronizeVariants(existingProduct, request.getVariants());
         }
 
         String operatorEmail = SecurityUtils.getCurrentUsername();
@@ -465,6 +458,76 @@ public class ProductServiceImpl implements ProductService {
         ProductResponse resp = productMapper.toResponse(existingProduct);
         enrichCategoryInfo(resp);
         return resp;
+    }
+
+    private void synchronizeVariants(Product product, List<ProductRequest.ProductVariantRequest> requests) {
+        List<Sku> existingSkus = skuRepository.findByProductId(product.getId());
+        Map<String, Sku> byId = new HashMap<>();
+        Map<String, Sku> byCode = new HashMap<>();
+        for (Sku sku : existingSkus) {
+            byId.put(sku.getId().toString(), sku);
+            byCode.put(sku.getSkuCode(), sku);
+        }
+
+        List<Sku> targets = new ArrayList<>();
+        List<String> plannedCodes = new ArrayList<>();
+        java.util.Set<String> requestedCodes = new java.util.HashSet<>();
+        java.util.Set<String> requestedIds = new java.util.HashSet<>();
+        for (ProductRequest.ProductVariantRequest request : requests) {
+            Sku target = null;
+            if (StringUtils.hasText(request.getSkuId())) {
+                target = byId.get(request.getSkuId());
+                if (target == null) {
+                    throw new AppException("SKU_NOT_FOUND", "SKU does not belong to this product", HttpStatus.BAD_REQUEST);
+                }
+            } else if (StringUtils.hasText(request.getSku())) {
+                target = byCode.get(request.getSku().trim());
+            }
+            String code = StringUtils.hasText(request.getSku()) ? request.getSku().trim()
+                    : target != null ? target.getSkuCode() : ProductUtils.generateVariantSku(product.getSku(), request.getAttributes());
+            if (!requestedCodes.add(code) || (target != null && !requestedIds.add(target.getId().toString()))) {
+                throw new AppException("VARIANT_SKU_EXIST", "Duplicate variant SKU: " + code, HttpStatus.BAD_REQUEST);
+            }
+            Sku owner = skuRepository.findBySkuCode(code).orElse(null);
+            if (owner != null && (target == null || !owner.getId().equals(target.getId()))) {
+                throw new AppException("VARIANT_SKU_EXIST", "Variant SKU already exists: " + code, HttpStatus.BAD_REQUEST);
+            }
+            if (target == null) {
+                target = Sku.builder().variantId(UUID.randomUUID().toString()).build();
+            }
+            targets.add(target);
+            plannedCodes.add(code);
+        }
+
+        List<ProductVariant> variants = new ArrayList<>();
+        java.util.Set<UUID> retainedIds = new java.util.HashSet<>();
+        for (int index = 0; index < requests.size(); index++) {
+            ProductRequest.ProductVariantRequest request = requests.get(index);
+            Sku sku = targets.get(index);
+            String code = plannedCodes.get(index);
+            sku.setSkuCode(code);
+            sku.setProductId(product.getId());
+            sku.setProductName(product.getName());
+            sku.setVariantName(request.getAttributes() == null ? "" : String.join(" / ", request.getAttributes().values().stream().map(String::valueOf).toList()));
+            sku.setBarcode(StringUtils.hasText(request.getBarcode()) ? request.getBarcode() : null);
+            sku.setBarcodeType(request.getBarcodeType());
+            sku.setActive(request.getIsActive() == null || request.getIsActive());
+            sku = skuRepository.save(sku);
+            retainedIds.add(sku.getId());
+
+            ProductVariant variant = productMapper.toVariantEntity(request);
+            variant.setSku(code);
+            variant.setSku_id(sku.getId().toString());
+            variant.setProductId(product.getId());
+            variants.add(variant);
+        }
+        for (Sku sku : existingSkus) {
+            if (!retainedIds.contains(sku.getId()) && sku.isActive()) {
+                sku.setActive(false);
+                skuRepository.save(sku);
+            }
+        }
+        product.setVariants(variants);
     }
 
     @Override

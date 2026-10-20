@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm, useWatch, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { 
-  Info, 
+import {
+  Info,
   Settings2,
   // Globe,
 } from 'lucide-react';
@@ -12,114 +12,41 @@ import {
 import {
   Form,
 } from '@/components/ui/form';
-import { 
+import {
   FormActionsBar,
 } from '@/components/common';
-import { useCategories } from '@/features/categories/hooks/use-categories';
-import { useActiveBrands } from '@/features/brands/hooks/use-brands';
-import { Brand } from '@/features/brands/types/brand.interface';
 import { useCreateProduct, useUpdateProduct } from '../hooks/use-product-mutation';
-import { 
-  productSchema, 
-  ProductFormValues, 
+import {
+  productSchema,
+  ProductFormValues,
 } from '../schemas/product.schema';
-import { cn, convertToSlug, convertToSku, getCloudinaryPublicId } from '@/lib/utils';
+import { cn, convertToSlug, convertToSku } from '@/lib/utils';
 import { toast } from 'sonner';
 
 import { ProductGeneralTab } from './product-form/ProductGeneralTab';
 import { ProductVariantsTab } from './product-form/ProductVariantsTab';
 
+import { Product } from '../types/product.interface';
+import { getProductFormValues } from '../lib/product-form-values';
+
 interface ProductFormProps {
   onSuccess: () => void;
   onCancel: () => void;
-  initialData?: ProductFormValues & { id?: string };
+  initialData?: Product;
   isDialog?: boolean;
 }
 
 export default function ProductForm({ onSuccess, onCancel, initialData, isDialog = false }: ProductFormProps): React.JSX.Element {
-  const { data: categoriesData } = useCategories({ page: 0, size: 100 });
-  const categories = categoriesData?.data || [];
-
-  const { data: activeBrands } = useActiveBrands();
-  const brands = activeBrands || [];
-
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
 
-  const [activeTab, setActiveTab] = useState<'general' | 'logistics' | 'variants' | 'seo'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'variants'>('general');
   const isSlugEditedRef = useRef(false);
   const [isImageUploading, setIsImageUploading] = useState(false);
 
-  // Chuyển đổi an toàn attributes từ Object Record -> Array
-  const transformAttributesToArray = (attrs: Record<string, string> | any[] | undefined) => {
-    if (!attrs) return [];
-    if (Array.isArray(attrs)) return attrs;
-    if (typeof attrs === 'object') {
-      return Object.entries(attrs).map(([key, value]) => ({ key, value }));
-    }
-    return [];
-  };
-
-  // Chuyển đổi an toàn specifications từ Object Record -> Array
-  const transformSpecificationsToArray = (specs: Record<string, string> | any[] | undefined) => {
-    if (!specs) return [];
-    if (Array.isArray(specs)) return specs;
-    if (typeof specs === 'object') {
-      return Object.entries(specs).map(([key, value]) => ({ key, value }));
-    }
-    return [];
-  };
-
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    defaultValues: {
-      sku: initialData?.sku || '',
-      name: initialData?.name || '',
-      slug: initialData?.slug || '',
-      brand: initialData?.brand || '',
-      brandId: (initialData as any)?.brandId || '',
-      categoryId: initialData?.categoryId || '',
-      description: initialData?.description || '',
-      thumbnail: initialData?.thumbnail || '',
-      images: initialData?.images || [],
-      specifications: initialData?.specifications 
-        ? transformSpecificationsToArray(initialData.specifications) 
-        : [],
-      isPublished: initialData?.isPublished ?? (initialData as any)?.published ?? true,
-      isFeatured: initialData?.isFeatured ?? (initialData as any)?.featured ?? false,
-      isNew: initialData?.isNew ?? (initialData as any)?.new ?? false,
-      isBestSeller: initialData?.isBestSeller ?? (initialData as any)?.bestSeller ?? false,
-      viewCount: initialData?.viewCount ?? 0,
-      soldCount: initialData?.soldCount ?? 0,
-      ratingAvg: initialData?.ratingAvg ?? 0,
-      ratingCount: initialData?.ratingCount ?? 0,
-      metaTitle: (initialData as any)?.metaTitle || '',
-      metaDescription: (initialData as any)?.metaDescription || '',
-      metaKeywords: (initialData as any)?.metaKeywords || '',
-      variants: initialData?.variants?.map(v => ({
-        sku: v.sku || '',
-        price: v.price || 0,
-        compareAtPrice: (v as any).compareAtPrice || 0,
-        costPrice: (v as any).costPrice || 0,
-        barcode: (v as any).barcode || '',
-        barcodeType: (v as any).barcodeType || 'EAN-13',
-        image: (v as any).image || '',
-        isActive: (v as any).isActive !== undefined ? (v as any).isActive : true,
-        attributes: transformAttributesToArray(v.attributes)
-      })) || [
-        { 
-          sku: '', 
-          price: 0, 
-          compareAtPrice: 0,
-          costPrice: 0,
-          barcode: '', 
-          barcodeType: 'EAN-13', 
-          isActive: true, 
-          image: '', 
-          attributes: [] 
-        }
-      ],
-    },
+    defaultValues: getProductFormValues(initialData),
   });
 
   const nameValue = useWatch({
@@ -159,15 +86,19 @@ export default function ProductForm({ onSuccess, onCancel, initialData, isDialog
       sku: finalParentSku,
     };
 
-    if (initialData?.id) {
-      await updateMutation.mutateAsync({ id: initialData.id, values: payload as any });
-    } else {
-      await createMutation.mutateAsync(payload as any);
+    try {
+      if (initialData?.id) {
+        await updateMutation.mutateAsync({ id: initialData.id, values: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+      onSuccess();
+    } catch (error) {
+      console.error('Product save failed:', error);
     }
-    onSuccess();
   }
 
-  const onErrors = (errors: any) => {
+  const onErrors = (errors: FieldErrors<ProductFormValues>) => {
     const errorKeys = Object.keys(errors);
     const generalFields = ['name', 'slug', 'categoryId', 'brandId', 'description', 'thumbnail'];
     const generalErr = errorKeys.some(key => generalFields.includes(key));
@@ -187,17 +118,17 @@ export default function ProductForm({ onSuccess, onCancel, initialData, isDialog
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
   const tabs = [
-    { 
-      id: 'general', 
+    {
+      id: 'general',
       step: '01',
-      label: 'Thông tin chung', 
+      label: 'Thông tin chung',
       icon: Info,
       hasError: hasGeneralErrors
     },
-    { 
-      id: 'variants', 
+    {
+      id: 'variants',
       step: '02',
-      label: 'Biến thể & Giá', 
+      label: 'Biến thể & Giá',
       icon: Settings2,
       badge: variantCount > 0 ? `${variantCount}` : undefined,
       hasError: hasVariantErrors
@@ -206,8 +137,8 @@ export default function ProductForm({ onSuccess, onCancel, initialData, isDialog
 
   return (
     <Form {...form}>
-      <form 
-        onSubmit={form.handleSubmit(onSubmit, onErrors)} 
+      <form
+        onSubmit={form.handleSubmit(onSubmit, onErrors)}
         className={cn(isDialog ? "flex flex-col flex-1 overflow-hidden" : "space-y-6 pb-24")}
       >
         <div className={cn("space-y-6", isDialog && "flex-1 overflow-y-auto p-6")}>
@@ -223,17 +154,19 @@ export default function ProductForm({ onSuccess, onCancel, initialData, isDialog
                   role="tab"
                   aria-selected={isActive}
                   aria-controls={`tab-panel-${tab.id}`}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id === 'variants' ? 'variants' : 'general')}
                   className={cn(
-                    "relative flex items-center gap-2 pb-3.5 pt-1 px-1 text-xs font-bold transition-all border-b-2 -mb-px shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-t-sm",
-                    isActive 
-                      ? "border-blue-600 text-blue-600 font-extrabold" 
-                      : "border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300"
+                    "relative flex items-center gap-2 pb-3.5 pt-1 px-1 text-xs font-bold transition-all border-b-2 -mb-px shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                    isActive
+                      ? "border-blue-600 text-blue-700 font-extrabold"
+                      : "border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300"
                   )}
                 >
                   <span className={cn(
                     "text-[10px] px-1.5 py-0.5 rounded font-black tracking-wider uppercase transition-colors",
-                    isActive ? "bg-blue-50 text-blue-600" : "bg-slate-100 text-slate-400"
+                    isActive
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-slate-100 text-slate-600"
                   )}>
                     {tab.step}
                   </span>
@@ -260,12 +193,10 @@ export default function ProductForm({ onSuccess, onCancel, initialData, isDialog
           {/* Tab 1: General Info */}
           {activeTab === 'general' && (
             <div role="tabpanel" id="tab-panel-general">
-              <ProductGeneralTab 
-                form={form} 
-                categories={categories} 
-                brands={brands}
-                isSlugEditedRef={isSlugEditedRef} 
-                nameValue={nameValue} 
+              <ProductGeneralTab
+                form={form}
+                isSlugEditedRef={isSlugEditedRef}
+                nameValue={nameValue}
                 onUploadingChange={setIsImageUploading}
               />
             </div>
@@ -274,8 +205,8 @@ export default function ProductForm({ onSuccess, onCancel, initialData, isDialog
           {/* Tab 2: Variants */}
           {activeTab === 'variants' && (
             <div role="tabpanel" id="tab-panel-variants">
-              <ProductVariantsTab 
-                form={form} 
+              <ProductVariantsTab
+                form={form}
                 onUploadingChange={setIsImageUploading}
               />
             </div>

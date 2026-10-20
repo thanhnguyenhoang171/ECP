@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -34,7 +35,7 @@ public class AccountController {
                 .build());
     }
 
-    @PatchMapping
+    @PatchMapping(consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Update current logged-in user account details", 
                description = "Updates profile details for current logged-in user. Allowed update fields: phoneNumber, firstName, lastName, dob, and gender.")
     public ResponseEntity<ApiResponse<UserResponse>> updateMyAccount(

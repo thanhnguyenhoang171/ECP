@@ -1,18 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { productApi } from '../api/product.api';
+import { productApi, type ProductListParams } from '../api/product.api';
 import { PageResponse } from '@/types/pagination';
 import { Product } from '../types/product.interface';
 
-interface UseProductsParams {
-  page: number;
-  size: number;
-  sort?: string;
-  search?: string;
-  categoryId?: string;
-}
-
 export const useProducts = (
-  params: UseProductsParams,
+  params: ProductListParams,
   initialData?: PageResponse<Product>,
 ) => {
   return useQuery({

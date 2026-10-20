@@ -170,7 +170,7 @@ export default function CategoriesView({
  const handleToggleActive = useCallback((category: Category) => {
   updateMutation.mutate({
    id: category.id,
-   values: { active: !category.active } as any,
+   values: { active: !category.active },
   });
  }, [updateMutation]);
 
@@ -179,7 +179,7 @@ export default function CategoriesView({
    id: category.id,
    values: {
     isFeatured: !category.isFeatured,
-   } as any,
+   },
   });
  }, [updateMutation]);
 
@@ -248,7 +248,7 @@ export default function CategoriesView({
    className: 'w-[18%] min-w-[140px] text-xs font-medium text-slate-600',
    headerClassName: 'w-[18%] min-w-[140px]',
    skeleton: <Skeleton className='h-4 w-24' />,
-   cell: (category) => (category as any).parentName || '---',
+   cell: (category) => parentCategories?.find((parent) => parent.id === category.parentId)?.name || '---',
   },
   {
    header: 'Mô tả',
@@ -297,7 +297,7 @@ export default function CategoriesView({
     </div>
    ),
   },
- ], [handleEdit, handleToggleFeatured, handleViewDetail, isFetching, isLoading, updateMutation.isPending, updateMutation.variables?.id]);
+ ], [parentCategories, handleEdit, handleToggleFeatured, handleViewDetail, isFetching, isLoading, updateMutation.isPending, updateMutation.variables?.id]);
 
  const commonActions = (
   <>

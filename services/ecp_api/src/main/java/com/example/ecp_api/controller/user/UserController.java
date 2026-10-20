@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -34,7 +35,7 @@ public class UserController {
     private final UserService userService;
     private final TokenService tokenService;
 
-    @PostMapping
+    @PostMapping(consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("(hasAuthority('user:create') or hasRole('SUPER_ADMIN')) and @userSecurityEvaluator.canAssignRoles(authentication, #request.roles)")
     @Operation(summary = "Create a new user account")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody UserRequest request) {
@@ -76,7 +77,7 @@ public class UserController {
                 .build());
     }
 
-    @PatchMapping("/{id}")
+    @PatchMapping(value = "/{id}", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('user:update') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update user details by ID")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(

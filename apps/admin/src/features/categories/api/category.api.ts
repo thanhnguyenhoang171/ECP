@@ -4,35 +4,54 @@ import { PageResponse } from '@/types/pagination';
 import { clientFetch } from '@/lib/clientFetch';
 import { toApiPage, syncPagination } from '@/lib/utils';
 import { ApiError } from '@/constants/errorMessages';
-import { fileApi } from '@/features/files/api/file.api';
+import { readCatalogResult, resolveCatalogImage, importCatalogFile, type CatalogResult } from '@/lib/catalog-api';
 
-// Helper to map category response to frontend model
-const mapCategory = (cat: any): Category => {
-  if (!cat) return cat;
-
-  // Extract parent ID safely
-  let parentId = null;
-  if (cat.parentId) {
-    parentId = typeof cat.parentId === 'object' ? cat.parentId.id?.toString() : cat.parentId.toString();
-  } else if (cat.parent) {
-    parentId = cat.parent.id?.toString();
-  }
-
-  const rawImage = cat.imageUrl || cat.image;
-  const imageUrl = typeof rawImage === 'string' ? rawImage : (rawImage?.url || null);
-  const imagePublicId = cat.imagePublicId || (typeof rawImage === 'object' ? rawImage?.publicId : undefined);
-
+const mapCategory = (category: Category): Category => {
+  const image = category.image;
+  const imageUrl = category.imageUrl || (typeof image === 'string' ? image : image?.url) || null;
   return {
-    ...cat,
-    id: cat.id?.toString(),
-    parentId: parentId || null,
-    imageUrl: imageUrl,
-    imagePublicId: imagePublicId,
-    image: rawImage,
+    ...category,
+    parentId: category.parentId || null,
+    imageUrl,
+    imagePublicId: category.imagePublicId || (typeof image === 'object' ? image?.publicId : undefined),
+  };
+};
+
+const toPayload = async (values: Partial<CategoryFormValues>) => {
+  const { imageUrl, imagePublicId, ...rest } = values;
+  const image = imageUrl === undefined ? undefined : await resolveCatalogImage(imageUrl, 'categories');
+  return {
+    ...rest,
+    parentId: values.parentId === 'none' ? '' : values.parentId,
+    image: image ? { ...image, publicId: image.publicId || imagePublicId } : undefined,
   };
 };
 
 export const categoryApi = {
+  getActive: async (params: { page?: number; size?: number; name?: string } = {}): Promise<PageResponse<Category>> => {
+    const query = new URLSearchParams({
+      page: toApiPage(params.page ?? 1).toString(),
+      size: (params.size ?? 10).toString(),
+    });
+    if (params.name?.trim()) {
+      query.set('name', params.name.trim());
+    }
+    const res = await clientFetch(`v1/categories/active?${query}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      if (res.status === 403) {
+        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem danh mục sản phẩm', 403);
+      }
+      throw new Error('Không thể tải danh sách danh mục đang hoạt động');
+    }
+    const result: PageResponse<Category> = await res.json();
+    return syncPagination<PageResponse<Category>>({
+      ...result,
+      data: (result.data || []).map(mapCategory),
+    });
+  },
+
   // Lấy danh sách danh mục có phân trang và lọc
   getPaged: async (params: {
     page: number;
@@ -79,85 +98,22 @@ export const categoryApi = {
     return syncPagination<PageResponse<Category>>(result);
   },
 
-  // Cập nhật danh mục
-  update: async (
-    id: string,
-    values: Partial<CategoryFormValues>,
-  ): Promise<{ success: boolean; data: Category }> => {
-    const { imageUrl, imagePublicId, ...rest } = values;
-
-    let mappedUrl: string | undefined = undefined;
-    let finalPublicId = imagePublicId;
-
-    if (imageUrl instanceof File) {
-      const uploadRes = await fileApi.uploadFile(imageUrl, 'categories');
-      mappedUrl = uploadRes.data?.url || uploadRes.data?.secure_url;
-      finalPublicId = uploadRes.data?.public_id;
-    } else if (typeof imageUrl === 'string') {
-      mappedUrl = imageUrl;
-    }
-
-    const payload = {
-      ...rest,
-      imageUrl: mappedUrl,
-      imagePublicId: finalPublicId || undefined,
-      image: mappedUrl ? { url: mappedUrl, publicId: finalPublicId } : undefined,
-    };
-
-    const res = await clientFetch(`v1/categories/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
+  update: async (id: string, values: Partial<CategoryFormValues>): Promise<{ success: boolean; data: Category }> => {
+    const payload = await toPayload(values);
+    const response = await clientFetch(`v1/categories/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
     });
-
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.message || 'Failed to update category');
-    if (result.data) {
-      result.data = mapCategory(result.data);
-    }
-    return result;
+    const result = await readCatalogResult<Category>(response, 'Cập nhật danh mục thất bại');
+    return { ...result, data: mapCategory(result.data) };
   },
 
-  // Tạo mới danh mục
-  create: async (
-    values: CategoryFormValues,
-  ): Promise<{ success: boolean; data: Category }> => {
-    const { imageUrl, imagePublicId, ...rest } = values;
-
-    let mappedUrl: string | undefined = undefined;
-    let finalPublicId = imagePublicId;
-
-    if (imageUrl instanceof File) {
-      const uploadRes = await fileApi.uploadFile(imageUrl, 'categories');
-      mappedUrl = uploadRes.data?.url || uploadRes.data?.secure_url;
-      finalPublicId = uploadRes.data?.public_id;
-    } else if (typeof imageUrl === 'string') {
-      mappedUrl = imageUrl;
-    }
-
-    const payload = {
-      ...rest,
-      imageUrl: mappedUrl,
-      imagePublicId: finalPublicId || undefined,
-      image: mappedUrl ? { url: mappedUrl, publicId: finalPublicId } : undefined,
-    };
-
-    const res = await clientFetch('v1/categories', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
+  create: async (values: CategoryFormValues): Promise<{ success: boolean; data: Category }> => {
+    const payload = await toPayload(values);
+    const response = await clientFetch('v1/categories', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
     });
-
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.message || 'Failed to create category');
-    if (result.data) {
-      result.data = mapCategory(result.data);
-    }
-    return result;
+    const result = await readCatalogResult<Category>(response, 'Tạo danh mục thất bại');
+    return { ...result, data: mapCategory(result.data) };
   },
 
   // Xóa danh mục
@@ -165,19 +121,14 @@ export const categoryApi = {
     const res = await clientFetch(`v1/categories/${id}`, {
       method: 'DELETE',
     });
-    if (!res.ok) {
-      const result = await res.json();
-      throw new Error(result.message || 'Failed to delete category');
-    }
+    await readCatalogResult<null>(res, 'Xóa danh mục thất bại');
     return { success: true };
   },
 
   // Lấy chi tiết danh mục theo ID
   getById: async (id: string): Promise<Category> => {
     const res = await clientFetch(`v1/categories/${id}`);
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.message || "Failed to fetch category details");
-    return mapCategory(result.data);
+    return mapCategory((await readCatalogResult<Category>(res, 'Không thể tải danh mục')).data);
   },
 
   // Lấy danh sách danh mục cha
@@ -186,8 +137,8 @@ export const categoryApi = {
       cache: 'no-store',
     });
     if (!res.ok) throw new Error('Failed to fetch parent categories');
-    const result = await res.json();
-    return result.success ? result.data.map(mapCategory) : [];
+    const result = await readCatalogResult<Category[]>(res, 'Không thể tải danh mục cha');
+    return result.data.map(mapCategory);
   },
 
   // Export file excel
@@ -201,25 +152,12 @@ export const categoryApi = {
   
   // Fetch template file
   template: async (): Promise<Blob> => {
-    const res = await clientFetch('v1/categories/template', {
+    const res = await clientFetch('v1/categories/download-template', {
       method: 'GET',
     });
     if (!res.ok) throw new Error('Failed to fetch template');
     return res.blob();
   },
 
-  // Import categories from Excel file
-  import: async (file: File): Promise<{ success: boolean; message: string }> => {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const res = await clientFetch('v1/categories/import', {
-      method: 'POST',
-      body: formData,
-      skipToast: true,
-    });
-    const result = await res.json();
-    if (!res.ok) throw result;
-    return result;
-  },
+  import: (file: File): Promise<CatalogResult<null>> => importCatalogFile('v1/categories/import', file),
 };

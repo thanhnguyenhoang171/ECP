@@ -145,28 +145,30 @@ export function getCloudinaryPublicId(url: string): string | null {
 export const getMediaPublicId = getCloudinaryPublicId;
 
 /**
- * Chuyển đổi tên sản phẩm thành mã SKU tự động
+ * Sinh chuỗi SKU ngẫu nhiên chuẩn hóa gồm chữ hoa và số
  */
-export function convertToSku(str: string): string {
-  if (!str || !str.trim()) {
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    return `PROD-${randomSuffix}`;
-  }
-  const cleanName = removeVietnameseTones(str)
-    .replace(/[^a-zA-Z0-9\s]/g, '')
-    .trim()
-    .toUpperCase();
-  const words = cleanName.split(/\s+/).filter(Boolean);
-  let prefix = '';
-  if (words.length >= 2) {
-    prefix = words.slice(0, 4).map(w => w.slice(0, 3)).join('');
-  } else if (words.length === 1) {
-    prefix = words[0].slice(0, 6);
+export function generateRandomSku(prefix = 'SKU', length = 8): string {
+  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let randomPart = '';
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const bytes = new Uint8Array(length);
+    crypto.getRandomValues(bytes);
+    for (let i = 0; i < length; i++) {
+      randomPart += chars[bytes[i] % chars.length];
+    }
   } else {
-    prefix = 'PROD';
+    for (let i = 0; i < length; i++) {
+      randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
   }
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-  return `${prefix}-${randomSuffix}`;
+  return prefix ? `${prefix}-${randomPart}` : randomPart;
+}
+
+/**
+ * Sinh mã SKU tự động là chuỗi ngẫu nhiên
+ */
+export function convertToSku(_str?: string): string {
+  return generateRandomSku('SKU', 8);
 }
 
 

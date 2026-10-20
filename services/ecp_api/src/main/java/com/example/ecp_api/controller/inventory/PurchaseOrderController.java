@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,7 +26,7 @@ public class PurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;
 
-    @PostMapping
+    @PostMapping(consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('purchase_order:create') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Create a new Purchase Order (PO)")
     public ResponseEntity<ApiResponse<PurchaseOrderResponse>> createPO(@Valid @RequestBody PurchaseOrderRequest request) {
@@ -54,7 +55,7 @@ public class PurchaseOrderController {
                 .data(purchaseOrderService.getPurchaseOrderById(id)).build());
     }
 
-    @PatchMapping("/{id}")
+    @PatchMapping(value = "/{id}", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('purchase_order:update') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update a Purchase Order")
     public ResponseEntity<ApiResponse<PurchaseOrderResponse>> updatePO(

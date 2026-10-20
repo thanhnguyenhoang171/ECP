@@ -31,11 +31,12 @@ interface BrandFormProps {
   initialData?: Brand | null;
   id?: string;
   onSuccess: () => void;
+  onCancel: () => void;
   isDialog?: boolean;
   isLoadingData?: boolean;
 }
 
-export default function BrandForm({ initialData, id, onSuccess, isDialog = false, isLoadingData = false }: BrandFormProps) {
+export default function BrandForm({ initialData, id, onSuccess, onCancel, isDialog = false, isLoadingData = false }: BrandFormProps) {
   const createMutation = useCreateBrand();
   const updateMutation = useUpdateBrand();
   const isSlugEditedRef = useRef(false);
@@ -77,12 +78,16 @@ export default function BrandForm({ initialData, id, onSuccess, isDialog = false
       return;
     }
 
-    if (brandId) {
-      await updateMutation.mutateAsync({ id: brandId, values });
-    } else {
-      await createMutation.mutateAsync(values);
+    try {
+      if (brandId) {
+        await updateMutation.mutateAsync({ id: brandId, values });
+      } else {
+        await createMutation.mutateAsync(values);
+      }
+      onSuccess();
+    } catch (error) {
+      console.error('Brand save failed:', error);
     }
-    onSuccess();
   };
 
   return (
@@ -271,7 +276,7 @@ export default function BrandForm({ initialData, id, onSuccess, isDialog = false
 
         {/* Sticky Form Actions Bar */}
         <FormActionsBar
-          onCancel={onSuccess}
+          onCancel={onCancel}
           isSubmitting={isLoading || isImageUploading}
           submitText={isImageUploading ? 'Đang tải ảnh lên...' : (brandId ? 'Cập nhật thương hiệu' : 'Lưu thương hiệu')}
           isDialog={isDialog}

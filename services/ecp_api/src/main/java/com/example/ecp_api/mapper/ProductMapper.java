@@ -21,6 +21,9 @@ public interface ProductMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "published", source = "isPublished")
+    @Mapping(target = "isFeatured", source = "isFeatured")
+    @Mapping(target = "isNew", source = "isNew")
+    @Mapping(target = "isBestSeller", source = "isBestSeller")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)

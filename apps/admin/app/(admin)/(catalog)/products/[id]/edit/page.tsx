@@ -45,56 +45,6 @@ export default function EditProductPage() {
     );
   }
 
-  // Transform activeProduct into initialData expected by ProductForm
-  const initialData = {
-    id: activeProduct.id,
-    sku: activeProduct.sku || '',
-    name: activeProduct.name || '',
-    categoryId: activeProduct.categoryId || '',
-    brandId: (activeProduct as any).brandId || '',
-    brand: activeProduct.brand || '',
-    isPublished: activeProduct.isPublished ?? (activeProduct as any).published ?? true,
-    isFeatured: activeProduct.isFeatured ?? (activeProduct as any).featured ?? false,
-    isNew: activeProduct.isNew ?? (activeProduct as any).new ?? false,
-    isBestSeller: activeProduct.isBestSeller ?? (activeProduct as any).bestSeller ?? false,
-    viewCount: activeProduct.viewCount || 0,
-    soldCount: activeProduct.soldCount || 0,
-    ratingAvg: activeProduct.ratingAvg || 0,
-    ratingCount: activeProduct.ratingCount || 0,
-    description: activeProduct.description || '',
-    slug: activeProduct.slug || '',
-    images: (activeProduct as any).images || [],
-    specifications: (activeProduct as any).specifications || [],
-    metaTitle: (activeProduct as any).metaTitle || '',
-    metaDescription: (activeProduct as any).metaDescription || '',
-    metaKeywords: (activeProduct as any).metaKeywords || '',
-    variants: activeProduct.variants && activeProduct.variants.length > 0
-      ? activeProduct.variants.map((v) => ({
-          sku: v.sku,
-          price: v.price,
-          compareAtPrice: (v as any).compareAtPrice || 0,
-          costPrice: (v as any).costPrice || 0,
-          barcode: (v as any).barcode || '',
-          barcodeType: (v as any).barcodeType || 'EAN-13',
-          image: (v as any).image || '',
-          isActive: (v as any).isActive !== undefined ? (v as any).isActive : true,
-          attributes: Object.entries(v.attributes || {}).map(([key, value]) => ({ key, value })) as any,
-        }))
-      : [
-          {
-            sku: activeProduct.sku || 'SKU-DEFAULT',
-            price: (activeProduct as any).price || 0,
-            compareAtPrice: 0,
-            costPrice: 0,
-            barcode: '',
-            barcodeType: 'EAN-13',
-            image: '',
-            isActive: true,
-            attributes: [],
-          },
-        ],
-  };
-
   return (
     <div className="space-y-6 pb-12">
       <Breadcrumbs items={breadcrumbItems} />
@@ -115,7 +65,7 @@ export default function EditProductPage() {
 
       <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-2xs">
         <ProductForm
-          initialData={initialData as any}
+          initialData={activeProduct}
           onCancel={() => router.push(`/products/${productId}`)}
           onSuccess={() => {
             router.push(`/products/${productId}`);

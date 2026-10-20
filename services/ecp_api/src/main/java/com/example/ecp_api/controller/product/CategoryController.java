@@ -43,7 +43,7 @@ public class CategoryController {
     @PreAuthorize("hasAuthority('category:create') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Create a new category")
     public ResponseEntity<ApiResponse<CategoryResponse>> createCategory(
-            @Valid @RequestBody CategoryRequest request) {
+            @org.springframework.validation.annotation.Validated({jakarta.validation.groups.Default.class, CategoryRequest.Create.class}) @RequestBody CategoryRequest request) {
         return new ResponseEntity<>(ApiResponse.<CategoryResponse>builder()
                 .success(true)
                 .code("CATEGORY_CREATED_SUCCESS")
@@ -55,8 +55,17 @@ public class CategoryController {
     @Operation(summary = "Get categories with pagination and filtering")
     public ResponseEntity<PageResponse<CategoryResponse>> getAllCategories(
             @org.springdoc.core.annotations.ParameterObject CategoryFilterRequest filter,
-            @org.springdoc.core.annotations.ParameterObject @PageableDefault(sort = "displayOrder", direction = Sort.Direction.ASC) Pageable pageable) {
+            @org.springdoc.core.annotations.ParameterObject @PageableDefault(sort = "sortOrder", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(categoryService.getAllCategories(filter, pageable));
+    }
+
+    @GetMapping("/active")
+    @Operation(summary = "Get active categories with pagination and name search")
+    public ResponseEntity<PageResponse<CategoryResponse>> getActiveCategories(
+            @RequestParam(required = false) String name,
+            @org.springdoc.core.annotations.ParameterObject
+            @PageableDefault(size = 10, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(categoryService.getActiveCategories(name, pageable));
     }
 
     @GetMapping("/parents")

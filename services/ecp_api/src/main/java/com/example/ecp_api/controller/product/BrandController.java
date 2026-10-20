@@ -45,7 +45,7 @@ public class BrandController {
     )
     @PreAuthorize("hasAuthority('brand:create') or hasRole('SUPER_ADMIN')")
     @Operation(summary = "Create a new brand")
-    public ResponseEntity<ApiResponse<BrandResponse>> createBrand(@Valid @RequestBody BrandRequest request) {
+    public ResponseEntity<ApiResponse<BrandResponse>> createBrand(@org.springframework.validation.annotation.Validated({jakarta.validation.groups.Default.class, BrandRequest.Create.class}) @RequestBody BrandRequest request) {
         return new ResponseEntity<>(ApiResponse.<BrandResponse>builder()
                 .success(true)
                 .code("BRAND_CREATED_SUCCESS")
@@ -62,13 +62,12 @@ public class BrandController {
     }
 
     @GetMapping("/active")
-    @Operation(summary = "Get all active brands")
-    public ResponseEntity<ApiResponse<List<BrandResponse>>> getActiveBrands() {
-        return ResponseEntity.ok(ApiResponse.<List<BrandResponse>>builder()
-                .success(true)
-                .code("ACTIVE_BRANDS_FETCHED_SUCCESS")
-                .message("Active brands fetched successfully")
-                .data(brandService.getActiveBrands()).build());
+    @Operation(summary = "Get active brands with pagination and name search")
+    public ResponseEntity<PageResponse<BrandResponse>> getActiveBrands(
+            @RequestParam(required = false) String name,
+            @org.springdoc.core.annotations.ParameterObject
+            @PageableDefault(size = 10, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(brandService.getActiveBrands(name, pageable));
     }
 
     @GetMapping("/{id}")

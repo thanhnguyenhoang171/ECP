@@ -6,8 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useProductCompositeDetail } from '@/features/products/hooks/use-products';
 import ProductDetailLoading from './loading';
 import { useUpdateProduct } from '@/features/products/hooks/use-product-mutation';
-import { useCategories } from '@/features/categories/hooks/use-categories';
-import { useActiveBrands } from '@/features/brands/hooks/use-brands';
+import { ActiveCatalogSelect } from '@/features/products/components/product-form/ActiveCatalogSelect';
 import { useSuppliers } from '@/features/suppliers/hooks/use-suppliers';
 import { skuApi } from '@/features/skus/api/sku.api';
 import { formatCurrency } from '@/lib/formatters';
@@ -54,6 +53,8 @@ import {
   Building2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+import { getProductFormValues } from '@/features/products/lib/product-form-values';
 
 import { Product, ProductVariant } from '@/features/products/types/product.interface';
 
@@ -112,17 +113,12 @@ export default function UnifiedProductDetailPage() {
 
   // Composite Single API Query (Product, Brand, Category, SKUs & Inventory in 1 Call)
   const { data: compositeData, isLoading: isProductQueryLoading, isFetching: isProductFetching, isError, refetch: refetchProduct } = useProductCompositeDetail(productId);
-  const product = compositeData?.product || compositeData;
+  const product = compositeData?.product;
   const isProductLoading = (isProductQueryLoading || !product) && !isError;
 
   const updateProductMutation = useUpdateProduct();
 
   // Cached Dropdown Datasets for Editing Form Options
-  const { data: categoriesData } = useCategories({ page: 0, size: 100 });
-  const categoriesList = categoriesData?.data || (compositeData?.category ? [compositeData.category] : []);
-
-  const { data: activeBrandsData } = useActiveBrands();
-
   const { data: suppliersData } = useSuppliers();
   const suppliersList = (suppliersData || (compositeData?.supplier ? [compositeData.supplier] : [])) as SupplierItem[];
 
@@ -181,14 +177,14 @@ export default function UnifiedProductDetailPage() {
       setFormData({
         name: product.name || '',
         sku: product.sku || '',
-        brand: product.brand || '',
+        brand: typeof product.brand === 'string' ? product.brand : product.brand?.name || '',
         brandId: product.brandId || '',
         categoryId: product.categoryId || '',
         supplierId: product.supplierId || '',
         description: product.description || '',
         price: product.price || product.variants?.[0]?.price || 0,
-        costPrice: product.costPrice || 0,
-        compareAtPrice: product.compareAtPrice || 0,
+        costPrice: product.variants?.[0]?.costPrice ?? 0,
+        compareAtPrice: product.variants?.[0]?.compareAtPrice ?? 0,
         weight: product.weight || 500,
         length: product.dimensions?.length || 10,
         width: product.dimensions?.width || 10,
@@ -224,36 +220,22 @@ export default function UnifiedProductDetailPage() {
       toast.error('Vui lòng nhập Tên sản phẩm');
       return;
     }
+    if (!product) {
+      return;
+    }
     setIsSaving(true);
     try {
+      const values = getProductFormValues(product);
       await updateProductMutation.mutateAsync({
         id: productId,
         values: {
+          ...values,
           ...formData,
-          images: (product?.images || []) as Array<Record<string, unknown> | string>,
-          viewCount: product?.viewCount || 0,
-          soldCount: product?.soldCount || 0,
-          ratingAvg: product?.ratingAvg || 0,
-          ratingCount: product?.ratingCount || 0,
-          specifications: Array.isArray(product?.specifications)
-            ? product.specifications.map((s: any) => ({ key: s.key, value: String(s.value) }))
-            : product?.specifications && typeof product.specifications === 'object'
-              ? Object.entries(product.specifications).map(([key, value]) => ({ key, value: String(value) }))
-              : [],
-          variants: product?.variants?.map((v: any) => ({
-            sku: v.sku,
-            price: v.price,
-            compareAtPrice: v.compareAtPrice || 0,
-            costPrice: v.costPrice || 0,
-            barcode: v.barcode || '',
-            barcodeType: v.barcodeType || 'EAN-13',
-            image: typeof v.image === 'string' ? v.image : v.image?.url || '',
-            isActive: v.isActive !== undefined ? v.isActive : true,
-            attributes: Object.entries(v.attributes || {}).map(([key, value]) => ({ key, value: String(value) })),
-          })) || [{ sku: formData.sku, price: formData.price, compareAtPrice: 0, costPrice: 0, barcode: '', barcodeType: 'EAN-13', image: '', isActive: true, attributes: [] }],
+          variants: values.variants.map((variant, index) => index === 0 ? {
+            ...variant, price: formData.price, costPrice: formData.costPrice, compareAtPrice: formData.compareAtPrice,
+          } : variant),
         },
       });
-      toast.success('Lưu thông tin sản phẩm thành công');
       setIsDirty(false);
       refetchProduct();
     } catch (err: unknown) {
@@ -816,27 +798,22 @@ export default function UnifiedProductDetailPage() {
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-700">Danh mục sản phẩm</Label>
-              <select
+              <ActiveCatalogSelect
+                kind='categories'
                 value={formData.categoryId}
-                onChange={(e) => handleFieldChange('categoryId', e.target.value)}
-                className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 py-1 text-xs text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-900"
-              >
-                <option value="">-- Chọn danh mục --</option>
-                {categoriesList.map((cat: any) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(id) => handleFieldChange('categoryId', id)}
+              />
             </div>
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-700">Thương hiệu</Label>
-              <Input
-                value={formData.brand}
-                onChange={(e) => handleFieldChange('brand', e.target.value)}
-                placeholder="VD: Marou Chocolate, Alluvia..."
-                className="text-xs"
+              <ActiveCatalogSelect
+                kind='brands'
+                value={formData.brandId}
+                onChange={(id, name) => {
+                  handleFieldChange('brandId', id);
+                  handleFieldChange('brand', name);
+                }}
               />
             </div>
           </div>
@@ -1025,18 +1002,18 @@ export default function UnifiedProductDetailPage() {
               setFormData({
                 name: product.name || '',
                 sku: product.sku || '',
-                brand: product.brand || '',
+                brand: typeof product.brand === 'string' ? product.brand : product.brand?.name || '',
                 brandId: product.brandId || '',
                 categoryId: product.categoryId || '',
                 supplierId: product.supplierId || '',
                 description: product.description || '',
                 price: product.price || 0,
-                costPrice: product.costPrice || 0,
-                compareAtPrice: product.compareAtPrice || 0,
+                costPrice: product.variants?.[0]?.costPrice ?? 0,
+                compareAtPrice: product.variants?.[0]?.compareAtPrice ?? 0,
                 weight: product.weight || 500,
-                length: product.length || 10,
-                width: product.width || 10,
-                height: product.height || 15,
+                length: product.dimensions?.length || 10,
+                width: product.dimensions?.width || 10,
+                height: product.dimensions?.height || 15,
                 metaTitle: product.metaTitle || '',
                 metaDescription: product.metaDescription || '',
                 metaKeywords: product.metaKeywords || '',

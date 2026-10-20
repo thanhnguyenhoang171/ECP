@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Schema(description = "Filter parameters for product catalog")
 public class ProductFilterRequest {
+    @Schema(description = "Search product name or SKU (case-insensitive)")
+    private String search;
     @Schema(description = "Product ID", example = "65f1a2b3c4d5e6f7a8b9c0d1")
     private String id;
 

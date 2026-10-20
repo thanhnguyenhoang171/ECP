@@ -272,7 +272,11 @@ export default function ProductSkusDialog({
           <div className="flex flex-col items-center gap-1">
             <Badge
               variant={active ? 'default' : 'secondary'}
-              className={active ? 'bg-emerald-100 text-emerald-700 border-none text-[10px]' : 'bg-slate-100 text-slate-500 text-[10px]'}
+              className={
+                active
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px]'
+                  : 'bg-slate-100 text-slate-700 text-[10px]'
+              }
             >
               {active ? 'Khả dụng' : 'Tạm khóa'}
             </Badge>

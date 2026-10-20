@@ -52,9 +52,14 @@ export function useUpdateProduct() {
     mutationFn: async ({ id, values }: { id: string; values: ProductFormValues }) => {
       return productApi.update(id, values);
     },
-    onSuccess: () => {
+    onSuccess: async (_, variables) => {
       toast.success('Cập nhật sản phẩm thành công');
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['products'] }),
+        queryClient.invalidateQueries({ queryKey: ['product', variables.id] }),
+        queryClient.invalidateQueries({ queryKey: ['product-composite-detail', variables.id] }),
+        queryClient.invalidateQueries({ queryKey: ['skus'] }),
+      ]);
     },
     onError: (error: unknown) => {
       const msg = getApiErrorMessage(error, 'Cập nhật sản phẩm thất bại');

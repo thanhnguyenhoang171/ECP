@@ -142,6 +142,16 @@ public class BrandServiceImpl implements BrandService {
     }
 
     @Override
+    public PageResponse<BrandResponse> getActiveBrands(String name, Pageable pageable) {
+        BrandFilterRequest filter = new BrandFilterRequest();
+        filter.setActive(true);
+        if (StringUtils.hasText(name)) {
+            filter.setName(java.util.regex.Pattern.quote(name.trim()));
+        }
+        return getAllBrands(filter, pageable);
+    }
+
+    @Override
     public List<BrandResponse> getActiveBrands() {
         return brandRepository.findByActiveTrueAndDeletedFalse()
                 .stream().map(brandMapper::toResponse).collect(Collectors.toList());

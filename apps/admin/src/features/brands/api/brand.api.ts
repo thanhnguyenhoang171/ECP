@@ -4,53 +4,12 @@ import { PageResponse } from '@/types/pagination';
 import { clientFetch } from '@/lib/clientFetch';
 import { toApiPage, syncPagination } from '@/lib/utils';
 import { ApiError } from '@/constants/errorMessages';
-import { fileApi } from '@/features/files/api/file.api';
-
-interface BrandImportResponse {
-  success: boolean;
-  message: string;
-  code?: string;
-  error?: string;
-}
+import { readCatalogResult, resolveCatalogImage, downloadCatalogFile, importCatalogFile, type CatalogResult } from '@/lib/catalog-api';
 
 export const brandApi = {
-  export: async (): Promise<Blob> => {
-    const res = await clientFetch('v1/brands/export');
-    if (!res.ok) {
-      throw new Error('Không thể xuất danh sách thương hiệu');
-    }
-    return res.blob();
-  },
-
-  template: async (): Promise<Blob> => {
-    const res = await clientFetch('v1/brands/download-template');
-    if (!res.ok) {
-      throw new Error('Không thể tải file mẫu thương hiệu');
-    }
-    return res.blob();
-  },
-
-  import: async (file: File): Promise<BrandImportResponse> => {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const res = await clientFetch('v1/brands/import', {
-      method: 'POST',
-      body: formData,
-      skipToast: true,
-    });
-    const result: BrandImportResponse = await res.json();
-    if (!res.ok || !result.success) {
-      throw new ApiError(
-        result.code || 'BRAND_IMPORT_FAILED',
-        result.message || result.error || 'Nhập dữ liệu thương hiệu thất bại',
-        res.status,
-        result,
-      );
-    }
-    return result;
-  },
-
+  export: (): Promise<Blob> => downloadCatalogFile('v1/brands/export'),
+  template: (): Promise<Blob> => downloadCatalogFile('v1/brands/download-template'),
+  import: (file: File): Promise<CatalogResult<null>> => importCatalogFile('v1/brands/import', file),
   // Get paged brand list
   getPaged: async (params: {
     page: number;
@@ -78,38 +37,35 @@ export const brandApi = {
     return syncPagination<PageResponse<Brand>>(result);
   },
 
-  // Get active brands without pagination
-  getActive: async (): Promise<Brand[]> => {
-    const res = await clientFetch('v1/brands/active', {
+  getActive: async (params: { page?: number; size?: number; name?: string } = {}): Promise<PageResponse<Brand>> => {
+    const query = new URLSearchParams({
+      page: toApiPage(params.page ?? 1).toString(),
+      size: (params.size ?? 10).toString(),
+    });
+    if (params.name?.trim()) {
+      query.set('name', params.name.trim());
+    }
+    const res = await clientFetch(`v1/brands/active?${query}`, {
       cache: 'no-store',
     });
-    if (!res.ok) throw new Error('Failed to fetch active brands');
-    const result = await res.json();
-    return result.success ? result.data : [];
+    if (!res.ok) {
+      throw new ApiError(res.status === 403 ? 'AUTH_ACCESS_DENIED' : 'BRAND_LIST_FAILED', 'Không thể tải thương hiệu', res.status);
+    }
+    const result: PageResponse<Brand> = await res.json();
+    return syncPagination<PageResponse<Brand>>(result);
   },
 
   // Get brand by ID
   getById: async (id: string): Promise<Brand> => {
     const res = await clientFetch(`v1/brands/${id}`);
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.message || 'Failed to fetch brand details');
-    return result.data;
+    return (await readCatalogResult<Brand>(res, 'Không thể tải thương hiệu')).data;
   },
 
   // Create brand
   create: async (values: BrandFormValues): Promise<{ success: boolean; data: Brand }> => {
-    let logoUrl: string | undefined = undefined;
-
-    if (values.logo instanceof File) {
-      const uploadRes = await fileApi.uploadFile(values.logo, 'brands');
-      logoUrl = uploadRes.data?.url || uploadRes.data?.secure_url;
-    } else if (typeof values.logo === 'string') {
-      logoUrl = values.logo;
-    }
-
     const payload = {
       ...values,
-      logo: logoUrl,
+      logo: values.logo === undefined ? undefined : (await resolveCatalogImage(values.logo, 'brands')).url,
     };
 
     const res = await clientFetch('v1/brands', {
@@ -120,25 +76,14 @@ export const brandApi = {
       body: JSON.stringify(payload),
     });
 
-    const result = await res.json();
-    if (!res.ok) throw new ApiError(result.code, result.message || 'Tạo thương hiệu thất bại', res.status, result);
-    return result;
+    return readCatalogResult<Brand>(res, 'Tạo thương hiệu thất bại');
   },
 
   // Update brand
   update: async (id: string, values: Partial<BrandFormValues>): Promise<{ success: boolean; data: Brand }> => {
-    let logoUrl: string | undefined = undefined;
-
-    if (values.logo instanceof File) {
-      const uploadRes = await fileApi.uploadFile(values.logo, 'brands');
-      logoUrl = uploadRes.data?.url || uploadRes.data?.secure_url;
-    } else if (typeof values.logo === 'string') {
-      logoUrl = values.logo;
-    }
-
     const payload = {
       ...values,
-      logo: logoUrl,
+      logo: values.logo === undefined ? undefined : (await resolveCatalogImage(values.logo, 'brands')).url,
     };
 
     const res = await clientFetch(`v1/brands/${id}`, {
@@ -149,19 +94,14 @@ export const brandApi = {
       body: JSON.stringify(payload),
     });
 
-    const result = await res.json();
-    if (!res.ok) throw new ApiError(result.code, result.message || 'Cập nhật thương hiệu thất bại', res.status, result);
-    return result;
+    return readCatalogResult<Brand>(res, 'Cập nhật thương hiệu thất bại');
   },
   // Delete brand
   delete: async (id: string): Promise<{ success: boolean }> => {
     const res = await clientFetch(`v1/brands/${id}`, {
       method: 'DELETE',
     });
-    if (!res.ok) {
-      const result = await res.json();
-      throw new ApiError(result.code, result.message || 'Xóa thương hiệu thất bại', res.status, result);
-    }
+    await readCatalogResult<null>(res, 'Xóa thương hiệu thất bại');
     return { success: true };
   },
 };

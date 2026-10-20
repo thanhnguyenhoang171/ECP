@@ -86,6 +86,8 @@ public class ProductRequest {
     @Builder
     @Schema(description = "Request object for a product variant")
     public static class ProductVariantRequest {
+        @Schema(description = "Existing SKU ID, preserved when changing the variant SKU code")
+        private String skuId;
         @Schema(description = "Variant SKU. Auto-generated from parent SKU and attributes if empty.", example = "APPLE-IP15-TIT-256-X1Y")
         private String sku;
 

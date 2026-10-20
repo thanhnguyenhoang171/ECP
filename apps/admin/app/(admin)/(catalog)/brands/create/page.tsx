@@ -5,7 +5,6 @@ import { Tag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import BrandForm from '@/features/brands/components/BrandForm';
 import { PageHeader, Breadcrumbs } from '@/components/common';
-import { toast } from 'sonner';
 
 export default function CreateBrandPage() {
   const router = useRouter();
@@ -25,6 +24,7 @@ export default function CreateBrandPage() {
       />
 
       <BrandForm
+        onCancel={() => router.push('/brands')}
         onSuccess={() => {
           router.push('/brands');
           router.refresh();

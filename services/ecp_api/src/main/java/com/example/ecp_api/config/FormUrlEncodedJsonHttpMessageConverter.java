@@ -1,20 +1,21 @@
 package com.example.ecp_api.config;
 
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.AbstractHttpMessageConverter;
+import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
-import org.springframework.util.StreamUtils;
 
 import java.io.IOException;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -41,27 +42,34 @@ public class FormUrlEncodedJsonHttpMessageConverter extends AbstractHttpMessageC
     @Override
     protected Object readInternal(Class<?> clazz, HttpInputMessage inputMessage)
             throws IOException, HttpMessageNotReadableException {
-        String body = StreamUtils.copyToString(inputMessage.getBody(), StandardCharsets.UTF_8);
-        Map<String, Object> map = new HashMap<>();
-        if (!body.isEmpty()) {
-            String[] pairs = body.split("&");
-            for (String pair : pairs) {
-                int idx = pair.indexOf('=');
-                if (idx > 0) {
-                    String key = URLDecoder.decode(pair.substring(0, idx), StandardCharsets.UTF_8);
-                    String val = (idx < pair.length() - 1)
-                            ? URLDecoder.decode(pair.substring(idx + 1), StandardCharsets.UTF_8)
-                            : "";
-                    map.put(key, val);
-                } else if (idx == -1 && !pair.isEmpty()) {
-                    map.put(URLDecoder.decode(pair, StandardCharsets.UTF_8), "");
+        try {
+            MultiValueMap<String, String> values = new FormHttpMessageConverter().read(null, inputMessage);
+            Map<String, JavaType> propertyTypes = new HashMap<>();
+            objectMapper.getDeserializationConfig().introspect(objectMapper.constructType(clazz))
+                    .findProperties().forEach(property -> {
+                        if (property.getPrimaryMember() != null) {
+                            propertyTypes.put(property.getName(), property.getPrimaryType());
+                        }
+                    });
+            Map<String, Object> map = new HashMap<>();
+            for (Map.Entry<String, List<String>> entry : values.entrySet()) {
+                List<String> fieldValues = entry.getValue();
+                if (fieldValues.isEmpty()) continue;
+                String value = fieldValues.getLast();
+                JavaType type = propertyTypes.get(entry.getKey());
+                boolean structured = type != null && (type.isContainerType()
+                        || type.getRawClass().getPackageName().startsWith("com.example.ecp_api") && !type.isEnumType());
+                if (structured && type.isCollectionLikeType() && fieldValues.size() > 1) {
+                    map.put(entry.getKey(), fieldValues);
+                } else if (structured && value != null && !value.isBlank()) {
+                    map.put(entry.getKey(), objectMapper.readValue(value, Object.class));
+                } else {
+                    map.put(entry.getKey(), structured ? null : value);
                 }
             }
-        }
-        try {
             return objectMapper.convertValue(map, clazz);
-        } catch (IllegalArgumentException ex) {
-            throw new HttpMessageNotReadableException("Failed to bind form-urlencoded data to " + clazz.getSimpleName() + ": " + ex.getMessage(), inputMessage);
+        } catch (IllegalArgumentException | IOException ex) {
+            throw new HttpMessageNotReadableException("Failed to bind form-urlencoded data to " + clazz.getSimpleName(), ex, inputMessage);
         }
     }
 

@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { Tag } from 'lucide-react';
-import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -35,18 +34,19 @@ import { Brand } from '../types/brand.interface';
 import { PageResponse } from '@/types/pagination';
 import { useBrands } from '../hooks/use-brands';
 import { useDeleteBrand } from '../hooks/use-brand-mutation';
-import { brandApi } from '../api/brand.api';
 import { isForbiddenError } from '@/constants/errorMessages';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { cn } from '@/lib/utils';
 import { formatDateTimeForFilename } from '@/lib/formatters';
+import { brandApi } from '../api/brand.api';
+import { toast } from 'sonner';
 
 interface BrandsViewProps {
   initialData?: PageResponse<Brand>;
 }
 
-export default function BrandsView({ initialData }: BrandsViewProps): React.JSX.Element {
+export default function BrandsView({ initialData }: BrandsViewProps) {
   const router = useRouter();
   const deleteMutation = useDeleteBrand();
 
@@ -84,9 +84,9 @@ export default function BrandsView({ initialData }: BrandsViewProps): React.JSX.
 
   const [searchTerm, setSearchTerm] = useDebounceSearch(name, (val) => updateUrl({ name: val, page: 1 }));
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
 
-  const handleExportExcelFile = async (): Promise<void> => {
+  const [isExporting, setIsExporting] = useState(false);
+  const handleExport = async (): Promise<void> => {
     setIsExporting(true);
     try {
       const blob = await brandApi.export();
@@ -103,8 +103,8 @@ export default function BrandsView({ initialData }: BrandsViewProps): React.JSX.
       }
       toast.success('Xuất file Excel thành công');
     } catch (error) {
-      console.error('Brand export error:', error);
-      toast.error('Có lỗi xảy ra khi xuất file Excel');
+      console.error('Brand export failed:', error);
+      toast.error('Không thể xuất danh sách thương hiệu');
     } finally {
       setIsExporting(false);
     }
@@ -256,15 +256,8 @@ export default function BrandsView({ initialData }: BrandsViewProps): React.JSX.
         actions={
           <>
             <ImportButton onClick={() => router.push('/brands/import')} disabled={isForbidden} />
-            <ExportButton
-              onExport={handleExportExcelFile}
-              isLoading={isExporting}
-              disabled={isLoading || isFetching || isForbidden}
-            />
-            <AddNewButton
-              label="Thêm thương hiệu"
-              onClick={handleCreate}
-            />
+            <ExportButton onExport={handleExport} isLoading={isExporting} disabled={isLoading || isFetching || isForbidden} />
+            <AddNewButton label="Thêm thương hiệu" onClick={handleCreate} />
           </>
         }
       />

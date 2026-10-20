@@ -1,8 +1,91 @@
-import { clientFetch } from '@/lib/clientFetch';
 import { ApiError } from '@/constants/errorMessages';
-import { Product } from '../types/product.interface';
-import { ProductFormValues } from '../schemas/product.schema';
 import { fileApi } from '@/features/files/api/file.api';
+import { clientFetch } from '@/lib/clientFetch';
+import { toApiPage } from '@/lib/utils';
+import { PageResponse } from '@/types/pagination';
+import { ProductFormValues } from '../schemas/product.schema';
+import { Product, ProductDetail } from '../types/product.interface';
+
+interface ProductImage {
+  url: string;
+  publicId?: string;
+}
+
+interface ProductResponse {
+  success: boolean;
+  data: Product;
+  code?: string;
+  message?: string;
+}
+
+export interface ProductListParams {
+  page: number;
+  size: number;
+  sort?: string;
+  search?: string;
+  name?: string;
+  sku?: string;
+  categoryId?: string;
+  brandId?: string;
+  isPublished?: boolean;
+  isFeatured?: boolean;
+  isNew?: boolean;
+  isBestSeller?: boolean;
+}
+
+const toImage = async (image: unknown): Promise<ProductImage | null> => {
+  if (typeof File !== 'undefined' && image instanceof File) {
+    const result = await fileApi.uploadFile(image, 'products');
+    const url = result.data?.secure_url || result.data?.url;
+    if (!result.success || !url) {
+      throw new Error('Tải ảnh sản phẩm thất bại');
+    }
+    return { url, publicId: result.data?.public_id };
+  }
+  if (typeof image === 'string') {
+    return image.trim() ? { url: image.trim() } : null;
+  }
+  if (image && typeof image === 'object' && 'url' in image && typeof image.url === 'string' && image.url.trim()) {
+    return { url: image.url, publicId: 'publicId' in image && typeof image.publicId === 'string' ? image.publicId : undefined };
+  }
+  return null;
+};
+
+const toRecord = (items: readonly { key: string; value: string }[]): Record<string, string> =>
+  Object.fromEntries(items.filter((item) => item.key.trim()).map(({ key, value }) => [key.trim(), value]));
+
+const toPayload = async (data: ProductFormValues, clearThumbnail = false) => {
+  const images = await Promise.all(data.images.map(toImage));
+  const variants = await Promise.all(data.variants.map(async (variant) => ({
+    ...variant,
+    image: await toImage(variant.image),
+    attributes: toRecord(variant.attributes),
+  })));
+  return {
+    ...data,
+    thumbnail: await toImage(data.thumbnail) || (clearThumbnail ? { url: '' } : null),
+    images: images.filter((image): image is ProductImage => image !== null),
+    specifications: toRecord(data.specifications),
+    variants,
+  };
+};
+
+const readProduct = async (response: Response, fallback: string): Promise<Product> => {
+  const result: ProductResponse = await response.json();
+  if (!response.ok || !result.success) {
+    throw new ApiError(result.code || 'PRODUCT_REQUEST_FAILED', result.message || fallback, response.status, result);
+  }
+  return normalizeProduct(result.data);
+};
+
+const normalizeProduct = (product: Product): Product => ({
+  ...product,
+  variants: product.variants?.map((variant) => ({ ...variant, isActive: variant.isActive ?? variant.active ?? true })),
+  isPublished: product.isPublished ?? product.published ?? false,
+  isFeatured: product.isFeatured ?? product.featured ?? false,
+  isNew: product.isNew ?? product.new ?? false,
+  isBestSeller: product.isBestSeller ?? product.bestSeller ?? false,
+});
 
 interface ProductImportResponse {
   success: boolean;
@@ -50,230 +133,54 @@ export const productApi = {
   },
 
   create: async (data: ProductFormValues): Promise<Product> => {
-    try {
-      // Process Thumbnail
-      let thumbnailObj: any = undefined;
-      if (data.thumbnail instanceof File) {
-        const uploadRes = await fileApi.uploadFile(data.thumbnail, 'products');
-        thumbnailObj = { url: uploadRes.data?.url || uploadRes.data?.secure_url, publicId: uploadRes.data?.public_id };
-      } else if (typeof data.thumbnail === 'string' && data.thumbnail.trim() !== '') {
-        thumbnailObj = { url: data.thumbnail };
-      } else if (data.thumbnail && typeof data.thumbnail === 'object' && (data.thumbnail as any).url) {
-        thumbnailObj = data.thumbnail;
-      }
-
-      // Process Gallery Images
-      const imageObjs: any[] = [];
-      if (Array.isArray(data.images)) {
-        for (const img of data.images) {
-          if (img instanceof File) {
-            const uploadRes = await fileApi.uploadFile(img, 'products');
-            imageObjs.push({ url: uploadRes.data?.url || uploadRes.data?.secure_url, publicId: uploadRes.data?.public_id });
-          } else if (typeof img === 'string' && img.trim() !== '') {
-            imageObjs.push({ url: img });
-          } else if (img && typeof img === 'object' && (img as any).url) {
-            imageObjs.push(img);
-          }
-        }
-      }
-
-      // Build JSON Payload
-      const payload: any = {
-        ...data,
-        thumbnail: thumbnailObj,
-        images: imageObjs,
-        specifications: Array.isArray(data.specifications) ? data.specifications.reduce((acc: any, curr: any) => {
-          if (curr.key) acc[curr.key] = curr.value;
-          return acc;
-        }, {}) : (data.specifications || {}),
-        variants: (data.variants || []).map(v => ({
-          ...v,
-          attributes: Array.isArray(v.attributes) ? v.attributes.reduce((acc: any, curr: any) => {
-            if (curr.key) acc[curr.key] = curr.value;
-            return acc;
-          }, {}) : (v.attributes || {})
-        }))
-      };
-
-      const res = await clientFetch('v1/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        const result = await res.json();
-        return (result.data || result) as Product;
-      }
-      const errorData = await res.json().catch(() => ({}));
-      throw new ApiError(errorData.code, errorData.message || 'Tạo sản phẩm thất bại', res.status, errorData);
-    } catch (error) {
-      if (error instanceof ApiError || (error as Error)?.name !== 'TypeError') {
-        throw error;
-      }
-      console.warn('Backend create product failed due to network, using mock fallback', error);
-    }
-
-    // Fallback mock logic for testing UI without backend
-    return {
-      ...data,
-      id: 'mock-id-' + Date.now(),
-      price: data.variants[0]?.price || 0,
-      stock: 0,
-      createdAt: new Date().toISOString(),
-    } as unknown as Product;
+    const payload = await toPayload(data);
+    const response = await clientFetch('v1/products', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    });
+    return readProduct(response, 'Tạo sản phẩm thất bại');
   },
 
   update: async (id: string, data: ProductFormValues): Promise<Product> => {
-    // Sanitize Thumbnail
-    let thumbnailObj: any = null;
-    if (typeof data.thumbnail === 'string' && data.thumbnail.trim() !== '') {
-      thumbnailObj = { url: data.thumbnail };
-    } else if (data.thumbnail && typeof data.thumbnail === 'object' && (data.thumbnail as any).url) {
-      thumbnailObj = data.thumbnail;
-    }
-
-    // Sanitize Gallery Images
-    const imageObjs: any[] = [];
-    if (Array.isArray(data.images)) {
-      data.images.forEach(img => {
-        if (typeof img === 'string' && img.trim() !== '') {
-          imageObjs.push({ url: img });
-        } else if (img && typeof img === 'object' && (img as any).url) {
-          imageObjs.push(img);
-        }
-      });
-    }
-
-    const payload: any = {
-      ...data,
-      thumbnail: thumbnailObj,
-      images: imageObjs.length > 0 ? imageObjs : undefined,
-      specifications: Array.isArray(data.specifications) ? data.specifications.reduce((acc: any, curr: any) => {
-        if (curr.key) acc[curr.key] = curr.value;
-        return acc;
-      }, {}) : (data.specifications || {}),
-      variants: (data.variants || []).map(v => {
-        let variantImage: any = null;
-        if (typeof v.image === 'string' && v.image.trim() !== '') {
-          variantImage = { url: v.image };
-        } else if (v.image && typeof v.image === 'object' && (v.image as any).url) {
-          variantImage = v.image;
-        }
-
-        return {
-          ...v,
-          image: variantImage,
-          attributes: Array.isArray(v.attributes) ? v.attributes.reduce((acc: any, curr: any) => {
-            if (curr.key) acc[curr.key] = curr.value;
-            return acc;
-          }, {}) : (v.attributes || {})
-        };
-      })
-    };
-
-    const res = await clientFetch(`v1/products/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+    const payload = await toPayload(data, true);
+    const response = await clientFetch(`v1/products/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
     });
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new ApiError(errorData.code, errorData.message || 'Cập nhật sản phẩm thất bại', res.status, errorData);
-    }
-
-    const result = await res.json();
-    return result.data || result;
+    return readProduct(response, 'Cập nhật sản phẩm thất bại');
   },
 
-  getPaged: async (params: {
-    page: number;
-    size: number;
-    sort?: string;
-    search?: string;
-    name?: string;
-    categoryId?: string;
-    brandId?: string;
-    isPublished?: boolean;
-    isFeatured?: boolean;
-    isNew?: boolean;
-    isBestSeller?: boolean;
-  }): Promise<import('@/types/pagination').PageResponse<Product>> => {
-    const query = new URLSearchParams();
-
-    const apiPage = params.page > 0 ? params.page - 1 : 0;
-
-    query.append('page', apiPage.toString());
-    query.append('size', params.size.toString());
-    if (params.sort) query.append('sort', params.sort);
-    
-    // Map search/name to 'name' parameter expected by backend ProductFilterRequest
-    const filterName = params.name || params.search;
-    if (filterName) query.append('name', filterName);
-    
-    if (params.categoryId) query.append('categoryId', params.categoryId);
-    if (params.brandId) query.append('brandId', params.brandId);
-    if (params.isPublished !== undefined && params.isPublished !== null) {
-      query.append('isPublished', params.isPublished.toString());
-    }
-    if (params.isFeatured !== undefined && params.isFeatured !== null) {
-      query.append('isFeatured', params.isFeatured.toString());
-    }
-    if (params.isNew !== undefined && params.isNew !== null) {
-      query.append('isNew', params.isNew.toString());
-    }
-    if (params.isBestSeller !== undefined && params.isBestSeller !== null) {
-      query.append('isBestSeller', params.isBestSeller.toString());
-    }
-
-    const res = await clientFetch(`v1/products?${query.toString()}`);
-    if (!res.ok) {
-      if (res.status === 403) {
-        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem danh sách sản phẩm', 403);
+  getPaged: async (params: ProductListParams): Promise<PageResponse<Product>> => {
+    const query = new URLSearchParams({ page: toApiPage(params.page).toString(), size: params.size.toString() });
+    for (const key of ['sort', 'search', 'name', 'sku', 'categoryId', 'brandId', 'isPublished', 'isFeatured', 'isNew', 'isBestSeller'] as const) {
+      const value = params[key];
+      if (value !== undefined && value !== '') {
+        query.set(key, String(value));
       }
-      return {
-        success: false,
-        data: [],
-        pagination: {
-          currentPage: params.page,
-          totalPages: 0,
-          totalElements: 0,
-          pageSize: params.size,
-          last: true,
-          first: true,
-        },
-      } as unknown as import('@/types/pagination').PageResponse<Product>;
     }
-    const result = await res.json();
-    return result;
+    const response = await clientFetch(`v1/products?${query}`);
+    if (!response.ok) {
+      throw new ApiError(response.status === 403 ? 'AUTH_ACCESS_DENIED' : 'PRODUCT_LIST_FAILED', 'Không thể tải danh sách sản phẩm', response.status);
+    }
+    const result: PageResponse<Product> = await response.json();
+    return { ...result, data: result.data.map(normalizeProduct) };
   },
 
-  getById: async (id: string): Promise<Product> => {
-    const res = await clientFetch(`v1/products/${id}`);
-    if (!res.ok) {
-      throw new Error('Failed to fetch product');
-    }
-    const result = await res.json();
-    return result.data || result;
-  },
+  getById: async (id: string): Promise<Product> => readProduct(await clientFetch(`v1/products/${id}`), 'Không thể tải sản phẩm'),
 
-  getDetail: async (id: string): Promise<any> => {
-    const res = await clientFetch(`v1/products/${id}/detail`);
-    if (!res.ok) {
-      throw new Error('Failed to fetch product composite details');
+  getDetail: async (id: string): Promise<ProductDetail> => {
+    const response = await clientFetch(`v1/products/${id}/detail`);
+    const result: { success: boolean; data: ProductDetail; code?: string; message?: string } = await response.json();
+    if (!response.ok || !result.success) {
+      throw new ApiError(result.code || 'PRODUCT_DETAIL_FAILED', result.message || 'Không thể tải chi tiết sản phẩm', response.status);
     }
-    const result = await res.json();
-    return result.data || result;
+    return { ...result.data, product: normalizeProduct(result.data.product) };
   },
 
   delete: async (id: string): Promise<void> => {
-    const res = await clientFetch(`v1/products/${id}`, {
-      method: 'DELETE',
-    });
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new ApiError(errorData.code, errorData.message || 'Xóa sản phẩm thất bại', res.status, errorData);
+    const response = await clientFetch(`v1/products/${id}`, { method: 'DELETE' });
+    if (!response.ok) {
+      const result: { code?: string; message?: string } = await response.json();
+      throw new ApiError(result.code || 'PRODUCT_DELETE_FAILED', result.message || 'Xóa sản phẩm thất bại', response.status);
     }
-  }
+  },
+
 };

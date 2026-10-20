@@ -44,9 +44,9 @@ import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { getSortOptions } from '@/types';
 import { cn } from '@/lib/utils';
+import { productApi } from '../api/product.api';
 import { useProducts } from '../hooks/use-products';
 import { useDeleteProduct } from '../hooks/use-product-mutation';
-import { productApi } from '../api/product.api';
 import { useInfiniteCategories } from '@/features/categories/hooks/use-categories';
 
 export default function ProductView(): React.ReactElement {
@@ -73,6 +73,7 @@ export default function ProductView(): React.ReactElement {
     sort,
     search: name,
     categoryId: categoryIdParam,
+    isPublished: isPublishedParam === null ? undefined : isPublishedParam === 'true',
   });
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -328,19 +329,19 @@ export default function ProductView(): React.ReactElement {
       cell: (product) => (
         <div className="flex justify-end gap-1">
           <ViewActionButton onClick={() => handleNavigateDetail(product.id)} disabled={isExporting} />
-          <EditActionButton onClick={() => handleNavigateDetail(product.id)} disabled={isExporting} />
+          <EditActionButton onClick={() => router.push(`/products/${product.id}/edit`)} disabled={isExporting} />
           <DeleteActionButton onClick={() => setDeleteConfirmId(product.id)} disabled={isExporting} />
         </div>
       ),
     },
-  ], [categoriesList, copiedSku, handleCopySku, handleNavigateDetail, isExporting]);
+  ], [categoriesList, copiedSku, handleCopySku, handleNavigateDetail, isExporting, router]);
 
   const isForbidden = isForbiddenError(error);
 
   const commonActions = (
     <>
       <ImportButton onClick={() => router.push('/products/import')} disabled={isExporting || isForbidden} />
-      <ExportButton onExport={handleExport} isLoading={isExporting} disabled={isLoading || isFetching || isForbidden} />
+      <ExportButton onExport={handleExport} isLoading={isExporting} disabled={isExporting || isLoading || isFetching || isForbidden} />
       <AddNewButton onClick={handleCreate} disabled={isExporting} />
     </>
   );
