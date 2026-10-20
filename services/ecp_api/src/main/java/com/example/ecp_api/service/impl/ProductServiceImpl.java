@@ -276,6 +276,17 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public ProductResponse getStorefrontProduct(String idOrSlug) {
+        Product product = productRepository.findBySlug(idOrSlug)
+                .or(() -> productRepository.findById(idOrSlug))
+                .filter(Product::isPublished)
+                .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
+        ProductResponse response = productMapper.toResponse(product);
+        enrichCategoryInfo(response);
+        return response;
+    }
+
+    @Override
     public ProductResponse getProductById(String id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
@@ -440,6 +451,22 @@ public class ProductServiceImpl implements ProductService {
 
         if (request.getIsBestSeller() != null) {
             existingProduct.setBestSeller(request.getIsBestSeller());
+        }
+
+        if (request.getViewCount() != null) {
+            existingProduct.setViewCount(request.getViewCount());
+        }
+
+        if (request.getSoldCount() != null) {
+            existingProduct.setSoldCount(request.getSoldCount());
+        }
+
+        if (request.getRatingAvg() != null) {
+            existingProduct.setRatingAvg(request.getRatingAvg());
+        }
+
+        if (request.getRatingCount() != null) {
+            existingProduct.setRatingCount(request.getRatingCount());
         }
 
         if (request.getVariants() != null && !request.getVariants().isEmpty()) {

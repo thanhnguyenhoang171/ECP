@@ -1,21 +1,11 @@
-'use client';
-
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { ArrowRight, Cookie } from 'lucide-react';
 import { getCategoriesServer } from '@/services/category.service';
 import { Category } from '@/types/product';
 
-export default function CategoryGrid() {
-  const [categoryList, setCategoryList] = useState<Category[]>([]);
-
-  useEffect(() => {
-    getCategoriesServer().then(res => {
-      if (res && res.length > 0) {
-        setCategoryList(res);
-      }
-    });
-  }, []);
+export default async function CategoryGrid() {
+  const categoryList = await getCategoriesServer();
 
   return (
     <section className="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12 py-4">
@@ -52,7 +42,7 @@ export default function CategoryGrid() {
                 <h3 className="font-semibold text-slate-900 text-xs group-hover:text-blue-600 transition-colors">
                   {cat.name}
                 </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">{cat.description || `${cat.itemCount || 10} sản phẩm`}</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">{cat.description || 'Khám phá sản phẩm'}</p>
               </div>
             </Link>
           );

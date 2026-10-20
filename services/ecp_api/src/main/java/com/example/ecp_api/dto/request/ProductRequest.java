@@ -1,6 +1,9 @@
 package com.example.ecp_api.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -68,15 +71,20 @@ public class ProductRequest {
     @Schema(description = "Best seller product flag", example = "true")
     private Boolean isBestSeller;
 
+    @Min(value = 0, message = "View count must not be negative")
     @Schema(description = "View count", example = "100")
     private Integer viewCount;
 
+    @Min(value = 0, message = "Sold count must not be negative")
     @Schema(description = "Sold count", example = "50")
     private Integer soldCount;
 
+    @DecimalMin(value = "0", message = "Average rating must be between 0 and 5")
+    @DecimalMax(value = "5", message = "Average rating must be between 0 and 5")
     @Schema(description = "Average rating", example = "4.5")
     private BigDecimal ratingAvg;
 
+    @Min(value = 0, message = "Rating count must not be negative")
     @Schema(description = "Rating count", example = "10")
     private Integer ratingCount;
 

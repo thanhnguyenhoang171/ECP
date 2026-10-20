@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { 
   ImageUpload,
   FormSection,
@@ -21,6 +20,7 @@ import {
 import { ProductFormValues } from '../../schemas/product.schema';
 import { convertToSlug, convertToSku } from '@/lib/utils';
 import { ActiveCatalogSelect } from './ActiveCatalogSelect';
+import { ProductStatusFields } from './ProductStatusFields';
 
 interface ProductGeneralTabProps {
   form: UseFormReturn<ProductFormValues>;
@@ -29,7 +29,7 @@ interface ProductGeneralTabProps {
   onUploadingChange?: (isUploading: boolean) => void;
 }
 
-export const ProductGeneralTab = ({ form, isSlugEditedRef, nameValue, onUploadingChange }: ProductGeneralTabProps) => {
+export const ProductGeneralTab = ({ form, isSlugEditedRef, nameValue, onUploadingChange }: ProductGeneralTabProps): React.JSX.Element => {
   const { fields: specFields, append: appendSpec, remove: removeSpec } = useFieldArray({
     control: form.control,
     name: "specifications",
@@ -149,6 +149,8 @@ export const ProductGeneralTab = ({ form, isSlugEditedRef, nameValue, onUploadin
             />
           </FormGrid>
         </FormSection>
+
+        <ProductStatusFields form={form} />
 
         <FormSection 
           title="Mô tả chi tiết" 
@@ -294,49 +296,7 @@ export const ProductGeneralTab = ({ form, isSlugEditedRef, nameValue, onUploadin
           />
         </FormSection>
 
-        <FormSection title="Trạng thái & Gắn thẻ">
-          <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="isPublished"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-xl border border-slate-200 p-4 bg-slate-50/50">
-                  <div className="flex flex-col gap-0.5">
-                    <AdminFormLabel className="mb-0 cursor-pointer">Trạng thái bán</AdminFormLabel>
-                    <span className="text-[10px] text-slate-400">Hiển thị sản phẩm lên cửa hàng.</span>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      className="scale-90 data-[state=checked]:bg-blue-600"
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
 
-            <FormField
-              control={form.control}
-              name="isFeatured"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-xl border border-amber-200/60 p-4 bg-amber-50/40">
-                  <div className="flex flex-col gap-0.5">
-                    <AdminFormLabel className="mb-0 cursor-pointer text-amber-900 font-bold">Sản phẩm nổi bật (Featured)</AdminFormLabel>
-                    <span className="text-[10px] text-amber-700/80">Hiển thị tại khu vực Sản phẩm nổi bật.</span>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      className="scale-90 data-[state=checked]:bg-amber-500"
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </div>
-        </FormSection>
       </div>
     </div>
   );

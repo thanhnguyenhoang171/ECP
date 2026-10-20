@@ -17,19 +17,20 @@ export async function serverFetch<T>(
   let baseUrl: string;
   if (typeof window !== 'undefined') {
     // Phía Client (Browser): Dùng relative path /api để đi qua Next.js proxy rewrite (giấu URL backend)
-    baseUrl = process.env.NEXT_PUBLIC_STOREFRONT_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? '/api';
+    baseUrl = (process.env.NEXT_PUBLIC_STOREFRONT_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? '/api').replace(/\/$/, '');
   } else {
     // Phía Server (Node.js SSR/ISR): Dùng backend URL nội bộ
     const serverEnv =
       process.env.STOREFRONT_INTERNAL_API_URL ??
       process.env.INTERNAL_API_URL ??
+      process.env.NEXT_PUBLIC_STOREFRONT_API_URL ??
       process.env.NEXT_PUBLIC_API_URL;
     if (!serverEnv) {
       throw new Error(
         '[serverFetch] Missing env: STOREFRONT_INTERNAL_API_URL, INTERNAL_API_URL, or NEXT_PUBLIC_API_URL must be set.'
       );
     }
-    baseUrl = serverEnv;
+    baseUrl = serverEnv.replace(/\/$/, '');
   }
 
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
@@ -58,10 +59,10 @@ export async function serverFetch<T>(
 
     const data: T = await res.json();
     return { data, status: res.status };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error(`[ServerFetch Error] ${endpoint}:`, err);
     return {
-      error: err.message || 'Lỗi kết nối máy chủ.',
+      error: err instanceof Error ? err.message : 'Lỗi kết nối máy chủ.',
       status: 500,
     };
   }
