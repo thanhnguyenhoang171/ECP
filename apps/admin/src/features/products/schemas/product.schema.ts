@@ -47,6 +47,10 @@ export const productSchema = z.object({
   brandId: z.string().optional().or(z.literal("")),
   categoryId: z.string().min(1, "Vui lòng chọn danh mục"),
   description: z.string().optional().or(z.literal("")),
+  descriptionImages: z.array(z.object({
+    src: z.string(),
+    file: z.custom<File>((value) => typeof File !== 'undefined' && value instanceof File),
+  })).optional(),
   thumbnail: productImageSchema.optional(),
   images: z.array(productImageSchema).default([]),
   videos: z.array(productVideoSchema).default([]),

@@ -1,5 +1,7 @@
 'use client';
 
+import { useBackgroundCatalogSave } from '@/features/files/hooks/use-background-catalog-save';
+import { categoryApi } from '../api/category.api';
 import React, { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -62,6 +64,7 @@ export default function CategoryForm({
   isDialog = false,
   isParentLocked = false,
 }: CategoryFormProps) {
+  const enqueueSave = useBackgroundCatalogSave();
   const createMutation = useCreateCategory();
   const updateMutation = useUpdateCategory();
   const isSlugEdited = useRef(false);
@@ -157,6 +160,24 @@ export default function CategoryForm({
     };
 
     try {
+      const entityId = id;
+      if (enqueueSave({
+        title: `${entityId ? 'Cập nhật' : 'Tạo'} danh mục: ${payload.name}`,
+        resourceKey: `categories:${entityId || `new:${payload.name}`}`,
+        values: payload,
+        queryKeys: [['categories'], ['category'], ['categories', 'parents']],
+        save: async (context) => {
+          const result = entityId
+            ? await categoryApi.update(entityId, payload, context)
+            : await categoryApi.create(payload, context);
+          return `/categories/${result.data.id}`;
+        },
+      })) {
+        form.reset(payload);
+        onSuccess();
+        return;
+      }
+
       if (id) {
         await updateMutation.mutateAsync({ id, values: payload });
       } else {

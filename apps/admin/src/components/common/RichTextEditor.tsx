@@ -25,6 +25,7 @@ interface RichTextEditorProps extends React.AriaAttributes {
   readonly onBlur?: () => void;
   readonly disabled?: boolean;
   readonly onUploadingChange?: (uploading: boolean) => void;
+  readonly onImageSelected?: (file: File, src: string) => void;
 }
 
 interface ToolButtonProps {
@@ -48,12 +49,16 @@ const colorInputValue = (value: string | undefined, fallback: string): string =>
 };
 
 export const RichTextEditor = React.forwardRef<HTMLDivElement, RichTextEditorProps>(
-  ({ id, value = '', onChange, onBlur, disabled = false, onUploadingChange, ...ariaProps }, ref): React.JSX.Element => {
+  ({ id, value = '', onChange, onBlur, disabled = false, onUploadingChange, onImageSelected, ...ariaProps }, ref): React.JSX.Element => {
     const [uploading, setUploading] = useState(false);
     const [linkOpen, setLinkOpen] = useState(false);
     const [linkUrl, setLinkUrl] = useState('');
     const [linkError, setLinkError] = useState('');
     const imageInput = useRef<HTMLInputElement>(null);
+    const localImageUrls = useRef<string[]>([]);
+    useEffect(() => () => {
+      for (const url of localImageUrls.current) { URL.revokeObjectURL(url); }
+    }, []);
     const editor = useEditor({
       extensions: [
         StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: { openOnClick: false } }),
@@ -62,12 +67,12 @@ export const RichTextEditor = React.forwardRef<HTMLDivElement, RichTextEditorPro
         TableKit.configure({ table: { resizable: false } }),
         ImageExtension.configure({ allowBase64: false }),
       ],
-      content: toRichTextHtml(value),
+      content: toRichTextHtml(value, Boolean(onImageSelected)),
       immediatelyRender: false,
       shouldRerenderOnTransaction: false,
       editorProps: {
         attributes: { id: id || 'product-description', role: 'textbox', 'aria-label': 'Mô tả chi tiết sản phẩm', 'aria-multiline': 'true', class: 'rich-text-content min-h-64 max-h-[32rem] overflow-y-auto px-4 py-3 text-slate-800 focus:outline-none' },
-        transformPastedHTML: sanitizeRichText,
+        transformPastedHTML: (html) => sanitizeRichText(html),
       },
       onUpdate: ({ editor: current }) => onChange(current.isEmpty ? '' : current.getHTML()),
       onBlur: () => onBlur?.(),
@@ -93,10 +98,10 @@ export const RichTextEditor = React.forwardRef<HTMLDivElement, RichTextEditorPro
 
     useEffect(() => {
       if (editor && editor.getHTML() !== value) {
-        const html = toRichTextHtml(value);
+        const html = toRichTextHtml(value, Boolean(onImageSelected));
         if (editor.getHTML() !== html) { editor.commands.setContent(html, { emitUpdate: false }); }
       }
-    }, [editor, value]);
+    }, [editor, value, onImageSelected]);
     useEffect(() => { editor?.setEditable(!disabled, false); }, [editor, disabled]);
 
     const busy = !editor || disabled || uploading;
@@ -106,6 +111,13 @@ export const RichTextEditor = React.forwardRef<HTMLDivElement, RichTextEditorPro
       if (!file || !editor || busy) { return; }
       if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type) || file.size === 0 || file.size > 5 * 1024 * 1024) {
         toast.error('Vui lòng chọn ảnh JPG, PNG, WebP hoặc GIF, tối đa 5 MB.');
+        return;
+      }
+      if (onImageSelected) {
+        const src = URL.createObjectURL(file);
+        localImageUrls.current.push(src);
+        onImageSelected(file, src);
+        editor.chain().focus().setImage({ src, alt: file.name }).run();
         return;
       }
       setUploading(true);

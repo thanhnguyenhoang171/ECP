@@ -1,5 +1,7 @@
 'use client';
 
+import { useBackgroundCatalogSave } from '@/features/files/hooks/use-background-catalog-save';
+import { brandApi } from '../api/brand.api';
 import React, { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,6 +39,7 @@ interface BrandFormProps {
 }
 
 export default function BrandForm({ initialData, id, onSuccess, onCancel, isDialog = false, isLoadingData = false }: BrandFormProps): React.JSX.Element {
+  const enqueueSave = useBackgroundCatalogSave();
   const createMutation = useCreateBrand();
   const updateMutation = useUpdateBrand();
   const isSlugEditedRef = useRef(false);
@@ -90,6 +93,24 @@ export default function BrandForm({ initialData, id, onSuccess, onCancel, isDial
     }
 
     try {
+      const entityId = brandId;
+      if (enqueueSave({
+        title: `${entityId ? 'Cập nhật' : 'Tạo'} thương hiệu: ${values.name}`,
+        resourceKey: `brands:${entityId || `new:${values.name}`}`,
+        values: values,
+        queryKeys: [['brands'], ['brand'], ['brands', 'parents']],
+        save: async (context) => {
+          const result = entityId
+            ? await brandApi.update(entityId, values, context)
+            : await brandApi.create(values, context);
+          return `/brands/${result.data.id}`;
+        },
+      })) {
+        form.reset(values);
+        onSuccess();
+        return;
+      }
+
       if (brandId) {
         await updateMutation.mutateAsync({ id: brandId, values });
       } else {

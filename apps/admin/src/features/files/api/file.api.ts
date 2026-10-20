@@ -80,7 +80,7 @@ export const fileApi = {
    * @param file File object to upload
    * @param folder Folder name on Cloudinary (optional)
    */
-  uploadFile: async (file: File, folder?: string): Promise<ApiResponse<CloudinaryFile>> => {
+  uploadFile: async (file: File, folder?: string, options: { signal?: AbortSignal; skipToast?: boolean } = {}): Promise<ApiResponse<CloudinaryFile>> => {
     const formData = new FormData();
     formData.append('file', file);
     if (folder) {
@@ -88,6 +88,7 @@ export const fileApi = {
     }
 
     const res = await clientFetch('v1/files/upload', {
+      ...options,
       method: 'POST',
       body: formData,
     });
