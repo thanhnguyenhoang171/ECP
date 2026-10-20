@@ -18,6 +18,8 @@ public interface ProductService {
 
     ProductResponse getProductById(String id);
 
+    ProductResponse getStorefrontProduct(String idOrSlug);
+
     com.example.ecp_api.dto.response.ProductDetailResponse getProductDetail(String id);
 
     ProductResponse updateProduct(String id, ProductRequest request);

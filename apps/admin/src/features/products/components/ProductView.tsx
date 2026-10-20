@@ -122,6 +122,10 @@ export default function ProductView(): React.ReactElement {
     router.push(`/products/${productId}`);
   }, [router]);
 
+  const handleNavigateSkus = useCallback((productId: string) => {
+    router.push(`/products/${productId}/skus`);
+  }, [router]);
+
   const handleCreate = useCallback(() => {
     router.push('/products/create');
   }, [router]);
@@ -261,13 +265,18 @@ export default function ProductView(): React.ReactElement {
         const count = variants.length > 0 ? variants.length : 1;
 
         return (
-          <span
-            onClick={() => handleNavigateDetail(product.id)}
-            className="inline-flex items-center text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNavigateSkus(product.id);
+            }}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 border border-slate-200/80 px-2.5 py-1 rounded-lg transition-colors cursor-pointer group/variant"
             title="Quản lý biến thể SKU"
           >
-            {count} SKU
-          </span>
+            <Layers className="w-3.5 h-3.5 text-slate-400 group-hover/variant:text-blue-500 transition-colors" />
+            <span>{count} SKU</span>
+          </button>
         );
       },
     },
@@ -334,7 +343,7 @@ export default function ProductView(): React.ReactElement {
         </div>
       ),
     },
-  ], [categoriesList, copiedSku, handleCopySku, handleNavigateDetail, isExporting, router]);
+  ], [categoriesList, copiedSku, handleCopySku, handleNavigateDetail, handleNavigateSkus, isExporting, router]);
 
   const isForbidden = isForbiddenError(error);
 

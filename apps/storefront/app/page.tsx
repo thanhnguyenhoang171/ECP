@@ -7,8 +7,12 @@ import TodaySuggestions from '@/components/home/TodaySuggestions';
 import ProductCard from '@/components/product/ProductCard';
 import { getProductsServer } from '@/services/server/product.server';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const products = await getProductsServer();
+
+  const featuredProducts = products.filter((product) => product.isFeatured || product.isBestSeller);
 
   return (
     <div className="space-y-12 pb-16">
@@ -20,7 +24,7 @@ export default async function Home() {
       <CategoryGrid />
 
       {/* SECTION: Sản phẩm bán chạy nhất */}
-      <section className="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12">
+      {featuredProducts.length > 0 && <section className="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12">
         <div className="flex items-center justify-between mb-6">
           <div>
             <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block mb-1">
@@ -41,16 +45,16 @@ export default async function Home() {
 
         {/* Horizontal Scroll Grid */}
         <div className="grid grid-flow-col auto-cols-[calc(50%-8px)] sm:auto-cols-[calc(33.333%-11px)] md:auto-cols-[calc(25%-12px)] gap-4 sm:gap-6 overflow-x-auto pb-3 pt-1 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-blue-400 scroll-smooth snap-x snap-mandatory">
-          {products.map((product) => (
+          {featuredProducts.map((product) => (
             <div key={product.id} className="snap-start">
               <ProductCard product={product} />
             </div>
           ))}
         </div>
-      </section>
+      </section>}
 
       {/* SECTION: Gợi Ý Hôm Nay */}
-      <TodaySuggestions />
+      <TodaySuggestions products={products} />
 
       {/* Editorial Promo Card */}
       <section className="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12">

@@ -93,7 +93,7 @@ export default function Header() {
           {/* Search Bar */}
           <div className="hidden md:flex flex-1 max-w-lg relative">
             <form 
-              onSubmit={(e) => { e.preventDefault(); console.log('Search:', searchQuery); }}
+              onSubmit={(e) => { e.preventDefault(); router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`); }}
               className="w-full relative flex items-center"
             >
               <input
@@ -258,14 +258,14 @@ export default function Header() {
           <Link href="/categories" className="text-slate-400 hover:text-white transition-colors">
             Tất cả danh mục
           </Link>
-          <Link href="/categories/snack-candies" className="text-slate-400 hover:text-white transition-colors">
-            Snack & Bánh kẹo
+          <Link href="/products?collection=new" className="text-slate-400 hover:text-white transition-colors">
+            Sản phẩm mới
           </Link>
-          <Link href="/categories/beverages" className="text-slate-400 hover:text-white transition-colors">
-            Nước giải khát & Trà sữa
+          <Link href="/products?collection=featured" className="text-slate-400 hover:text-white transition-colors">
+            Sản phẩm nổi bật
           </Link>
-          <Link href="/categories/instant-foods" className="text-slate-400 hover:text-white transition-colors">
-            Đồ ăn vặt & Mì ăn liền
+          <Link href="/products?collection=best-seller" className="text-slate-400 hover:text-white transition-colors">
+            Sản phẩm bán chạy
           </Link>
           <Link href="/promotions" className="text-blue-400 font-semibold hover:text-blue-300 transition-colors">
             Khuyến mãi đặc biệt
@@ -299,14 +299,14 @@ export default function Header() {
               <Link href="/products" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-white">
                 Tất cả sản phẩm
               </Link>
-              <Link href="/categories/snack-candies" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-white">
-                Snack & Bánh kẹo
+              <Link href="/products?collection=new" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-white">
+                Sản phẩm mới
               </Link>
-              <Link href="/categories/beverages" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-white">
-                Nước giải khát & Trà sữa
+              <Link href="/products?collection=featured" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-white">
+                Sản phẩm nổi bật
               </Link>
-              <Link href="/categories/instant-foods" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-white">
-                Đồ ăn vặt & Mì ăn liền
+              <Link href="/products?collection=best-seller" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-white">
+                Sản phẩm bán chạy
               </Link>
               <Link href="/promotions" onClick={() => setIsMobileMenuOpen(false)} className="text-blue-400 font-semibold">
                 Khuyến mãi đặc biệt

@@ -30,6 +30,7 @@ public class StorefrontProductController {
     public ResponseEntity<PageResponse<ProductResponse>> getAllProducts(
             @org.springdoc.core.annotations.ParameterObject ProductFilterRequest filter,
             @org.springdoc.core.annotations.ParameterObject @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        filter.setIsPublished(true);
         return ResponseEntity.ok(productService.getAllProducts(filter, pageable));
     }
 
@@ -38,6 +39,6 @@ public class StorefrontProductController {
     public ResponseEntity<ApiResponse<ProductResponse>> getProductById(@PathVariable String id) {
         return ResponseEntity.ok(ApiResponse.<ProductResponse>builder()
                 .success(true).message("Product details fetched successfully")
-                .data(productService.getProductById(id)).build());
+                .data(productService.getStorefrontProduct(id)).build());
     }
 }

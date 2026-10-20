@@ -4,9 +4,10 @@ import { ChevronRight } from 'lucide-react';
 import ProductCatalogClient from '@/components/product/ProductCatalogClient';
 import { getProductsServer } from '@/services/server/product.server';
 
-export const revalidate = 60; // ISR 60 seconds
+export const dynamic = 'force-dynamic';
 
-export default async function ProductsPage() {
+export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ search?: string; collection?: string }> }) {
+  const { search = '', collection = '' } = await searchParams;
   const initialProducts = await getProductsServer();
 
   return (
@@ -19,7 +20,7 @@ export default async function ProductsPage() {
       </nav>
 
       {/* Interactive Catalog Container */}
-      <ProductCatalogClient initialProducts={initialProducts} />
+      <ProductCatalogClient key={`${search}-${collection}`} initialProducts={initialProducts} initialSearch={search} initialCollection={collection} />
     </div>
   );
 }

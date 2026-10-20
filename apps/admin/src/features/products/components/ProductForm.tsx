@@ -5,16 +5,16 @@ import { useForm, useWatch, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Info,
+  Loader2,
+  Save,
   Settings2,
-  // Globe,
 } from 'lucide-react';
 
 import {
   Form,
 } from '@/components/ui/form';
-import {
-  FormActionsBar,
-} from '@/components/common';
+import { PageHeader } from '@/components/common';
+import { Button } from '@/components/ui/button';
 import { useCreateProduct, useUpdateProduct } from '../hooks/use-product-mutation';
 import {
   productSchema,
@@ -26,17 +26,18 @@ import { toast } from 'sonner';
 import { ProductGeneralTab } from './product-form/ProductGeneralTab';
 import { ProductVariantsTab } from './product-form/ProductVariantsTab';
 
-import { Product } from '../types/product.interface';
+import { Product, ProductDetail } from '../types/product.interface';
 import { getProductFormValues } from '../lib/product-form-values';
+import { ProductInventoryTable } from './ProductInventoryTable';
 
 interface ProductFormProps {
   onSuccess: () => void;
   onCancel: () => void;
   initialData?: Product;
-  isDialog?: boolean;
+  inventory?: ProductDetail['skus'];
 }
 
-export default function ProductForm({ onSuccess, onCancel, initialData, isDialog = false }: ProductFormProps): React.JSX.Element {
+export default function ProductForm({ onSuccess, onCancel, initialData, inventory }: ProductFormProps): React.JSX.Element {
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
 
@@ -61,9 +62,7 @@ export default function ProductForm({ onSuccess, onCancel, initialData, isDialog
   const variantCount = variantsValue?.length || 0;
 
   const formErrors = form.formState.errors;
-  const hasGeneralErrors = Boolean(
-    formErrors.name || formErrors.slug || formErrors.categoryId || formErrors.brandId || formErrors.description || formErrors.thumbnail
-  );
+  const hasGeneralErrors = Object.keys(formErrors).some((field) => field !== 'variants');
   const hasVariantErrors = Boolean(formErrors.variants);
 
   // Auto-slug generator
@@ -73,7 +72,10 @@ export default function ProductForm({ onSuccess, onCancel, initialData, isDialog
     }
   }, [nameValue, form, initialData]);
 
-  async function onSubmit(values: ProductFormValues) {
+  const onSubmit = async (values: ProductFormValues): Promise<void> => {
+    if (createMutation.isPending || updateMutation.isPending) {
+      return;
+    }
     if (isImageUploading) {
       toast.warning('Ảnh đang được tải lên cloud, vui lòng chờ trong giây lát!');
       return;
@@ -88,7 +90,8 @@ export default function ProductForm({ onSuccess, onCancel, initialData, isDialog
 
     try {
       if (initialData?.id) {
-        await updateMutation.mutateAsync({ id: initialData.id, values: payload });
+        const savedProduct = await updateMutation.mutateAsync({ id: initialData.id, values: payload });
+        form.reset(getProductFormValues(savedProduct));
       } else {
         await createMutation.mutateAsync(payload);
       }
@@ -96,12 +99,11 @@ export default function ProductForm({ onSuccess, onCancel, initialData, isDialog
     } catch (error) {
       console.error('Product save failed:', error);
     }
-  }
+  };
 
-  const onErrors = (errors: FieldErrors<ProductFormValues>) => {
+  const onErrors = (errors: FieldErrors<ProductFormValues>): void => {
     const errorKeys = Object.keys(errors);
-    const generalFields = ['name', 'slug', 'categoryId', 'brandId', 'description', 'thumbnail'];
-    const generalErr = errorKeys.some(key => generalFields.includes(key));
+    const generalErr = errorKeys.some((field) => field !== 'variants');
     const variantErr = errorKeys.includes('variants');
 
     if (generalErr && activeTab !== 'general') {
@@ -139,11 +141,26 @@ export default function ProductForm({ onSuccess, onCancel, initialData, isDialog
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit, onErrors)}
-        className={cn(isDialog ? "flex flex-col flex-1 overflow-hidden" : "space-y-6 pb-24")}
+        className='space-y-6'
       >
-        <div className={cn("space-y-6", isDialog && "flex-1 overflow-y-auto p-6")}>
+        <PageHeader
+          title={initialData ? `Cập nhật: ${initialData.name}` : 'Thêm sản phẩm mới'}
+          description='Quản lý thông tin, hình ảnh, phân loại và giá bán theo từng biến thể.'
+          actions={
+            <>
+              <Button type='button' variant='outline' onClick={onCancel} disabled={isLoading || isImageUploading}>
+                Danh sách sản phẩm
+              </Button>
+              <Button type='submit' disabled={isLoading || isImageUploading} className='gap-2'>
+                {isLoading || isImageUploading ? <Loader2 className='h-4 w-4 animate-spin' /> : <Save className='h-4 w-4' />}
+                {isImageUploading ? 'Đang tải ảnh...' : initialData ? 'Lưu thay đổi' : 'Tạo sản phẩm'}
+              </Button>
+            </>
+          }
+        />
+        <div className='space-y-6'>
           {/* Custom Stepper Tabs Bar */}
-          <div role="tablist" aria-label="Các bước tạo sản phẩm" className="flex border-b border-slate-200 gap-2 sm:gap-6 overflow-x-auto no-scrollbar">
+          <div role="tablist" aria-label="Thông tin sản phẩm" className="flex border-b border-slate-200 gap-2 sm:gap-6 overflow-x-auto no-scrollbar">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -152,6 +169,7 @@ export default function ProductForm({ onSuccess, onCancel, initialData, isDialog
                   key={tab.id}
                   type="button"
                   role="tab"
+                  id={`product-tab-${tab.id}`}
                   aria-selected={isActive}
                   aria-controls={`tab-panel-${tab.id}`}
                   onClick={() => setActiveTab(tab.id === 'variants' ? 'variants' : 'general')}
@@ -192,7 +210,7 @@ export default function ProductForm({ onSuccess, onCancel, initialData, isDialog
 
           {/* Tab 1: General Info */}
           {activeTab === 'general' && (
-            <div role="tabpanel" id="tab-panel-general">
+            <div role="tabpanel" id="tab-panel-general" aria-labelledby='product-tab-general'>
               <ProductGeneralTab
                 form={form}
                 isSlugEditedRef={isSlugEditedRef}
@@ -204,23 +222,16 @@ export default function ProductForm({ onSuccess, onCancel, initialData, isDialog
 
           {/* Tab 2: Variants */}
           {activeTab === 'variants' && (
-            <div role="tabpanel" id="tab-panel-variants">
+            <div role="tabpanel" id="tab-panel-variants" aria-labelledby='product-tab-variants' className='space-y-6'>
               <ProductVariantsTab
                 form={form}
                 onUploadingChange={setIsImageUploading}
               />
+              {inventory && <ProductInventoryTable inventory={inventory} />}
             </div>
           )}
         </div>
 
-        {/* Sticky Actions Bar */}
-        <FormActionsBar
-          onCancel={onCancel}
-          isSubmitting={isLoading || isImageUploading}
-          submitText={isImageUploading ? 'Đang tải ảnh lên...' : (initialData?.id ? 'Cập nhật sản phẩm' : 'Lưu sản phẩm')}
-          activeTabLabel={tabs.find(t => t.id === activeTab)?.label}
-          isDialog={isDialog}
-        />
       </form>
     </Form>
   );

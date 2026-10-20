@@ -44,7 +44,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
   };
 
-  const soldText = formatSoldCount(product.soldCount ?? (product.reviewCount ? product.reviewCount * 4 : 120));
+  const soldText = formatSoldCount(product.soldCount);
 
   return (
     <div 
@@ -55,11 +55,13 @@ export default function ProductCard({ product }: ProductCardProps) {
         
         {/* Badges */}
         <div className="absolute top-3 left-3 z-10 flex flex-col gap-1 items-start">
-          {product.discountPercent && (
+          {Boolean(product.discountPercent) && (
             <span className="px-2 py-0.5 bg-red-600 text-white text-[10px] font-semibold rounded-md shadow-2xs tracking-tight">
               -{product.discountPercent}%
             </span>
           )}
+          {product.isBestSeller && <span className="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 text-[10px] rounded-md">Bán chạy</span>}
+          {product.isFeatured && <span className="px-2 py-0.5 bg-violet-50 text-violet-700 border border-violet-200 text-[10px] rounded-md">Nổi bật</span>}
           {product.isNew && (
             <span className="px-2 py-0.5 bg-sky-50 text-sky-700 border border-sky-200/70 text-[10px] font-medium rounded-md">
               Mới
@@ -81,7 +83,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Product Image */}
         <Link href={`/products/${product.slug}`} className="w-full h-full relative block overflow-hidden">
           <Image
-            src={product.images && product.images.length > 0 ? product.images[0] : '/tmp/bento.webp'}
+            src={product.images && product.images.length > 0 ? product.images[0] : '/product-placeholder.svg'}
             alt={product.name}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
@@ -117,9 +119,9 @@ export default function ProductCard({ product }: ProductCardProps) {
         <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
           <div className="flex items-baseline gap-1.5 flex-wrap">
             <span className="text-sm font-bold text-slate-900">
-              {formatVND(product.price)}
+              {product.inStock ? formatVND(product.price) : 'Tạm ngừng bán'}
             </span>
-            {product.originalPrice && (
+            {product.originalPrice !== undefined && (
               <span className="text-[11px] text-slate-400 line-through font-normal">
                 {formatVND(product.originalPrice)}
               </span>

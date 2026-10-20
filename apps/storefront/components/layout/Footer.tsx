@@ -122,9 +122,9 @@ export default function Footer() {
             <h4 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">Khám phá</h4>
             <ul className="space-y-2 text-slate-400">
               <li><Link href="/products" className="hover:text-slate-200 transition-colors">Tất cả sản phẩm</Link></li>
-              <li><Link href="/categories/snack-candies" className="hover:text-slate-200 transition-colors">Snack & Bánh kẹo Thái</Link></li>
-              <li><Link href="/categories/beverages" className="hover:text-slate-200 transition-colors">Nước giải khát & Trà sữa</Link></li>
-              <li><Link href="/categories/instant-foods" className="hover:text-slate-200 transition-colors">Đồ ăn vặt & Mì ăn liền</Link></li>
+              <li><Link href="/products?collection=new" className="hover:text-slate-200 transition-colors">Sản phẩm mới</Link></li>
+              <li><Link href="/products?collection=featured" className="hover:text-slate-200 transition-colors">Sản phẩm nổi bật</Link></li>
+              <li><Link href="/products?collection=best-seller" className="hover:text-slate-200 transition-colors">Sản phẩm bán chạy</Link></li>
             </ul>
           </div>
 
