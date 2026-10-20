@@ -77,12 +77,22 @@ export default function ProductDetailClient({ product, relatedProducts }: Produc
           <button type='button' onClick={() => { const added = toggleItem(product); toast.success(added ? 'Đã thêm vào yêu thích' : 'Đã xóa khỏi yêu thích'); }} className='inline-flex items-center gap-2 rounded-xl border px-5 py-3 text-sm'>
             <Heart className='h-4 w-4 text-rose-500' /> Yêu thích
           </button>
+          {specifications.length > 0 && (
+            <section className='space-y-3' aria-labelledby='product-specifications-heading'>
+              <h2 id='product-specifications-heading' className='text-lg font-bold'>Thông số sản phẩm</h2>
+              <dl className='space-y-3'>
+                {specifications.map(([key, value]) => (
+                  <div key={key} className='grid grid-cols-2 gap-4 text-sm'>
+                    <dt className='min-w-0 break-words font-semibold'>{key}</dt>
+                    <dd className='min-w-0 break-words text-slate-600'>{String(value)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
         </div>
       </div>
       <section className='space-y-4 border-t pt-8'><h2 className='text-xl font-bold'>Mô tả sản phẩm</h2><ProductDescription description={product.description} /></section>
-      {specifications.length > 0 && <section className='space-y-4'><h2 className='text-xl font-bold'>Thông số sản phẩm</h2><dl className='divide-y rounded-xl border p-4'>
-        {specifications.map(([key, value]) => <div key={key} className='grid grid-cols-2 gap-4 py-3 text-sm'><dt className='font-semibold'>{key}</dt><dd>{String(value)}</dd></div>)}
-      </dl></section>}
       {relatedProducts.length > 0 && <section className='space-y-6 border-t pt-8'><h2 className='text-xl font-bold'>Sản phẩm cùng danh mục</h2><ProductGrid products={relatedProducts} /></section>}
     </div>
   );
