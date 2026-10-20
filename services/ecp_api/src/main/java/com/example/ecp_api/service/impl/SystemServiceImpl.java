@@ -3,6 +3,9 @@ package com.example.ecp_api.service.impl;
 import com.example.ecp_api.config.DataInitializer;
 import com.example.ecp_api.service.AuditLogService;
 import com.example.ecp_api.service.SystemService;
+import com.example.ecp_api.service.PurgePasswordService;
+import com.example.ecp_api.entity.mongodb.AuditLog;
+import com.example.ecp_api.exception.AppException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -21,32 +24,39 @@ public class SystemServiceImpl implements SystemService {
     @PersistenceContext
     private EntityManager entityManager;
 
+    private final PurgePasswordService purgePasswordService;
     private final MongoTemplate mongoTemplate;
     private final DataInitializer dataInitializer;
     private final AuditLogService auditLogService;
 
     @Override
     @Transactional
-    public void purgeAllData() {
+    public void purgeAllData(String password) {
         String currentEmail = com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail();
+        try {
+            purgePasswordService.verifyPassword(password);
+        } catch (RuntimeException error) {
+            String reason = error instanceof AppException appError ? appError.getCode() : error.getClass().getSimpleName();
+            auditLogService.log("SYSTEM_PURGE_REJECTED", currentEmail,
+                    "Yêu cầu xoá dữ liệu bị từ chối. Mã lỗi: " + reason, "FAILURE");
+            throw error;
+        }
+
+        auditLogService.log("SYSTEM_PURGE_STARTED", currentEmail,
+                "Đã xác nhận mật khẩu và bắt đầu xoá dữ liệu hệ thống. Nhật ký kiểm toán được giữ lại.", "IN_PROGRESS");
         log.warn("PURGING ALL DATA FROM SYSTEM triggered by {}...", currentEmail);
+        try {
+            purgeJpaData();
+            purgeMongoData();
+            dataInitializer.initializeDefaults();
+        } catch (RuntimeException error) {
+            auditLogService.log("SYSTEM_PURGE_FAILED", currentEmail,
+                    "Xoá dữ liệu hệ thống không hoàn tất. Loại lỗi: " + error.getClass().getSimpleName(), "FAILURE");
+            throw error;
+        }
 
-        // Purge MySQL Data
-        purgeJpaData();
-
-        // Purge MongoDB Data
-        purgeMongoData();
-
-        // Re-initialize default accounts
-        dataInitializer.initializeDefaults();
-
-        // Log the high-impact action
-        auditLogService.log(
-                "SYSTEM_PURGE_ALL_DATA",
-                currentEmail,
-                "[SYSTEM ID: ALL] Permanently purged all system data and re-initialized default accounts."
-        );
-
+        auditLogService.log("SYSTEM_PURGE_ALL_DATA", currentEmail,
+                "Đã xoá dữ liệu hệ thống và khởi tạo lại tài khoản mặc định. Nhật ký kiểm toán được giữ lại.");
         log.info("SYSTEM PURGE COMPLETED SUCCESSFULLY.");
     }
 
@@ -65,24 +75,27 @@ public class SystemServiceImpl implements SystemService {
                 "purchase_orders",
                 "skus",
                 "suppliers",
+                "user_purge_credentials",
                 "user_profiles",
                 "addresses",
                 "users",
                 "warehouses"
         );
 
-        for (String table : tables) {
-            entityManager.createNativeQuery("TRUNCATE TABLE " + table).executeUpdate();
+        try {
+            for (String table : tables) {
+                entityManager.createNativeQuery("TRUNCATE TABLE " + table).executeUpdate();
+            }
+        } finally {
+            entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 1").executeUpdate();
         }
-
-        // Re-enable foreign key checks
-        entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 1").executeUpdate();
     }
 
     private void purgeMongoData() {
         log.info("Purging MongoDB data...");
+        String auditCollection = mongoTemplate.getCollectionName(AuditLog.class);
         for (String collectionName : mongoTemplate.getCollectionNames()) {
-            if (!collectionName.startsWith("system.")) {
+            if (!collectionName.startsWith("system.") && !collectionName.equals(auditCollection)) {
                 mongoTemplate.dropCollection(collectionName);
             }
         }

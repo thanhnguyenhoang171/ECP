@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Lock, Loader2, Eye, EyeOff, Mail, ArrowRight } from 'lucide-react';
+import { Lock, Loader2, Mail, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import {
   FormLabel,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorMessages } from '@/constants/errorMessages';
@@ -53,7 +54,6 @@ declare global {
 }
 
 export default function LoginView(): React.ReactElement {
-  const [showPassword, setShowPassword] = useState<boolean>(false);
   const loginMutation = useLogin();
   const googleLoginMutation = useGoogleLogin();
 
@@ -242,24 +242,13 @@ export default function LoginView(): React.ReactElement {
                         </Link>
                       </div>
                       <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
-                          <Input
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder="••••••••"
-                            disabled={isAnyLoading}
-                            {...field}
-                            className="pl-10 pr-10 h-11 bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/25 rounded-xl shadow-xs transition-all disabled:opacity-50 text-sm font-medium"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            disabled={isAnyLoading}
-                            className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50"
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
-                        </div>
+                        <PasswordInput
+                          leadingIcon={<Lock className="h-4 w-4" />}
+                          placeholder="••••••••"
+                          disabled={isAnyLoading}
+                          {...field}
+                          className="pl-10 pr-10 h-11 bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/25 rounded-xl shadow-xs transition-all disabled:opacity-50 text-sm font-medium"
+                        />
                       </FormControl>
                       <FormMessage className="text-xs text-rose-500" />
                     </FormItem>

@@ -99,7 +99,8 @@ public class GlobalExceptionHandler {
     // Handle Validation Errors (400 Bad Request)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex, WebRequest request) {
-        log.warn("Data validation error at {}: {}", request.getDescription(false), ex.getMessage());
+        log.warn("Data validation error at {} in fields {}", request.getDescription(false),
+                ex.getBindingResult().getFieldErrors().stream().map(error -> error.getField()).toList());
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getFieldErrors().forEach(err ->
                 errors.put(err.getField(), err.getDefaultMessage())
@@ -121,7 +122,7 @@ public class GlobalExceptionHandler {
     // Handle Malformed JSON / Unreadable Request Body (400 Bad Request)
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, WebRequest request) {
-        log.warn("Malformed JSON request at {}: {}", request.getDescription(false), ex.getMessage());
+        log.warn("Malformed JSON request at {}", request.getDescription(false));
         ErrorResponse err = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())

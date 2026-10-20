@@ -9,6 +9,7 @@ import com.example.ecp_api.repository.mongodb.AuditLogRepository;
 import com.example.ecp_api.repository.jpa.UserRepository;
 import com.example.ecp_api.enums.users.UserRole;
 import com.example.ecp_api.service.AuditLogService;
+import com.example.ecp_api.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
@@ -40,6 +41,11 @@ public class AuditLogServiceImpl implements AuditLogService {
         if (!StringUtils.hasText(username) || "SYSTEM".equalsIgnoreCase(username)) {
             return "SYSTEM";
         }
+        if (username.equalsIgnoreCase(SecurityUtils.getCurrentUserEmail())) {
+            if (SecurityUtils.isSuperAdmin()) return "ADMIN";
+            if (SecurityUtils.isManager()) return "MANAGER";
+            return "USER";
+        }
         return userRepository.findByEmail(username)
                 .map(user -> {
                     if (user.hasRole("SUPER_ADMIN")) {
@@ -55,7 +61,7 @@ public class AuditLogServiceImpl implements AuditLogService {
     private String determineModule(String action) {
         if (!StringUtils.hasText(action)) return "SYSTEM";
         String upperAction = action.toUpperCase();
-        if (upperAction.contains("LOGIN") || upperAction.contains("LOGOUT") || upperAction.contains("AUTH")
+        if (upperAction.startsWith("SYSTEM_") || upperAction.contains("LOGIN") || upperAction.contains("LOGOUT") || upperAction.contains("AUTH")
                 || upperAction.contains("USER") || upperAction.contains("ACCOUNT") || upperAction.contains("REGISTER")
                 || upperAction.contains("ROLE") || upperAction.contains("PERMISSION") || upperAction.contains("PASSWORD")
                 || upperAction.contains("TOKEN") || upperAction.contains("SECURITY")) {
