@@ -1,19 +1,11 @@
-import { ProductFormValues } from '../schemas/product.schema';
-import { Product } from '../types/product.interface';
+import { getImageReference, getImageUrl } from '@/lib/image-value';
+import type { ProductFormValues } from '../schemas/product.schema';
+import type { Product } from '../types/product.interface';
 
-export const productImageUrl = (image: unknown): string => {
-  if (typeof image === 'string') {
-    return image;
-  }
-  return image && typeof image === 'object' && 'url' in image && typeof image.url === 'string' ? image.url : '';
-};
+export const productImageUrl = (image: unknown): string => getImageUrl(image);
 
-const toFormImage = (image: Product['thumbnail']): string | { url: string; publicId?: string } => {
-  if (image && typeof image === 'object') {
-    return { url: image.url || '', publicId: image.publicId };
-  }
-  return image || '';
-};
+const toFormImage = (image: Product['thumbnail']): string | { url: string; publicId?: string } =>
+  getImageReference(image);
 
 const toPairs = (value: unknown): Array<{ key: string; value: string }> => {
   if (Array.isArray(value)) {

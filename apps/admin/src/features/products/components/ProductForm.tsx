@@ -108,7 +108,6 @@ export default function ProductForm({ onSuccess, onCancel, initialData, inventor
       })) {
         form.reset(payload);
         onSuccess();
-        if (entityId) { onCancel(); }
         return;
       }
 

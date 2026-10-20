@@ -1,11 +1,12 @@
 import * as z from "zod";
+import { imageValueSchema } from '@/lib/image-value';
 
 export const categorySchema = z.object({
   name: z.string().min(2, "Tên danh mục phải có ít nhất 2 ký tự"),
   slug: z.string().optional().or(z.literal("")),
   parentId: z.string().optional(),
   active: z.boolean().default(true),
-  imageUrl: z.any().optional(),
+  imageUrl: imageValueSchema,
   imagePublicId: z.string().optional(),
   description: z.string().optional().or(z.literal("")),
   order: z.coerce.number().min(0, "Thứ tự hiển thị không thể âm").default(0),

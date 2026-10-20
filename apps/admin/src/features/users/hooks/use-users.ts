@@ -1,5 +1,6 @@
 'use client';
 
+import type { UserMutationData } from '../api/user.api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { userApi } from '../api/user.api';
@@ -68,7 +69,7 @@ export function useCreateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Record<string, unknown>) => userApi.create(data),
+    mutationFn: (data: UserMutationData) => userApi.create(data),
     onSuccess: () => {
       toast.success('Thêm người dùng thành công');
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -85,7 +86,7 @@ export function useUpdateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) => userApi.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UserMutationData }) => userApi.update(id, data),
     onSuccess: () => {
       toast.success('Cập nhật người dùng thành công');
       queryClient.invalidateQueries({ queryKey: ['users'] });

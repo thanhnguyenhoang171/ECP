@@ -1,3 +1,4 @@
+import { getImageReference } from '@/lib/image-value';
 import type { UploadTaskContext } from '@/lib/background-task-queue';
 import { Brand } from '../types/brand.interface';
 import { BrandFormValues } from '../schemas/brand.schema';
@@ -6,6 +7,8 @@ import { clientFetch } from '@/lib/clientFetch';
 import { toApiPage, syncPagination } from '@/lib/utils';
 import { ApiError } from '@/constants/errorMessages';
 import { readCatalogResult, resolveCatalogImage, downloadCatalogFile, importCatalogFile, type CatalogResult } from '@/lib/catalog-api';
+
+const mapBrand = (brand: Brand): Brand => ({ ...brand, logo: getImageReference(brand.logo).url });
 
 export const brandApi = {
   export: (): Promise<Blob> => downloadCatalogFile('v1/brands/export'),
@@ -35,7 +38,7 @@ export const brandApi = {
       throw new Error('Failed to fetch brands');
     }
     const result: PageResponse<Brand> = await res.json();
-    return syncPagination<PageResponse<Brand>>(result);
+    return syncPagination<PageResponse<Brand>>({ ...result, data: result.data.map(mapBrand) });
   },
 
   getActive: async (params: { page?: number; size?: number; name?: string } = {}): Promise<PageResponse<Brand>> => {
@@ -53,13 +56,13 @@ export const brandApi = {
       throw new ApiError(res.status === 403 ? 'AUTH_ACCESS_DENIED' : 'BRAND_LIST_FAILED', 'Không thể tải thương hiệu', res.status);
     }
     const result: PageResponse<Brand> = await res.json();
-    return syncPagination<PageResponse<Brand>>(result);
+    return syncPagination<PageResponse<Brand>>({ ...result, data: result.data.map(mapBrand) });
   },
 
   // Get brand by ID
   getById: async (id: string): Promise<Brand> => {
     const res = await clientFetch(`v1/brands/${id}`);
-    return (await readCatalogResult<Brand>(res, 'Không thể tải thương hiệu')).data;
+    return mapBrand((await readCatalogResult<Brand>(res, 'Không thể tải thương hiệu')).data);
   },
 
   // Create brand
@@ -79,7 +82,8 @@ export const brandApi = {
       body: JSON.stringify(payload),
     });
 
-    return readCatalogResult<Brand>(res, 'Tạo thương hiệu thất bại');
+    const result = await readCatalogResult<Brand>(res, 'Tạo thương hiệu thất bại');
+    return { ...result, data: mapBrand(result.data) };
   },
 
   // Update brand
@@ -99,7 +103,8 @@ export const brandApi = {
       body: JSON.stringify(payload),
     });
 
-    return readCatalogResult<Brand>(res, 'Cập nhật thương hiệu thất bại');
+    const result = await readCatalogResult<Brand>(res, 'Cập nhật thương hiệu thất bại');
+    return { ...result, data: mapBrand(result.data) };
   },
   // Delete brand
   delete: async (id: string): Promise<{ success: boolean }> => {

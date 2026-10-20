@@ -2,6 +2,7 @@ import type { UploadTaskContext } from '@/lib/background-task-queue';
 import { ApiError } from '@/constants/errorMessages';
 import { clientFetch } from '@/lib/clientFetch';
 import { fileApi } from '@/features/files/api/file.api';
+import { getImageReference, imageValueSchema, isImageFile } from '@/lib/image-value';
 
 export interface CatalogResult<T> {
   success: boolean;
@@ -25,7 +26,8 @@ export interface CatalogImage {
 }
 
 export const resolveCatalogImage = async (image: unknown, folder: string, task?: UploadTaskContext): Promise<CatalogImage> => {
-  if (typeof File !== 'undefined' && image instanceof File) {
+  image = imageValueSchema.parse(image);
+  if (isImageFile(image)) {
     if (task) { return task.upload(image, folder); }
     const result = await fileApi.uploadFile(image, folder);
     const url = result.data?.secure_url || result.data?.url;
@@ -34,13 +36,7 @@ export const resolveCatalogImage = async (image: unknown, folder: string, task?:
     }
     return { url, publicId: result.data?.public_id };
   }
-  if (typeof image === 'string') {
-    return { url: image };
-  }
-  if (image && typeof image === 'object' && 'url' in image && typeof image.url === 'string') {
-    return { url: image.url, publicId: 'publicId' in image && typeof image.publicId === 'string' ? image.publicId : undefined };
-  }
-  return { url: '' };
+  return getImageReference(image);
 };
 
 export const downloadCatalogFile = async (path: string): Promise<Blob> => {

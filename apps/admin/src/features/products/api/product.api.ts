@@ -1,3 +1,4 @@
+import { getImageReference, imageValueSchema, isImageFile } from '@/lib/image-value';
 import type { UploadTaskContext } from '@/lib/background-task-queue';
 import { ApiError } from '@/constants/errorMessages';
 import { fileApi } from '@/features/files/api/file.api';
@@ -35,7 +36,8 @@ export interface ProductListParams {
 }
 
 const toImage = async (image: unknown, task?: UploadTaskContext): Promise<ProductImage | null> => {
-  if (typeof File !== 'undefined' && image instanceof File) {
+  image = imageValueSchema.parse(image);
+  if (isImageFile(image)) {
     if (task) { return task.upload(image, 'products'); }
     const result = await fileApi.uploadFile(image, 'products');
     const url = result.data?.secure_url || result.data?.url;
@@ -44,13 +46,8 @@ const toImage = async (image: unknown, task?: UploadTaskContext): Promise<Produc
     }
     return { url, publicId: result.data?.public_id };
   }
-  if (typeof image === 'string') {
-    return image.trim() ? { url: image.trim() } : null;
-  }
-  if (image && typeof image === 'object' && 'url' in image && typeof image.url === 'string' && image.url.trim()) {
-    return { url: image.url, publicId: 'publicId' in image && typeof image.publicId === 'string' ? image.publicId : undefined };
-  }
-  return null;
+  const reference = getImageReference(image);
+  return reference.url.trim() ? { ...reference, url: reference.url.trim() } : null;
 };
 
 const toRecord = (items: readonly { key: string; value: string }[]): Record<string, string> =>
