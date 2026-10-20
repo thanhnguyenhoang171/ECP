@@ -18,7 +18,7 @@ interface ProductDetailClientProps {
 
 export default function ProductDetailClient({ product, relatedProducts }: ProductDetailClientProps): React.JSX.Element {
   const [selectedImage, setSelectedImage] = useState(product.images[0]);
-  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(product.videos?.[0]?.url ?? null);
   const [variantIndex, setVariantIndex] = useState(0);
   const variants = product.variants || [];
   const variant = variants[variantIndex];
