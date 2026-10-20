@@ -88,16 +88,25 @@ export const getCroppedImg = async (
   croppedCanvas.width = destWidth;
   croppedCanvas.height = destHeight;
 
+  if (outputType === 'image/jpeg' || outputType === 'image/jpg') {
+    croppedCtx.fillStyle = '#ffffff';
+    croppedCtx.fillRect(0, 0, destWidth, destHeight);
+  }
+
+  const scale = Math.min(destWidth / pixelCrop.width, destHeight / pixelCrop.height);
+  const drawnWidth = pixelCrop.width * scale;
+  const drawnHeight = pixelCrop.height * scale;
+
   croppedCtx.drawImage(
     canvas,
     pixelCrop.x,
     pixelCrop.y,
     pixelCrop.width,
     pixelCrop.height,
-    0,
-    0,
-    destWidth,
-    destHeight
+    (destWidth - drawnWidth) / 2,
+    (destHeight - drawnHeight) / 2,
+    drawnWidth,
+    drawnHeight
   );
 
   return new Promise((resolve) => {

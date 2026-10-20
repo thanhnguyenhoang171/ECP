@@ -21,6 +21,8 @@ import { ProductFormValues } from '../../schemas/product.schema';
 import { convertToSlug, convertToSku } from '@/lib/utils';
 import { ActiveCatalogSelect } from './ActiveCatalogSelect';
 import { ProductStatusFields } from './ProductStatusFields';
+import { ProductVideoUpload } from './ProductVideoUpload';
+import { RichTextEditor } from '@/components/common/RichTextEditor';
 
 interface ProductGeneralTabProps {
   form: UseFormReturn<ProductFormValues>;
@@ -162,11 +164,7 @@ export const ProductGeneralTab = ({ form, isSlugEditedRef, nameValue, onUploadin
             render={({ field }) => (
               <FormItem>
                 <FormControl>
-                  <textarea 
-                    placeholder="Nhập mô tả chi tiết sản phẩm chuẩn SEO..." 
-                    className="flex min-h-[160px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 transition-all focus-visible:border-blue-500"
-                    {...field}
-                  />
+                  <RichTextEditor value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} disabled={form.formState.isSubmitting} onUploadingChange={onUploadingChange} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -296,6 +294,14 @@ export const ProductGeneralTab = ({ form, isSlugEditedRef, nameValue, onUploadin
           />
         </FormSection>
 
+        <FormSection title='Video sản phẩm' description='Thêm video để khách hàng xem cùng thư viện ảnh trên trang sản phẩm.'>
+          <FormField control={form.control} name='videos' render={({ field }) => (
+            <FormItem>
+              <FormControl><ProductVideoUpload value={field.value} onChange={field.onChange} disabled={form.formState.isSubmitting} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+        </FormSection>
 
       </div>
     </div>

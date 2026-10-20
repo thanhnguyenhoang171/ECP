@@ -869,7 +869,7 @@ export const ImageUpload = ({
           cropShape={effectiveCropShape}
           targetWidth={reqWidth}
           targetHeight={reqHeight}
-          lockAspect={Boolean(cropAspectRatio || (reqWidth && reqHeight) || variant === 'circle')}
+          lockAspect={Boolean(cropAspectRatio || variant === 'circle')}
           onCropSave={handleCropSave}
           isSaving={isCropSaving}
         />

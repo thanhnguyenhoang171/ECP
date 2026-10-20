@@ -216,6 +216,7 @@ export const ProfileHeroBanner = ({
                     allowReplace={true}
                     showRemove={false}
                     deferUpload={true}
+                    enableCrop={false}
                     folder="avatars"
                     description="Đổi ảnh"
                     className="w-full h-full"

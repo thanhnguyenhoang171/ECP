@@ -1,1 +1,1 @@
-export { ProductUpdateView as default } from '@/features/products/components/ProductEditor';
+export { default } from '@/features/products/components/ProductDetailView';

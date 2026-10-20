@@ -65,6 +65,7 @@ const toPayload = async (data: ProductFormValues, clearThumbnail = false) => {
     ...data,
     thumbnail: await toImage(data.thumbnail) || (clearThumbnail ? { url: '' } : null),
     images: images.filter((image): image is ProductImage => image !== null),
+    videos: (await Promise.all(data.videos.map(toImage))).filter((video): video is ProductImage => video !== null),
     specifications: toRecord(data.specifications),
     variants,
   };

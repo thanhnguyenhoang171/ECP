@@ -433,6 +433,10 @@ public class ProductServiceImpl implements ProductService {
             existingProduct.setImages(request.getImages());
         }
 
+        if (request.getVideos() != null) {
+            existingProduct.setVideos(request.getVideos());
+        }
+
         if (request.getSpecifications() != null) {
             existingProduct.setSpecifications(request.getSpecifications());
         }

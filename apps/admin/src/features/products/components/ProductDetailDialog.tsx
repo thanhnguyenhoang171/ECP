@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { DetailDialog, DetailSection } from '@/components/common';
 import { Product } from '../types/product.interface';
+import { RichTextContent } from '@/components/common/RichTextContent';
 import { Category } from '@/features/categories/types/category.interface';
 import { useProductDetail } from '../hooks/use-products';
 import { 
@@ -73,7 +74,7 @@ export default function ProductDetailDialog({
       items: [
         { 
           label: "Mô tả sản phẩm", 
-          value: product?.description || 'Chưa có mô tả chi tiết',
+          value: <RichTextContent value={product?.description} />,
           colSpan: thumbUrl ? 1 : 2
         },
         ...(thumbUrl ? [{

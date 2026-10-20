@@ -26,6 +26,7 @@ export function mapBackendProductToFrontend(source: BackendProduct): Product {
     rating: Number(source.ratingAvg ?? 0),
     reviewCount: source.ratingCount ?? 0,
     images: images.length ? images : ['/product-placeholder.svg'],
+    videos: (source.videos || []).filter((video) => /^https?:\/\//i.test(video.url)),
     category: typeof source.category === 'string' ? source.category : source.category?.name || source.categoryName || 'Sản phẩm',
     categoryId: source.categoryId,
     brand: typeof source.brand === 'string' ? source.brand : source.brand?.name,
