@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { getImageUrl, isImageFile, normalizeImageValue } from '@/lib/image-value';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Save, Image as ImageIcon, Info, ShieldCheck, KeyRound, Upload, Camera } from 'lucide-react';
@@ -134,6 +135,16 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
 
   const isLoading = createUserMutation.isPending || updateUserMutation.isPending || isUploading;
   const currentAvatarUrl = form.watch('avatarUrl');
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState('');
+  useEffect(() => {
+    const image = normalizeImageValue(currentAvatarUrl);
+    if (isImageFile(image)) {
+      const preview = URL.createObjectURL(image);
+      setAvatarPreviewUrl(preview);
+      return () => URL.revokeObjectURL(preview);
+    }
+    setAvatarPreviewUrl(getImageUrl(image));
+  }, [currentAvatarUrl]);
   const currentFullName = form.watch('fullName');
 
   const getInitials = (name: string) => {
@@ -160,8 +171,8 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
     e.target.value = '';
   };
 
-  const handleCropComplete = (croppedFile: File) => {
-    form.setValue('avatarUrl', croppedFile as any, { shouldValidate: true, shouldDirty: true });
+  const handleCropComplete = (croppedFile: File): void => {
+    form.setValue('avatarUrl', croppedFile, { shouldValidate: true, shouldDirty: true });
     setIsCropOpen(false);
     toast.success("Đã chọn và cắt ảnh đại diện!");
   };
@@ -383,7 +394,7 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                     <Avatar className="h-28 w-28 border-4 border-white shadow-lg ring-1 ring-slate-200/80 overflow-hidden">
                       {currentAvatarUrl && (
                         <AvatarImage 
-                          src={typeof currentAvatarUrl === 'string' ? currentAvatarUrl : ((currentAvatarUrl as any) instanceof File ? URL.createObjectURL(currentAvatarUrl as any) : '')} 
+                          src={avatarPreviewUrl}
                           alt={currentFullName || UI.AVATAR_ALT} 
 
                           className="object-cover" 

@@ -1,20 +1,18 @@
 import * as z from "zod";
+import { imageValueSchema, normalizeImageValue } from '@/lib/image-value';
 
-const productImageSchema = z.union([
-  z.string(),
-  z.object({ url: z.string(), publicId: z.string().optional() }),
-  z.custom<File>((value) => typeof File !== 'undefined' && value instanceof File, {
-    message: 'Vui lòng chọn tệp ảnh hợp lệ',
-  }),
-]);
+const productImageSchema = imageValueSchema;
 
-const productVideoSchema = z.union([
+const productVideoSchema = z.preprocess((value) => {
+  const image = normalizeImageValue(value);
+  return typeof image === 'string' ? { url: image } : image;
+}, z.union([
   z.object({ url: z.string().url(), publicId: z.string().optional() }),
   z.custom<File>((value) => typeof File !== 'undefined' && value instanceof File
     && ['video/mp4', 'video/webm'].includes(value.type) && value.size > 0 && value.size <= 50 * 1024 * 1024, {
     message: 'Video phải là MP4 hoặc WebM, dung lượng tối đa 50 MB',
   }),
-]);
+]));
 
 export const productAttributeSchema = z.object({
   key: z.string().min(1, "Tên thuộc tính không được để trống"),

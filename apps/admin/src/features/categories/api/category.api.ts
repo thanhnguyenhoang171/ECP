@@ -1,3 +1,4 @@
+import { getImageReference } from '@/lib/image-value';
 import type { UploadTaskContext } from '@/lib/background-task-queue';
 import { Category } from '../types/category.interface';
 import { CategoryFormValues } from '../schemas/category.schema';
@@ -8,13 +9,14 @@ import { ApiError } from '@/constants/errorMessages';
 import { readCatalogResult, resolveCatalogImage, importCatalogFile, type CatalogResult } from '@/lib/catalog-api';
 
 const mapCategory = (category: Category): Category => {
-  const image = category.image;
-  const imageUrl = category.imageUrl || (typeof image === 'string' ? image : image?.url) || null;
+  const storedImage = getImageReference(category.image);
+  const image = getImageReference(category.imageUrl || storedImage);
+  const imageUrl = image.url || null;
   return {
     ...category,
     parentId: category.parentId || null,
     imageUrl,
-    imagePublicId: category.imagePublicId || (typeof image === 'object' ? image?.publicId : undefined),
+    imagePublicId: category.imagePublicId || image.publicId || storedImage.publicId,
   };
 };
 

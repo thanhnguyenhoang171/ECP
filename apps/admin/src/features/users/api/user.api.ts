@@ -1,8 +1,20 @@
+import { getImageReference, imageValueSchema, isImageFile } from '@/lib/image-value';
+import { resolveCatalogImage } from '@/lib/catalog-api';
+import type { UserFormValues } from '../schemas/user.schema';
 import { User } from '../types/user.interface';
 import { PageResponse, PaginationInfo } from '@/types/pagination';
 import { clientFetch } from '@/lib/clientFetch';
 import { toApiPage } from '@/lib/utils';
 import { ApiError, ErrorMessages } from '@/constants/errorMessages';
+
+export interface UserMutationData extends Partial<UserFormValues> {
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  roles?: string[];
+  active?: boolean;
+  avatarFile?: File;
+}
 
 export interface BackendUserResponse {
   id: string;
@@ -79,7 +91,7 @@ export const normalizeLastActive = (b: unknown): string => {
 export const mapBackendUserToFrontend = (b: BackendUserResponse): User => {
   const isAct = b.active !== undefined ? b.active : (b.isActive !== undefined ? b.isActive : true);
   const rawObj = b as unknown as Record<string, unknown>;
-  const avatar = b.avatarUrl || (typeof rawObj.avatar_url === 'string' ? rawObj.avatar_url : undefined) || (typeof rawObj.avatar === 'string' ? rawObj.avatar : undefined);
+  const avatar = getImageReference(b.avatarUrl || rawObj.avatar_url || rawObj.avatar).url;
   const userRole = normalizeRole(b);
   const onlineStatus = normalizeOnlineStatus(b);
   const lastActiveStatus = normalizeLastActive(b);
@@ -170,11 +182,12 @@ export const userApi = {
   },
 
   // Tạo mới nhân viên / người dùng (Gửi đến /api/users/create với phân quyền & audit log)
-  create: async (data: any): Promise<User> => {
+  create: async (data: UserMutationData): Promise<User> => {
     const names = (data.fullName || '').trim().split(' ');
     const lastName = names.length > 1 ? names[names.length - 1] : '';
     const firstName = names.length > 1 ? names.slice(0, names.length - 1).join(' ') : (data.fullName || '');
 
+    const avatar = await resolveCatalogImage(data.avatarFile || data.avatarUrl, 'avatars');
     const payload = {
       email: data.email,
       firstName: data.firstName || firstName,
@@ -182,8 +195,8 @@ export const userApi = {
       phoneNumber: data.phoneNumber || data.phone,
       role: data.role || 'USER',
       active: data.active !== undefined ? data.active : (data.status === 'active'),
-      avatarUrl: data.avatarUrl || '',
-      avatarPublicId: data.avatarPublicId || '',
+      avatarUrl: avatar.url,
+      avatarPublicId: avatar.publicId || data.avatarPublicId || '',
       password: data.password || '',
     };
 
@@ -203,15 +216,12 @@ export const userApi = {
   },
 
   // Chỉnh sửa nhân viên / người dùng (Hỗ trợ Partial Update & Avatar File Upload)
-  update: async (id: string, data: any): Promise<User> => {
-    const payload: Record<string, any> = {};
+  update: async (id: string, data: UserMutationData): Promise<User> => {
+    const payload: Record<string, unknown> = {};
 
-    let avatarFile: File | undefined = undefined;
-    if (data.avatarFile instanceof File) {
-      avatarFile = data.avatarFile;
-    } else if (data.avatarUrl instanceof File) {
-      avatarFile = data.avatarUrl;
-    }
+    const avatar = imageValueSchema.parse(data.avatarFile || data.avatarUrl);
+    const avatarFile = isImageFile(avatar) ? avatar : undefined;
+    const reference = avatarFile ? undefined : getImageReference(avatar);
 
     if (data.email !== undefined && data.email !== '') payload.email = data.email;
 
@@ -238,8 +248,9 @@ export const userApi = {
     if (data.active !== undefined) payload.active = data.active;
     else if (data.status !== undefined) payload.active = data.status === 'active';
 
-    if (typeof data.avatarUrl === 'string' && data.avatarUrl !== '') payload.avatarUrl = data.avatarUrl;
-    if (data.avatarPublicId !== undefined && data.avatarPublicId !== '') payload.avatarPublicId = data.avatarPublicId;
+    if (data.avatarUrl !== undefined && reference) { payload.avatarUrl = reference.url; }
+    const publicId = reference?.publicId || data.avatarPublicId;
+    if (publicId !== undefined) { payload.avatarPublicId = publicId; }
 
     let res: Response;
     if (avatarFile) {

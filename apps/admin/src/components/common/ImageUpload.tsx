@@ -34,9 +34,11 @@ interface CropTarget {
   isEditingExisting?: boolean;
 }
 
+export type ImageUploadValue = string | File | Array<string | File>;
+
 interface ImageUploadProps {
   value?: unknown; // Can be URL string, File object, object with url/secure_url, or array of either
-  onChange: (value: any) => void;
+  onChange: (value: ImageUploadValue) => void;
   onRemove?: (url: string) => void;
   onUploadComplete?: (file: CloudinaryFile | CloudinaryFile[]) => void;
   onUploadingChange?: (isUploading: boolean) => void;
@@ -134,7 +136,7 @@ const extractImageValue = (ext: unknown, prevImages: readonly ImageValue[] = [])
 
   if (typeof ext === 'object' && ext !== null) {
     const obj = ext as ObjectWithValueUrl;
-    if (obj.file instanceof File) {
+    if (typeof File !== 'undefined' && obj.file instanceof File) {
       const existing = prevImages.find((img) => img.file === obj.file);
       if (existing) {
         return existing;

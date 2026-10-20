@@ -212,7 +212,7 @@ export const ProfileHeroBanner = ({
                     key={avatarResetKey}
                     variant="circle"
                     value={activeAvatar}
-                    onChange={onAvatarFileSelect}
+                    onChange={(value) => { if (!Array.isArray(value)) { onAvatarFileSelect(value); } }}
                     allowReplace={true}
                     showRemove={false}
                     deferUpload={true}

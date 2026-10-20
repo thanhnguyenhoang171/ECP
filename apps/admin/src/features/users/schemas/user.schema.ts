@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { imageValueSchema } from '@/lib/image-value';
 
 export const userSchema = z.object({
   fullName: z.string().min(2, "Họ và tên phải có ít nhất 2 ký tự"),
@@ -9,7 +10,7 @@ export const userSchema = z.object({
   }),
   status: z.enum(['active', 'inactive']).default('active'),
   password: z.string().optional().or(z.literal("")),
-  avatarUrl: z.string().optional().or(z.literal("")),
+  avatarUrl: imageValueSchema,
   avatarPublicId: z.string().optional().or(z.literal("")),
 });
 

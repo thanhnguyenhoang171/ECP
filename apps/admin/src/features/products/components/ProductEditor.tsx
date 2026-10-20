@@ -50,11 +50,7 @@ export const ProductEditor = ({ productId }: ProductEditorProps): React.JSX.Elem
         initialData={product}
         inventory={data?.skus}
         onCancel={() => router.push('/products')}
-        onSuccess={() => {
-          if (!productId) {
-            router.push('/products');
-          }
-        }}
+        onSuccess={() => router.push('/products')}
       />
     </div>
   );
