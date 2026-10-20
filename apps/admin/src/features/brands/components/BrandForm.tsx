@@ -36,7 +36,7 @@ interface BrandFormProps {
   isLoadingData?: boolean;
 }
 
-export default function BrandForm({ initialData, id, onSuccess, onCancel, isDialog = false, isLoadingData = false }: BrandFormProps) {
+export default function BrandForm({ initialData, id, onSuccess, onCancel, isDialog = false, isLoadingData = false }: BrandFormProps): React.JSX.Element {
   const createMutation = useCreateBrand();
   const updateMutation = useUpdateBrand();
   const isSlugEditedRef = useRef(false);
@@ -68,6 +68,17 @@ export default function BrandForm({ initialData, id, onSuccess, onCancel, isDial
       });
     }
   }, [initialData, form]);
+
+  // Warn user before leaving page if there are unsaved modifications
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent): void => {
+      if (form.formState.isDirty && !form.formState.isSubmitting) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [form.formState.isDirty, form.formState.isSubmitting]);
 
   const nameValue = useWatch({ control: form.control, name: 'name' });
   const isLoading = createMutation.isPending || updateMutation.isPending;
@@ -167,7 +178,7 @@ export default function BrandForm({ initialData, id, onSuccess, onCancel, isDial
                                 field.onChange(e);
                               }}
                             />
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded tracking-wider">
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-600 bg-slate-200/90 px-2 py-0.5 rounded tracking-wider shadow-2xs">
                               {isSlugEditedRef.current ? 'CUSTOM' : 'AUTO'}
                             </div>
                           </div>
@@ -223,7 +234,10 @@ export default function BrandForm({ initialData, id, onSuccess, onCancel, isDial
 
           {/* Sidebar Column */}
           <div className="lg:col-span-4 space-y-6">
-            <FormSection title="Logo thương hiệu">
+            <FormSection
+              title="Logo thương hiệu"
+              description="Tỉ lệ vuông 1:1, tối thiểu 128x128px (hỗ trợ JPG, PNG, WebP)."
+            >
               <FormField
                 control={form.control}
                 name="logo"
@@ -244,6 +258,9 @@ export default function BrandForm({ initialData, id, onSuccess, onCancel, isDial
                         />
                       )}
                     </FormControl>
+                    <p className="text-[11px] text-slate-500 text-center mt-2 font-medium">
+                      Logo hiển thị trên thẻ sản phẩm và gian hàng.
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}

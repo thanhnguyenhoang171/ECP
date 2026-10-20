@@ -16,6 +16,7 @@ import {
   ListOrdered,
   Globe,
   Star,
+  Package,
 } from 'lucide-react';
 import { useCategory, useParentCategories } from '../hooks/use-categories';
 import { Breadcrumbs, PageHeader } from '@/components/common';
@@ -73,6 +74,15 @@ export function CategoryDetailView({ id }: CategoryDetailViewProps): React.JSX.E
               className="gap-1.5 text-xs font-bold border-slate-300 rounded-xl"
             >
               <ArrowLeft className="w-4 h-4" /> Danh sách
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/products?categoryId=${id}`)}
+              disabled={isLoadingData}
+              className="gap-1.5 text-xs font-bold border-blue-200 text-blue-700 hover:bg-blue-50 rounded-xl"
+            >
+              <Package className="w-4 h-4" /> Xem sản phẩm
             </Button>
             <Button
               size="sm"
@@ -219,6 +229,28 @@ export function CategoryDetailView({ id }: CategoryDetailViewProps): React.JSX.E
               </div>
             </div>
           )}
+
+          {/* Linked Products in Catalog */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Package className="w-4 h-4 text-blue-600" /> Sản phẩm liên kết trong danh mục
+              </h2>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Quản lý tất cả sản phẩm, tồn kho và các biến thể SKU thuộc danh mục{' '}
+              <strong className="text-slate-900">{category?.name || 'này'}</strong> trong hệ thống.
+            </p>
+            <div className="pt-1">
+              <Button
+                onClick={() => router.push(`/products?categoryId=${id}`)}
+                variant="outline"
+                className="gap-2 text-xs font-bold border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 rounded-xl"
+              >
+                <Package className="w-4 h-4 text-blue-600" /> Xem danh sách sản phẩm thuộc danh mục
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Right Column: Image, Status & Metadata */}

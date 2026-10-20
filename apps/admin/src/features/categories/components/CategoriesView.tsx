@@ -11,7 +11,8 @@ import {
  DataCard,
  Breadcrumbs,
 } from '@/components/common';
-import { Layers, Eye } from 'lucide-react';
+import { Layers, Eye, Plus, Package } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { CategoryTreeView } from './CategoryTreeView';
 import {
  SearchInput,
@@ -36,7 +37,6 @@ import { isForbiddenError } from '@/constants/errorMessages';
 import { formatDate, formatDateTimeForFilename } from '@/lib/formatters';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { cn, isIdLike } from '@/lib/utils';
-import { Plus } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { getSortOptions } from '@/types';
 import { toast } from 'sonner';
@@ -281,23 +281,35 @@ export default function CategoriesView({
   {
    header: 'Thao tác',
    align: 'right',
-   className: 'w-[10%] min-w-[110px]',
-   headerClassName: 'w-[10%] min-w-[110px]',
+   className: 'w-[14%] min-w-[150px]',
+   headerClassName: 'w-[14%] min-w-[150px]',
    skeleton: (
     <div className='flex justify-end gap-1'>
+     <Skeleton className='h-8 w-8 rounded-md' />
+     <Skeleton className='h-8 w-8 rounded-md' />
      <Skeleton className='h-8 w-8 rounded-md' />
      <Skeleton className='h-8 w-8 rounded-md' />
     </div>
    ),
    cell: (category) => (
-    <div className='flex justify-end gap-1'>
+    <div className='flex justify-end items-center gap-1' onClick={(e) => e.stopPropagation()}>
+     <Button
+       variant="ghost"
+       size="icon"
+       className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-100/70 rounded-lg transition-transform hover:scale-105"
+       title="Xem sản phẩm của danh mục"
+       aria-label={`Xem sản phẩm của danh mục ${category.name}`}
+       onClick={() => router.push(`/products?categoryId=${category.id}`)}
+     >
+       <Package className="h-4 w-4" />
+     </Button>
      <ViewActionButton onClick={() => handleViewDetail(category)} disabled={isLoading || isFetching} />
      <EditActionButton onClick={() => handleEdit(category)} disabled={isLoading || isFetching} />
      <DeleteActionButton onClick={() => setDeleteConfirmId(category.id)} disabled={isLoading || isFetching} />
     </div>
    ),
   },
- ], [parentCategories, handleEdit, handleToggleFeatured, handleViewDetail, isFetching, isLoading, updateMutation.isPending, updateMutation.variables?.id]);
+ ], [parentCategories, handleEdit, handleToggleFeatured, handleViewDetail, isFetching, isLoading, updateMutation.isPending, updateMutation.variables?.id, router]);
 
  const commonActions = (
   <>

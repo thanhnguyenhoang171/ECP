@@ -8,6 +8,13 @@ export const productImageUrl = (image: unknown): string => {
   return image && typeof image === 'object' && 'url' in image && typeof image.url === 'string' ? image.url : '';
 };
 
+const toFormImage = (image: Product['thumbnail']): string | { url: string; publicId?: string } => {
+  if (image && typeof image === 'object') {
+    return { url: image.url || '', publicId: image.publicId };
+  }
+  return image || '';
+};
+
 const toPairs = (value: unknown): Array<{ key: string; value: string }> => {
   if (Array.isArray(value)) {
     return value.flatMap((item: unknown) => item && typeof item === 'object' && 'key' in item && 'value' in item
@@ -26,8 +33,8 @@ export const getProductFormValues = (product?: Product): ProductFormValues => ({
   brandId: product?.brandId || (typeof product?.brand === 'object' ? product.brand?.id : '') || '',
   categoryId: product?.categoryId || (typeof product?.category === 'object' ? product.category?.id : '') || '',
   description: product?.description || '',
-  thumbnail: product?.thumbnail || '',
-  images: product?.images || [],
+  thumbnail: toFormImage(product?.thumbnail),
+  images: product?.images?.map(toFormImage) || [],
   specifications: toPairs(product?.specifications),
   isPublished: product?.isPublished ?? product?.published ?? true,
   isFeatured: product?.isFeatured ?? product?.featured ?? false,
@@ -48,7 +55,7 @@ export const getProductFormValues = (product?: Product): ProductFormValues => ({
     costPrice: variant.costPrice ?? 0,
     barcode: variant.barcode || '',
     barcodeType: variant.barcodeType || 'EAN-13',
-    image: productImageUrl(variant.image),
+    image: toFormImage(variant.image),
     isActive: variant.isActive ?? variant.active ?? true,
     attributes: toPairs(variant.attributes),
   })) : [{ sku: '', price: 0, compareAtPrice: 0, costPrice: 0, barcode: '', barcodeType: 'EAN-13', image: '', isActive: true, attributes: [] }],

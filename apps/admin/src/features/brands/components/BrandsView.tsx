@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { Tag } from 'lucide-react';
+import Link from 'next/link';
+import { Tag, Package } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -15,6 +16,8 @@ import {
   DataCard,
 } from '@/components/common';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
 import {
   SearchInput,
   ImportButton,
@@ -33,7 +36,7 @@ import { Label } from '@/components/ui/label';
 import { Brand } from '../types/brand.interface';
 import { PageResponse } from '@/types/pagination';
 import { useBrands } from '../hooks/use-brands';
-import { useDeleteBrand } from '../hooks/use-brand-mutation';
+import { useDeleteBrand, useUpdateBrand } from '../hooks/use-brand-mutation';
 import { isForbiddenError } from '@/constants/errorMessages';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { useHotkeys } from '@/hooks/use-hotkeys';
@@ -46,9 +49,10 @@ interface BrandsViewProps {
   initialData?: PageResponse<Brand>;
 }
 
-export default function BrandsView({ initialData }: BrandsViewProps) {
+export default function BrandsView({ initialData }: BrandsViewProps): React.JSX.Element {
   const router = useRouter();
   const deleteMutation = useDeleteBrand();
+  const updateMutation = useUpdateBrand();
 
   const {
     sort,
@@ -123,6 +127,13 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
     router.push(`/brands/${brand.id}`);
   }, [router]);
 
+  const handleToggleActive = useCallback((brand: Brand) => {
+    updateMutation.mutate({
+      id: brand.id,
+      values: { active: !brand.active },
+    });
+  }, [updateMutation]);
+
   const handleDelete = useCallback((id: string) => {
     setDeleteConfirmId(id);
   }, []);
@@ -175,13 +186,14 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
             )}
           </div>
           <div className="flex flex-col min-w-0">
-            <span
-              onClick={() => handleViewDetail(brand)}
-              className="text-sm font-bold text-slate-900 truncate hover:text-blue-600 cursor-pointer transition-colors"
+            <Link
+              href={`/brands/${brand.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-sm font-bold text-slate-900 truncate hover:text-blue-600 focus-visible:outline-none focus-visible:underline transition-colors"
             >
               {brand.name}
-            </span>
-            <span className="text-[11px] font-mono text-slate-400 truncate">
+            </Link>
+            <span className="text-[11px] font-mono text-slate-500 font-medium truncate">
               /{brand.slug}
             </span>
           </div>
@@ -190,8 +202,8 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
     },
     {
       header: 'Mô tả',
-      className: 'w-[30%] min-w-[160px] max-w-xs lg:max-w-md xl:max-w-lg text-xs text-slate-500 hidden md:table-cell',
-      headerClassName: 'w-[30%] min-w-[160px] max-w-xs lg:max-w-md xl:max-w-lg hidden md:table-cell',
+      className: 'w-[25%] min-w-[160px] max-w-xs lg:max-w-md xl:max-w-lg text-xs text-slate-500 hidden md:table-cell',
+      headerClassName: 'w-[25%] min-w-[160px] max-w-xs lg:max-w-md xl:max-w-lg hidden md:table-cell',
       skeleton: <Skeleton className="h-4 w-40 rounded-md" />,
       cell: (brand) => (
         <span
@@ -205,42 +217,79 @@ export default function BrandsView({ initialData }: BrandsViewProps) {
     {
       header: 'Trạng thái',
       align: 'center',
-      className: 'w-[15%] min-w-[100px]',
-      headerClassName: 'w-[15%] min-w-[100px]',
-      skeleton: <Skeleton className="h-6 w-16 mx-auto rounded-full" />,
+      className: 'w-[20%] min-w-[140px]',
+      headerClassName: 'w-[20%] min-w-[140px]',
+      skeleton: <Skeleton className="h-6 w-24 mx-auto rounded-full" />,
       cell: (brand) => (
-        <Badge
-          variant={brand.active ? 'default' : 'secondary'}
-          className={cn(
-            'text-[10px] font-bold py-0.5 px-2 border-none whitespace-nowrap',
-            brand.active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
-          )}
+        <div
+          className="flex items-center justify-center gap-2"
+          onClick={(e) => e.stopPropagation()}
         >
-          {brand.active ? 'Hoạt động' : 'Đã khóa'}
-        </Badge>
+          <Switch
+            checked={brand.active}
+            onCheckedChange={() => handleToggleActive(brand)}
+            disabled={updateMutation.isPending || isFetching}
+            className="scale-75 data-[state=checked]:bg-emerald-600 cursor-pointer"
+            aria-label={brand.active ? `Khóa thương hiệu ${brand.name}` : `Kích hoạt thương hiệu ${brand.name}`}
+          />
+          <Badge
+            variant="outline"
+            className={cn(
+              'text-[10px] font-bold py-0.5 px-2 whitespace-nowrap transition-colors border',
+              brand.active
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
+                : 'bg-slate-100 text-slate-600 border-slate-200'
+            )}
+          >
+            {brand.active ? 'Hoạt động' : 'Đã khóa'}
+          </Badge>
+        </div>
       ),
     },
     {
       header: 'Thao tác',
       align: 'right',
-      className: 'w-[20%] min-w-[120px]',
-      headerClassName: 'w-[20%] min-w-[120px]',
+      className: 'w-[20%] min-w-[150px]',
+      headerClassName: 'w-[20%] min-w-[150px]',
       skeleton: (
         <div className="flex justify-end gap-1">
+          <Skeleton className="h-8 w-8 rounded-md" />
           <Skeleton className="h-8 w-8 rounded-md" />
           <Skeleton className="h-8 w-8 rounded-md" />
           <Skeleton className="h-8 w-8 rounded-md" />
         </div>
       ),
       cell: (brand) => (
-        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-          <ViewActionButton onClick={() => handleViewDetail(brand)} disabled={isFetching} />
-          <EditActionButton onClick={() => handleEdit(brand)} disabled={isFetching} />
-          <DeleteActionButton onClick={() => handleDelete(brand.id)} disabled={isFetching} />
+        <div className="flex justify-end items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-100/70 rounded-lg transition-transform hover:scale-105"
+            title="Xem sản phẩm của thương hiệu"
+            aria-label={`Xem sản phẩm của thương hiệu ${brand.name}`}
+            onClick={() => router.push(`/products?brandId=${brand.id}`)}
+          >
+            <Package className="h-4 w-4" />
+          </Button>
+          <ViewActionButton
+            onClick={() => handleViewDetail(brand)}
+            disabled={isFetching}
+            aria-label={`Xem chi tiết thương hiệu ${brand.name}`}
+          />
+          <EditActionButton
+            onClick={() => handleEdit(brand)}
+            disabled={isFetching}
+            aria-label={`Chỉnh sửa thương hiệu ${brand.name}`}
+          />
+          <DeleteActionButton
+            onClick={() => handleDelete(brand.id)}
+            disabled={isFetching}
+            aria-label={`Xóa thương hiệu ${brand.name}`}
+          />
         </div>
       ),
     },
-  ], [handleDelete, handleEdit, handleViewDetail, isFetching]);
+  ], [handleDelete, handleEdit, handleToggleActive, handleViewDetail, isFetching, updateMutation.isPending, router]);
 
   const breadcrumbs = [
     { label: 'Thương hiệu', icon: Tag, active: true },

@@ -3,11 +3,23 @@
 import React from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Tag, Globe, Edit, ArrowLeft, Calendar, FileText, Hash, CheckCircle2, XCircle } from 'lucide-react';
+import {
+  Tag,
+  Globe,
+  Edit,
+  ArrowLeft,
+  Calendar,
+  FileText,
+  Hash,
+  ExternalLink,
+  Package,
+} from 'lucide-react';
 import { useBrand } from '../hooks/use-brands';
+import { useUpdateBrand } from '../hooks/use-brand-mutation';
 import { Breadcrumbs, PageHeader } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/formatters';
 
@@ -18,6 +30,7 @@ interface BrandDetailViewProps {
 export function BrandDetailView({ id }: BrandDetailViewProps): React.JSX.Element {
   const router = useRouter();
   const { data: brand, isLoading, isError } = useBrand(id);
+  const updateMutation = useUpdateBrand();
 
   const isLoadingData = isLoading && !brand;
 
@@ -25,6 +38,15 @@ export function BrandDetailView({ id }: BrandDetailViewProps): React.JSX.Element
     { label: 'Thương hiệu', href: '/brands', icon: Tag },
     { label: brand ? brand.name : 'Chi tiết thương hiệu' },
   ];
+
+  const handleToggleActive = (): void => {
+    if (brand) {
+      updateMutation.mutate({
+        id: brand.id,
+        values: { active: !brand.active },
+      });
+    }
+  };
 
   if (isError || (!isLoading && !brand)) {
     return (
@@ -60,6 +82,15 @@ export function BrandDetailView({ id }: BrandDetailViewProps): React.JSX.Element
               <ArrowLeft className="w-4 h-4" /> Danh sách
             </Button>
             <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/products?brandId=${id}`)}
+              disabled={isLoadingData}
+              className="gap-1.5 text-xs font-bold border-blue-200 text-blue-700 hover:bg-blue-50 rounded-xl"
+            >
+              <Package className="w-4 h-4" /> Xem sản phẩm
+            </Button>
+            <Button
               size="sm"
               onClick={() => router.push(`/brands/${id}/edit`)}
               disabled={isLoadingData}
@@ -72,7 +103,7 @@ export function BrandDetailView({ id }: BrandDetailViewProps): React.JSX.Element
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Basic Information & Description */}
+        {/* Left Column: Basic Information, Description & Linked Catalog */}
         <div className="lg:col-span-8 space-y-6">
           <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-2xs space-y-6">
             <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
@@ -82,7 +113,7 @@ export function BrandDetailView({ id }: BrandDetailViewProps): React.JSX.Element
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-1">
                 <span className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5 text-slate-400" /> Tên thương hiệu
+                  <Tag className="w-3.5 h-3.5 text-slate-500" /> Tên thương hiệu
                 </span>
                 {isLoadingData ? (
                   <Skeleton className="h-5 w-40 rounded-md" />
@@ -93,7 +124,7 @@ export function BrandDetailView({ id }: BrandDetailViewProps): React.JSX.Element
 
               <div className="space-y-1">
                 <span className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-slate-400" /> Đường dẫn (Slug)
+                  <FileText className="w-3.5 h-3.5 text-slate-500" /> Đường dẫn (Slug)
                 </span>
                 {isLoadingData ? (
                   <Skeleton className="h-6 w-32 rounded-md" />
@@ -106,7 +137,7 @@ export function BrandDetailView({ id }: BrandDetailViewProps): React.JSX.Element
 
               <div className="space-y-1">
                 <span className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5 text-slate-400" /> Website chính thức
+                  <Globe className="w-3.5 h-3.5 text-slate-500" /> Website chính thức
                 </span>
                 {isLoadingData ? (
                   <Skeleton className="h-5 w-48 rounded-md" />
@@ -117,21 +148,24 @@ export function BrandDetailView({ id }: BrandDetailViewProps): React.JSX.Element
                     rel="noopener noreferrer"
                     className="text-xs font-mono font-semibold text-blue-600 hover:underline flex items-center gap-1.5"
                   >
-                    <Globe className="w-3.5 h-3.5" /> {brand.website}
+                    <span>{brand.website}</span>
+                    <ExternalLink className="w-3 h-3 text-blue-500" />
                   </a>
                 ) : (
-                  <p className="text-xs text-slate-400 italic">Chưa cập nhật website</p>
+                  <p className="text-xs text-slate-500 italic">Chưa cập nhật website</p>
                 )}
               </div>
 
               <div className="space-y-1">
                 <span className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
-                  <Hash className="w-3.5 h-3.5 text-slate-400" /> ID Thương hiệu
+                  <Hash className="w-3.5 h-3.5 text-slate-500" /> ID Thương hiệu
                 </span>
                 {isLoadingData ? (
                   <Skeleton className="h-5 w-36 rounded-md" />
                 ) : (
-                  <p className="text-xs font-mono text-slate-600">{brand?.id}</p>
+                  <p className="text-xs font-mono text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200/60 w-fit">
+                    {brand?.id}
+                  </p>
                 )}
               </div>
             </div>
@@ -145,6 +179,28 @@ export function BrandDetailView({ id }: BrandDetailViewProps): React.JSX.Element
                   {brand?.description || 'Chưa có thông tin mô tả chi tiết cho thương hiệu này.'}
                 </p>
               )}
+            </div>
+          </div>
+
+          {/* Linked Products in Catalog */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Package className="w-4 h-4 text-blue-600" /> Sản phẩm liên kết trong danh mục
+              </h2>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Quản lý tất cả sản phẩm, tồn kho và các biến thể SKU thuộc thương hiệu{' '}
+              <strong className="text-slate-900">{brand?.name || 'này'}</strong> trong hệ thống.
+            </p>
+            <div className="pt-1">
+              <Button
+                onClick={() => router.push(`/products?brandId=${id}`)}
+                variant="outline"
+                className="gap-2 text-xs font-bold border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 rounded-xl"
+              >
+                <Package className="w-4 h-4 text-blue-600" /> Xem danh sách sản phẩm thuộc thương hiệu
+              </Button>
             </div>
           </div>
 
@@ -201,39 +257,48 @@ export function BrandDetailView({ id }: BrandDetailViewProps): React.JSX.Element
                   )}
                 </div>
                 {!brand?.logo && (
-                  <span className="text-xs text-slate-400 italic">Chưa có logo</span>
+                  <span className="text-xs text-slate-500 italic">Chưa có logo</span>
                 )}
               </>
             )}
           </div>
 
           <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-2xs space-y-4">
-            <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">
-              Trạng thái hoạt động
-            </h2>
-
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-600 font-medium">Trạng thái hiển thị</span>
-              {isLoadingData ? (
-                <Skeleton className="h-6 w-24 rounded-full" />
-              ) : (
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-sm font-bold text-slate-900">
+                Trạng thái hoạt động
+              </h2>
+              {brand && (
                 <Badge
+                  variant="outline"
                   className={
-                    brand?.active
-                      ? 'bg-emerald-100 text-emerald-800 border-none font-bold px-3 py-1 text-xs'
-                      : 'bg-slate-100 text-slate-600 border-none font-bold px-3 py-1 text-xs'
+                    brand.active
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 font-bold px-2 py-0.5 text-[11px]'
+                      : 'bg-slate-100 text-slate-600 border-slate-200 font-bold px-2 py-0.5 text-[11px]'
                   }
                 >
-                  {brand?.active ? (
-                    <span className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Hoạt động
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1.5">
-                      <XCircle className="w-3.5 h-3.5 text-slate-500" /> Đã khóa
-                    </span>
-                  )}
+                  {brand.active ? 'Hoạt động' : 'Đã khóa'}
                 </Badge>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <div className="space-y-0.5">
+                <span className="text-xs text-slate-700 font-medium">Bật / Tắt trạng thái</span>
+                <p className="text-[11px] text-slate-500">
+                  {brand?.active ? 'Hiển thị trên toàn gian hàng' : 'Đang tạm dừng hiển thị'}
+                </p>
+              </div>
+              {isLoadingData ? (
+                <Skeleton className="h-6 w-11 rounded-full" />
+              ) : (
+                <Switch
+                  checked={brand?.active ?? false}
+                  onCheckedChange={handleToggleActive}
+                  disabled={updateMutation.isPending}
+                  className="data-[state=checked]:bg-emerald-600 cursor-pointer"
+                  aria-label="Chuyển đổi trạng thái thương hiệu"
+                />
               )}
             </div>
           </div>
