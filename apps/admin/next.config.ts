@@ -35,6 +35,8 @@ const nextConfig: NextConfig = {
   // Tối ưu hóa bundle
   experimental: {
     optimizePackageImports: ['lucide-react'],
+    // File uploads use /api/proxy; allow slow uploads beyond the 30s proxy default.
+    proxyTimeout: 5 * 60 * 1000,
   },
   // Nén tài nguyên
   compress: true,
