@@ -13,6 +13,7 @@ import {
   FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -352,8 +353,7 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                       Mật khẩu truy cập {isEdit && <span className="text-[10px] text-slate-400 font-normal">(Đóng băng / Để trống nếu giữ nguyên)</span>}
                     </AdminFormLabel>
                     <FormControl>
-                      <Input 
-                        type="password"
+                      <PasswordInput
                         placeholder={isEdit ? "•••••••• (Để trống nếu giữ nguyên mật khẩu cũ)" : "Nhập mật khẩu truy cập mới..."} 
                         disabled={isLoading} 
                         className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 

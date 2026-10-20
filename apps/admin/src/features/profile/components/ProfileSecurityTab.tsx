@@ -4,7 +4,7 @@ import React from 'react';
 import { KeyRound } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 
 export const ProfileSecurityTab = (): React.JSX.Element => {
@@ -19,11 +19,11 @@ export const ProfileSecurityTab = (): React.JSX.Element => {
       <CardContent className="pt-6 space-y-5">
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-slate-700 font-bold text-xs uppercase tracking-wider">
+            <Label htmlFor="account-current-password" className="text-slate-700 font-bold text-xs uppercase tracking-wider">
               Mật khẩu hiện tại
             </Label>
-            <Input
-              type="password"
+            <PasswordInput
+              id="account-current-password"
               placeholder="••••••••"
               className="h-11 bg-white border-slate-300 shadow-xs text-slate-900 font-medium rounded-xl focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600"
             />
@@ -32,21 +32,21 @@ export const ProfileSecurityTab = (): React.JSX.Element => {
 
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-slate-700 font-bold text-xs uppercase tracking-wider">
+            <Label htmlFor="account-new-password" className="text-slate-700 font-bold text-xs uppercase tracking-wider">
               Mật khẩu mới
             </Label>
-            <Input
-              type="password"
+            <PasswordInput
+              id="account-new-password"
               placeholder="••••••••"
               className="h-11 bg-white border-slate-300 shadow-xs text-slate-900 font-medium rounded-xl focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600"
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-700 font-bold text-xs uppercase tracking-wider">
+            <Label htmlFor="account-confirm-password" className="text-slate-700 font-bold text-xs uppercase tracking-wider">
               Xác nhận mật khẩu mới
             </Label>
-            <Input
-              type="password"
+            <PasswordInput
+              id="account-confirm-password"
               placeholder="••••••••"
               className="h-11 bg-white border-slate-300 shadow-xs text-slate-900 font-medium rounded-xl focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600"
             />

@@ -23,6 +23,7 @@ import {
   Settings,
   ShieldCheck,
   LogOut,
+  Trash2,
   Loader2,
   type LucideIcon,
 } from 'lucide-react';
@@ -45,6 +46,8 @@ import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 
 import { useLogout } from '@/features/auth/hooks/use-auth-mutation';
+import { PurgeDataDialog } from '@/features/system/components/PurgeDataDialog';
+import { PurgeApprovalNotifications } from '@/features/system/components/PurgeApprovalNotifications';
 
 interface SubMenuItem {
   key: string;
@@ -252,6 +255,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
   const isSidebarCollapsed = useUIStore((state) => state.isSidebarCollapsed);
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isPurgeOpen, setIsPurgeOpen] = useState(false);
   
   const router = useRouter();
   const pathname = usePathname();
@@ -406,7 +410,8 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
           </div>
           
           <div className="flex items-center gap-2 sm:gap-4">
-            <DropdownMenu>
+            <PurgeApprovalNotifications />
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <div className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-800 p-1.5 px-2.5 rounded-xl transition-all group border border-transparent hover:border-slate-700">
                   <Avatar className="h-9 w-9 border border-slate-700 shadow-sm overflow-hidden ring-2 ring-transparent group-hover:ring-primary/40 transition-all">
@@ -442,6 +447,9 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
                 }} className="cursor-pointer py-2 px-3 rounded-lg focus:bg-slate-800 focus:text-white font-medium text-slate-300">
                   <span className="text-sm font-medium">Hồ sơ cá nhân</span>
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsPurgeOpen(true)} className="text-amber-400 focus:text-amber-300 focus:bg-amber-950/40 cursor-pointer py-2 px-3 rounded-lg font-semibold flex items-center gap-2">
+                  <Trash2 size={14} /><span className="text-sm font-medium">Xoá dữ liệu</span>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator className="my-1 bg-slate-800" />
                 <DropdownMenuItem 
                   disabled={logoutMutation.isPending}
@@ -471,6 +479,7 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
           </div>
         </main>
       </div>
+      <PurgeDataDialog open={isPurgeOpen} onClose={() => setIsPurgeOpen(false)} />
     </div>
   );
 }

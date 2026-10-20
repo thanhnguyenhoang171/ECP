@@ -24,12 +24,14 @@ import { ProfileHeroBanner } from './ProfileHeroBanner';
 import { ProfileGeneralTab } from './ProfileGeneralTab';
 import { ProfileSecurityTab } from './ProfileSecurityTab';
 import { ProfileStatusTab } from './ProfileStatusTab';
+import { PurgePasswordSettings } from '@/features/system/components/PurgePasswordSettings';
 
 export interface ProfileViewProps {
   readonly initialData?: ProfileFormValues;
+  readonly initialTab?: string;
 }
 
-export default function ProfileView({ initialData }: ProfileViewProps): React.JSX.Element {
+export default function ProfileView({ initialData, initialTab = 'general' }: ProfileViewProps): React.JSX.Element {
   const { user, isInitialized } = useAuthStore();
   const [previewAvatarUrl, setPreviewAvatarUrl] = useState<string | null>(null);
 
@@ -224,7 +226,7 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.JS
       />
 
       {/* Main Tabbed Content Area */}
-      <Tabs defaultValue="general" className="w-full space-y-6">
+      <Tabs defaultValue={initialTab} className="w-full space-y-6">
         <TabsList className="bg-slate-200/70 border border-slate-300/70 p-1 rounded-xl flex flex-wrap h-auto gap-1">
           <TabsTrigger
             value="general"
@@ -242,6 +244,9 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.JS
               Bảo mật & Mật khẩu
             </TabsTrigger>
           ) : null}
+          <TabsTrigger value="purge" className="rounded-lg text-xs font-bold px-4 py-2 text-slate-600 data-[state=active]:bg-white data-[state=active]:text-blue-600">
+            <KeyRound size={15} className="mr-2" />Mật khẩu xoá dữ liệu
+          </TabsTrigger>
           <TabsTrigger
             value="status"
             className="rounded-lg text-xs font-bold px-4 py-2 text-slate-600 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-xs transition-all"
@@ -265,6 +270,8 @@ export default function ProfileView({ initialData }: ProfileViewProps): React.JS
             <ProfileSecurityTab />
           </TabsContent>
         ) : null}
+
+        <TabsContent value="purge"><PurgePasswordSettings /></TabsContent>
 
         {/* TAB 3: Verification & Security Status */}
         <TabsContent value="status">
