@@ -21,11 +21,19 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.apache.catalina.connector.ClientAbortException;
 
+import java.io.EOFException;
+import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 
 @RestControllerAdvice
 @RequiredArgsConstructor
@@ -193,6 +201,54 @@ public class GlobalExceptionHandler {
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();
         return new ResponseEntity<>(err, HttpStatus.PAYLOAD_TOO_LARGE);
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ErrorResponse> handleMultipartException(MultipartException ex, WebRequest request) {
+        boolean timedOut = false;
+        boolean disconnected = false;
+        boolean ioFailure = false;
+        Set<Throwable> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (Throwable cause = ex; cause != null && visited.add(cause); cause = cause.getCause()) {
+            timedOut |= cause instanceof SocketTimeoutException;
+            disconnected |= cause instanceof ClientAbortException || cause instanceof EOFException;
+            ioFailure |= cause instanceof IOException;
+        }
+
+        String path = request.getDescription(false).replace("uri=", "");
+        // Tomcat also wraps read timeouts in ClientAbortException: check timeout first.
+        if (timedOut) {
+            log.warn("Upload timed out while receiving request at {}", path);
+            ErrorResponse err = ErrorResponse.builder()
+                    .timestamp(LocalDateTime.now())
+                    .status(HttpStatus.REQUEST_TIMEOUT.value())
+                    .error("Request Timeout")
+                    .code("SYS_UPLOAD_TIMEOUT")
+                    .message("File upload timed out. Please check your connection and try again.")
+                    .path(path)
+                    .build();
+            return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body(err);
+        }
+        if (disconnected) {
+            log.warn("Upload connection closed before request completed at {}", path);
+            // The peer is gone; do not attempt to serialize an error body onto its connection.
+            return ResponseEntity.status(499).build();
+        }
+        if (ioFailure) {
+            // Keep alerts for actual server I/O failures, e.g. a full multipart temporary disk.
+            return handleGlobalException(ex, request);
+        }
+
+        log.warn("Malformed multipart request at {}", path);
+        ErrorResponse err = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Bad Request")
+                .code("SYS_INVALID_MULTIPART")
+                .message("Invalid multipart upload request.")
+                .path(path)
+                .build();
+        return ResponseEntity.badRequest().body(err);
     }
 
     // Handle Database Constraint Violations (409 Conflict)
