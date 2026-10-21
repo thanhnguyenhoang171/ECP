@@ -130,11 +130,15 @@ export default function DashboardView({
     ];
   }, [dashboardData?.stats, initialStats]);
 
+  const dashboardRecentOrders = dashboardData?.recentOrders;
+  const dashboardTopProducts = dashboardData?.topProducts;
+  const dashboardChartData = dashboardData?.chartData;
+
   const recentOrders: RecentOrder[] = useMemo(() => {
-    if (!dashboardData?.recentOrders) {
+    if (!dashboardRecentOrders) {
       return initialRecentOrders || [];
     }
-    return dashboardData.recentOrders.map((o) => ({
+    return dashboardRecentOrders.map((o) => ({
       id: o.id,
       orderCode: o.orderCode,
       customer: o.customer,
@@ -142,31 +146,31 @@ export default function DashboardView({
       status: o.status,
       date: o.dateFormatted,
     }));
-  }, [dashboardData?.recentOrders, initialRecentOrders]);
+  }, [dashboardRecentOrders, initialRecentOrders]);
 
   const topProducts: TopProduct[] = useMemo(() => {
-    if (!dashboardData?.topProducts) {
+    if (!dashboardTopProducts) {
       return initialTopProducts || [];
     }
-    return dashboardData.topProducts.map((p) => ({
+    return dashboardTopProducts.map((p) => ({
       id: p.id,
       name: p.name,
       sales: p.sales,
       revenue: p.revenueFormatted,
       initials: p.initials,
     }));
-  }, [dashboardData?.topProducts, initialTopProducts]);
+  }, [dashboardTopProducts, initialTopProducts]);
 
   const chartData: ChartDataPoint[] = useMemo(() => {
-    if (!dashboardData?.chartData) {
+    if (!dashboardChartData) {
       return [];
     }
-    return dashboardData.chartData.map((c) => ({
+    return dashboardChartData.map((c) => ({
       label: c.label,
       revenue: Number(c.revenue || 0),
       profit: Number(c.profit || 0),
     }));
-  }, [dashboardData?.chartData]);
+  }, [dashboardChartData]);
 
   return (
     <div className="space-y-6">
