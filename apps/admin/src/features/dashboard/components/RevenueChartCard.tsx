@@ -1,21 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
-import { TrendingUp, Calendar } from 'lucide-react';
+import React from 'react';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  Badge,
 } from '@/components/common';
 import RevenueChart from './RevenueChart';
 import { cn } from '@/lib/utils';
+import { ChartDataPoint } from '../types/dashboard.interface';
 
-export default function RevenueChartCard() {
-  const [period, setPeriod] = useState<'12m' | '30d' | '7d'>('12m');
+interface RevenueChartCardProps {
+  period: '12m' | '30d' | '7d';
+  onPeriodChange: (period: '12m' | '30d' | '7d') => void;
+  chartData?: ChartDataPoint[];
+}
 
+export default function RevenueChartCard({
+  period,
+  onPeriodChange,
+  chartData,
+}: RevenueChartCardProps) {
   return (
     <Card className="lg:col-span-4 border border-slate-200/80 bg-white shadow-2xs rounded-2xl space-y-0 overflow-hidden">
       <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
@@ -23,9 +30,6 @@ export default function RevenueChartCard() {
           <div>
             <div className="flex items-center gap-2">
               <CardTitle className="text-base font-extrabold text-slate-900">Biểu đồ Doanh thu & Lợi nhuận</CardTitle>
-              <Badge className="bg-emerald-100 text-emerald-800 border-none text-[10px] font-bold px-2 py-0.5">
-                +24% so với kỳ trước
-              </Badge>
             </div>
             <CardDescription className="text-xs text-slate-500 font-medium mt-0.5">
               Theo dõi biến động dòng tiền và biên lợi nhuận thực tế theo thời gian.
@@ -36,7 +40,7 @@ export default function RevenueChartCard() {
             {(['12m', '30d', '7d'] as const).map((p) => (
               <button
                 key={p}
-                onClick={() => setPeriod(p)}
+                onClick={() => onPeriodChange(p)}
                 className={cn(
                   'px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer',
                   period === p
@@ -51,7 +55,7 @@ export default function RevenueChartCard() {
         </div>
       </CardHeader>
       <CardContent className="pt-6">
-        <RevenueChart />
+        <RevenueChart data={chartData} />
       </CardContent>
     </Card>
   );

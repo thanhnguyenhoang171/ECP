@@ -1,4 +1,5 @@
 package com.example.ecp_api.service.impl;
+import com.example.ecp_api.security.DataOwnership;
 
 import com.example.ecp_api.dto.request.GoogleLoginRequest;
 import com.example.ecp_api.dto.request.RegisterRequest;
@@ -129,9 +130,9 @@ public class UserServiceImpl implements UserService {
 
         Set<Role> roles = new HashSet<>();
         if (userRequest.getRoles() != null && !userRequest.getRoles().isEmpty()) {
-            roles = roleRepository.findByCodeIn(userRequest.getRoles());
+            roles = resolveRoles(userRequest.getRoles());
         } else {
-            roleRepository.findByCode("USER").ifPresent(roles::add);
+            roles = resolveRoles(Set.of("USER"));
         }
         user.setRoles(roles);
 
@@ -276,7 +277,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserResponse getUserById(UUID id) {
-        User user = userRepository.findById(id)
+        User user = userRepository.findById(id).filter(target -> target.getDeletedAt() == null && userVisible(target))
                 .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
 
         return mapToResponseWithOnlineStatus(user);
@@ -285,29 +286,33 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<UserResponse> getAllUsers(Pageable pageable) {
-        Pageable finalPageable = PaginationUtils.applyStableSort(pageable,
+        Pageable finalPageable = PaginationUtils.applyStableSort(userPageable(pageable),
                 Sort.Order.desc("createdAt"),
                 Sort.Order.asc("id"));
-        return mapToPageResponseWithOnlineStatus(userRepository.findAll(finalPageable));
+        return mapToPageResponseWithOnlineStatus(userRepository.findAll(
+                ((Specification<User>) (root, query, cb) -> cb.isNull(root.get("deletedAt"))).and(userScope()), finalPageable));
     }
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<UserResponse> searchUsers(UserFilterRequest filter, Pageable pageable) {
-        Pageable finalPageable = PaginationUtils.applyStableSort(pageable,
+        Pageable finalPageable = PaginationUtils.applyStableSort(userPageable(pageable),
                 Sort.Order.desc("createdAt"),
                 Sort.Order.asc("id"));
 
         Specification<User> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.isNull(root.get("deletedAt")));
+            var profile = root.join("profile", jakarta.persistence.criteria.JoinType.LEFT);
 
             if (StringUtils.hasText(filter.getKeyword())) {
                 String searchPattern = "%" + filter.getKeyword().toLowerCase() + "%";
                 Predicate keywordPredicate = cb.or(
                         cb.like(cb.lower(root.get("email")), searchPattern),
-                        cb.like(cb.lower(root.join("profile").get("phoneNumber")), searchPattern),
-                        cb.like(cb.lower(root.join("profile").get("firstName")), searchPattern),
-                        cb.like(cb.lower(root.join("profile").get("lastName")), searchPattern)
+                        cb.like(cb.lower(profile.get("phoneNumber")), searchPattern),
+                        cb.like(cb.lower(profile.get("firstName")), searchPattern),
+                        cb.like(cb.lower(profile.get("lastName")), searchPattern),
+                        cb.like(cb.lower(cb.concat(cb.concat(cb.coalesce(profile.get("firstName"), ""), " "), cb.coalesce(profile.get("lastName"), ""))), searchPattern)
                 );
                 predicates.add(keywordPredicate);
             }
@@ -315,10 +320,14 @@ public class UserServiceImpl implements UserService {
                 predicates.add(cb.like(cb.lower(root.get("email")),
                         "%" + filter.getEmail().toLowerCase() + "%"));
             }
-            if (filter.getRoles() != null && !filter.getRoles().isEmpty()) {
-                predicates.add(root.join("roles").get("code").in(filter.getRoles()));
-            } else if (StringUtils.hasText(filter.getRole())) {
-                predicates.add(cb.equal(root.join("roles").get("code"), filter.getRole().toUpperCase()));
+            Collection<String> roleCodes = filter.getRoles() != null && !filter.getRoles().isEmpty()
+                    ? filter.getRoles() : StringUtils.hasText(filter.getRole()) ? Set.of(filter.getRole()) : Set.of();
+            if (!roleCodes.isEmpty()) {
+                var roleQuery = query.subquery(UUID.class);
+                var correlatedUser = roleQuery.correlate(root);
+                roleQuery.select(correlatedUser.get("id")).where(correlatedUser.join("roles").get("code").in(
+                        roleCodes.stream().map(code -> code.trim().toUpperCase(Locale.ROOT).replaceFirst("^ROLE_", "")).toList()));
+                predicates.add(cb.exists(roleQuery));
             }
             if (filter.getActive() != null) {
                 predicates.add(cb.equal(root.get("active"), filter.getActive()));
@@ -327,7 +336,7 @@ public class UserServiceImpl implements UserService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
-        Page<User> userPage = userRepository.findAll(spec, finalPageable);
+        Page<User> userPage = userRepository.findAll(spec.and(userScope()), finalPageable);
         return mapToPageResponseWithOnlineStatus(userPage);
     }
 
@@ -352,10 +361,27 @@ public class UserServiceImpl implements UserService {
                 }
             }
 
-            User user = userRepository.findById(id)
+            roleRepository.findForUpdate("SUPER_ADMIN");
+            User user = userRepository.findById(id).filter(target -> target.getDeletedAt() == null && userVisible(target))
                     .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
 
+            // Re-check after acquiring the role lock: the target may have been promoted
+            // between controller authorization and this transaction.
+            ensureTargetManageable(user);
             boolean oldActive = user.isActive();
+            String oldAvatarUrl = user.getProfile() == null ? null : user.getProfile().getAvatarUrl();
+            Set<Role> newRoles = request.getRoles() == null ? null : resolveRoles(request.getRoles());
+            if (user.getEmail().equalsIgnoreCase(SecurityUtils.getCurrentUserEmail()) && Boolean.FALSE.equals(request.getActive())) {
+                throw new AppException("CANNOT_DISABLE_SELF", "Không thể tự khoá tài khoản đang đăng nhập.", HttpStatus.BAD_REQUEST);
+            }
+            boolean removesAdmin = newRoles != null && newRoles.stream().noneMatch(role -> "SUPER_ADMIN".equals(role.getCode()));
+            if (user.hasRole("SUPER_ADMIN") && user.isActive() && (Boolean.FALSE.equals(request.getActive()) || removesAdmin)
+                    && userRepository.countByDeletedAtIsNullAndActiveTrueAndRolesCode("SUPER_ADMIN") <= 1) {
+                throw new AppException("LAST_SUPER_ADMIN", "Phải giữ lại ít nhất một Super Admin đang hoạt động.", HttpStatus.BAD_REQUEST);
+            }
+            if (request.getPassword() != null && user.getProvider() != AuthProvider.LOCAL) {
+                throw new AppException("EXTERNAL_LOGIN_ACCOUNT", "Tài khoản này đăng nhập qua nhà cung cấp bên ngoài, không có mật khẩu nội bộ.", HttpStatus.BAD_REQUEST);
+            }
 
             if (user.getProfile() == null) {
                 user.setProfile(UserProfile.builder().user(user).build());
@@ -363,9 +389,10 @@ public class UserServiceImpl implements UserService {
 
             userMapper.updateUserFromRequest(request, user);
 
-            if (request.getRoles() != null && !request.getRoles().isEmpty()) {
-                Set<Role> newRoles = roleRepository.findByCodeIn(request.getRoles());
-                user.setRoles(newRoles);
+            if (newRoles != null) { user.setRoles(newRoles); }
+            if (request.getPassword() != null) {
+                user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+                user.setPasswordChangedAt(LocalDateTime.now());
             }
 
             if (user.getProfile() != null && user.getProfile().getUser() == null) {
@@ -383,11 +410,15 @@ public class UserServiceImpl implements UserService {
             user = userRepository.save(user);
 
             boolean deactivated = oldActive && !user.isActive();
-            if (deactivated || (request.getRoles() != null && !request.getRoles().isEmpty())) {
+            if (deactivated || newRoles != null || request.getPassword() != null) {
                 tokenService.revokeUserTokens(user.getEmail());
             }
 
             auditLogService.log("USER_UPDATE", operatorEmail, "Updated user with ID: " + user.getId());
+            String newAvatarUrl = user.getProfile() == null ? null : user.getProfile().getAvatarUrl();
+            if (StringUtils.hasText(oldAvatarUrl) && !oldAvatarUrl.equals(newAvatarUrl)) {
+                deleteReplacedAvatarAfterCommit(oldAvatarUrl, user.getId());
+            }
 
             return mapToResponseWithOnlineStatus(user);
         } catch (Exception e) {
@@ -405,9 +436,18 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteUser(UUID id) {
-        User user = userRepository.findById(id)
+        roleRepository.findForUpdate("SUPER_ADMIN");
+        User user = userRepository.findById(id).filter(target -> target.getDeletedAt() == null && userVisible(target))
                 .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
 
+        ensureTargetManageable(user);
+        if (user.getEmail().equalsIgnoreCase(SecurityUtils.getCurrentUserEmail())) {
+            throw new AppException("CANNOT_DELETE_SELF", "Không thể tự xoá tài khoản đang đăng nhập.", HttpStatus.BAD_REQUEST);
+        }
+        if (user.hasRole("SUPER_ADMIN") && user.isActive()
+                && userRepository.countByDeletedAtIsNullAndActiveTrueAndRolesCode("SUPER_ADMIN") <= 1) {
+            throw new AppException("LAST_SUPER_ADMIN", "Phải giữ lại ít nhất một Super Admin đang hoạt động.", HttpStatus.BAD_REQUEST);
+        }
         String operatorEmail = SecurityUtils.getCurrentUserEmail();
         if (StringUtils.hasText(operatorEmail) && !"SYSTEM".equals(operatorEmail)) {
             User operator = userRepository.findByEmail(operatorEmail).orElse(null);
@@ -622,18 +662,78 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserStatisticsResponse getStatistics() {
-        long totalUsers = userRepository.count();
-        long onlineUsers = tokenService.countOnlineUsers();
-        long managementUsers = userRepository.countByRolesCodeIn(List.of("SUPER_ADMIN", "MANAGER"));
-        long customerUsers = userRepository.countByRolesCode("USER");
+        Specification<User> present = ((Specification<User>) (root, query, cb) -> cb.isNull(root.get("deletedAt"))).and(userScope());
+        long total = userRepository.count(present);
+        long active = userRepository.count(present.and((root, query, cb) -> cb.isTrue(root.get("active"))));
+        long management = userRepository.count(present.and((root, query, cb) -> {
+            query.distinct(true);
+            return root.join("roles").get("code").in(List.of("SUPER_ADMIN", "MANAGER"));
+        }));
+        long admins = userRepository.count(present.and((root, query, cb) -> cb.equal(root.join("roles").get("code"), "SUPER_ADMIN")));
+        long managers = userRepository.count(present.and((root, query, cb) -> cb.equal(root.join("roles").get("code"), "MANAGER")));
+        long online = DataOwnership.restricted() ? userRepository.findAll(present).stream().filter(user -> tokenService.isUserOnline(user.getEmail())).count() : Math.min(total, tokenService.countOnlineUsers());
+        return UserStatisticsResponse.builder().totalUsers(total).activeUsers(active).inactiveUsers(total - active)
+                .onlineUsers(online).offlineUsers(total - online).managementUsers(management).customerUsers(total - management)
+                .superAdminUsers(admins).managerUsers(managers).build();
+    }
 
-        return UserStatisticsResponse.builder()
-                .totalUsers(totalUsers)
-                .onlineUsers(onlineUsers)
-                .offlineUsers(Math.max(0, totalUsers - onlineUsers))
-                .managementUsers(managementUsers)
-                .customerUsers(customerUsers)
-                .build();
+    private boolean userVisible(User user) {
+        return !DataOwnership.restricted() || user.getEmail().equalsIgnoreCase(SecurityUtils.getCurrentUserEmail())
+                || user.getCreatedBy() != null && DataOwnership.visible(user.getCreatedBy().getEmail());
+    }
+
+    private Specification<User> userScope() {
+        return (root, query, cb) -> !DataOwnership.restricted() ? cb.conjunction() : cb.or(
+                cb.equal(root.get("email"), SecurityUtils.getCurrentUserEmail()),
+                cb.equal(root.join("createdBy", jakarta.persistence.criteria.JoinType.LEFT).get("email"), SecurityUtils.getCurrentUserEmail()));
+    }
+
+    private void ensureTargetManageable(User user) {
+        if (user.hasRole("SUPER_ADMIN") && !SecurityUtils.isSuperAdmin()) {
+            throw new AppException("ACCESS_DENIED", "Chỉ Super Admin mới được thay đổi tài khoản Super Admin.", HttpStatus.FORBIDDEN);
+        }
+    }
+
+    private Pageable userPageable(Pageable pageable) {
+        List<Sort.Order> orders = pageable.getSort().stream().map(order -> {
+            String property = "fullName".equals(order.getProperty()) ? "profile.firstName" : order.getProperty();
+            if (!Set.of("id", "email", "createdAt", "updatedAt", "profile.firstName", "profile.lastName").contains(property)) {
+                throw new AppException("INVALID_SORT", "Trường sắp xếp không hợp lệ.", HttpStatus.BAD_REQUEST);
+            }
+            return new Sort.Order(order.getDirection(), property);
+        }).toList();
+        return org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), Math.min(pageable.getPageSize(), 100), Sort.by(orders));
+    }
+
+    private Set<Role> resolveRoles(Set<String> codes) {
+        if (codes.stream().anyMatch(code -> code == null || code.isBlank())) {
+            throw new AppException("INVALID_ROLE", "Vai trò không hợp lệ.", HttpStatus.BAD_REQUEST);
+        }
+        if (codes.isEmpty()) { throw new AppException("ROLE_REQUIRED", "Phải chọn ít nhất một vai trò.", HttpStatus.BAD_REQUEST); }
+        Set<String> normalized = codes.stream().map(code -> code.trim().toUpperCase(java.util.Locale.ROOT).replaceFirst("^ROLE_", ""))
+                .collect(java.util.stream.Collectors.toSet());
+        Set<Role> roles = roleRepository.findByCodeIn(normalized);
+        if (DataOwnership.restricted()) {
+            roles.stream().filter(role -> !Set.of("USER", "MANAGER").contains(role.getCode())).forEach(role -> DataOwnership.require(role.getCreatedBy()));
+        }
+        if (roles.size() != normalized.size()) { throw new AppException("ROLE_NOT_FOUND", "Có vai trò không tồn tại.", HttpStatus.BAD_REQUEST); }
+        return roles;
+    }
+
+    private void deleteReplacedAvatarAfterCommit(String url, UUID userId) {
+        Runnable cleanup = () -> {
+            try {
+                if (!userRepository.existsByProfileAvatarUrlAndIdNot(url, userId)) { cloudinaryService.deleteByUrl(url); }
+            } catch (Exception error) {
+                log.error("Could not delete replaced avatar for user {}", userId, error);
+            }
+        };
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override public void afterCommit() { cleanup.run(); }
+                    });
+        } else { cleanup.run(); }
     }
 
     private UserResponse mapToResponseWithOnlineStatus(User user) {

@@ -6,8 +6,8 @@ export const permissionSchema = z.object({
     .min(2, 'Mã quyền hạn tối thiểu 2 ký tự')
     .max(100, 'Mã quyền hạn tối đa 100 ký tự')
     .regex(
-      /^[a-z0-9_:-]+$/,
-      'Mã quyền hạn chỉ được chứa chữ thường, số, dấu hai chấm, gạch ngang và gạch dưới (ví dụ: user:read)'
+      /^[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$/,
+      'Mã quyền phải có dạng module:action (ví dụ: user:read)'
     ),
   name: z
     .string()

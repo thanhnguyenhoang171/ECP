@@ -22,6 +22,12 @@ import java.util.UUID;
 @EntityListeners(AuditingEntityListener.class)
 public class GoodsReceipt {
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "deleted_by")
+    private String deletedBy;
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.VARCHAR)

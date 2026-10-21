@@ -78,4 +78,12 @@ public class PurchaseOrderController {
                 .code("PURCHASE_ORDER_DELETED_SUCCESS")
                 .message("Purchase order deleted successfully").build());
     }
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAuthority('purchase_order:update') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<PurchaseOrderResponse>> updateStatus(@PathVariable String id,
+            @Valid @RequestBody com.example.ecp_api.dto.request.PurchaseOrderStatusRequest request) {
+        return ResponseEntity.ok(ApiResponse.<PurchaseOrderResponse>builder().success(true)
+                .data(purchaseOrderService.updateStatus(id, request.status())).build());
+    }
+
 }

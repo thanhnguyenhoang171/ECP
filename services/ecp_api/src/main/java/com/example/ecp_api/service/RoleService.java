@@ -17,5 +17,7 @@ public interface RoleService {
     void deleteRole(UUID id);
     List<PermissionResponse> getAllPermissions();
     Map<String, List<PermissionResponse>> getGroupedPermissions();
+    PermissionResponse updatePermission(UUID id, PermissionRequest request);
+    void deletePermission(UUID id);
     PermissionResponse createPermission(PermissionRequest request);
 }

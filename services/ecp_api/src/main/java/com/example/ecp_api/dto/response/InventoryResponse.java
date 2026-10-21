@@ -15,6 +15,9 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class InventoryResponse {
+    private String createdBy;
+    private String updatedBy;
+
     private UUID id;
     private UUID warehouseId;
     private String warehouseName;

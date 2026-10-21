@@ -36,7 +36,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/formatters';
-import { toast } from 'sonner';
+import { useAuthStore } from '@/store/authStore';
+import { getApiErrorMessage } from '@/constants/errorMessages';
 import { UI } from '@/constants/uiMessages';
 
 interface UserDetailViewProps {
@@ -45,7 +46,10 @@ interface UserDetailViewProps {
 
 export function UserDetailView({ id }: UserDetailViewProps): React.JSX.Element {
   const router = useRouter();
-  const { data: user, isLoading, isError } = useUser(id);
+  const { data: user, isLoading, isError, error, refetch } = useUser(id);
+  const currentUser = useAuthStore(state => state.user);
+  const isSuperAdmin = [...(currentUser?.roles || []), currentUser?.role || ''].some(role => role.replace(/^ROLE_/, '') === 'SUPER_ADMIN');
+  const canEdit = isSuperAdmin || user?.role !== 'SUPER_ADMIN';
   const updateMutation = useUpdateUser();
 
   const isLoadingData = isLoading && !user;
@@ -63,12 +67,6 @@ export function UserDetailView({ id }: UserDetailViewProps): React.JSX.Element {
       {
         id: user.id,
         data: { role: newRole },
-      },
-      {
-        onSuccess: () => {
-          const roleLabel = ROLE_OPTIONS.find((r) => r.value === newRole)?.label || newRole;
-          toast.success(`Đã cập nhật vai trò của ${user.fullName} thành ${roleLabel}`);
-        },
       }
     );
   }, [user, updateMutation]);
@@ -82,12 +80,6 @@ export function UserDetailView({ id }: UserDetailViewProps): React.JSX.Element {
         data: {
           active: newStatus === 'active',
           status: newStatus,
-        },
-      },
-      {
-        onSuccess: () => {
-          const statusText = newStatus === 'active' ? 'kích hoạt' : 'tạm khóa';
-          toast.success(`Đã ${statusText} tài khoản ${user.email}`);
         },
       }
     );
@@ -104,8 +96,9 @@ export function UserDetailView({ id }: UserDetailViewProps): React.JSX.Element {
         <Breadcrumbs items={breadcrumbItems} />
         <div className="flex flex-col items-center justify-center py-16 bg-white border border-slate-200 rounded-2xl space-y-4">
           <Users className="w-16 h-16 text-slate-300" />
-          <h2 className="text-lg font-bold text-slate-800">Không tìm thấy người dùng</h2>
-          <p className="text-xs text-slate-500">Tài khoản này có thể đã bị xóa hoặc không tồn tại trong hệ thống.</p>
+          <h2 className="text-lg font-bold text-slate-800">Không thể tải tài khoản</h2>
+          <p className="text-xs text-slate-500">{getApiErrorMessage(error, 'Tài khoản này có thể đã bị xoá hoặc không tồn tại.')}</p>
+          <Button onClick={() => void refetch()} variant="outline">Thử lại</Button>
           <Button onClick={() => router.push('/users')} variant="outline" className="gap-2 font-bold text-xs rounded-xl">
             <ArrowLeft className="w-4 h-4" /> Quay lại danh sách người dùng
           </Button>
@@ -177,7 +170,7 @@ export function UserDetailView({ id }: UserDetailViewProps): React.JSX.Element {
             <Button
               size="sm"
               onClick={() => router.push(`/users/${id}/edit`)}
-              disabled={isLoadingData}
+              disabled={isLoadingData || !canEdit}
               className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl px-4"
             >
               <Edit className="w-4 h-4" /> Chỉnh sửa
@@ -235,6 +228,7 @@ export function UserDetailView({ id }: UserDetailViewProps): React.JSX.Element {
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
+                        disabled={!canEdit || updateMutation.isPending}
                         className="group inline-flex items-center gap-1 focus:outline-none"
                         title="Bấm để gán vai trò mới"
                       >
@@ -255,7 +249,7 @@ export function UserDetailView({ id }: UserDetailViewProps): React.JSX.Element {
                         Thay đổi vai trò người dùng
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      {ROLE_OPTIONS.map((opt) => (
+                      {ROLE_OPTIONS.filter(opt => isSuperAdmin || opt.value !== 'SUPER_ADMIN').map((opt) => (
                         <DropdownMenuItem
                           key={opt.value}
                           onClick={() => handleQuickRoleChange(opt.value)}
@@ -282,7 +276,7 @@ export function UserDetailView({ id }: UserDetailViewProps): React.JSX.Element {
                   <Switch
                     checked={user?.status === 'active'}
                     onCheckedChange={handleQuickStatusToggle}
-                    disabled={user?.role === 'SUPER_ADMIN'}
+                    disabled={!canEdit || user?.id === currentUser?.id || updateMutation.isPending}
                   />
                 )}
               </div>
@@ -351,7 +345,7 @@ export function UserDetailView({ id }: UserDetailViewProps): React.JSX.Element {
           {/* Section 2: Quyền hạn & Phạm vi truy cập */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-2xs space-y-4">
             <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-purple-600" /> Phạm vi phân quyền hệ thống
+              <Shield className="w-5 h-5 text-purple-600" /> Mô tả vai trò mặc định
             </h2>
 
             {isLoadingData ? (
@@ -367,7 +361,7 @@ export function UserDetailView({ id }: UserDetailViewProps): React.JSX.Element {
                 <p className="text-xs text-slate-600 leading-relaxed">{permSummary.description}</p>
                 <div className="pt-2 border-t border-slate-200/60">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-2">
-                    Quyền hạn cụ thể:
+                    Quyền tham khảo theo vai trò (quyền thực tế được cấu hình trong mục Vai trò):
                   </span>
                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700">
                     {permSummary.scopeList.map((item, idx) => (

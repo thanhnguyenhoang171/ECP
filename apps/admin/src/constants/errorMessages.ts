@@ -61,6 +61,8 @@ export const ErrorMessages: Record<string, string> = {
   PRODUCT_IN_USE: 'Không thể xóa sản phẩm đang có dữ liệu đơn hàng hoặc tồn kho.',
   SKU_EXISTS: 'Mã SKU sản phẩm đã tồn tại trong hệ thống.',
   SKU_CODE_EXISTS: 'Mã SKU sản phẩm đã tồn tại trong hệ thống.',
+  DATA_ACCESS_DENIED: 'Bạn chỉ được xem và thao tác trên dữ liệu do chính mình tạo.',
+  ROLE_SHARED: 'Vai trò này đang được dùng ngoài phạm vi tài khoản của bạn. Liên hệ Super Admin để chỉnh sửa.',
   SKU_BARCODE_EXISTS: 'Mã vạch (Barcode) SKU đã tồn tại trong hệ thống.',
   SKU_NOT_FOUND: 'Không tìm thấy thông tin SKU sản phẩm.',
   VARIANT_SKU_EXIST: 'Mã SKU của biến thể sản phẩm đã tồn tại.',

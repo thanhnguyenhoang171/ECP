@@ -21,7 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/v1/audit-logs")
 @RequiredArgsConstructor
-@PreAuthorize("hasAuthority('audit:read') or hasRole('SUPER_ADMIN')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
 @Tag(name = "Audit Logs", description = "Audit Log Management APIs")
 public class AuditLogController {
 
@@ -33,6 +33,18 @@ public class AuditLogController {
             @org.springdoc.core.annotations.ParameterObject AuditLogFilterRequest filter,
             @org.springdoc.core.annotations.ParameterObject @PageableDefault(sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(auditLogService.getAllLogs(filter, pageable));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<AuditLogResponse>> getLog(@PathVariable String id) {
+        return ResponseEntity.ok(ApiResponse.<AuditLogResponse>builder().success(true).data(auditLogService.getLogById(id)).build());
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> deleteLog(@PathVariable String id) {
+        auditLogService.deleteLog(id);
+        return ResponseEntity.ok(ApiResponse.<Void>builder().success(true).message("Đã xoá nhật ký.").build());
     }
 
     @GetMapping("/user/{email}")

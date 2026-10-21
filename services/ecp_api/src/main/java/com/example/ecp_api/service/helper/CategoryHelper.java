@@ -1,4 +1,5 @@
 package com.example.ecp_api.service.helper;
+import com.example.ecp_api.security.DataOwnership;
 
 import com.example.ecp_api.entity.mongodb.Category;
 import com.example.ecp_api.exception.AppException;
@@ -19,7 +20,7 @@ public class CategoryHelper {
 
     public Category getCategoryOrThrow(String id) {
         return categoryRepository.findById(id)
-                .filter(c -> !c.isDeleted())
+                .filter(c -> !c.isDeleted() && DataOwnership.visible(c.getCreatedBy()))
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found or deleted with id: " + id));
     }
 
@@ -77,6 +78,7 @@ public class CategoryHelper {
      */
     public void updateDescendants(Category parent) {
         List<Category> children = categoryRepository.findAll().stream()
+                .filter(c -> DataOwnership.visible(c.getCreatedBy()))
                 .filter(c -> parent.getId().equals(c.getParentId()) && !c.isDeleted())
                 .toList();
 

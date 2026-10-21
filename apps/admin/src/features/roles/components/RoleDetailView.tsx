@@ -12,7 +12,7 @@ import {
   CheckCircle2, 
   Shield
 } from 'lucide-react';
-import { useRole, usePermissions } from '../hooks/use-roles';
+import { useRole, usePermissions, useRoleAccess } from '../hooks/use-roles';
 import { Breadcrumbs, PageHeader, Badge } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,8 +40,9 @@ const getModuleName = (moduleKey: string): string => {
   return MODULE_NAMES[upper] || `Module ${upper}`;
 };
 
-export default function RoleDetailView({ id }: RoleDetailViewProps) {
+export default function RoleDetailView({ id }: RoleDetailViewProps): React.JSX.Element {
   const router = useRouter();
+  const { data: access } = useRoleAccess();
   const { data: role, isLoading: isRoleLoading, isError } = useRole(id);
   const { data: allPermissions = [], isLoading: isPermissionsLoading } = usePermissions();
 
@@ -129,6 +130,7 @@ export default function RoleDetailView({ id }: RoleDetailViewProps) {
               <span>Quay lại</span>
             </Button>
             <Button
+              disabled={!access?.update || role.editable === false}
               onClick={() => router.push(`/roles/${role.id}/edit`)}
               className="bg-primary text-white text-xs font-bold h-9 rounded-xl flex items-center gap-1.5 shadow-2xs"
             >

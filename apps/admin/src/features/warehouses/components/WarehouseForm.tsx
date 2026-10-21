@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { 
+import {
   FormSection,
   FormGrid,
   AdminFormLabel,
@@ -31,7 +31,7 @@ interface WarehouseFormProps {
   isDialog?: boolean;
 }
 
-export default function WarehouseForm({ onSuccess, initialData, isDialog = false }: WarehouseFormProps) {
+export default function WarehouseForm({ onSuccess, initialData, isDialog = false }: WarehouseFormProps) : React.JSX.Element {
   const router = useRouter();
   const form = useForm<WarehouseFormValues>({
     resolver: zodResolver(warehouseSchema),
@@ -39,6 +39,7 @@ export default function WarehouseForm({ onSuccess, initialData, isDialog = false
       code: '',
       name: '',
       address: '',
+      managerEmail: '',
       isActive: true,
     },
   });
@@ -61,6 +62,7 @@ export default function WarehouseForm({ onSuccess, initialData, isDialog = false
       isActive: values.isActive,
       code: values.code || '',
       address: values.address || '',
+      managerEmail: values.managerEmail || '',
     };
 
     if (initialData?.id) {
@@ -95,8 +97,8 @@ export default function WarehouseForm({ onSuccess, initialData, isDialog = false
         <div className={cn("space-y-6", isDialog ? "flex-1 overflow-y-auto custom-scrollbar px-6 pb-6 pt-2" : "")}>
           <div className="grid grid-cols-1 lg:grid-cols-10 gap-8 animate-in fade-in-30">
             <div className="lg:col-span-7 space-y-6">
-              <FormSection 
-                title="Thông tin kho bãi" 
+              <FormSection
+                title="Thông tin kho bãi"
                 description="Tên và địa chỉ chi tiết của vị trí lưu kho."
               >
                 <FormGrid cols={1}>
@@ -142,6 +144,12 @@ export default function WarehouseForm({ onSuccess, initialData, isDialog = false
                       </FormItem>
                     )}
                   />
+                  <FormField control={form.control} name='managerEmail' render={({ field }) => (
+                    <FormItem><AdminFormLabel>Email người quản lý</AdminFormLabel>
+                      <FormControl><Input type='email' placeholder='manager@example.com' {...field} /></FormControl>
+                      <FormDescription>Người quản lý được gán có thể xem và xử lý tồn kho của kho này.</FormDescription><FormMessage />
+                    </FormItem>
+                  )} />
                 </FormGrid>
               </FormSection>
             </div>

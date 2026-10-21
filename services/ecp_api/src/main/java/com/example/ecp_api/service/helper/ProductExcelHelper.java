@@ -1,4 +1,5 @@
 package com.example.ecp_api.service.helper;
+import com.example.ecp_api.security.DataOwnership;
 
 import com.example.ecp_api.dto.excel.ProductExcelDto;
 import com.example.ecp_api.dto.response.CloudinaryAsset;
@@ -15,6 +16,7 @@ import com.example.ecp_api.repository.mongodb.CategoryRepository;
 import com.example.ecp_api.repository.mongodb.ProductRepository;
 import com.example.ecp_api.service.CloudinaryService;
 import com.example.ecp_api.util.SlugUtils;
+import com.example.ecp_api.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -51,8 +53,14 @@ public class ProductExcelHelper {
 
         Product existingProduct = productRepository.findBySlug(slug).orElse(productRepository.findBySku(sku).orElse(null));
 
+        Sku linkedSku = skuRepository.findBySkuCode(sku).orElse(null);
+        if (linkedSku != null && (existingProduct == null || !linkedSku.getProductId().equals(existingProduct.getId()))) {
+            throw new AppException("SKU_EXISTS", "SKU đã được dùng bởi sản phẩm khác.", HttpStatus.CONFLICT);
+        }
         Product product;
         if (existingProduct != null) {
+            DataOwnership.require(existingProduct.getCreatedBy());
+            if (existingProduct.isDeleted()) { throw new com.example.ecp_api.exception.AppException("RECORD_DELETED", "Sản phẩm đã bị xoá mềm. Hãy khôi phục trước khi nhập Excel.", org.springframework.http.HttpStatus.CONFLICT); }
             product = existingProduct; // update
         } else {
             product = new Product(); //creat new product
@@ -76,6 +84,7 @@ public class ProductExcelHelper {
             if (category == null) {
                 throw new AppException("CATEGORY_NOT_FOUND", "Category '" + rawCategory + "' does not exist", HttpStatus.BAD_REQUEST);
             }
+            DataOwnership.require(category.getCreatedBy());
             product.setCategoryId(category.getId());
         }
 
@@ -87,7 +96,8 @@ public class ProductExcelHelper {
                                     .orElse(null)));
 
             if (brand != null) {
-                product.setBrandId(brand.getId());
+                DataOwnership.require(brand.getCreatedBy());
+            product.setBrandId(brand.getId());
                 product.setBrand(brand.getName());
             } else {
                 product.setBrand(rawBrand);
@@ -117,6 +127,7 @@ public class ProductExcelHelper {
             }
         }
 
+        if (existingProduct == null) { product.setCreatedBy(SecurityUtils.getCurrentUserEmail()); }
         product =productRepository.save(product);
         final String finalProductId = product.getId();
 

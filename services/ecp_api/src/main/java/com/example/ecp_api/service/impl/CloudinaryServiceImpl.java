@@ -162,32 +162,34 @@ public class CloudinaryServiceImpl implements CloudinaryService {
     }
 
     @Override
-    public void purgeUploads() {
+    public void purgeBusinessUploads() {
         try {
-            for (String resourceType : List.of("image", "video", "raw")) {
-                String cursor = null;
-                do {
-                    Map<String, Object> options = new HashMap<>();
-                    options.put("resource_type", resourceType);
-                    options.put("type", "upload");
-                    options.put("invalidate", true);
-                    if (cursor != null) { options.put("next_cursor", cursor); }
-                    Map<?, ?> result = cloudinary.api().deleteResourcesByPrefix("ecp_uploads/", options);
-                    if (result.containsKey("error")) { throw new IllegalStateException("Cloudinary purge returned an error"); }
-                    if (result.get("deleted") instanceof Map<?, ?> deleted) {
-                        for (Object status : deleted.values()) {
-                            if (!"deleted".equals(status) && !"not_found".equals(status)) {
-                                throw new IllegalStateException("Cloudinary asset was not deleted");
+            for (String prefix : com.example.ecp_api.service.helper.BusinessMediaScope.PREFIXES) {
+                for (String resourceType : List.of("image", "video", "raw")) {
+                    String cursor = null;
+                    do {
+                        Map<String, Object> options = new HashMap<>();
+                        options.put("resource_type", resourceType);
+                        options.put("type", "upload");
+                        options.put("invalidate", true);
+                        if (cursor != null) { options.put("next_cursor", cursor); }
+                        Map<?, ?> result = cloudinary.api().deleteResourcesByPrefix(prefix, options);
+                        if (result.containsKey("error")) { throw new IllegalStateException("Cloudinary purge returned an error"); }
+                        if (result.get("deleted") instanceof Map<?, ?> deleted) {
+                            for (Object status : deleted.values()) {
+                                if (!"deleted".equals(status) && !"not_found".equals(status)) {
+                                    throw new IllegalStateException("Cloudinary asset was not deleted");
+                                }
                             }
                         }
-                    }
-                    cursor = result.get("next_cursor") instanceof String value && !value.isBlank() ? value : null;
-                    if (Boolean.TRUE.equals(result.get("partial")) && cursor == null) {
-                        throw new IllegalStateException("Cloudinary purge is incomplete");
-                    }
-                } while (cursor != null);
+                        cursor = result.get("next_cursor") instanceof String value && !value.isBlank() ? value : null;
+                        if (Boolean.TRUE.equals(result.get("partial")) && cursor == null) {
+                            throw new IllegalStateException("Cloudinary purge is incomplete");
+                        }
+                    } while (cursor != null);
+                }
             }
-            log.info("Purged Cloudinary image, video and raw uploads under ecp_uploads/");
+            log.info("Purged Cloudinary catalog images, videos and files; account media retained");
         } catch (Exception ex) {
             log.error("Cloudinary upload purge failed", ex);
             throw new AppException("STORAGE_PURGE_FAILED", "Không thể xoá hết file upload trên Cloudinary. Hãy kiểm tra dịch vụ lưu trữ rồi thử lại.", HttpStatus.INTERNAL_SERVER_ERROR);

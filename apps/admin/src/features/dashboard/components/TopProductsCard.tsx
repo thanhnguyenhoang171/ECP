@@ -44,9 +44,15 @@ export default function TopProductsCard({ topProducts }: TopProductsCardProps) {
 
       <CardContent className="pt-5 flex-1 flex flex-col justify-between">
         <div className="space-y-5">
-          {topProducts.map((product, i) => {
-            const badge = rankBadges[i] || { label: `#${i + 1}`, bg: 'bg-slate-100 text-slate-700' };
-            const progress = Math.min(100, Math.round((product.sales / 350) * 100));
+          {topProducts.length === 0 ? (
+            <div className="py-8 text-center text-xs text-slate-400 font-medium">
+              Chưa có dữ liệu sản phẩm
+            </div>
+          ) : (
+            topProducts.map((product, i) => {
+              const maxSales = Math.max(...topProducts.map((p) => p.sales), 1);
+              const badge = rankBadges[i] || { label: `#${i + 1}`, bg: 'bg-slate-100 text-slate-700' };
+              const progress = Math.min(100, Math.round((product.sales / maxSales) * 100));
 
             return (
               <div key={i} className="flex flex-col gap-2 p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
@@ -86,8 +92,9 @@ export default function TopProductsCard({ topProducts }: TopProductsCardProps) {
                 </div>
               </div>
             );
-          })}
-        </div>
+          })
+        )}
+      </div>
 
         <Link href="/products" className="block w-full mt-4">
           <Button

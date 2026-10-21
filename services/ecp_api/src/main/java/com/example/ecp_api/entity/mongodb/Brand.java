@@ -23,6 +23,12 @@ import java.time.LocalDateTime;
 @Builder
 public class Brand {
 
+    @Field("deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Field("deleted_by")
+    private String deletedBy;
+
     @Id
     private String id; // MongoDB ObjectId
 

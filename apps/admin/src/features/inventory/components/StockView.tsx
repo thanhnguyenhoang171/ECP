@@ -1,26 +1,13 @@
 'use client';
 
+import { WarehouseRequestError } from '@/features/inventory/components/WarehouseRequestError';
+
 import React, { useState, useMemo, useCallback } from 'react';
-import { 
-  Database, 
-  Warehouse, 
-  AlertTriangle, 
-  TrendingDown, 
-  DollarSign, 
-  Search, 
-  SlidersHorizontal,
-  ChevronDown,
-  RefreshCw,
-  Plus,
-  Minus,
-  CheckCircle2,
-  AlertCircle,
-  Info
-} from "lucide-react";
-import { 
-  PageHeader, 
-  DataTable, 
-  DataCard, 
+import { Database, Warehouse, RefreshCw, Info, Download, Loader2, ScanBarcode } from "lucide-react";
+import {
+  PageHeader,
+  DataTable,
+  DataCard,
   Breadcrumbs,
   NextPagination,
   Badge,
@@ -46,16 +33,19 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { SearchInput, FilterPopover, SortPopover } from '@/components/common/view-control';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/formatters';
-import { cn } from '@/lib/utils';
-import { useStocks } from '../hooks/use-inventory';
-import { isForbiddenError } from '@/constants/errorMessages';
 
-import { formatDate } from '@/lib/formatters';
+import { cn } from '@/lib/utils';
+import { useStocks, useAdjustStock } from '../hooks/use-inventory';
+import { getApiErrorMessage, isForbiddenError } from '@/constants/errorMessages';
+
+import { formatDate, formatDateTimeForFilename } from '@/lib/formatters';
+import { BarcodeScannerDialog } from './BarcodeScannerDialog';
+import { inventoryApi } from '../api/inventory.api';
 
 interface StockItem {
   id: string;
   sku: string;
+  skuId: string;
   productName: string;
   warehouseId: string;
   warehouseName: string;
@@ -71,40 +61,21 @@ interface StockItem {
   updatedAt?: string;
 }
 
-export default function StockView() {
-  const { data: apiStocks, isLoading, error } = useStocks();
+export default function StockView() : React.JSX.Element {
+  const { data: apiStocks, isLoading, error, refetch } = useStocks();
   const isForbidden = isForbiddenError(error);
 
-  const stockItems = useMemo<StockItem[]>(() => {
-    if (Array.isArray(apiStocks)) {
-      return apiStocks.map((item: any) => {
-        const onHand = Number(item.quantityOnHand ?? item.stock ?? 0);
-        const locked = Number(item.quantityLocked ?? 0);
-        const available = Math.max(0, onHand - locked);
+  const adjustMutation = useAdjustStock();
+  const stockItems = useMemo<StockItem[]>(() => (apiStocks ?? []).map((item) => ({
+    ...item, sku: item.skuCode, skuId: item.skuId,
+    quantityAvailable: item.quantityOnHand - item.quantityLocked,
+    lowStockThreshold: 5, costPrice: item.costPrice ?? 0, price: item.price ?? 0,
+  })), [apiStocks]);
 
-        return {
-          id: item.id || `st-${Math.random()}`,
-          sku: item.skuCode || item.sku?.skuCode || item.skuId || 'SKU-UNKNOWN',
-          productName: item.productName || item.sku?.productName || item.skuCode || 'Sản phẩm',
-          warehouseId: item.warehouseId || item.warehouse?.id || 'wh-1',
-          warehouseName: item.warehouseName || item.warehouse?.name || 'Kho Chính',
-          batchCode: item.batchCode || item.lotNumber || '',
-          manufactureDate: item.manufactureDate || null,
-          expiryDate: item.expiryDate || null,
-          quantityOnHand: onHand,
-          quantityLocked: locked,
-          quantityAvailable: available,
-          lowStockThreshold: 5,
-          costPrice: Number(item.costPrice || 0),
-          price: Number(item.price || 0),
-          updatedAt: item.updatedAt || item.createdAt || new Date().toISOString(),
-        };
-      });
-    }
-    return [];
-  }, [apiStocks]);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [selectedWarehouse, setSelectedWarehouse] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [sortOption, setSortOption] = useState('sku,asc');
@@ -122,7 +93,7 @@ export default function StockView() {
     let items = [...stockItems];
 
     if (searchTerm) {
-      const term = searchTerm.toLowerCase();
+      const term = searchTerm.trim().toLowerCase();
       items = items.filter(
         (item) =>
           item.productName.toLowerCase().includes(term) ||
@@ -153,20 +124,20 @@ export default function StockView() {
     // Sort logic
     const [field, direction] = sortOption.split(',');
     items.sort((a, b) => {
-      const valA = a[field as keyof StockItem] as any;
-      const valB = b[field as keyof StockItem] as any;
+      const valA = a[field as keyof StockItem];
+      const valB = b[field as keyof StockItem];
 
-      if (typeof valA === 'string') {
+      if (typeof valA === 'string' && typeof valB === 'string') {
         return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
       }
-      return direction === 'asc' ? (valA || 0) - (valB || 0) : (valB || 0) - (valA || 0);
+      return direction === 'asc' ? Number(valA ?? 0) - Number(valB ?? 0) : Number(valB ?? 0) - Number(valA ?? 0);
     });
 
     return items;
   }, [stockItems, searchTerm, selectedWarehouse, selectedStatus, sortOption]);
 
   const paginatedItems = useMemo(() => {
-    const start = (page - 1) * size;
+    const start = Math.min(page - 1, Math.max(0, Math.ceil(filteredItems.length / size) - 1)) * size;
     return filteredItems.slice(start, start + size);
   }, [filteredItems, page, size]);
 
@@ -194,6 +165,31 @@ export default function StockView() {
     return { totalStock, totalLocked, totalAvailable, lowStockCount, outOfStockCount };
   }, [stockItems]);
 
+  const handleExport = async (): Promise<void> => {
+    if (isExporting) { return; }
+    setIsExporting(true);
+    try {
+      const file = await inventoryApi.exportStocks({ warehouseId: selectedWarehouse,
+        keyword: searchTerm, stockStatus: selectedStatus, sort: sortOption });
+      const url = URL.createObjectURL(file);
+      try {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `doi-soat-ton-kho_${formatDateTimeForFilename()}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+      toast.success('Đã tải file Excel tồn kho để đối soát');
+    } catch (cause: unknown) {
+      toast.error(getApiErrorMessage(cause, 'Xuất tồn kho thất bại'));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleAdjustClick = useCallback((item: StockItem) => {
     setAdjustingItem(item);
     setAdjustType('add');
@@ -201,19 +197,25 @@ export default function StockView() {
     setAdjustReason('check');
   }, []);
 
-  const handleAdjustSubmit = () => {
-    if (!adjustingItem) return;
-
-    if (adjustQty < 0) {
-      toast.error('Số lượng điều chỉnh không thể âm');
+  const handleAdjustSubmit = (): void => {
+    if (!adjustingItem || adjustMutation.isPending) { return; }
+    const quantityDelta = adjustType === 'set' ? adjustQty - adjustingItem.quantityOnHand
+      : adjustType === 'subtract' ? -adjustQty : adjustQty;
+    if (!Number.isSafeInteger(adjustQty) || adjustQty < 0 || quantityDelta === 0) {
+      toast.error('Nhập số lượng nguyên hợp lệ và khác số lượng hiện tại');
       return;
     }
-
-    const typeText = adjustType === 'add' ? 'Tăng thêm' : adjustType === 'subtract' ? 'Giảm đi' : 'Điều chỉnh thành';
-    toast.success(`Đã ghi nhận lệnh điều chỉnh tồn kho SKU ${adjustingItem.sku}: ${typeText} ${adjustQty} chiếc.`);
-    setAdjustingItem(null);
+    if (adjustingItem.quantityOnHand + quantityDelta < adjustingItem.quantityLocked) {
+      toast.error('Số lượng tồn sau điều chỉnh không được thấp hơn số lượng đang giữ');
+      return;
+    }
+    const reasons: Record<string, string> = { check: 'Kiểm kê kho', restock: 'Nhập bổ sung', damaged: 'Hàng lỗi / Hỏng hóc', other: 'Điều chỉnh khác' };
+    adjustMutation.mutate({ warehouseId: adjustingItem.warehouseId, skuId: adjustingItem.skuId,
+      batchCode: adjustingItem.batchCode, quantityDelta, reason: reasons[adjustReason],
+      expectedQuantityOnHand: adjustingItem.quantityOnHand,
+    }, { onSuccess: () => setAdjustingItem(null) });
   };
-  
+
   const columns = useMemo<ColumnDef<StockItem>[]>(() => [
     {
       header: 'Mã SKU',
@@ -323,9 +325,9 @@ export default function StockView() {
       className: 'w-[5%] min-w-[90px]',
       headerClassName: 'w-[5%] min-w-[90px]',
       cell: (item: StockItem) => (
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           className="h-8 text-[10px] font-bold uppercase tracking-wider gap-1 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 border-slate-200"
           onClick={() => handleAdjustClick(item)}
         >
@@ -347,18 +349,33 @@ export default function StockView() {
   return (
     <div className="space-y-6">
       <Breadcrumbs items={breadcrumbItems} />
-      <PageHeader 
+      <PageHeader
         title="Quản lý tồn kho"
         description="Quản lý số lượng hàng tồn thực tế tại các kho, điều chỉnh số lượng và cảnh báo sắp hết hàng."
+        actions={<><Button type='button' variant='outline' className='gap-2' onClick={() => setIsScannerOpen(true)}><ScanBarcode size={16} />Quét kiểm tra hàng</Button><Button type='button' onClick={() => { void handleExport(); }} disabled={isExporting || isLoading || Boolean(error)} className='gap-2'>
+          {isExporting ? <Loader2 size={16} className='animate-spin' /> : <Download size={16} />}
+          {isExporting ? 'Đang xuất Excel...' : 'Xuất Excel đối soát'}
+        </Button></>}
       />
+      <BarcodeScannerDialog open={isScannerOpen} onOpenChange={setIsScannerOpen} warehouseId={selectedWarehouse === 'all' ? undefined : selectedWarehouse} />
 
+      <p className='text-sm text-slate-500'>File Excel xuất toàn bộ kết quả theo bộ lọc hiện tại, có cột kiểm đếm thực tế và tự tính chênh lệch.</p>
       {/* Main Stock Table */}
+      <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
+        {[
+          ['Tồn thực tế', stats.totalStock], ['Tồn khả dụng', stats.totalAvailable],
+          ['Đang giữ', stats.totalLocked], ['Sắp hết / Hết hàng', stats.lowStockCount + stats.outOfStockCount],
+        ].map(([label, value]) => <div key={label} className='rounded-2xl border border-slate-200 bg-white p-4 shadow-sm'>
+          <p className='text-xs font-semibold text-slate-500'>{label}</p><p className='mt-2 text-2xl font-bold text-slate-900'>{value}</p>
+        </div>)}
+      </div>
+      <WarehouseRequestError error={error} retry={() => { void refetch(); }} />
       <DataCard
         search={
-          <SearchInput 
-            value={searchTerm} 
-            onChange={(val) => { setSearchTerm(val); setPage(1); }} 
-            placeholder="Tìm theo tên sản phẩm hoặc SKU..." 
+          <SearchInput
+            value={searchTerm}
+            onChange={(val) => { setSearchTerm(val); setPage(1); }}
+            placeholder="Tìm theo tên sản phẩm hoặc SKU..."
           />
         }
         extra={
@@ -408,8 +425,8 @@ export default function StockView() {
               options={[
                 { value: 'sku,asc', label: 'SKU (A-Z)' },
                 { value: 'sku,desc', label: 'SKU (Z-A)' },
-                { value: 'stock,asc', label: 'Tồn kho thấp nhất' },
-                { value: 'stock,desc', label: 'Tồn kho cao nhất' },
+                { value: 'quantityOnHand,asc', label: 'Tồn kho thấp nhất' },
+                { value: 'quantityOnHand,desc', label: 'Tồn kho cao nhất' },
               ]}
               currentValue={sortOption}
               onSelect={setSortOption}
@@ -420,17 +437,18 @@ export default function StockView() {
           !isForbidden && (isLoading || filteredItems.length > 0) && (
             <NextPagination
               isLoading={isLoading}
-              currentPage={page}
+              currentPage={Math.min(page, totalPages)}
               totalPages={totalPages}
               totalItems={filteredItems.length}
               itemsPerPage={size}
-              onItemsPerPageChange={setSize}
+              onItemsPerPageChange={(value) => { setSize(value); setPage(1); }}
               onPageChange={setPage}
             />
           )
         }
       >
         <DataTable
+          auditTrail
           columns={columns}
           data={paginatedItems}
           isLoading={isLoading && !filteredItems.length}
@@ -450,7 +468,7 @@ export default function StockView() {
       </DataCard>
 
       {/* Quick Adjust Dialog */}
-      <Dialog open={!!adjustingItem} onOpenChange={(open) => !open && setAdjustingItem(null)}>
+      <Dialog open={!!adjustingItem} onOpenChange={(open) => { if (!open && !adjustMutation.isPending) { setAdjustingItem(null); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
@@ -472,7 +490,7 @@ export default function StockView() {
                   Kho hàng: <span className="font-bold">{adjustingItem.warehouseName}</span>
                 </div>
                 <div className="text-xs text-slate-600 mt-1.5 flex items-center gap-1.5">
-                  Tồn kho hiện tại: 
+                  Tồn kho hiện tại:
                   <Badge className="bg-slate-200 text-slate-700 font-bold border-none px-2 py-0">
                     {adjustingItem.quantityOnHand} chiếc
                   </Badge>
@@ -483,9 +501,9 @@ export default function StockView() {
                 <Label className="text-xs font-bold uppercase tracking-wide text-slate-500">Hình thức điều chỉnh</Label>
                 <div className="flex gap-4">
                   {[
-                    { id: 'add', label: 'Tăng (+)' },
-                    { id: 'subtract', label: 'Giảm (-)' },
-                    { id: 'set', label: 'Đặt lại (=)' },
+                    { id: 'add' as const, label: 'Tăng (+)' },
+                    { id: 'subtract' as const, label: 'Giảm (-)' },
+                    { id: 'set' as const, label: 'Đặt lại (=)' },
                   ].map((option) => (
                     <label key={option.id} className="flex items-center gap-2 cursor-pointer text-xs font-semibold">
                       <input
@@ -493,7 +511,7 @@ export default function StockView() {
                         name="adjustType"
                         value={option.id}
                         checked={adjustType === option.id}
-                        onChange={() => setAdjustType(option.id as any)}
+                        onChange={() => setAdjustType(option.id)}
                         className="h-4 w-4 rounded-full border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                       />
                       <span>{option.label}</span>
@@ -505,8 +523,8 @@ export default function StockView() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wide text-slate-500">Số lượng thay đổi</Label>
-                  <Input 
-                    type="number" 
+                  <Input
+                    type="number"
                     min={0}
                     value={adjustQty || ''}
                     onChange={(e) => setAdjustQty(Math.max(0, parseInt(e.target.value) || 0))}
@@ -534,10 +552,10 @@ export default function StockView() {
               <div className="text-xs bg-blue-50/50 text-blue-700 p-3 rounded-xl border border-blue-100/50 flex items-center gap-2">
                 <Info size={14} className="text-blue-500 shrink-0" />
                 <span>
-                  Số lượng tồn sau điều chỉnh: 
+                  Số lượng tồn sau điều chỉnh:
                   <strong className="ml-1 font-bold">
-                    {adjustType === 'add' ? adjustingItem.quantityOnHand + adjustQty : 
-                     adjustType === 'subtract' ? Math.max(0, adjustingItem.quantityOnHand - adjustQty) : 
+                    {adjustType === 'add' ? adjustingItem.quantityOnHand + adjustQty :
+                     adjustType === 'subtract' ? adjustingItem.quantityOnHand - adjustQty :
                      adjustQty} chiếc
                   </strong>
                 </span>
@@ -549,7 +567,7 @@ export default function StockView() {
             <Button variant="outline" size="sm" onClick={() => setAdjustingItem(null)}>
               Hủy bỏ
             </Button>
-            <Button size="sm" onClick={handleAdjustSubmit} className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]">
+            <Button size="sm" disabled={adjustMutation.isPending} onClick={handleAdjustSubmit} className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]">
               Xác nhận
             </Button>
           </DialogFooter>

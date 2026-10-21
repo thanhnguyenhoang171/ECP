@@ -1,19 +1,12 @@
 'use client';
 
+import { WarehouseRequestError } from '@/features/inventory/components/WarehouseRequestError';
+import Link from 'next/link';
+
 import React, { useState } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { 
-  Plus, 
-  Trash2, 
-  ShoppingCart, 
-  Info,
-  Truck,
-  Building2,
-  Calendar,
-  Calculator,
-  FileText
-} from 'lucide-react';
+import { Plus, Trash2, ShoppingCart, Info, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import {
@@ -25,17 +18,17 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select';
-import { 
-  FormSection, 
-  FormGrid, 
-  AdminFormLabel, 
+import {
+  FormSection,
+  FormGrid,
+  AdminFormLabel,
   FormActionsBar,
   FormattedNumberInput,
   DateInput
@@ -46,31 +39,8 @@ import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { useSuppliers } from '@/features/suppliers/hooks/use-suppliers';
 import { useWarehouses } from '@/features/warehouses/hooks/use-warehouses';
-import { useSkus } from '@/features/skus/hooks/use-skus';
+import { useInventorySkus } from '@/features/inventory/hooks/use-inventory-skus';
 import { useCreatePurchaseOrder, useUpdatePurchaseOrder } from '../hooks/use-purchase-order-mutation';
-import { UI } from '@/constants/uiMessages';
-
-// Fallback Mock Suppliers
-const mockSuppliers = [
-  { id: 'sup-1', name: 'Công ty TNHH Nhập Khẩu Bánh Kẹo ThaiLand Inter Trade', code: 'SUP-THAILAND' },
-  { id: 'sup-2', name: 'Công ty CP Thương Mại Thực Phẩm Bangkok Vina', code: 'SUP-BANGKOK' },
-  { id: 'sup-3', name: 'Nhà phân phối Trà Thái ChaTraMue Việt Nam', code: 'SUP-CHATRAMUE' },
-];
-
-// Fallback Mock Warehouses
-const mockWarehouses = [
-  { id: 'wh-1', name: 'Kho Chính Quận 1 (TP.HCM)' },
-  { id: 'wh-2', name: 'Kho Phụ Quận 7 (TP.HCM)' },
-  { id: 'wh-3', name: 'Kho Cầu Giấy (Hà Nội)' },
-];
-
-// Fallback Mock SKUs
-const mockSkus = [
-  { id: 'sku-1', barcode: '8850123456781', name: 'Mực Sấy Bento Thái Lan Vị Cay Ngọt 20g', costPrice: 12000 },
-  { id: 'sku-2', barcode: '8850123456783', name: 'Trà Thái Xanh ChaTraMue Đậm Vị 200g', costPrice: 45000 },
-  { id: 'sku-3', barcode: '8850123456784', name: "Snack Khoai Tây Lay's Thái Lan Vị Tôm Căng Cay 48g", costPrice: 15000 },
-  { id: 'sku-4', barcode: '8850123456786', name: 'Nước Tăng Lực Red Bull Thái Chai Thủy Tinh 150ml', costPrice: 8500 },
-];
 
 interface PurchaseOrderFormProps {
   onSuccess?: () => void;
@@ -78,11 +48,11 @@ interface PurchaseOrderFormProps {
   isDialog?: boolean;
 }
 
-export default function PurchaseOrderForm({ 
-  onSuccess, 
-  initialData, 
-  isDialog = false 
-}: PurchaseOrderFormProps) {
+export default function PurchaseOrderForm({
+  onSuccess,
+  initialData,
+  isDialog = false
+}: PurchaseOrderFormProps) : React.JSX.Element {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'general' | 'items'>('general');
   const createMutation = useCreatePurchaseOrder();
@@ -90,28 +60,13 @@ export default function PurchaseOrderForm({
   const isEditing = !!initialData?.id;
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
-  const { data: suppliersRes } = useSuppliers();
-  const { data: warehousesRes } = useWarehouses();
-  const { data: skusRes } = useSkus({ page: 1, size: 100, isActive: true });
+  const { data: suppliersRes, error: sourceError0, isPending: sourceLoading0, refetch: refetchSource0 } = useSuppliers();
+  const { data: warehousesRes, error: sourceError1, isPending: sourceLoading1, refetch: refetchSource1 } = useWarehouses();
+  const { data: skusRes, error: sourceError2, isPending: sourceLoading2, refetch: refetchSource2 } = useInventorySkus();
 
-  const fetchedSuppliers = (suppliersRes as any)?.data || (Array.isArray(suppliersRes) ? suppliersRes : []);
-  const fetchedWarehouses = (warehousesRes as any)?.data || (Array.isArray(warehousesRes) ? warehousesRes : []);
-  const fetchedSkus = (skusRes as any)?.data || (Array.isArray(skusRes) ? skusRes : []);
-
-  const suppliers = fetchedSuppliers.length > 0 ? fetchedSuppliers : mockSuppliers;
-  const warehouses = fetchedWarehouses.length > 0 ? fetchedWarehouses : mockWarehouses;
-  const skus = fetchedSkus.length > 0 
-    ? fetchedSkus.map((item: any) => {
-        const costPrice = item.costPrice ?? item.cost_price ?? item.compareAtPrice ?? item.compare_at_price ?? item.price ?? 0;
-        return {
-          id: item.id,
-          barcode: item.barcode || item.skuCode,
-          name: `${item.productName || UI.UNKNOWN_PRODUCT} - ${item.variantName || item.skuCode}`,
-
-          costPrice,
-        };
-      })
-    : mockSkus;
+  const suppliers = (suppliersRes ?? []).filter((item) => item.isActive || item.id === initialData?.supplierId);
+  const warehouses = (warehousesRes ?? []).filter((item) => item.isActive || item.id === initialData?.warehouseId);
+  const skus = (skusRes ?? []).map((item) => ({ ...item, name: `${item.productName} · ${item.variantName || item.skuCode}`, costPrice: 0 }));
 
   const form = useForm<PurchaseOrderFormValues>({
     resolver: zodResolver(purchaseOrderSchema),
@@ -140,9 +95,9 @@ export default function PurchaseOrderForm({
 
   const handleSkuSelect = (index: number, skuId: string) => {
     form.setValue(`items.${index}.skuId`, skuId);
-    const selectedSku = (skus as any[]).find((s: any) => s.id === skuId);
+    const selectedSku = skus.find((s) => s.id === skuId);
     if (selectedSku) {
-      const suggestedPrice = selectedSku.costPrice ?? selectedSku.cost_price ?? selectedSku.compareAtPrice ?? selectedSku.compare_at_price ?? selectedSku.price ?? 0;
+      const suggestedPrice = selectedSku.costPrice;
       form.setValue(`items.${index}.unitPrice`, suggestedPrice);
     }
   };
@@ -160,11 +115,11 @@ export default function PurchaseOrderForm({
         router.push('/purchase-orders');
       }
     } catch (error) {
-      // Error handling managed in hook onError
+      console.error('Purchase order save failed', error);
     }
   }
 
-  const onErrors = (errors: any) => {
+  const onErrors = (errors: import('react-hook-form').FieldErrors<PurchaseOrderFormValues>) => {
     toast.error('Vui lòng kiểm tra lại các thông tin bắt buộc');
     if (errors.code || errors.supplierId || errors.warehouseId || errors.expectedDeliveryDate || errors.note) {
       setActiveTab('general');
@@ -201,11 +156,20 @@ export default function PurchaseOrderForm({
 
   return (
     <Form {...form}>
-      <form 
-        onSubmit={form.handleSubmit(onSubmit, onErrors)} 
+      <form
+        onSubmit={form.handleSubmit(onSubmit, onErrors)}
         className={cn(isDialog ? 'flex flex-col flex-1 overflow-hidden' : 'space-y-6 pb-24')}
       >
         <div className={cn('space-y-6', isDialog ? 'flex-1 overflow-y-auto custom-scrollbar px-6 pb-6 pt-2' : '')}>
+          <WarehouseRequestError error={sourceError0} retry={() => { void refetchSource0(); }} />
+          <WarehouseRequestError error={sourceError1} retry={() => { void refetchSource1(); }} />
+          <WarehouseRequestError error={sourceError2} retry={() => { void refetchSource2(); }} />
+          <div className='flex flex-wrap gap-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-600'>
+            <span>Cần có kho hàng và SKU đang hoạt động trước khi lập chứng từ.</span>
+            <Link href='/warehouses/create' className='font-semibold text-blue-600 hover:underline'>Thêm kho</Link>
+            <Link href='/products/create' className='font-semibold text-blue-600 hover:underline'>Thêm sản phẩm</Link>
+            <Link href='/suppliers/create' className='font-semibold text-blue-600 hover:underline'>Thêm nhà cung cấp</Link>
+          </div>
           {/* Navigation Tabs */}
           <div className="flex border-b border-slate-200 gap-1 overflow-x-auto pb-px scrollbar-none bg-slate-50/50 p-1.5 rounded-xl">
             {tabs.map((tab) => {
@@ -249,10 +213,10 @@ export default function PurchaseOrderForm({
                           <AdminFormLabel>Mã đơn mua hàng</AdminFormLabel>
                           <FormControl>
                             <div className="relative group">
-                              <Input 
-                                placeholder="Tự động tạo (Ví dụ: PO-202607-001)" 
-                                className="h-11 bg-slate-50/50 font-mono text-xs pr-16 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
-                                {...field} 
+                              <Input
+                                placeholder="Tự động tạo (Ví dụ: PO-202607-001)"
+                                className="h-11 bg-slate-50/50 font-mono text-xs pr-16 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                {...field}
                               />
                               <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded tracking-wider">
                                 {field.value ? 'CUSTOM' : 'AUTO'}
@@ -278,11 +242,11 @@ export default function PurchaseOrderForm({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {suppliers.map((sup: any) => (
+                              {suppliers.map((sup) => (
                                 <SelectItem key={sup.id} value={sup.id}>
                                   <span className="font-medium">{sup.name}</span>
-                                  {sup.code && (
-                                    <span className="text-[10px] text-slate-400 font-mono ml-2">({sup.code})</span>
+                                  {sup.taxCode && (
+                                    <span className="text-[10px] text-slate-400 font-mono ml-2">({sup.taxCode})</span>
                                   )}
                                 </SelectItem>
                               ))}
@@ -307,7 +271,7 @@ export default function PurchaseOrderForm({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {warehouses.map((wh: any) => (
+                              {warehouses.map((wh) => (
                                 <SelectItem key={wh.id} value={wh.id}>{wh.name}</SelectItem>
                               ))}
                             </SelectContent>
@@ -325,10 +289,10 @@ export default function PurchaseOrderForm({
                         <FormItem>
                           <AdminFormLabel>Ngày giao dự kiến</AdminFormLabel>
                           <FormControl>
-                            <DateInput 
-                              type="datetime-local" 
-                              className="h-11" 
-                              {...field} 
+                            <DateInput
+                              type="datetime-local"
+                              className="h-11"
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -401,10 +365,10 @@ export default function PurchaseOrderForm({
                 description="Chọn mặt hàng, số lượng và giá thỏa thuận với Nhà cung cấp."
               >
                 <div className="flex justify-end mb-4">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => append({ skuId: '', orderedQuantity: 1, unitPrice: 0, note: '' })}
                     className="gap-1.5 border-blue-600 text-blue-600 hover:bg-blue-50 bg-white font-bold text-xs"
                   >
@@ -419,8 +383,8 @@ export default function PurchaseOrderForm({
                     const itemSubtotal = itemQuantity * itemUnitPrice;
 
                     return (
-                      <div 
-                        key={fieldItem.id} 
+                      <div
+                        key={fieldItem.id}
                         className="relative p-5 rounded-2xl border border-slate-300 bg-slate-50/80 space-y-4 transition-all hover:border-slate-400 shadow-xs"
                       >
                         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -431,10 +395,10 @@ export default function PurchaseOrderForm({
                             <span className="text-xs text-slate-500">
                               Thành tiền: <strong className="text-blue-700 font-semibold text-sm">{formatCurrency(itemSubtotal)}</strong>
                             </span>
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="icon" 
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
                               onClick={() => remove(index)}
                               className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                               disabled={fields.length === 1}
@@ -454,8 +418,8 @@ export default function PurchaseOrderForm({
                               render={({ field }) => (
                                 <FormItem>
                                   <AdminFormLabel required className="text-center block w-full">Sản phẩm (SKU)</AdminFormLabel>
-                                  <Select 
-                                    onValueChange={(val) => handleSkuSelect(index, val)} 
+                                  <Select
+                                    onValueChange={(val) => handleSkuSelect(index, val)}
                                     value={field.value || undefined}
                                   >
                                     <FormControl>
@@ -464,9 +428,9 @@ export default function PurchaseOrderForm({
                                       </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                      {skus.map((sku: any) => (
-                                        <SelectItem 
-                                          key={sku.id} 
+                                      {skus.map((sku) => (
+                                        <SelectItem
+                                          key={sku.id}
                                           value={sku.id}
                                           className="justify-center text-center [&>span]:w-full [&>span]:flex [&>span]:flex-col [&>span]:items-center"
                                         >
@@ -491,7 +455,7 @@ export default function PurchaseOrderForm({
                                 <FormItem>
                                   <AdminFormLabel required className="text-center block w-full">Số lượng đặt</AdminFormLabel>
                                   <FormControl>
-                                    <FormattedNumberInput 
+                                    <FormattedNumberInput
                                       value={field.value}
                                       onChange={field.onChange}
                                       placeholder="1"
@@ -514,7 +478,7 @@ export default function PurchaseOrderForm({
                                 <FormItem>
                                   <AdminFormLabel required className="text-center block w-full">Giá mua đơn vị (VND)</AdminFormLabel>
                                   <FormControl>
-                                    <FormattedNumberInput 
+                                    <FormattedNumberInput
                                       value={field.value}
                                       onChange={field.onChange}
                                       placeholder="0"
@@ -543,6 +507,7 @@ export default function PurchaseOrderForm({
         <FormActionsBar
           onCancel={handleCancel}
           isSubmitting={isSubmitting}
+          submitDisabled={sourceLoading0 || sourceLoading1 || sourceLoading2 || Boolean(sourceError0 || sourceError1 || sourceError2)}
           submitText={initialData?.id ? 'Cập nhật đơn mua hàng' : 'Lưu đơn mua hàng'}
           activeTabLabel={tabs.find(t => t.id === activeTab)?.label}
           isDialog={isDialog}

@@ -1,156 +1,54 @@
 package com.example.ecp_api.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.HttpServletRequest;
+import com.example.ecp_api.service.AuditLogService;
+import com.example.ecp_api.util.SecurityUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Pointcut;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-
-import java.util.Arrays;
 
 @Aspect
 @Component
 @Slf4j
 @RequiredArgsConstructor
 public class LoggingAspect {
+    private final AuditLogService auditLogService;
 
-    private final ObjectMapper objectMapper;
-
-    @Pointcut("within(com.example.ecp_api.controller..*)")
-    public void controllerPointcut() {
-    }
-
-    @Around("controllerPointcut()")
+    @Around("within(com.example.ecp_api.controller..*)")
     public Object logAround(ProceedingJoinPoint joinPoint) throws Throwable {
-
-        HttpServletRequest request =
-                ((ServletRequestAttributes) RequestContextHolder
-                        .currentRequestAttributes())
-                        .getRequest();
-
-        String className = joinPoint.getSignature()
-                .getDeclaringType()
-                .getSimpleName();
-
-        String methodName = joinPoint.getSignature()
-                .getName();
-
-        Object[] filteredArgs = Arrays.stream(joinPoint.getArgs())
-                .filter(arg -> !(arg instanceof HttpServletRequest))
-                .filter(arg -> !(arg instanceof HttpServletResponse))
-                .toArray();
-
-        // ================================
-        // REQUEST LOG
-        // ================================
-        log.info("""
-                ==================================================
-                >>> API REQUEST
-                ==================================================
-                HTTP Method   : {}
-                Request URI   : {}
-                Controller    : {}.{}
-                ==================================================
-                """,
-                request.getMethod(),
-                request.getRequestURI(),
-                className,
-                methodName
-        );
-
-        if (filteredArgs.length > 0) {
-            try {
-                log.info("""
-                        Request Body:
-                        {}
-                        ==================================================
-                        """,
-                        objectMapper.writerWithDefaultPrettyPrinter()
-                                .writeValueAsString(filteredArgs)
-                );
-            } catch (Exception e) {
-                log.info("Request Body: {}", Arrays.toString(filteredArgs));
-            }
-        }
-
+        var attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) { return joinPoint.proceed(); }
+        var request = attributes.getRequest();
         long start = System.currentTimeMillis();
-
+        int status = 500;
+        boolean failed = true;
         try {
             Object result = joinPoint.proceed();
-            long executionTime = System.currentTimeMillis() - start;
-
-            // ================================
-            // RESPONSE LOG
-            // ================================
-            try {
-                log.info("""
-                        ==================================================
-                        <<< API RESPONSE
-                        ==================================================
-                        HTTP Method   : {}
-                        Request URI   : {}
-                        Execution Time: {} ms
-
-                        Response Body:
-                        {}
-                        ==================================================
-                        """,
-                        request.getMethod(),
-                        request.getRequestURI(),
-                        executionTime,
-                        objectMapper.writerWithDefaultPrettyPrinter()
-                                .writeValueAsString(result)
-                );
-            } catch (Exception e) {
-                log.info("""
-                        ==================================================
-                        <<< API RESPONSE
-                        ==================================================
-                        HTTP Method   : {}
-                        Request URI   : {}
-                        Execution Time: {} ms
-
-                        Response Body:
-                        {}
-                        ==================================================
-                        """,
-                        request.getMethod(),
-                        request.getRequestURI(),
-                        executionTime,
-                        result
-                );
-            }
-
+            HttpServletResponse response = attributes.getResponse();
+            status = result instanceof ResponseEntity<?> entity ? entity.getStatusCode().value()
+                    : response != null ? response.getStatus() : 200;
+            failed = status >= 400;
             return result;
-
-        } catch (Exception ex) {
-            long executionTime = System.currentTimeMillis() - start;
-
-            log.error("""
-                    ==================================================
-                    !!! API ERROR
-                    ==================================================
-                    HTTP Method   : {}
-                    Request URI   : {}
-                    Execution Time: {} ms
-                    Error Message : {}
-                    ==================================================
-                    """,
-                    request.getMethod(),
-                    request.getRequestURI(),
-                    executionTime,
-                    ex.getMessage(),
-                    ex
-            );
-
-            throw ex;
+        } finally {
+            long duration = System.currentTimeMillis() - start;
+            String details = request.getMethod() + " " + request.getRequestURI() + " | "
+                    + (failed ? "FAILED" : "HTTP " + status) + " | " + duration + " ms";
+            // Never record bodies, cookies, query parameters, passwords or JWTs.
+            log.info("API {}", details);
+            // Reading/deleting audit records must not create an endless stream of API entries.
+            if (!request.getServletPath().equals("/v1/audit-logs") && !request.getServletPath().startsWith("/v1/audit-logs/")) {
+                try {
+                    auditLogService.log("API_REQUEST", SecurityUtils.getCurrentUserEmail(), details, failed ? "FAILURE" : "SUCCESS");
+                } catch (Exception error) {
+                    log.error("Could not persist API audit entry: {}", error.getMessage());
+                }
+            }
         }
     }
 }

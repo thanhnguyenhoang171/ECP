@@ -1,6 +1,9 @@
 'use client';
 
 import React from 'react';
+import { useAuthStore } from '@/store/authStore';
+import DeletedRecordsDialog, { type RecoveryModule } from './DeletedRecordsDialog';
+import { RecordAudit } from './record-audit';
 import { ShieldAlert } from 'lucide-react';
 import {
   Table,
@@ -26,6 +29,8 @@ export interface ColumnDef<T> {
 }
 
 interface DataTableProps<T> {
+  auditTrail?: boolean;
+  recoveryModule?: RecoveryModule;
   columns: ColumnDef<T>[];
   data: T[];
   isLoading?: boolean;
@@ -50,7 +55,9 @@ interface DataTableProps<T> {
 }
 
 export function DataTable<T>({
-  columns,
+  columns: sourceColumns,
+  auditTrail = false,
+  recoveryModule,
   data,
   isLoading,
   loadingRows = 5,
@@ -62,7 +69,18 @@ export function DataTable<T>({
   className,
   tableClassName,
   headerClassName,
-}: DataTableProps<T>) {
+}: DataTableProps<T>): React.JSX.Element {
+  const user = useAuthStore(state => state.user);
+  const isSuperAdmin = [...(user?.roles || []), user?.role || ''].some(role => role.replace(/^ROLE_/i, '').toUpperCase() === 'SUPER_ADMIN');
+  const columns: ColumnDef<T>[] = [...sourceColumns];
+  if (auditTrail && isSuperAdmin) {
+    const auditColumns: ColumnDef<T>[] = [
+      { id: 'record-audit', header: 'Thông tin thao tác', cell: item => <RecordAudit item={item} /> },
+    ];
+    const actionIndex = columns.findIndex(column => column.header === 'Thao tác');
+    columns.splice(actionIndex < 0 ? columns.length : actionIndex, 0, ...auditColumns);
+  }
+  const recovery = isSuperAdmin && recoveryModule ? <DeletedRecordsDialog module={recoveryModule} /> : null;
   const safeData = Array.isArray(data) ? data : [];
 
   const getAlignmentClass = (align?: 'left' | 'center' | 'right') => {
@@ -95,19 +113,21 @@ export function DataTable<T>({
 
   if (!isLoading && safeData.length === 0) {
     return (
-      <div className="py-20">
-        <EmptyState
+      <div>
+        {recovery}
+        <div className="py-20"><EmptyState
           title={emptyState?.title || 'Không có dữ liệu'}
           description={emptyState?.description || 'Hiện không có dữ liệu nào để hiển thị.'}
           icon={emptyState?.icon}
           iconColor={emptyState?.iconColor}
-        />
+        /></div>
       </div>
     );
   }
 
   return (
     <div className={cn('overflow-x-auto', className)}>
+      {recovery}
       <Table className={tableClassName}>
         <TableHeader className={cn('bg-slate-100/70 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700', headerClassName)}>
           <TableRow>

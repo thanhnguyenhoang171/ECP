@@ -1,4 +1,5 @@
 package com.example.ecp_api.service.impl;
+import com.example.ecp_api.security.DataOwnership;
 
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.context.AnalysisContext;
@@ -62,6 +63,7 @@ import java.util.stream.Stream;
 @Slf4j
 public class ProductServiceImpl implements ProductService {
 
+    private final com.example.ecp_api.security.MediaOwnership mediaOwnership;
     private final ProductRepository productRepository;
     private final ProductMapper productMapper;
     private final MongoTemplate mongoTemplate;
@@ -83,7 +85,8 @@ public class ProductServiceImpl implements ProductService {
                 Sort.Order.desc("createdAt"),
                 Sort.Order.asc("id"));
 
-        Query query = new Query().with(finalPageable);
+        Query query = DataOwnership.mongo(new Query()).with(finalPageable);
+        query.addCriteria(Criteria.where("is_deleted").ne(true));
 
         if (StringUtils.hasText(filter.getSearch())) {
             String pattern = java.util.regex.Pattern.quote(filter.getSearch().trim());
@@ -142,6 +145,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public ProductResponse createProduct(ProductRequest request, MultipartFile thumbnailFile, List<MultipartFile> imageFiles) {
+        validateOwnedReferences(request);
         String productId = request.getCreationId();
         if (productId == null) {
             productId = new org.bson.types.ObjectId().toHexString();
@@ -214,6 +218,7 @@ public class ProductServiceImpl implements ProductService {
 
         // Map and save Product Master (MongoDB)
         Product product = productMapper.toEntity(request);
+        product.setCreatedBy(SecurityUtils.getCurrentUserEmail());
         product.setId(productId);
         product.setSku(finalSku);
         product.setSlug(finalSlug);
@@ -289,7 +294,8 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductResponse getStorefrontProduct(String idOrSlug) {
         Product product = productRepository.findBySlug(idOrSlug)
-                .or(() -> productRepository.findById(idOrSlug))
+                .or(() -> productRepository.findById(idOrSlug)).filter(value -> !value.isDeleted())
+                .filter(value -> !value.isDeleted())
                 .filter(Product::isPublished)
                 .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
         ProductResponse response = productMapper.toResponse(product);
@@ -300,7 +306,9 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductResponse getProductById(String id) {
         Product product = productRepository.findById(id)
+                .filter(value -> !value.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
+        DataOwnership.require(product.getCreatedBy());
         ProductResponse resp = productMapper.toResponse(product);
         enrichCategoryInfo(resp);
         return resp;
@@ -309,15 +317,18 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public com.example.ecp_api.dto.response.ProductDetailResponse getProductDetail(String id) {
         Product product = productRepository.findById(id)
+                .filter(value -> !value.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
+        DataOwnership.require(product.getCreatedBy());
 
         ProductResponse productResp = productMapper.toResponse(product);
+        enrichCategoryInfo(productResp);
 
         // Resolve Brand
         com.example.ecp_api.dto.response.BrandResponse brandResp = null;
         if (StringUtils.hasText(product.getBrandId())) {
             brandResp = brandRepository.findById(product.getBrandId())
-                    .map(brandMapper::toResponse)
+                    .filter(item -> DataOwnership.visible(item.getCreatedBy())).map(brandMapper::toResponse)
                     .orElse(null);
         }
 
@@ -325,7 +336,7 @@ public class ProductServiceImpl implements ProductService {
         com.example.ecp_api.dto.response.CategoryResponse categoryResp = null;
         if (StringUtils.hasText(product.getCategoryId())) {
             categoryResp = categoryRepository.findById(product.getCategoryId())
-                    .map(categoryMapper::toResponse)
+                    .filter(item -> DataOwnership.visible(item.getCreatedBy())).map(categoryMapper::toResponse)
                     .orElse(null);
         }
 
@@ -335,7 +346,11 @@ public class ProductServiceImpl implements ProductService {
 
         if (skus != null && !skus.isEmpty()) {
             for (Sku sku : skus) {
-                Integer totalQty = inventoryRepository.sumQuantityOnHandBySkuId(sku.getId());
+                Integer totalQty = DataOwnership.restricted()
+                        ? inventoryRepository.findAll(DataOwnership.<com.example.ecp_api.entity.jpa.Inventory>stock(mongoTemplate)
+                            .and((root, query, cb) -> cb.equal(root.get("sku").get("id"), sku.getId()))).stream()
+                            .mapToInt(row -> row.getQuantityOnHand()).sum()
+                        : inventoryRepository.sumQuantityOnHandBySkuId(sku.getId());
                 if (totalQty == null) {
                     totalQty = 0;
                 }
@@ -403,7 +418,10 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductResponse updateProduct(String id, ProductRequest request) {
         Product existingProduct = productRepository.findById(id)
+                .filter(value -> !value.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
+        DataOwnership.require(existingProduct.getCreatedBy());
+        validateOwnedReferences(request);
         Map<String, String> previousMedia = ProductMediaUtils.collect(existingProduct);
 
         if (StringUtils.hasText(request.getName())) {
@@ -522,7 +540,7 @@ public class ProductServiceImpl implements ProductService {
                     }
                 }
                 if (!mongoTemplate.exists(Query.query(new Criteria().orOperator(references)), Product.class)) {
-                    cloudinaryService.deleteByUrl(url);
+                    if (mediaOwnership.canDelete(url)) { cloudinaryService.deleteByUrl(url); }
                 }
             } catch (Exception ex) {
                 log.error("Failed to delete removed product media {}: {}", url, ex.getMessage(), ex);
@@ -613,13 +631,18 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public void deleteProduct(String id) {
         Product product = productRepository.findById(id)
+                .filter(value -> !value.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
+        DataOwnership.require(product.getCreatedBy());
 
         String operatorEmail = SecurityUtils.getCurrentUsername();
-        productRepository.delete(product);
+        product.setDeleted(true);
+        product.setPublished(false);
+        product.setDeletedAt(java.time.LocalDateTime.now());
+        product.setDeletedBy(operatorEmail);
+        productRepository.save(product);
 
-        auditLogService.log("PRODUCT_DELETE", operatorEmail, "Hard deleted product: " + product.getName() + " (ID: " + product.getId() + ")");
-        deleteRemovedMediaAfterCommit(ProductMediaUtils.collect(product), Map.of());
+        auditLogService.log("PRODUCT_DELETE", operatorEmail, "Soft deleted product: " + product.getName() + " (ID: " + product.getId() + ")");
     }
 
     @Override
@@ -629,7 +652,9 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("Sku Not Found", "SKU_NOT_FOUND"));
 
         Product product = productRepository.findById(sku.getProductId())
+                .filter(value -> !value.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
+        DataOwnership.require(product.getCreatedBy());
 
         // Get total quantity currently in stock across all warehouses
         Integer currentTotalQuantity = inventoryRepository.sumQuantityOnHandBySkuId(sku.getId());
@@ -671,6 +696,19 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
+    private void validateOwnedReferences(ProductRequest request) {
+        if (StringUtils.hasText(request.getCategoryId())) {
+            var category = categoryRepository.findById(request.getCategoryId()).orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+            DataOwnership.require(category.getCreatedBy());
+            if (category.isDeleted()) { throw new AppException("RECORD_DELETED", "Danh mục đã bị xoá mềm.", HttpStatus.CONFLICT); }
+        }
+        if (StringUtils.hasText(request.getBrandId())) {
+            var brand = brandRepository.findById(request.getBrandId()).orElseThrow(() -> new ResourceNotFoundException("Brand not found"));
+            DataOwnership.require(brand.getCreatedBy());
+            if (brand.isDeleted()) { throw new AppException("RECORD_DELETED", "Thương hiệu đã bị xoá mềm.", HttpStatus.CONFLICT); }
+        }
+    }
+
     private void enrichCategoryInfo(ProductResponse response) {
         if (response == null) return;
         enrichCategoryInfo(List.of(response));
@@ -687,13 +725,18 @@ public class ProductServiceImpl implements ProductService {
 
         Map<String, String> categoryNameMap = new HashMap<>();
         if (!categoryIds.isEmpty()) {
-            categoryRepository.findAllById(categoryIds)
+            categoryRepository.findAllById(categoryIds).stream().filter(category -> DataOwnership.visible(category.getCreatedBy()))
                     .forEach(cat -> categoryNameMap.put(cat.getId(), cat.getName()));
         }
 
         for (ProductResponse resp : responses) {
+            if (DataOwnership.restricted() && resp.getBrand() != null && StringUtils.hasText(resp.getBrand().getId())) {
+                var linked = brandRepository.findById(resp.getBrand().getId()).orElse(null);
+                if (linked == null || !DataOwnership.visible(linked.getCreatedBy())) { resp.setBrand(null); }
+            }
             if (StringUtils.hasText(resp.getCategoryId())) {
                 String catName = categoryNameMap.get(resp.getCategoryId());
+                if (DataOwnership.restricted() && catName == null) { resp.setCategoryId(null); resp.setCategory(null); continue; }
                 resp.setCategory(ProductResponse.CategoryInfo.builder()
                         .id(resp.getCategoryId())
                         .name(catName)
@@ -826,7 +869,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public void exportAllProductToExcel(OutputStream outputStream) {
-        List<Product> allProducts = productRepository.findAll();
+        List<Product> allProducts = mongoTemplate.find(DataOwnership.mongo(Query.query(Criteria.where("is_deleted").ne(true))), Product.class);
         AtomicInteger index = new AtomicInteger(1);
 
         List<String> categoryIds = allProducts.stream()
@@ -837,7 +880,7 @@ public class ProductServiceImpl implements ProductService {
 
         Map<String, String> categoryNameMap = new HashMap<>();
         if (!categoryIds.isEmpty()) {
-            categoryRepository.findAllById(categoryIds)
+            categoryRepository.findAllById(categoryIds).stream().filter(category -> DataOwnership.visible(category.getCreatedBy()))
                     .forEach(cat -> categoryNameMap.put(cat.getId(), cat.getName()));
         }
 

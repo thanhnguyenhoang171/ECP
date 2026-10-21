@@ -1,4 +1,14 @@
+export interface RoleAccess {
+  read: boolean;
+  create: boolean;
+  update: boolean;
+  delete: boolean;
+}
+
 export interface Permission {
+  system?: boolean;
+  editable?: boolean;
+  deletable?: boolean;
   id: string;
   code: string;
   name: string;
@@ -12,6 +22,8 @@ export interface Role {
   name: string;
   description?: string;
   isSystem: boolean;
+  editable?: boolean;
+  deletable?: boolean;
   permissions: Permission[];
 }
 

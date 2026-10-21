@@ -2,17 +2,30 @@ export type AuditLogType = 'SYSTEM' | 'MANAGEMENT';
 
 export interface AuditLog {
   id: string;
-  type: AuditLogType;
   action: string;
-  username: string;
-  details: string;
-  target?: string; // Ví dụ: "Product #123", "Order #ORD-01"
-  ipAddress?: string;
+  email?: string;
+  username?: string;
+  details?: string;
   timestamp: string;
+  module?: AuditLogType;
+  category?: AuditLogType;
+  domain?: string;
+  logType?: string;
+  status?: string;
+  ipAddress?: string;
+  userAgent?: string;
 }
 
-export interface AuditLogStats {
-  totalLogs: number;
-  systemLogs: number;
-  managementLogs: number;
+export interface AuditLogParams {
+  page: number;
+  size: number;
+  sort?: string;
+  action?: string;
+  email?: string;
+  category?: AuditLogType;
+  module?: AuditLogType;
+  keyword?: string;
+  status?: string;
+  from?: string;
+  to?: string;
 }

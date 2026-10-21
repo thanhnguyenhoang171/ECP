@@ -28,7 +28,7 @@ public class GoodsReceiptController {
 
     @PostMapping(consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('goods_receipt:create') or hasRole('SUPER_ADMIN')")
-    @Operation(summary = "Create a Goods Receipt (GR) and automatically update physical warehouse inventory balances")
+    @Operation(summary = "Create a draft Goods Receipt (GR); confirm separately to update inventory")
     public ResponseEntity<ApiResponse<GoodsReceiptResponse>> createGoodsReceipt(@Valid @RequestBody GoodsReceiptRequest request) {
         return new ResponseEntity<>(ApiResponse.<GoodsReceiptResponse>builder()
                 .success(true)
@@ -54,4 +54,32 @@ public class GoodsReceiptController {
                 .message("Goods receipt fetched successfully")
                 .data(goodsReceiptService.getGoodsReceiptById(id)).build());
     }
+    @PatchMapping("/{id}")
+    @PreAuthorize("hasAuthority('goods_receipt:update') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<GoodsReceiptResponse>> update(@PathVariable String id, @Valid @RequestBody GoodsReceiptRequest request) {
+        return ResponseEntity.ok(ApiResponse.<GoodsReceiptResponse>builder().success(true)
+                .data(goodsReceiptService.updateGoodsReceipt(id, request)).build());
+    }
+
+    @PatchMapping("/{id}/confirm")
+    @PreAuthorize("hasAuthority('goods_receipt:update') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<GoodsReceiptResponse>> confirm(@PathVariable String id) {
+        return ResponseEntity.ok(ApiResponse.<GoodsReceiptResponse>builder().success(true)
+                .data(goodsReceiptService.confirmReceipt(id)).build());
+    }
+
+    @PatchMapping("/{id}/cancel")
+    @PreAuthorize("hasAuthority('goods_receipt:update') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<GoodsReceiptResponse>> cancel(@PathVariable String id) {
+        return ResponseEntity.ok(ApiResponse.<GoodsReceiptResponse>builder().success(true)
+                .data(goodsReceiptService.cancelReceipt(id)).build());
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('goods_receipt:delete') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String id) {
+        goodsReceiptService.deleteGoodsReceipt(id);
+        return ResponseEntity.ok(ApiResponse.<Void>builder().success(true).build());
+    }
+
 }

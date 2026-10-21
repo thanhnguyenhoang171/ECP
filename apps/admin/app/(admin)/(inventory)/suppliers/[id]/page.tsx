@@ -1,17 +1,19 @@
 'use client';
 
+import { WarehouseRequestError } from '@/features/inventory/components/WarehouseRequestError';
+
 import { useRouter } from 'next/navigation';
-import { use } from 'react';
+import { use, type JSX } from 'react';
 import { PageHeader, Breadcrumbs } from '@/components/common';
 import SupplierForm from '@/features/suppliers/components/SupplierForm';
 import { useSupplier } from '@/features/suppliers/hooks/use-suppliers';
 import { toast } from 'sonner';
 import { Users } from 'lucide-react';
 
-export default function EditSupplierPage({ params }: { params: Promise<{ id: string }> }) {
+export default function EditSupplierPage({ params }: { params: Promise<{ id: string }> }): JSX.Element {
   const router = useRouter();
   const unwrappedParams = use(params);
-  const { data: supplier, isLoading, isError } = useSupplier(unwrappedParams.id);
+  const { data: supplier, isLoading, isError, error, refetch } = useSupplier(unwrappedParams.id);
 
   const breadcrumbItems = [
     { label: 'Nhà cung cấp', href: '/suppliers', icon: Users },
@@ -21,9 +23,7 @@ export default function EditSupplierPage({ params }: { params: Promise<{ id: str
   if (isLoading) return <div className="p-8 text-center text-slate-500 animate-pulse">Đang tải thông tin...</div>;
 
   if (isError || !supplier) {
-    toast.error('Không tìm thấy nhà cung cấp');
-    router.push('/suppliers');
-    return null;
+    return <WarehouseRequestError error={error || new Error('Không tìm thấy dữ liệu')} retry={() => { void refetch(); }} />;
   }
 
   return (
@@ -35,12 +35,12 @@ export default function EditSupplierPage({ params }: { params: Promise<{ id: str
         showBackButton
       />
       <div className="pb-10">
-        <SupplierForm 
-          initialData={supplier} 
+        <SupplierForm
+          initialData={supplier}
           onSuccess={() => {
             toast.success('Cập nhật nhà cung cấp thành công');
             router.push('/suppliers');
-          }} 
+          }}
         />
       </div>
     </div>

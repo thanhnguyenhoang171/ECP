@@ -1,7 +1,7 @@
 'use client';
 
-import type { UserMutationData } from '../api/user.api';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { UserListParams, UserStatistics, UserMutationData } from '../api/user.api';
+import { useQuery, useMutation, useQueryClient, type UseQueryResult, type UseMutationResult } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { userApi } from '../api/user.api';
 import { PageResponse } from '@/types/pagination';
@@ -9,17 +9,9 @@ import { User } from '../types/user.interface';
 import { getApiErrorMessage } from '@/constants/errorMessages';
 
 export function useUsers(
-  params: {
-    page: number;
-    size: number;
-    sort?: string;
-    keyword?: string;
-    role?: 'SUPER_ADMIN' | 'MANAGER' | 'USER';
-    roles?: string[] | string;
-    active?: boolean;
-  },
+  params: UserListParams,
   initialData?: PageResponse<User>,
-) {
+): UseQueryResult<PageResponse<User>, Error> {
   return useQuery({
     queryKey: ['users', params],
     queryFn: () => userApi.getPaged(params),
@@ -28,7 +20,7 @@ export function useUsers(
   });
 }
 
-export function useUser(id: string) {
+export function useUser(id: string): UseQueryResult<User, Error> {
   return useQuery({
     queryKey: ['users', id],
     queryFn: () => userApi.getById(id),
@@ -37,7 +29,7 @@ export function useUser(id: string) {
   });
 }
 
-export function useDeleteUser() {
+export function useDeleteUser(): UseMutationResult<{ success: boolean }, Error, string> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -50,12 +42,12 @@ export function useDeleteUser() {
       }
     },
     onError: (error) => {
-      console.error('Delete user error:', error);
+      toast.error(getApiErrorMessage(error, 'Không thể xoá tài khoản'));
     },
   });
 }
 
-export function useUserStatistics(initialData?: any) {
+export function useUserStatistics(initialData?: UserStatistics): UseQueryResult<UserStatistics, Error> {
   return useQuery({
     queryKey: ['users', 'statistics'],
     queryFn: () => userApi.getStatistics(),
@@ -65,7 +57,7 @@ export function useUserStatistics(initialData?: any) {
   });
 }
 
-export function useCreateUser() {
+export function useCreateUser(): UseMutationResult<User, Error, UserMutationData> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -75,14 +67,14 @@ export function useCreateUser() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'statistics'] });
     },
-    onError: (error: unknown) => {
+    onError: (error: Error) => {
       const msg = getApiErrorMessage(error, 'Có lỗi xảy ra khi thêm người dùng');
       toast.error(msg, { id: msg });
     }
   });
 }
 
-export function useUpdateUser() {
+export function useUpdateUser(): UseMutationResult<User, Error, { id: string; data: UserMutationData }> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -92,7 +84,7 @@ export function useUpdateUser() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'statistics'] });
     },
-    onError: (error: unknown) => {
+    onError: (error: Error) => {
       const msg = getApiErrorMessage(error, 'Có lỗi xảy ra khi cập nhật người dùng');
       toast.error(msg, { id: msg });
     }

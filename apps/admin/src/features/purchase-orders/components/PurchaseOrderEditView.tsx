@@ -1,5 +1,7 @@
 'use client';
 
+import { WarehouseRequestError } from '@/features/inventory/components/WarehouseRequestError';
+
 import React from 'react';
 import { FileText } from 'lucide-react';
 import { PageHeader, Breadcrumbs } from '@/components/common';
@@ -12,34 +14,15 @@ interface Props {
   poId: string;
 }
 
-export default function PurchaseOrderEditView({ poId }: Props) {
+export default function PurchaseOrderEditView({ poId }: Props) : React.JSX.Element {
   const router = useRouter();
-  const { data: poResponse, isLoading } = usePurchaseOrder(poId);
+  const { data: poResponse, isLoading, error, refetch } = usePurchaseOrder(poId);
 
-  const initialData = React.useMemo(() => {
-    if (!poResponse) return undefined;
-    const p = poResponse as any;
-    
-    // Preserve expectedDeliveryDate ISO string for datetime-local DateInput
-    const formattedDate = p.expectedDeliveryDate ? String(p.expectedDeliveryDate) : '';
+  const initialData = React.useMemo(() => poResponse ? ({ ...poResponse,
+    expectedDeliveryDate: poResponse.expectedDeliveryDate?.slice(0, 10) || '',
+  }) : undefined, [poResponse]);
 
-    const items = (p.items || []).map((it: any) => ({
-      skuId: it.skuId || it.sku?.id || '',
-      orderedQuantity: Number(it.orderQuantity || it.orderedQuantity || it.quantity || 1),
-      unitPrice: Number(it.unitPrice || 0),
-      note: it.note || ''
-    }));
-
-    return {
-      id: p.id || poId,
-      code: p.code || p.poCode || '',
-      supplierId: p.supplierId || p.supplier?.id || '',
-      warehouseId: p.warehouseId || p.warehouse?.id || '',
-      expectedDeliveryDate: formattedDate,
-      note: p.note || '',
-      items
-    };
-  }, [poResponse, poId]);
+  if (error) { return <WarehouseRequestError error={error} retry={() => { void refetch(); }} />; }
 
   if (isLoading) {
     return (
@@ -72,6 +55,10 @@ export default function PurchaseOrderEditView({ poId }: Props) {
     );
   }
 
+  if (poResponse && poResponse.status !== 'DRAFT') {
+    return <WarehouseRequestError error={new Error('Chỉ được chỉnh sửa đơn mua hàng nháp.')} />;
+  }
+
   return (
     <div className="space-y-6">
       <Breadcrumbs items={[
@@ -80,7 +67,7 @@ export default function PurchaseOrderEditView({ poId }: Props) {
         { label: 'Chỉnh sửa' }
       ]} />
 
-      <PageHeader 
+      <PageHeader
         title={`Chỉnh sửa Đơn mua hàng #${initialData?.code || poId}`}
         description="Cập nhật thông tin nhà cung cấp, kho bãi và danh sách sản phẩm mua hàng."
       />

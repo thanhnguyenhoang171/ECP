@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { getImageUrl, isImageFile, normalizeImageValue } from '@/lib/image-value';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Save, Image as ImageIcon, Info, ShieldCheck, KeyRound, Upload, Camera } from 'lucide-react';
+import { Info, Upload, Camera } from 'lucide-react';
 import {
   Form,
   FormControl,
@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { userSchema, UserFormValues } from '../schemas/user.schema';
+import { createUserSchema, userSchema, UserFormValues } from '../schemas/user.schema';
 import { useCreateUser, useUpdateUser } from '../hooks/use-users';
 import { FormSection, FormGrid, AdminFormLabel, FormActionsBar } from '@/components/common';
 import { useAuthStore } from '@/store/authStore';
@@ -45,23 +45,20 @@ interface UserFormProps {
   isLoadingData?: boolean;
 }
 
-export default function UserForm({ onSuccess, onCancel, initialData, userId, isDialog = false, isLoadingData = false }: UserFormProps) {
+export default function UserForm({ onSuccess, onCancel, initialData, userId, isDialog = false, isLoadingData = false }: UserFormProps): React.JSX.Element {
   const { user: currentUser } = useAuthStore();
-  const operatorRole = currentUser?.role || (currentUser?.roles && currentUser.roles[0]) || '';
-  const isSuperAdmin = operatorRole === 'SUPER_ADMIN' || operatorRole === 'ROLE_SUPER_ADMIN';
+  const isSuperAdmin = [...(currentUser?.roles || []), currentUser?.role || ''].some(role => role.replace(/^ROLE_/, '') === 'SUPER_ADMIN');
 
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
-  const [isUploading, setIsUploading] = useState(false);
-  const isEdit = !!initialData;
-  const [activeTab, setActiveTab] = useState<'general'>('general');
+  const isEdit = !!userId || !!initialData;
 
   // Crop Modal state
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
   const [isCropOpen, setIsCropOpen] = useState(false);
 
   const form = useForm<UserFormValues>({
-    resolver: zodResolver(userSchema),
+    resolver: zodResolver(isEdit ? userSchema : createUserSchema),
     defaultValues: initialData || {
       fullName: '',
       email: '',
@@ -78,6 +75,7 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
     if (initialData) {
       form.reset({
         ...initialData,
+        password: '',
         avatarUrl: initialData.avatarUrl || '',
         avatarPublicId: initialData.avatarPublicId || '',
       });
@@ -85,10 +83,7 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
   }, [initialData, form]);
 
   const onSubmit = (values: UserFormValues) => {
-    if (isUploading) {
-      toast.warning('Ảnh đang được tải lên, vui lòng chờ trong giây lát!');
-      return;
-    }
+    if (isLoading) { return; }
 
     if (!isEdit && !values.password) {
       form.setError('password', { type: 'custom', message: 'Mật khẩu bắt buộc đối với người dùng mới' });
@@ -100,7 +95,6 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
       const partialData: Partial<UserFormValues> = {};
 
       if (dirtyFields.fullName) partialData.fullName = values.fullName;
-      if (dirtyFields.email) partialData.email = values.email;
       if (dirtyFields.phone) partialData.phone = values.phone;
       if (dirtyFields.role) partialData.role = values.role;
       if (dirtyFields.status) partialData.status = values.status;
@@ -133,7 +127,7 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
     }
   };
 
-  const isLoading = createUserMutation.isPending || updateUserMutation.isPending || isUploading;
+  const isLoading = createUserMutation.isPending || updateUserMutation.isPending || isLoadingData;
   const currentAvatarUrl = form.watch('avatarUrl');
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState('');
   useEffect(() => {
@@ -163,6 +157,10 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
       return;
     }
 
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error('Chỉ hỗ trợ JPG, PNG hoặc WebP');
+      return;
+    }
     const imageUrl = URL.createObjectURL(file);
     setRawImageSrc(imageUrl);
     setIsCropOpen(true);
@@ -170,6 +168,8 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
     // Reset input value so re-selecting the same file works
     e.target.value = '';
   };
+
+  useEffect(() => () => { if (rawImageSrc) { URL.revokeObjectURL(rawImageSrc); } }, [rawImageSrc]);
 
   const handleCropComplete = (croppedFile: File): void => {
     form.setValue('avatarUrl', croppedFile, { shouldValidate: true, shouldDirty: true });
@@ -181,10 +181,17 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
     { id: 'general', label: 'Thông tin chung', icon: Info },
   ];
 
+  if (initialData?.role === 'SUPER_ADMIN' && !isSuperAdmin) {
+    return <div role="alert" className="space-y-4 rounded-xl border p-6 text-sm">
+      <p>Chỉ Super Admin mới được chỉnh sửa tài khoản Super Admin.</p>
+      <Button variant="outline" onClick={onCancel}>Quay lại</Button>
+    </div>;
+  }
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className={cn("space-y-6", isDialog ? "pb-2" : "pb-24")}>
-        
+
         {/* Navigation Tabs Header */}
         {!isDialog && (
           <div className="flex border-b border-slate-200 gap-1 overflow-x-auto pb-px scrollbar-none bg-slate-50/50 p-1.5 rounded-xl">
@@ -206,10 +213,10 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
 
         {/* 2-Column Main Layout Grid */}
         <div className={cn("grid grid-cols-1 gap-8 animate-in fade-in-30", !isDialog && "lg:grid-cols-12")}>
-          
+
           {/* Cột trái (8 cột): Thông tin cá nhân, Phân quyền & Bảo mật */}
           <div className={cn("space-y-6", !isDialog && "lg:col-span-8")}>
-            
+
             {/* Section 1: Thông tin cơ bản */}
             <FormSection
               title="Thông tin cơ bản"
@@ -227,11 +234,11 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                         {isLoadingData ? (
                           <Skeleton className="h-11 w-full rounded-xl" />
                         ) : (
-                          <Input 
-                            placeholder="Nhập họ và tên đầy đủ..." 
-                            disabled={isLoading} 
-                            className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
-                            {...field} 
+                          <Input
+                            placeholder="Nhập họ và tên đầy đủ..."
+                            disabled={isLoading}
+                            className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            {...field}
                           />
                         )}
                       </FormControl>
@@ -251,15 +258,16 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                         {isLoadingData ? (
                           <Skeleton className="h-11 w-full rounded-xl" />
                         ) : (
-                          <Input 
+                          <Input
                             type="email"
-                            placeholder="Nhập địa chỉ email..." 
-                            disabled={isLoading} 
-                            className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
-                            {...field} 
+                            placeholder="Nhập địa chỉ email..."
+                            disabled={isLoading || isEdit}
+                            className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            {...field}
                           />
                         )}
                       </FormControl>
+                      {isEdit && <FormDescription>Email đăng nhập không thể thay đổi.</FormDescription>}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -271,16 +279,16 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                   name="phone"
                   render={({ field }) => (
                     <FormItem className="space-y-1.5 md:col-span-2">
-                      <AdminFormLabel required>Số điện thoại</AdminFormLabel>
+                      <AdminFormLabel>Số điện thoại</AdminFormLabel>
                       <FormControl>
                         {isLoadingData ? (
                           <Skeleton className="h-11 w-full rounded-xl" />
                         ) : (
-                          <Input 
-                            placeholder="Nhập số điện thoại liên hệ (vd: 0912345678)..." 
-                            disabled={isLoading} 
-                            className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-mono text-sm" 
-                            {...field} 
+                          <Input
+                            placeholder="Nhập số điện thoại liên hệ (vd: 0912345678)..."
+                            disabled={isLoading}
+                            className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-mono text-sm"
+                            {...field}
                           />
                         )}
                       </FormControl>
@@ -305,7 +313,7 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                     <FormItem className="space-y-1.5">
                       <AdminFormLabel required>Vai trò hệ thống</AdminFormLabel>
                       <Select
-                        disabled={isLoading || (isEdit && initialData?.role === 'SUPER_ADMIN')}
+                        disabled={isLoading || (isEdit && initialData?.role === 'SUPER_ADMIN' && !isSuperAdmin)}
                         onValueChange={field.onChange}
                         value={field.value}
                       >
@@ -341,7 +349,7 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                         <Switch
                           checked={field.value === 'active'}
                           onCheckedChange={(checked) => field.onChange(checked ? 'active' : 'inactive')}
-                          disabled={isLoading || (isEdit && initialData?.role === 'SUPER_ADMIN')}
+                          disabled={isLoading || initialData?.id === currentUser?.id || (isEdit && initialData?.role === 'SUPER_ADMIN' && !isSuperAdmin)}
                         />
                       </FormControl>
                     </FormItem>
@@ -361,16 +369,17 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                 render={({ field }) => (
                   <FormItem className="space-y-1.5">
                     <AdminFormLabel required={!isEdit}>
-                      Mật khẩu truy cập {isEdit && <span className="text-[10px] text-slate-400 font-normal">(Đóng băng / Để trống nếu giữ nguyên)</span>}
+                      Mật khẩu truy cập {isEdit && <span className="text-[10px] text-slate-400 font-normal">(Để trống nếu giữ nguyên)</span>}
                     </AdminFormLabel>
                     <FormControl>
                       <PasswordInput
-                        placeholder={isEdit ? "•••••••• (Để trống nếu giữ nguyên mật khẩu cũ)" : "Nhập mật khẩu truy cập mới..."} 
-                        disabled={isLoading} 
-                        className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
-                        {...field} 
+                        placeholder={isEdit ? "•••••••• (Để trống nếu giữ nguyên mật khẩu cũ)" : "Nhập mật khẩu truy cập mới..."}
+                        disabled={isLoading || (isEdit && initialData?.provider !== 'LOCAL' && !!initialData?.provider)}
+                        className="h-11 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        {...field}
                       />
                     </FormControl>
+                    {isEdit && initialData?.provider && initialData.provider !== 'LOCAL' && <FormDescription>Tài khoản đăng nhập qua {initialData.provider}, không đặt mật khẩu tại đây.</FormDescription>}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -386,18 +395,18 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
             >
               <div className="space-y-4">
                 <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 hover:bg-slate-50 transition-all text-center group">
-                  <div 
+                  <div
                     onClick={() => fileInputRef.current?.click()}
                     className="relative group/avatar cursor-pointer mb-4"
                     title="Click để chọn & đổi ảnh đại diện mới"
                   >
                     <Avatar className="h-28 w-28 border-4 border-white shadow-lg ring-1 ring-slate-200/80 overflow-hidden">
                       {currentAvatarUrl && (
-                        <AvatarImage 
+                        <AvatarImage
                           src={avatarPreviewUrl}
-                          alt={currentFullName || UI.AVATAR_ALT} 
+                          alt={currentFullName || UI.AVATAR_ALT}
 
-                          className="object-cover" 
+                          className="object-cover"
                         />
                       )}
                       <AvatarFallback className="bg-blue-100 text-blue-700 font-black text-2xl">
@@ -409,17 +418,17 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                       <span className="text-[9px] font-bold tracking-tight uppercase">Đổi ảnh</span>
                     </div>
                   </div>
-                  
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileSelect} 
-                    accept="image/*" 
-                    className="hidden" 
+
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    accept="image/*"
+                    className="hidden"
                   />
 
-                  <Button 
-                    type="button" 
+                  <Button
+                    type="button"
                     variant="outline"
                     onClick={() => fileInputRef.current?.click()}
                     className="h-9 px-4 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border-slate-200 gap-1.5 shadow-sm rounded-xl"
@@ -427,6 +436,7 @@ export default function UserForm({ onSuccess, onCancel, initialData, userId, isD
                     <Upload size={14} className="text-blue-600" />
                     <span>Tải ảnh lên & Cắt ảnh</span>
                   </Button>
+                  {currentAvatarUrl && <Button type="button" variant="ghost" disabled={isLoading} onClick={() => { form.setValue('avatarUrl', '', { shouldDirty: true }); form.setValue('avatarPublicId', '', { shouldDirty: true }); }}>Xoá ảnh đại diện</Button>}
                   <p className="text-[11px] text-slate-400 mt-2">Hỗ trợ JPG, PNG, WebP (Tối đa 5MB)</p>
                 </div>
               </div>

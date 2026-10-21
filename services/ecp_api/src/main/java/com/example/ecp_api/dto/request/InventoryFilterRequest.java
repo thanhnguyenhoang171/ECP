@@ -19,4 +19,11 @@ public class InventoryFilterRequest {
 
     @Schema(description = "Filter by Product Name")
     private String productName;
+    private String productId;
+
+    @jakarta.validation.constraints.Size(max = 200)
+    private String keyword;
+
+    @jakarta.validation.constraints.Pattern(regexp = "all|low|out|ok", message = "Invalid stock status")
+    private String stockStatus;
 }

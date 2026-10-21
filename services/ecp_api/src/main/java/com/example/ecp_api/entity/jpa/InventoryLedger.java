@@ -20,6 +20,10 @@ import java.util.UUID;
 @EntityListeners(AuditingEntityListener.class)
 public class InventoryLedger {
 
+    @org.springframework.data.annotation.CreatedBy
+    @Column(name = "created_by", updatable = false)
+    private String createdBy;
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.VARCHAR)

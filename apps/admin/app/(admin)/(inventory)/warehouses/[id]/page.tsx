@@ -1,17 +1,16 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { use } from 'react';
+import { WarehouseRequestError } from '@/features/inventory/components/WarehouseRequestError';
+
+import { use, type JSX } from 'react';
 import { PageHeader, Breadcrumbs } from '@/components/common';
 import WarehouseForm from '@/features/warehouses/components/WarehouseForm';
 import { useWarehouse } from '@/features/warehouses/hooks/use-warehouses';
-import { toast } from 'sonner';
 import { Warehouse } from 'lucide-react';
 
-export default function EditWarehousePage({ params }: { params: Promise<{ id: string }> }) {
-  const router = useRouter();
+export default function EditWarehousePage({ params }: { params: Promise<{ id: string }> }): JSX.Element {
   const unwrappedParams = use(params);
-  const { data: warehouse, isLoading, isError } = useWarehouse(unwrappedParams.id);
+  const { data: warehouse, isLoading, isError, error, refetch } = useWarehouse(unwrappedParams.id);
 
   const breadcrumbItems = [
     { label: 'Kho bãi', href: '/warehouses', icon: Warehouse },
@@ -21,9 +20,7 @@ export default function EditWarehousePage({ params }: { params: Promise<{ id: st
   if (isLoading) return <div className="p-8 text-center text-slate-500 animate-pulse">Đang tải thông tin...</div>;
 
   if (isError || !warehouse) {
-    toast.error('Không tìm thấy địa điểm kho bãi');
-    router.push('/warehouses');
-    return null;
+    return <WarehouseRequestError error={error || new Error('Không tìm thấy dữ liệu')} retry={() => { void refetch(); }} />;
   }
 
   return (
@@ -35,8 +32,8 @@ export default function EditWarehousePage({ params }: { params: Promise<{ id: st
         showBackButton
       />
       <div className="pb-10">
-        <WarehouseForm 
-          initialData={warehouse} 
+        <WarehouseForm
+          initialData={warehouse}
         />
       </div>
     </div>

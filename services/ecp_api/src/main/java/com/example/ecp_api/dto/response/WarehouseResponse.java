@@ -15,6 +15,9 @@ import java.util.UUID;
 @Builder
 @Schema(description = "Response object representing a warehouse")
 public class WarehouseResponse {
+    private String deletedBy;
+    private java.time.LocalDateTime deletedAt;
+
 
     @Schema(description = "Unique warehouse ID (UUID)", example = "550e8400-e29b-41d4-a716-446655440000")
     private UUID id;

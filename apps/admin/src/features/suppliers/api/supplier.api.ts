@@ -1,151 +1,17 @@
-import { clientFetch } from '@/lib/clientFetch';
-import { clientDb, ClientSupplier } from '@/lib/clientDb';
-import { ApiError, ErrorMessages } from '@/constants/errorMessages';
+import { warehouseList, warehouseRequest } from '@/features/inventory/api/warehouse-request';
+import type { ClientSupplier } from '@/features/inventory/types/inventory.types';
+import type { SupplierFormValues } from '@/features/inventory/schemas/supplier.schema';
+
+type ApiSupplier = ClientSupplier & { active?: boolean };
+const normalize = (item: ApiSupplier): ClientSupplier => ({ ...item, isActive: item.isActive ?? item.active ?? false });
 
 export const supplierApi = {
-  // Lấy danh sách tất cả nhà cung cấp
-  getAll: async (): Promise<ClientSupplier[]> => {
-    try {
-      const res = await clientFetch('v1/suppliers');
-      if (res.status === 403) {
-        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem danh sách nhà cung cấp', 403);
-      }
-      if (res.ok) {
-        const result = await res.json();
-        let items = [];
-        if (Array.isArray(result.data)) {
-          items = result.data;
-        } else if (result.data && Array.isArray(result.data.data)) {
-          items = result.data.data;
-        } else if (Array.isArray(result)) {
-          items = result;
-        }
-
-        return items.map((item: any) => ({
-          ...item,
-          isActive: item.active !== undefined ? item.active : (item.isActive || false)
-        }));
-      }
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 403) {
-        throw e;
-      }
-      console.warn('Backend getAll suppliers failed, using mock fallback', e);
-    }
-
-    // Fallback về mock data
-    return clientDb.getSuppliers();
-  },
-
-  // Lấy chi tiết nhà cung cấp
-  getById: async (id: string): Promise<ClientSupplier | null> => {
-    try {
-      const res = await clientFetch(`v1/suppliers/${id}`);
-      if (res.ok) {
-        const result = await res.json();
-        const item = result.data || result;
-        return {
-          ...item,
-          isActive: item.active !== undefined ? item.active : (item.isActive || false)
-        };
-      }
-    } catch (e) {
-      console.warn('Backend getById supplier failed, using mock fallback', e);
-    }
-    const data = clientDb.getSuppliers().find(s => s.id === id);
-    return data || null;
-  },
-
-  // Tạo mới nhà cung cấp
-  create: async (data: any): Promise<ClientSupplier> => {
-    try {
-      // API expects 'active' instead of 'isActive'
-      const payload = { ...data, active: data.isActive };
-      delete payload.isActive;
-      
-      const res = await clientFetch(`v1/suppliers`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        const result = await res.json();
-        const item = result.data || result;
-        return {
-          ...item,
-          isActive: item.active !== undefined ? item.active : (item.isActive || false)
-        };
-      }
-      const errJson = await res.json().catch(() => ({}));
-      throw new ApiError(errJson.code, errJson.message || ErrorMessages.SUPPLIER_CREATE_FAILED, res.status, errJson);
-
-    } catch (e) {
-      if (e instanceof ApiError || (e as Error)?.name !== 'TypeError') {
-        throw e;
-      }
-      console.warn('Backend create supplier failed, using mock fallback', e);
-    }
-    
-    return clientDb.saveSupplier(data);
-  },
-
-  // Chỉnh sửa nhà cung cấp
-  update: async (id: string, data: any): Promise<ClientSupplier> => {
-    try {
-      const payload = { ...data, active: data.isActive };
-      delete payload.isActive;
-
-      const res = await clientFetch(`v1/suppliers/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        const result = await res.json();
-        const item = result.data || result;
-        return {
-          ...item,
-          isActive: item.active !== undefined ? item.active : (item.isActive || false)
-        };
-      }
-      const errJson = await res.json().catch(() => ({}));
-      throw new ApiError(errJson.code, errJson.message || ErrorMessages.SUPPLIER_UPDATE_FAILED, res.status, errJson);
-
-    } catch (e) {
-      if (e instanceof ApiError || (e as Error)?.name !== 'TypeError') {
-        throw e;
-      }
-      console.warn('Backend update supplier failed, using mock fallback', e);
-    }
-
-    return clientDb.saveSupplier({ ...data, id });
-  },
-
-  // Xóa nhà cung cấp
+  getAll: async (): Promise<ClientSupplier[]> => (await warehouseList<ApiSupplier>('v1/suppliers')).map(normalize),
+  getById: async (id: string): Promise<ClientSupplier> => normalize(await warehouseRequest<ApiSupplier>(`v1/suppliers/${id}`)),
+  create: async (data: SupplierFormValues): Promise<ClientSupplier> => normalize(await warehouseRequest<ApiSupplier>('v1/suppliers', 'POST', data)),
+  update: async (id: string, data: SupplierFormValues): Promise<ClientSupplier> => normalize(await warehouseRequest<ApiSupplier>(`v1/suppliers/${id}`, 'PATCH', data)),
   delete: async (id: string): Promise<{ success: boolean }> => {
-    try {
-      const res = await clientFetch(`v1/suppliers/${id}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        clientDb.deleteSupplier(id); // Giữ đồng bộ mock data nếu ứng dụng load lại từ mock
-        return { success: true };
-      } else {
-        const body = await res.json().catch(() => ({}));
-        throw new ApiError(body.code, body?.message || ErrorMessages.SUPPLIER_DELETE_FAILED, res.status, body);
-
-      }
-    } catch (e: any) {
-      if (e instanceof ApiError || ((e as Error)?.message && (e as Error).message !== 'Failed to fetch')) {
-        throw e;
-      }
-      console.warn('Backend delete supplier failed, using mock fallback', e);
-    }
-    
-    // Fallback logic khi không có kết nối backend
-    const success = clientDb.deleteSupplier(id);
-    if (!success) throw new Error(ErrorMessages.SUPPLIER_DELETE_FAILED);
-
+    await warehouseRequest<null>(`v1/suppliers/${id}`, 'DELETE');
     return { success: true };
   },
 };

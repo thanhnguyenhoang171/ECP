@@ -17,6 +17,9 @@ import java.util.List;
 @Builder
 @Schema(description = "Response object representing a purchase order (Admin view with full audit info)")
 public class PurchaseOrderAdminResponse {
+    private String deletedBy;
+    private java.time.LocalDateTime deletedAt;
+
 
     @Schema(description = "Unique ID of the purchase order (UUID)", example = "550e8400-e29b-41d4-a716-446655440000")
     private UUID id;

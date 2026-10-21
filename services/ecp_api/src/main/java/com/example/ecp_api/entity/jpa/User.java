@@ -76,11 +76,9 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @UpdateTimestamp
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    @UpdateTimestamp
     @Column(name = "password_changed_at")
     private LocalDateTime passwordChangedAt;
 

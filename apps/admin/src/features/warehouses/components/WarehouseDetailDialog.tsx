@@ -4,12 +4,12 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { DetailDialog, DetailSection } from '@/components/common';
 import { useWarehouse } from '../hooks/use-warehouses';
-import { 
-  Warehouse, 
-  Hash, 
-  MapPin, 
-  CheckCircle2, 
-  XCircle 
+import {
+  Warehouse,
+  Hash,
+  MapPin,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import { UI } from '@/constants/uiMessages';
 
@@ -23,7 +23,7 @@ export default function WarehouseDetailDialog({
   warehouseId,
   open,
   onOpenChange,
-}: WarehouseDetailDialogProps) {
+}: WarehouseDetailDialogProps) : React.JSX.Element {
   const activeId = open && warehouseId ? warehouseId : '';
   const { data: warehouse, isLoading, isError } = useWarehouse(activeId);
 
@@ -48,18 +48,18 @@ export default function WarehouseDetailDialog({
       isLoading={isLoading}
       isError={isError}
       errorMessage="Không thể tải thông tin kho bãi từ máy chủ."
-      createdAt={(warehouse as any)?.createdAt}
-      updatedAt={(warehouse as any)?.updatedAt}
+      createdAt={warehouse?.createdAt}
+      updatedAt={warehouse?.updatedAt}
       header={{
         icon: Warehouse,
         title: warehouse?.name,
         subtitle: `Mã kho: ${warehouse?.code || UI.NA}`,
 
         badge: warehouse ? (
-          <Badge 
+          <Badge
             className={
-              warehouse.isActive 
-                ? "bg-emerald-100 text-emerald-700 border-none shrink-0 px-3 py-1 text-xs font-semibold" 
+              warehouse.isActive
+                ? "bg-emerald-100 text-emerald-700 border-none shrink-0 px-3 py-1 text-xs font-semibold"
                 : "bg-slate-100 text-slate-500 border-none shrink-0 px-3 py-1 text-xs font-semibold"
             }
           >

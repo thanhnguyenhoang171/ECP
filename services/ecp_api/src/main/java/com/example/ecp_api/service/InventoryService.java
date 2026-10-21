@@ -14,6 +14,7 @@ public interface InventoryService {
     InventoryResponse adjustInventory(InventoryAdjustmentRequest request, TransactionType type, String refId, String refType);
     InventoryResponse getInventoryById(String id);
     PageResponse<InventoryResponse> getAllInventory(InventoryFilterRequest filter, org.springframework.data.domain.Pageable pageable);
+    byte[] exportInventory(InventoryFilterRequest filter, String sort);
     void deleteInventory(String id);
 
     InventoryLedgerResponse getLedgerById(String id);

@@ -3,17 +3,17 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { DetailDialog } from '@/components/common';
-import { ClientSupplier } from '@/lib/clientDb';
+
 import { useSupplier } from '../hooks/use-suppliers';
-import { 
-  Building2, 
-  User, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  FileText, 
-  CheckCircle2, 
-  XCircle 
+import {
+  Building2,
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  FileText,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import { UI } from '@/constants/uiMessages';
 
@@ -27,7 +27,7 @@ export default function SupplierDetailDialog({
   supplierId,
   open,
   onOpenChange,
-}: SupplierDetailDialogProps) {
+}: SupplierDetailDialogProps) : React.JSX.Element {
   const activeId = open && supplierId ? supplierId : '';
   const { data: supplier, isLoading, isError } = useSupplier(activeId);
 
@@ -38,18 +38,18 @@ export default function SupplierDetailDialog({
       isLoading={isLoading}
       isError={isError}
       errorMessage="Không thể tải thông tin nhà cung cấp từ máy chủ."
-      createdAt={(supplier as any)?.createdAt}
-      updatedAt={(supplier as any)?.updatedAt}
+      createdAt={supplier?.createdAt}
+      updatedAt={supplier?.updatedAt}
       header={{
         icon: Building2,
         title: supplier?.name,
         subtitle: `MST: ${supplier?.taxCode || UI.SUPPLIER_TAX_CODE_NOT_UPDATED}`,
 
         badge: supplier ? (
-          <Badge 
+          <Badge
             className={
-              supplier.isActive 
-                ? "bg-blue-100 text-blue-700 border-none shrink-0 px-3 py-1 text-xs font-semibold" 
+              supplier.isActive
+                ? "bg-blue-100 text-blue-700 border-none shrink-0 px-3 py-1 text-xs font-semibold"
                 : "bg-slate-100 text-slate-500 border-none shrink-0 px-3 py-1 text-xs font-semibold"
             }
           >

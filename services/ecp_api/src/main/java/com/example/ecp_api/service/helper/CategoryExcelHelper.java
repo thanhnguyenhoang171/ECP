@@ -1,4 +1,5 @@
 package com.example.ecp_api.service.helper;
+import com.example.ecp_api.security.DataOwnership;
 
 import com.example.ecp_api.dto.excel.CategoryExcelDto;
 import com.example.ecp_api.entity.mongodb.Category;
@@ -17,6 +18,7 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class CategoryExcelHelper {
 
+    private final com.example.ecp_api.security.MediaOwnership mediaOwnership;
     private final CategoryRepository categoryRepository;
     private final CategoryHelper categoryHelper;
     private final CloudinaryService cloudinaryService;
@@ -32,6 +34,7 @@ public class CategoryExcelHelper {
         // 1. Find by ID
         if (StringUtils.hasText(dto.getId())) {
             existingCategory = categoryRepository.findById(dto.getId())
+                    .map(item -> { DataOwnership.require(item.getCreatedBy()); if (item.isDeleted()) { throw new AppException("RECORD_DELETED", "Bản ghi đã bị xoá mềm. Hãy khôi phục trước khi nhập Excel.", HttpStatus.CONFLICT); } return item; })
                     .filter(c -> !c.isDeleted())
                     .orElse(null);
         }
@@ -46,6 +49,7 @@ public class CategoryExcelHelper {
         boolean isNew = false;
 
         if (existingCategory != null) {
+            DataOwnership.require(existingCategory.getCreatedBy());
             category = existingCategory;
         } else {
             category = new Category();
@@ -106,6 +110,7 @@ public class CategoryExcelHelper {
                             .orElseGet(() -> categoryRepository.findBySlugAndDeletedFalse(SlugUtils.toSlug(rawParent))
                                     .orElseThrow(() -> new AppException("PARENT_NOT_FOUND", "Parent category '" + rawParent + "' not found", HttpStatus.BAD_REQUEST))));
             
+            DataOwnership.require(parent.getCreatedBy());
             if (!parent.getId().equals(oldParentId)) {
                 if (!isNew) {
                     try {
@@ -126,6 +131,7 @@ public class CategoryExcelHelper {
             }
         }
 
+        if (isNew) { category.setCreatedBy(com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail()); }
         Category saved = categoryRepository.save(category);
 
         // Nếu thay đổi cha, cập nhật lại level cho toàn bộ con cháu

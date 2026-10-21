@@ -1,4 +1,5 @@
 'use client';
+import { usePathname } from 'next/navigation';
 import React, { useEffect, useSyncExternalStore } from 'react';
 
 import { useAuthStore } from '@/store/authStore';
@@ -7,6 +8,7 @@ import { Forbidden } from '@/components/common';
 const emptySubscribe = () => () => {};
 
 export default function NextProtectedRoute({ children }: { readonly children: React.ReactNode }): React.ReactElement | null {
+  const pathname = usePathname();
   const { isAuthenticated, hasHydrated, isInitialized, user } = useAuthStore();
   
   const isClient = useSyncExternalStore(
@@ -46,9 +48,11 @@ export default function NextProtectedRoute({ children }: { readonly children: Re
   }
 
   // Chặn người dùng có role là USER truy cập vào admin
-  const isRestricted = user?.roles?.includes('ROLE_USER') && 
-                     !user?.roles?.includes('ROLE_SUPER_ADMIN') && 
-                     !user?.roles?.includes('ROLE_MANAGER');
+  const roles = [...(user?.roles || []), user?.role || ''].map(role => role.trim().replace(/^ROLE_/i, '').toUpperCase());
+  const isSuperAdmin = roles.includes('SUPER_ADMIN');
+  const isRolePage = pathname === '/roles' || pathname.startsWith('/roles/');
+  const isRestricted = (isRolePage && !isSuperAdmin)
+    || (roles.includes('USER') && !isSuperAdmin && !roles.includes('MANAGER'));
 
   if (isRestricted) {
     return <Forbidden />;

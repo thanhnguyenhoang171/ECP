@@ -4,12 +4,9 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { 
   Users, 
   Wifi, 
-  WifiOff, 
-  Shield, 
   ChevronDown,
   CheckCircle2,
   ShieldCheck,
-  ShoppingBag
 } from 'lucide-react';
 import { 
   PageHeader, 
@@ -23,7 +20,6 @@ import {
 import { 
   SearchInput, 
   AddNewButton, 
-  ImportButton, 
   ExportButton, 
   FilterPopover, 
   SortPopover, 
@@ -57,24 +53,28 @@ import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { toast } from 'sonner';
 import { PageResponse } from '@/types/pagination';
-import { UserStatistics } from '../api/user.api';
-import { isForbiddenError } from '@/constants/errorMessages';
+import { userApi, UserStatistics } from '../api/user.api';
+import { getApiErrorMessage, isForbiddenError } from '@/constants/errorMessages';
 import { formatDateTimeForFilename } from '@/lib/formatters';
 import { useRouter } from 'next/navigation';
+
+import { useAuthStore } from '@/store/authStore';
+import { Button } from '@/components/ui/button';
 
 interface UsersViewProps {
   initialData?: PageResponse<User>;
   initialStats?: UserStatistics;
 }
 
-export default function UsersView({ initialData, initialStats }: UsersViewProps) {
+export default function UsersView({ initialData, initialStats }: UsersViewProps): React.JSX.Element {
   const router = useRouter();
+  const currentUser = useAuthStore(state => state.user);
+  const isSuperAdmin = [...(currentUser?.roles || []), currentUser?.role || ''].some(role => role.replace(/^ROLE_/, '') === 'SUPER_ADMIN');
+  const canEdit = useCallback((user: User): boolean => isSuperAdmin || user.role !== 'SUPER_ADMIN', [isSuperAdmin]);
   const [activeTab, setActiveTab] = useState<'staff' | 'customers'>('staff');
 
   // React Query fetch số liệu thống kê thực tế từ API Backend (/v1/users/statistics)
-  const defaultStats: UserStatistics = { totalUsers: 0, onlineUsers: 0, offlineUsers: 0, managementUsers: 0, customerUsers: 0, activeUsers: 0, inactiveUsers: 0 };
-  const { data: statsData } = useUserStatistics(initialStats);
-  const stats = statsData || initialStats || defaultStats;
+  const { data: stats, error: statsError, refetch: refetchStats } = useUserStatistics(initialStats);
 
   const deleteMutation = useDeleteUser();
   const updateMutation = useUpdateUser();
@@ -92,7 +92,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
     searchParams: staffSearchParams,
   } = useViewParams('createdAt,desc');
 
-  const staffRoleParam = staffSearchParams.get('role') as User['role'] | null;
+  const staffRoleParam = staffSearchParams.get('role');
   const staffActiveParam = staffSearchParams.get('active');
 
   const handleStaffSearch = (val: string) => {
@@ -107,6 +107,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
     isLoading: isStaffLoading, 
     isFetching: isStaffFetching,
     error: staffError,
+    refetch: refetchStaff,
   } = useUsers(
     {
       page: staffPage,
@@ -144,6 +145,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
     isLoading: isCustomerLoading, 
     isFetching: isCustomerFetching,
     error: customerError,
+    refetch: refetchCustomers,
   } = useUsers(
     {
       page: customerPage,
@@ -198,12 +200,6 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
         data: {
           role: newRole,
         },
-      },
-      {
-        onSuccess: () => {
-          const roleLabel = ROLE_OPTIONS.find(r => r.value === newRole)?.label || newRole;
-          toast.success(`Đã cập nhật vai trò của ${user.fullName} thành ${roleLabel}`);
-        },
       }
     );
   }, [updateMutation]);
@@ -217,25 +213,32 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
           active: newStatus === 'active',
           status: newStatus,
         },
-      },
-      {
-        onSuccess: () => {
-          const statusText = newStatus === 'active' ? 'kích hoạt' : 'tạm khóa';
-          toast.success(`Đã ${statusText} tài khoản ${user.email}`);
-        },
       }
     );
   }, [updateMutation]);
 
   useHotkeys('+', activeTab === 'staff' ? handleCreateStaffClick : handleCreateCustomerClick);
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async (): Promise<void> => {
     setIsExporting(true);
-    setTimeout(() => {
-      toast.success(`Xuất file danh sách tài khoản (${formatDateTimeForFilename()}) thành công`);
-      setIsExporting(false);
-    }, 800);
-  }, []);
+    try {
+      const file = await userApi.export(activeTab === 'staff' ? {
+        sort: staffSort, keyword: staffName, roles: staffRoleParam ? [staffRoleParam] : ['SUPER_ADMIN', 'MANAGER'],
+        active: staffActiveParam === 'true' ? true : staffActiveParam === 'false' ? false : undefined,
+      } : { sort: customerSort, keyword: customerSearch, role: 'USER', active: customerActiveFilter === 'all' ? undefined : customerActiveFilter === 'active' });
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `tai-khoan_${activeTab}_${formatDateTimeForFilename()}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success('Đã xuất danh sách tài khoản');
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, 'Không thể xuất danh sách tài khoản'));
+    } finally { setIsExporting(false); }
+  }, [activeTab, staffSort, staffName, staffRoleParam, staffActiveParam, customerSort, customerSearch, customerActiveFilter]);
 
   const getRoleMeta = (role: User['role'] | string) => {
     const cleanRole = (role || '').toUpperCase().replace(/^ROLE_/, '').trim();
@@ -305,6 +308,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
             <DropdownMenuTrigger asChild>
               <button 
                 type="button" 
+                disabled={!canEdit(user) || updateMutation.isPending}
                 className="group inline-flex items-center gap-1.5 focus:outline-none"
                 title="Bấm để thay đổi vai trò hệ thống"
               >
@@ -319,7 +323,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
                 Gán vai trò mới
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {ROLE_OPTIONS.map((opt) => (
+              {ROLE_OPTIONS.filter(opt => isSuperAdmin || opt.value !== 'SUPER_ADMIN').map((opt) => (
                 <DropdownMenuItem
                   key={opt.value}
                   onClick={() => handleQuickRoleChange(user, opt.value)}
@@ -348,7 +352,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
           <Switch
             checked={user.status === 'active'}
             onCheckedChange={() => handleQuickStatusToggle(user)}
-            disabled={user.role === 'SUPER_ADMIN'}
+            disabled={!canEdit(user) || currentUser?.id === user.id || updateMutation.isPending}
             title={user.status === 'active' ? 'Đang hoạt động (Bấm để khóa)' : 'Tạm khóa (Bấm để kích hoạt)'}
           />
         </div>
@@ -358,6 +362,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
       header: 'Ngày tạo',
       align: 'center',
       accessorKey: 'createdAt',
+      cell: user => <span>{user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : '—'}</span>,
       className: 'w-[10%] min-w-[90px] text-xs text-slate-500 font-medium',
       headerClassName: 'w-[10%] min-w-[90px]',
       skeleton: <Skeleton className='h-4 w-20 mx-auto' />,
@@ -371,12 +376,12 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
       cell: (user) => (
         <div className='flex justify-end gap-1'>
           <ViewActionButton onClick={() => handleViewDetail(user)} disabled={isStaffLoading || isStaffFetching} />
-          <EditActionButton onClick={() => handleEditClick(user)} disabled={isStaffLoading || isStaffFetching} />
-          <DeleteActionButton onClick={() => setDeleteConfirmId(user.id)} disabled={isStaffLoading || isStaffFetching || user.role === 'SUPER_ADMIN'} />
+          <EditActionButton onClick={() => handleEditClick(user)} disabled={isStaffLoading || isStaffFetching || !canEdit(user)} />
+          <DeleteActionButton onClick={() => setDeleteConfirmId(user.id)} disabled={isStaffLoading || isStaffFetching || !canEdit(user) || currentUser?.id === user.id || deleteMutation.isPending} />
         </div>
       ),
     },
-  ], [handleEditClick, handleQuickRoleChange, handleQuickStatusToggle, handleViewDetail, isStaffFetching, isStaffLoading]);
+  ], [canEdit, currentUser?.id, deleteMutation.isPending, isSuperAdmin, updateMutation.isPending, handleEditClick, handleQuickRoleChange, handleQuickStatusToggle, handleViewDetail, isStaffFetching, isStaffLoading]);
 
   // Table Columns Khách hàng
   const customerColumns: ColumnDef<User>[] = useMemo(() => [
@@ -422,6 +427,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
             <DropdownMenuTrigger asChild>
               <button 
                 type="button" 
+                disabled={!canEdit(user) || updateMutation.isPending}
                 className="group inline-flex items-center gap-1.5 focus:outline-none"
                 title="Gán vai trò quản trị cho khách hàng này"
               >
@@ -436,7 +442,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
                 Nâng cấp vai trò
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {ROLE_OPTIONS.map((opt) => (
+              {ROLE_OPTIONS.filter(opt => isSuperAdmin || opt.value !== 'SUPER_ADMIN').map((opt) => (
                 <DropdownMenuItem
                   key={opt.value}
                   onClick={() => handleQuickRoleChange(user, opt.value)}
@@ -462,6 +468,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
           <Switch
             checked={user.status === 'active'}
             onCheckedChange={() => handleQuickStatusToggle(user)}
+            disabled={!canEdit(user) || currentUser?.id === user.id || updateMutation.isPending}
             title={user.status === 'active' ? 'Tài khoản hoạt động (Bấm để khóa)' : 'Đã bị khóa (Bấm để mở khóa)'}
           />
         </div>
@@ -471,6 +478,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
       header: 'Ngày đăng ký',
       align: 'center',
       accessorKey: 'createdAt',
+      cell: user => <span>{user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : '—'}</span>,
       className: 'text-xs text-slate-500 font-medium',
     },
     {
@@ -479,12 +487,12 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
       cell: (user) => (
         <div className='flex justify-end gap-1'>
           <ViewActionButton onClick={() => handleViewDetail(user)} disabled={isCustomerLoading || isCustomerFetching} />
-          <EditActionButton onClick={() => handleEditClick(user)} disabled={isCustomerLoading || isCustomerFetching} />
-          <DeleteActionButton onClick={() => setDeleteConfirmId(user.id)} disabled={isCustomerLoading || isCustomerFetching} />
+          <EditActionButton onClick={() => handleEditClick(user)} disabled={isCustomerLoading || isCustomerFetching || !canEdit(user)} />
+          <DeleteActionButton onClick={() => setDeleteConfirmId(user.id)} disabled={isCustomerLoading || isCustomerFetching || !canEdit(user) || currentUser?.id === user.id || deleteMutation.isPending} />
         </div>
       ),
     },
-  ], [handleEditClick, handleQuickRoleChange, handleQuickStatusToggle, handleViewDetail, isCustomerFetching, isCustomerLoading]);
+  ], [canEdit, currentUser?.id, deleteMutation.isPending, isSuperAdmin, updateMutation.isPending, handleEditClick, handleQuickRoleChange, handleQuickStatusToggle, handleViewDetail, isCustomerFetching, isCustomerLoading]);
 
   const filterBtnClass = (active: boolean) =>
     cn(
@@ -497,7 +505,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
   const sortOptions = [
     { value: 'createdAt,desc', label: 'Mới nhất' },
     { value: 'createdAt,asc', label: 'Cũ nhất' },
-    { value: 'fullName,asc', label: 'Tên (A-Z)' },
+    { value: 'profile.firstName,asc', label: 'Tên (A-Z)' },
     { value: 'email,asc', label: 'Email (A-Z)' },
   ];
 
@@ -517,7 +525,6 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
         actions={
           activeTab === 'staff' ? (
             <>
-              <ImportButton onClick={() => toast.info('Tính năng nhập file đang phát triển')} disabled={isStaffLoading || isStaffFetching} />
               <ExportButton onExport={handleExport} isLoading={isExporting} disabled={isStaffLoading || isStaffFetching} />
               <AddNewButton onClick={handleCreateStaffClick} disabled={isStaffLoading || isStaffFetching} />
             </>
@@ -530,6 +537,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
         }
       />
 
+      {statsError && <div role="alert" className="rounded-xl border border-red-200 p-4 text-sm text-red-700">{getApiErrorMessage(statsError, 'Không thể tải thống kê')} <Button variant="outline" onClick={() => void refetchStats()}>Thử lại</Button></div>}
       {/* Statistics Metric Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total Users Card */}
@@ -540,9 +548,9 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-xl font-black text-slate-900 font-mono">{stats.totalUsers}</p>
+          <p className="text-xl font-black text-slate-900 font-mono">{stats?.totalUsers ?? '—'}</p>
           <p className="text-[11px] text-slate-400 font-medium">
-            {stats.customerUsers} khách hàng • {stats.managementUsers} nhân sự
+            {stats?.customerUsers ?? '—'} khách hàng • {stats?.managementUsers ?? '—'} nhân sự
           </p>
         </div>
 
@@ -555,9 +563,9 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
               <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_#10B981]" />
             </div>
           </div>
-          <p className="text-xl font-black text-emerald-700 font-mono">{stats.onlineUsers}</p>
+          <p className="text-xl font-black text-emerald-700 font-mono">{stats?.onlineUsers ?? '—'}</p>
           <p className="text-[11px] text-slate-400 font-medium">
-            Realtime phiên Redis ({stats.offlineUsers} ngoại tuyến)
+            Cập nhật mỗi 30 giây ({stats?.offlineUsers ?? '—'} ngoại tuyến)
           </p>
         </div>
 
@@ -569,7 +577,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
               <ShieldCheck className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-xl font-black text-purple-700 font-mono">{stats.managementUsers}</p>
+          <p className="text-xl font-black text-purple-700 font-mono">{stats?.managementUsers ?? '—'}</p>
           <p className="text-[11px] text-slate-400 font-medium">
             Admin & Quản lý vận hành
           </p>
@@ -577,7 +585,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
       </div>
 
       {/* Tabs Container */}
-      <Tabs defaultValue="staff" onValueChange={(val) => setActiveTab(val as any)} className="space-y-6">
+      <Tabs defaultValue="staff" onValueChange={(val) => { if (val === 'staff' || val === 'customers') { setActiveTab(val); } }} className="space-y-6">
         <TabsList className="bg-slate-100 p-1.5 rounded-xl border border-slate-200/80 inline-flex gap-2">
           <TabsTrigger 
             value="staff" 
@@ -585,7 +593,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
           >
             <span>Quản lý nhân sự</span>
             <Badge className="bg-primary/10 text-primary text-[10px] font-extrabold px-1.5 py-0 border-none">
-              {stats.managementUsers}
+              {stats?.managementUsers ?? '—'}
             </Badge>
           </TabsTrigger>
           <TabsTrigger 
@@ -594,13 +602,14 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
           >
             <span>Quản lý khách hàng</span>
             <Badge className="bg-amber-100 text-amber-700 text-[10px] font-extrabold px-1.5 py-0 border-none">
-              {stats.customerUsers}
+              {stats?.customerUsers ?? '—'}
             </Badge>
           </TabsTrigger>
         </TabsList>
 
         {/* TAB 1: QUẢN LÝ NHÂN SỰ */}
         <TabsContent value="staff" className="space-y-6 mt-0">
+          {staffError && <div role="alert" className="rounded-xl border border-red-200 p-4 text-sm text-red-700">{getApiErrorMessage(staffError, 'Không thể tải nhân sự')} <Button variant="outline" onClick={() => void refetchStaff()}>Thử lại</Button></div>}
           <DataCard
             isLoading={isStaffLoading}
             isFetching={isStaffFetching}
@@ -697,6 +706,8 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
             }
           >
             <DataTable
+          auditTrail
+          recoveryModule="users"
               columns={staffColumns}
               data={staffUsers}
               isLoading={isStaffLoading && !staffUsers.length}
@@ -716,6 +727,7 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
 
         {/* TAB 2: QUẢN LÝ KHÁCH HÀNG */}
         <TabsContent value="customers" className="space-y-6 mt-0">
+          {customerError && <div role="alert" className="rounded-xl border border-red-200 p-4 text-sm text-red-700">{getApiErrorMessage(customerError, 'Không thể tải khách hàng')} <Button variant="outline" onClick={() => void refetchCustomers()}>Thử lại</Button></div>}
           <DataCard
             isLoading={isCustomerLoading}
             isFetching={isCustomerFetching}
@@ -781,6 +793,8 @@ export default function UsersView({ initialData, initialStats }: UsersViewProps)
             }
           >
             <DataTable
+          auditTrail
+          recoveryModule="users"
               columns={customerColumns}
               data={customerUsers}
               isLoading={isCustomerLoading && !customerUsers.length}

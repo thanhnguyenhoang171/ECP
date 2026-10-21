@@ -12,6 +12,8 @@ public interface AuditLogService {
     void log(String action, String email, String details);
     void log(String action, String email, String details, String status);
     PageResponse<AuditLogResponse> getAllLogs(AuditLogFilterRequest filter, Pageable pageable);
+    AuditLogResponse getLogById(String id);
+    void deleteLog(String id);
     List<AuditLogResponse> getLogsByEmail(String email);
     List<AuditLogResponse> getLogsByUsername(String username);
 }

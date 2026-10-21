@@ -15,6 +15,9 @@ import java.util.UUID;
 @Builder
 @Schema(description = "Response object representing a warehouse (Admin view with audit info)")
 public class WarehouseAdminResponse {
+    private String deletedBy;
+    private java.time.LocalDateTime deletedAt;
+
 
     @Schema(description = "Unique warehouse ID (UUID)")
     private UUID id;

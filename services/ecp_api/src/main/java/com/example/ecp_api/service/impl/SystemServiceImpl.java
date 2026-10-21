@@ -1,11 +1,13 @@
 package com.example.ecp_api.service.impl;
 
-import com.example.ecp_api.config.DataInitializer;
 import com.example.ecp_api.service.AuditLogService;
 import com.example.ecp_api.service.SystemService;
 import com.example.ecp_api.service.StorageService;
 import com.example.ecp_api.service.PurgePasswordService;
-import com.example.ecp_api.entity.mongodb.AuditLog;
+import com.example.ecp_api.entity.mongodb.Product;
+import com.example.ecp_api.entity.mongodb.Category;
+import com.example.ecp_api.entity.mongodb.Brand;
+import org.springframework.data.mongodb.core.query.Query;
 import com.example.ecp_api.exception.AppException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -27,13 +29,15 @@ public class SystemServiceImpl implements SystemService {
 
     private final PurgePasswordService purgePasswordService;
     private final MongoTemplate mongoTemplate;
-    private final DataInitializer dataInitializer;
     private final AuditLogService auditLogService;
     private final StorageService storageService;
 
     @Override
     @Transactional
     public void purgeAllData(String password) {
+        if (com.example.ecp_api.security.DataOwnership.restricted()) {
+            throw new AppException("FORBIDDEN", "Chỉ Super Admin được phép purge dữ liệu toàn hệ thống.", org.springframework.http.HttpStatus.FORBIDDEN);
+        }
         String currentEmail = com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail();
         try {
             purgePasswordService.verifyPassword(password);
@@ -45,62 +49,40 @@ public class SystemServiceImpl implements SystemService {
         }
 
         auditLogService.log("SYSTEM_PURGE_STARTED", currentEmail,
-                "Đã xác nhận mật khẩu và bắt đầu xoá file upload trên cloud cùng dữ liệu hệ thống. Nhật ký kiểm toán được giữ lại.", "IN_PROGRESS");
-        log.warn("PURGING ALL DATA FROM SYSTEM triggered by {}...", currentEmail);
+                "Đã xác nhận mật khẩu và bắt đầu xoá sản phẩm, danh mục, thương hiệu, kho hàng và media tương ứng. Giữ nguyên tài khoản, phân quyền, phiên đăng nhập và nhật ký kiểm toán.", "IN_PROGRESS");
+        log.warn("PURGING CATALOG AND INVENTORY DATA triggered by {}...", currentEmail);
         try {
-            storageService.purgeUploads();
+            storageService.purgeBusinessUploads();
             purgeJpaData();
             purgeMongoData();
-            dataInitializer.initializeDefaults();
         } catch (RuntimeException error) {
             auditLogService.log("SYSTEM_PURGE_FAILED", currentEmail,
-                    "Xoá dữ liệu hệ thống không hoàn tất. Loại lỗi: " + error.getClass().getSimpleName(), "FAILURE");
+                    "Xoá dữ liệu sản phẩm và kho hàng không hoàn tất. Loại lỗi: " + error.getClass().getSimpleName(), "FAILURE");
             throw error;
         }
 
         auditLogService.log("SYSTEM_PURGE_ALL_DATA", currentEmail,
-                "Đã xoá file upload trên cloud, xoá dữ liệu hệ thống và khởi tạo lại tài khoản mặc định. Nhật ký kiểm toán được giữ lại.");
+                "Đã xoá sản phẩm, danh mục, thương hiệu, dữ liệu kho hàng và media tương ứng. Tài khoản, phân quyền, phiên đăng nhập và nhật ký kiểm toán được giữ nguyên.");
         log.info("SYSTEM PURGE COMPLETED SUCCESSFULLY.");
     }
 
     private void purgeJpaData() {
-        log.info("Purging JPA data...");
-        
-        // Disable foreign key checks for MySQL
-        entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 0").executeUpdate();
-
+        // Child tables first. DELETE participates in the SQL transaction and keeps
+        // foreign-key checks enabled; account/access/session tables are never touched.
         List<String> tables = List.of(
-                "goods_receipt_items",
-                "goods_receipts",
-                "inventory_ledgers",
-                "inventory",
-                "po_items",
-                "purchase_orders",
-                "skus",
-                "suppliers",
-                "user_purge_credentials",
-                "user_profiles",
-                "addresses",
-                "users",
-                "warehouses"
+                "goods_receipt_items", "goods_receipts", "inventory_ledgers", "inventory",
+                "po_items", "purchase_orders", "skus", "suppliers", "warehouses"
         );
-
-        try {
-            for (String table : tables) {
-                entityManager.createNativeQuery("TRUNCATE TABLE " + table).executeUpdate();
-            }
-        } finally {
-            entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 1").executeUpdate();
+        for (String table : tables) {
+            entityManager.createNativeQuery("DELETE FROM " + table).executeUpdate();
         }
     }
 
     private void purgeMongoData() {
-        log.info("Purging MongoDB data...");
-        String auditCollection = mongoTemplate.getCollectionName(AuditLog.class);
-        for (String collectionName : mongoTemplate.getCollectionNames()) {
-            if (!collectionName.startsWith("system.") && !collectionName.equals(auditCollection)) {
-                mongoTemplate.dropCollection(collectionName);
-            }
-        }
+        // Explicit collection allowlist. Preserve audit logs, unrelated collections
+        // and the indexes/validators on the collections being emptied.
+        mongoTemplate.remove(new Query(), Product.class);
+        mongoTemplate.remove(new Query(), Category.class);
+        mongoTemplate.remove(new Query(), Brand.class);
     }
 }

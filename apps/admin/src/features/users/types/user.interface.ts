@@ -1,5 +1,7 @@
 export interface User {
   id: string;
+  roles?: string[];
+  provider?: string;
   fullName: string;
   email: string;
   phone: string;
@@ -15,6 +17,8 @@ export interface User {
   updatedAt?: string;
   createdBy?: string;
   updatedBy?: string;
+  deletedBy?: string;
+  deletedAt?: string;
 }
 
 export const ROLE_OPTIONS: { value: User['role']; label: string; color: string }[] = [

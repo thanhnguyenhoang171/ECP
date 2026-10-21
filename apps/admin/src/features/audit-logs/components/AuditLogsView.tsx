@@ -1,264 +1,86 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { 
-  Activity, 
-  Clock, 
-  User, 
-  ShieldCheck, 
-  Search,
-  Settings,
-  ShoppingBag,
-  RefreshCw
-} from 'lucide-react';
-import { 
-  PageHeader, 
-  DataTable, 
-  type ColumnDef,
-  Button,
-  DataCard,
-  NextPagination
-} from '@/components/common';
+import React, { useMemo, useState } from 'react';
+import { Activity, Eye, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { PageHeader, DataTable, type ColumnDef, DataCard, NextPagination } from '@/components/common';
+import { DeleteConfirmDialog } from '@/components/common/view-control';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { getApiErrorMessage, isForbiddenError } from '@/constants/errorMessages';
 import { useAuthStore } from '@/store/authStore';
-import { AuditLog, AuditLogType } from '../types/audit-logs.interface';
-import { getActionBadge } from '../utils/audit-log-formatters';
-import { useAuditLogs } from '../hooks/use-audit-logs';
 import { formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { AuditLog, AuditLogType } from '../types/audit-logs.interface';
+import { getActionBadge } from '../utils/audit-log-formatters';
+import { useAuditLogs, useDeleteAuditLog } from '../hooks/use-audit-logs';
+import { auditLogsApi } from '../api/audit-logs.api';
 
-const mockLogs: AuditLog[] = [
-  {
-    id: 'm-1',
-    type: 'MANAGEMENT',
-    action: 'UPDATE_PRODUCT',
-    username: 'admin_thanh',
-    details: 'Thay đổi giá sản phẩm Mực Sấy Bento Thái Lan 20g',
-    target: 'Mực Sấy Bento Thái Lan 20g',
-    timestamp: new Date().toISOString(),
-  },
-  {
-    id: 'm-2',
-    type: 'MANAGEMENT',
-    action: 'CREATE_ORDER',
-    username: 'sales_manager',
-    details: 'Tạo đơn hàng mới cho khách hàng Nguyễn Văn A',
-    target: 'ORD-2026-001',
-    timestamp: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: 'm-3',
-    type: 'MANAGEMENT',
-    action: 'DELETE_BRAND',
-    username: 'admin_thanh',
-    details: 'Xóa thương hiệu Nokia khỏi hệ thống',
-    target: 'Nokia',
-    timestamp: new Date(Date.now() - 86400000).toISOString(),
-  },
-];
-
-export default function AuditLogsView() {
-  const { user } = useAuthStore();
-  const isSuperAdmin = user?.roles?.includes('ROLE_SUPER_ADMIN');
-  const [activeTab, setActiveTab] = useState<AuditLogType>('SYSTEM');
+export default function AuditLogsView(): React.JSX.Element {
+  const user = useAuthStore(state => state.user);
+  const roles = [...(user?.roles || []), user?.role || ''].map(role => role.replace(/^ROLE_/i, '').toUpperCase());
+  const isSuperAdmin = roles.includes('SUPER_ADMIN');
+  const canRead = isSuperAdmin || roles.includes('MANAGER');
+  const [selectedTab, setSelectedTab] = useState<AuditLogType>('SYSTEM');
+  const activeTab = isSuperAdmin ? selectedTab : 'MANAGEMENT';
   const [searchTerm, setSearchTerm] = useState('');
+  const [status, setStatus] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(20);
+  const [detail, setDetail] = useState<AuditLog | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const dateError = Boolean(from && to && from > to);
+  const logs = useAuditLogs({ page, size, sort: 'timestamp,desc', keyword: searchTerm || undefined,
+    module: activeTab, status: status || undefined, from: from ? `${from}T00:00:00` : undefined,
+    to: to ? `${to}T23:59:59.999999999` : undefined, enabled: canRead && !dateError });
+  const deletion = useDeleteAuditLog();
+  const data = useMemo(() => logs.data?.data || [], [logs.data]);
+  const total = logs.data?.pagination?.totalElements ?? 0;
 
-  // Fetch API /v1/audit-logs khi chon Tab 'SYSTEM'
-  const { 
-    data: apiResponse, 
-    isFetching: isApiLoading,
-    refetch 
-  } = useAuditLogs({
-    page,
-    size,
-    username: searchTerm || undefined,
-    enabled: activeTab === 'SYSTEM',
-  });
-
-  const displayData = useMemo(() => {
-    if (activeTab === 'SYSTEM') {
-      return Array.isArray(apiResponse?.data) ? apiResponse.data : [];
-    }
-    return mockLogs.filter(log => 
-      log.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      log.details.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [activeTab, apiResponse, searchTerm]);
-
-  const totalItems = useMemo(() => {
-    if (activeTab === 'SYSTEM') {
-      return apiResponse?.pagination?.totalElements || displayData.length;
-    }
-    return displayData.length;
-  }, [activeTab, apiResponse, displayData]);
-
-  const totalPages = useMemo(() => {
-    if (activeTab === 'SYSTEM') {
-      return apiResponse?.pagination?.totalPages || Math.ceil(totalItems / size) || 1;
-    }
-    return Math.ceil(displayData.length / size) || 1;
-  }, [activeTab, apiResponse, totalItems, size, displayData]);
-
-  const handleRefresh = () => {
-    if (activeTab === 'SYSTEM') {
-      refetch();
-    }
-    toast.success('Đã làm mới dữ liệu nhật ký');
+  const viewDetail = async (id: string): Promise<void> => {
+    setLoadingDetail(true);
+    try { setDetail(await auditLogsApi.getById(id)); }
+    catch (error) { toast.error(getApiErrorMessage(error, 'Không thể tải chi tiết nhật ký.')); }
+    finally { setLoadingDetail(false); }
   };
+  const columns: ColumnDef<AuditLog>[] = [
+    { header: 'Thời gian', cell: entry => <span className="text-xs whitespace-nowrap">{formatDate(entry.timestamp)}</span> },
+    { header: 'Người thực hiện', cell: entry => <span className="text-sm font-medium">{entry.email || entry.username || 'SYSTEM'}</span> },
+    { header: 'Hành động', cell: entry => getActionBadge(entry.action) },
+    { header: 'Kết quả', cell: entry => <span className={cn('text-xs font-semibold', entry.status === 'FAILURE' ? 'text-red-500' : 'text-emerald-600')}>{entry.status === 'FAILURE' ? 'Thất bại' : entry.status === 'SUCCESS' ? 'Thành công' : entry.status || '—'}</span> },
+    { header: 'Chi tiết', cell: entry => <p className="max-w-md truncate text-sm" title={entry.details}>{entry.details || '—'}</p> },
+    { header: 'Địa chỉ IP', cell: entry => <span className="text-xs font-mono">{entry.ipAddress || '—'}</span> },
+    { header: 'Thao tác', align: 'right', cell: entry => <div className="flex justify-end gap-1">
+      <Button variant="ghost" size="icon" aria-label="Xem chi tiết nhật ký" disabled={loadingDetail} onClick={() => { void viewDetail(entry.id); }}><Eye size={16} /></Button>
+      {isSuperAdmin && <Button variant="ghost" size="icon" aria-label="Xoá nhật ký" className="text-red-500" onClick={() => setDeleteId(entry.id)}><Trash2 size={16} /></Button>}
+    </div> },
+  ];
 
-  const columns: ColumnDef<AuditLog>[] = useMemo(() => [
-    {
-      header: 'Thời gian',
-      accessorKey: 'timestamp',
-      cell: (log: AuditLog) => (
-        <div className="flex items-center gap-2 text-slate-500">
-          <Clock size={14} />
-          <span className="text-xs font-medium">{formatDate(log.timestamp)}</span>
-        </div>
-      )
-    },
-    {
-      header: 'Người thực hiện',
-      accessorKey: 'username',
-      cell: (log: AuditLog) => (
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-[10px]">
-            {log.username ? log.username.substring(0, 2).toUpperCase() : <User size={12} />}
-          </div>
-          <span className="text-sm font-semibold text-slate-800">{log.username || 'System'}</span>
-        </div>
-      )
-    },
-    {
-      header: 'Hành động',
-      accessorKey: 'action',
-      cell: (log: AuditLog) => getActionBadge(log.action)
-    },
-    {
-      header: 'Chi tiết',
-      accessorKey: 'details',
-      cell: (log: AuditLog) => (
-        <div className="max-w-md">
-          <p className="text-sm text-slate-700 line-clamp-1">{log.details || (log as any).description || 'Thực hiện thao tác hệ thống'}</p>
-          {log.target && (
-            <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 mt-1 inline-block font-mono">
-              Target: {log.target}
-            </span>
-          )}
-        </div>
-      )
-    },
-    {
-      header: 'IP / Metadata',
-      accessorKey: 'ipAddress',
-      cell: (log: AuditLog) => (
-        <span className="text-xs font-mono text-slate-500 bg-slate-50 px-2 py-1 rounded border border-slate-100">
-          {log.ipAddress || (log as any).ip || '---'}
-        </span>
-      )
-    }
-  ], []);
-
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Nhật ký hoạt động"
-        breadcrumbs={[
-          { label: 'Hệ thống', href: '/users' },
-          { label: 'Nhật ký', active: true }
-        ]}
-        action={
-          <Button variant="outline" size="sm" onClick={handleRefresh} className="gap-2">
-            <RefreshCw className={cn("w-3.5 h-3.5", isApiLoading && "animate-spin")} />
-            Làm mới
-          </Button>
-        }
-      />
-
-      <DataCard
-        className="overflow-hidden"
-        search={
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input
-              type="text"
-              placeholder="Tìm theo người dùng, nội dung..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-100/50 border-none rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPage(1);
-              }}
-            />
-          </div>
-        }
-        extra={
-          <div className="flex border border-slate-200 p-1 bg-white rounded-lg">
-            <button
-              onClick={() => {
-                setActiveTab('SYSTEM');
-                setPage(1);
-              }}
-              className={cn(
-                "flex items-center gap-2 px-4 py-1.5 text-[11px] font-bold transition-all rounded-md",
-                activeTab === 'SYSTEM' 
-                  ? "bg-slate-900 text-white shadow-sm" 
-                  : "text-slate-500 hover:text-slate-700"
-              )}
-            >
-              <ShieldCheck size={14} />
-              Hệ thống (API)
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('MANAGEMENT');
-                setPage(1);
-              }}
-              className={cn(
-                "flex items-center gap-2 px-4 py-1.5 text-[11px] font-bold transition-all rounded-md",
-                activeTab === 'MANAGEMENT' 
-                  ? "bg-slate-900 text-white shadow-sm" 
-                  : "text-slate-500 hover:text-slate-700"
-              )}
-            >
-              <Activity size={14} />
-              Quản lý
-            </button>
-          </div>
-        }
-        footer={
-          isSuperAdmin && (isApiLoading || totalItems > 0) && (
-            <NextPagination
-              isLoading={isApiLoading}
-              currentPage={page}
-              totalPages={totalPages}
-              totalItems={totalItems}
-              itemsPerPage={size}
-              onItemsPerPageChange={setSize}
-              onPageChange={setPage}
-            />
-          )
-        }
-      >
-        <DataTable 
-          columns={columns} 
-          data={displayData} 
-          isLoading={activeTab === 'SYSTEM' && isApiLoading && !displayData.length}
-          isForbidden={!isSuperAdmin}
-          forbiddenState={{
-            title: "Không có quyền xem nhật ký hoạt động",
-            description: "Chỉ Quản trị viên cấp cao (SUPER_ADMIN) mới có quyền truy cập nhật ký hoạt động của hệ thống.",
-          }}
-          emptyState={{
-            title: "Chưa có nhật ký hoạt động",
-            description: "Hiện chưa ghi nhận nhật ký hoạt động nào trong hệ thống.",
-            icon: <ShieldCheck className="h-10 w-10 text-blue-500 opacity-80" />,
-            iconColor: "bg-blue-50"
-          }}
-        />
-      </DataCard>
-    </div>
-  );
+  return <div className="space-y-6">
+    <PageHeader title="Nhật ký kiểm toán" description={isSuperAdmin ? 'Theo dõi nhật ký API và hoạt động quản lý của toàn hệ thống.' : 'Nhật ký thao tác quản lý do chính tài khoản của bạn thực hiện.'} action={
+      <Button variant="outline" size="sm" disabled={logs.isFetching || !canRead || dateError} onClick={() => { void logs.refetch(); }}><RefreshCw size={14} className={cn('mr-2', logs.isFetching && 'animate-spin')} />Làm mới</Button>
+    } />
+    <DataCard search={<input aria-label="Tìm kiếm nhật ký" placeholder="Tìm hành động, email, nội dung hoặc IP..." className="w-full rounded-lg border bg-background px-3 py-2 text-sm" value={searchTerm} onChange={event => { setSearchTerm(event.target.value); setPage(1); }} />}
+      extra={<div className="flex gap-1 rounded-lg border p-1" role="tablist" aria-label="Loại nhật ký">
+        {isSuperAdmin && <button role="tab" aria-selected={activeTab === 'SYSTEM'} className={cn('flex items-center gap-2 rounded px-3 py-2 text-xs font-semibold', activeTab === 'SYSTEM' && 'bg-primary text-primary-foreground')} onClick={() => { setSelectedTab('SYSTEM'); setPage(1); }}><ShieldCheck size={14} />Hệ thống (API)</button>}
+        <button role="tab" aria-selected={activeTab === 'MANAGEMENT'} className={cn('flex items-center gap-2 rounded px-3 py-2 text-xs font-semibold', activeTab === 'MANAGEMENT' && 'bg-primary text-primary-foreground')} onClick={() => { setSelectedTab('MANAGEMENT'); setPage(1); }}><Activity size={14} />Quản lý</button>
+      </div>}
+      footer={canRead && !logs.isError && <NextPagination isLoading={logs.isFetching} currentPage={page} totalPages={Math.max(1, logs.data?.pagination?.totalPages || 1)} totalItems={total} itemsPerPage={size} onItemsPerPageChange={value => { setSize(value); setPage(1); }} onPageChange={setPage} />}>
+      <div className="flex flex-wrap items-end gap-3 border-b p-4 text-xs">
+        <label className="space-y-1">Kết quả<select aria-label="Lọc kết quả" className="ml-2 rounded border bg-background p-2" value={status} onChange={event => { setStatus(event.target.value); setPage(1); }}><option value="">Tất cả</option><option value="SUCCESS">Thành công</option><option value="FAILURE">Thất bại</option></select></label>
+        <label>Từ ngày<input type="date" className="ml-2 rounded border bg-background p-2" value={from} onChange={event => { setFrom(event.target.value); setPage(1); }} /></label>
+        <label>Đến ngày<input type="date" className="ml-2 rounded border bg-background p-2" value={to} onChange={event => { setTo(event.target.value); setPage(1); }} /></label>
+        <Button variant="ghost" size="sm" onClick={() => { setSearchTerm(''); setStatus(''); setFrom(''); setTo(''); setPage(1); }}>Xoá bộ lọc</Button>
+      </div>
+      {dateError ? <p role="alert" className="p-4 text-sm text-red-500">Ngày bắt đầu phải trước ngày kết thúc.</p> : logs.isError && !isForbiddenError(logs.error) ? <div role="alert" className="p-6 text-sm text-red-500">{getApiErrorMessage(logs.error, 'Không thể tải nhật ký.')} <Button variant="outline" size="sm" onClick={() => { void logs.refetch(); }}>Thử lại</Button></div> :
+        <DataTable columns={columns} data={data} isLoading={logs.isFetching && !data.length} isForbidden={!canRead || isForbiddenError(logs.error)} forbiddenState={{ title: 'Không có quyền xem nhật ký', description: 'Chỉ Super Admin và Manager được truy cập nhật ký trong phạm vi được cấp.' }} emptyState={{ title: 'Chưa có nhật ký phù hợp', description: 'Thử thay đổi từ khoá hoặc bộ lọc.' }} />}
+    </DataCard>
+    <Dialog open={detail !== null} onOpenChange={open => { if (!open) { setDetail(null); } }}><DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle>Chi tiết nhật ký kiểm toán</DialogTitle></DialogHeader>{detail && <dl className="space-y-3 text-sm">
+      {Object.entries({ 'Thời gian': formatDate(detail.timestamp), 'Người thực hiện': detail.email || detail.username || 'SYSTEM', 'Hành động': detail.action, 'Loại': detail.module, 'Phân hệ': detail.domain, 'Kết quả': detail.status, 'Địa chỉ IP': detail.ipAddress, 'Thiết bị': detail.userAgent, 'Nội dung': detail.details }).map(([label, value]) => <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="whitespace-pre-wrap break-words">{value || '—'}</dd></div>)}
+    </dl>}</DialogContent></Dialog>
+    {isSuperAdmin && <DeleteConfirmDialog isOpen={deleteId !== null} onClose={() => setDeleteId(null)} onConfirm={() => { if (deleteId) { deletion.mutate(deleteId, { onSuccess: () => { setDeleteId(null); setPage(1); } }); } }} isLoading={deletion.isPending} title="Xoá nhật ký kiểm toán" description="Nhật ký này sẽ bị xoá vĩnh viễn. Hành động xoá được ghi lại trong nhật ký hệ thống." />}
+  </div>;
 }

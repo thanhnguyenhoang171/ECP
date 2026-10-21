@@ -1,9 +1,13 @@
 'use client';
 
+import { WarehouseRequestError } from '@/features/inventory/components/WarehouseRequestError';
+
+import type { ClientPurchaseOrder } from '@/features/inventory/types/inventory.types';
+
 import React, { useState, useMemo, useCallback } from 'react';
-import { 
-  FileText, 
-  PackagePlus, 
+import {
+  FileText,
+  PackagePlus,
   Building2,
   CheckCircle2,
   XCircle,
@@ -13,33 +17,24 @@ import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination, type Colu
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
-import { 
-  SearchInput, 
-  AddNewButton, 
-  FilterPopover, 
-  ViewActionButton, 
-  EditActionButton,
-  DeleteActionButton, 
-  DeleteConfirmDialog 
-} from '@/components/common/view-control';
+import { SearchInput, AddNewButton, ViewActionButton, EditActionButton, DeleteActionButton, DeleteConfirmDialog } from '@/components/common/view-control';
 import { formatCurrency } from '@/lib/formatters';
-import { toast } from 'sonner';
 
-import { usePurchaseOrders, useUpdatePOStatus } from '../hooks/use-purchase-order-mutation';
+import { usePurchaseOrders, useUpdatePOStatus, useDeletePurchaseOrder } from '../hooks/use-purchase-order-mutation';
 import { isForbiddenError } from '@/constants/errorMessages';
-import { UI } from '@/constants/uiMessages';
 
-export default function PurchaseOrdersView() {
+export default function PurchaseOrdersView() : React.JSX.Element {
   const router = useRouter();
-  const { data: poData, isLoading, error } = usePurchaseOrders();
+  const { data: poData, isLoading, error, refetch } = usePurchaseOrders();
   const isForbidden = isForbiddenError(error);
+  const deleteMutation = useDeletePurchaseOrder();
   const updateStatusMutation = useUpdatePOStatus();
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -47,35 +42,10 @@ export default function PurchaseOrdersView() {
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(10);
 
-  const purchaseOrdersList = React.useMemo(() => {
-    if (Array.isArray(poData)) {
-      return poData.map((item: any) => {
-        const items = item.items || [];
-        const calcQty = items.reduce((acc: number, it: any) => acc + Number(it.orderQuantity || it.orderedQuantity || it.quantity || 0), 0);
-        const calcAmount = items.reduce((acc: number, it: any) => acc + (Number(it.orderQuantity || it.orderedQuantity || 1) * Number(it.unitPrice || 0)), 0);
-
-        return {
-          id: item.id || item._id,
-          code: item.code || item.poCode || `PO-${item.id}`,
-          supplierName: item.supplierName || item.supplier?.name || UI.UNKNOWN_SUPPLIER,
-          warehouseName: item.warehouseName || item.warehouse?.name || UI.UNKNOWN_WAREHOUSE_RECEIVE,
-
-          totalItems: items.length || item.totalItems || 1,
-          totalQuantity: calcQty || item.totalQuantity || 1,
-          totalAmount: calcAmount || item.totalAmount || 0,
-          status: item.status || 'APPROVED',
-          expectedDeliveryDate: item.expectedDeliveryDate || new Date().toISOString(),
-          createdAt: item.createdAt || new Date().toISOString(),
-          createdBy: item.createdBy || UI.ADMIN
-
-        };
-      });
-    }
-    return [];
-  }, [poData]);
+  const purchaseOrdersList = React.useMemo(() => poData ?? [], [poData]);
 
   const filteredOrders = React.useMemo(() => {
-    return purchaseOrdersList.filter((item: any) =>
+    return purchaseOrdersList.filter((item: ClientPurchaseOrder) =>
       item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.warehouseName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -83,16 +53,16 @@ export default function PurchaseOrdersView() {
   }, [purchaseOrdersList, searchTerm]);
 
   const paginatedOrders = React.useMemo(() => {
-    const start = (page - 1) * size;
+    const start = Math.min(page - 1, Math.max(0, Math.ceil(filteredOrders.length / size) - 1)) * size;
     return filteredOrders.slice(start, start + size);
   }, [filteredOrders, page, size]);
 
   const totalPages = Math.ceil(filteredOrders.length / size) || 1;
 
-  const renderStatusDropdown = useCallback((item: any) => {
+  const renderStatusDropdown = useCallback((item: ClientPurchaseOrder) => {
     const status = item.status;
-    const isDraft = status === 'DRAFT' || status === 'PENDING';
-    const isOrdered = status === 'ORDERED' || status === 'APPROVED';
+    const isDraft = status === 'DRAFT';
+    const isOrdered = status === 'ORDERED';
     const isPartial = status === 'PARTIALLY_RECEIVED';
     const isCompleted = status === 'COMPLETED';
     const isCancelled = status === 'CANCELLED';
@@ -114,7 +84,7 @@ export default function PurchaseOrdersView() {
       label = "Đã hủy";
     }
 
-    if (isCompleted || isCancelled) {
+    if (isCompleted || isCancelled || isPartial) {
       return <Badge className={`text-xs border ${badgeClass}`}>{label}</Badge>;
     }
 
@@ -128,23 +98,15 @@ export default function PurchaseOrdersView() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="center" className="w-48 p-1">
           {isDraft && (
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={() => updateStatusMutation.mutate({ id: item.id, status: 'ORDERED' })}
               className="text-xs gap-2 font-medium text-emerald-700 hover:bg-emerald-50 cursor-pointer"
             >
               <CheckCircle2 size={14} /> Đặt hàng (ORDERED)
             </DropdownMenuItem>
           )}
-          {(isOrdered || isPartial) && (
-            <DropdownMenuItem 
-              onClick={() => updateStatusMutation.mutate({ id: item.id, status: 'COMPLETED' })}
-              className="text-xs gap-2 font-medium text-blue-700 hover:bg-blue-50 cursor-pointer"
-            >
-              <CheckCircle2 size={14} /> Đánh dấu hoàn thành
-            </DropdownMenuItem>
-          )}
-          {!isCancelled && (
-            <DropdownMenuItem 
+          {(isDraft || isOrdered) && (
+            <DropdownMenuItem
               onClick={() => updateStatusMutation.mutate({ id: item.id, status: 'CANCELLED' })}
               className="text-xs gap-2 font-medium text-red-600 hover:bg-red-50 cursor-pointer"
             >
@@ -156,14 +118,14 @@ export default function PurchaseOrdersView() {
     );
   }, [updateStatusMutation]);
 
-  const columns: ColumnDef<any>[] = useMemo(() => [
+  const columns: ColumnDef<ClientPurchaseOrder>[] = useMemo(() => [
     {
       accessorKey: 'code',
       header: 'Mã PO',
       className: 'w-[14%] min-w-[110px]',
       headerClassName: 'w-[14%] min-w-[110px]',
-      cell: (item: any) => (
-        <span 
+      cell: (item: ClientPurchaseOrder) => (
+        <span
           onClick={() => router.push(`/purchase-orders/${item.id}`)}
           className="font-mono font-bold text-xs text-blue-600 hover:underline cursor-pointer"
         >
@@ -176,7 +138,7 @@ export default function PurchaseOrdersView() {
       header: 'Nhà cung cấp',
       className: 'w-[22%] min-w-[160px]',
       headerClassName: 'w-[22%] min-w-[160px]',
-      cell: (item: any) => (
+      cell: (item: ClientPurchaseOrder) => (
         <div className="flex flex-col">
           <span className="text-xs font-semibold text-slate-800">{item.supplierName}</span>
           <span className="text-[10px] text-slate-400 flex items-center gap-1">
@@ -191,7 +153,7 @@ export default function PurchaseOrdersView() {
       align: 'center' as const,
       className: 'w-[14%] min-w-[110px]',
       headerClassName: 'w-[14%] min-w-[110px]',
-      cell: (item: any) => (
+      cell: (item: ClientPurchaseOrder) => (
         <div className="flex flex-col items-center">
           <span className="text-xs font-bold text-slate-700">{item.totalQuantity} sản phẩm</span>
           <span className="text-[10px] text-slate-400">({item.totalItems} SKU)</span>
@@ -204,7 +166,7 @@ export default function PurchaseOrdersView() {
       align: 'right' as const,
       className: 'w-[16%] min-w-[130px]',
       headerClassName: 'w-[16%] min-w-[130px]',
-      cell: (item: any) => (
+      cell: (item: ClientPurchaseOrder) => (
         <span className="text-xs font-mono font-bold text-slate-900">
           {formatCurrency(item.totalAmount)}
         </span>
@@ -216,14 +178,14 @@ export default function PurchaseOrdersView() {
       align: 'center' as const,
       className: 'w-[16%] min-w-[140px]',
       headerClassName: 'w-[16%] min-w-[140px]',
-      cell: (item: any) => renderStatusDropdown(item)
+      cell: (item: ClientPurchaseOrder) => renderStatusDropdown(item)
     },
     {
       accessorKey: 'createdAt',
       header: 'Ngày lập',
       className: 'w-[10%] min-w-[100px]',
       headerClassName: 'w-[10%] min-w-[100px]',
-      cell: (item: any) => (
+      cell: (item: ClientPurchaseOrder) => (
         <div className="flex flex-col">
           <span className="text-xs font-medium text-slate-600">
             {new Date(item.createdAt).toLocaleDateString('vi-VN')}
@@ -237,19 +199,19 @@ export default function PurchaseOrdersView() {
       align: 'right' as const,
       className: 'w-[8%] min-w-[90px]',
       headerClassName: 'w-[8%] min-w-[90px]',
-      cell: (item: any) => {
-        const isApproved = item.status === 'APPROVED' || item.status === 'ORDERED';
+      cell: (item: ClientPurchaseOrder) => {
+        const isApproved = item.status === 'ORDERED' || item.status === 'PARTIALLY_RECEIVED';
 
         return (
           <div className="flex justify-end gap-1">
-            <ViewActionButton 
-              onClick={() => router.push(`/purchase-orders/${item.id}`)} 
-              disabled={isLoading} 
+            <ViewActionButton
+              onClick={() => router.push(`/purchase-orders/${item.id}`)}
+              disabled={isLoading}
             />
-            <EditActionButton 
-              onClick={() => router.push(`/purchase-orders/${item.id}/edit`)} 
-              disabled={isLoading} 
-            />
+            {item.status === 'DRAFT' && <EditActionButton
+              onClick={() => router.push(`/purchase-orders/${item.id}/edit`)}
+              disabled={isLoading}
+            />}
 
             {isApproved && item.status !== 'COMPLETED' && (
               <TooltipProvider>
@@ -270,10 +232,10 @@ export default function PurchaseOrdersView() {
               </TooltipProvider>
             )}
 
-            <DeleteActionButton 
-              onClick={() => setDeleteConfirmId(item.id)} 
-              disabled={isLoading} 
-            />
+            {item.status === 'DRAFT' && <DeleteActionButton
+              onClick={() => setDeleteConfirmId(item.id)}
+              disabled={isLoading}
+            />}
           </div>
         );
       }
@@ -287,36 +249,39 @@ export default function PurchaseOrdersView() {
   return (
     <div className="space-y-6">
       <Breadcrumbs items={breadcrumbItems} />
-      <PageHeader 
+      <PageHeader
         title="Quản lý Đơn mua hàng"
         description="Theo dõi các đơn đặt mua hàng hóa từ Nhà cung cấp trước khi nhập kho."
         actions={
-          <AddNewButton 
-            onClick={() => router.push('/purchase-orders/new')} 
-            label="Tạo đơn mua mới" 
+          <AddNewButton
+            onClick={() => router.push('/purchase-orders/new')}
+            label="Tạo đơn mua mới"
           />
         }
       />
 
+      <WarehouseRequestError error={error} retry={() => { void refetch(); }} />
       <DataCard
         search={<SearchInput placeholder="Tìm theo mã PO, tên Nhà cung cấp..." value={searchTerm} onChange={(val) => { setSearchTerm(val); setPage(1); }} />}
         footer={
           !isForbidden && (isLoading || filteredOrders.length > 0) && (
             <NextPagination
               isLoading={isLoading}
-              currentPage={page}
+              currentPage={Math.min(page, totalPages)}
               totalPages={totalPages}
               totalItems={filteredOrders.length}
               itemsPerPage={size}
-              onItemsPerPageChange={setSize}
+              onItemsPerPageChange={(value) => { setSize(value); setPage(1); }}
               onPageChange={setPage}
             />
           )
         }
       >
-        <DataTable 
-          columns={columns} 
-          data={paginatedOrders} 
+        <DataTable
+          auditTrail
+          recoveryModule="purchase-orders"
+          columns={columns}
+          data={paginatedOrders}
           isLoading={isLoading && !filteredOrders.length}
           loadingRows={size}
           isForbidden={isForbidden}
@@ -336,12 +301,11 @@ export default function PurchaseOrdersView() {
       <DeleteConfirmDialog
         isOpen={!!deleteConfirmId}
         onClose={() => setDeleteConfirmId(null)}
-        isLoading={false}
+        isLoading={deleteMutation.isPending}
         onConfirm={() => {
-          toast.success('Đã xóa đơn mua hàng thành công');
-          setDeleteConfirmId(null);
+          if (deleteConfirmId) { deleteMutation.mutate(deleteConfirmId, { onSuccess: () => setDeleteConfirmId(null) }); }
         }}
-        description="Bạn có chắc chắn muốn xóa đơn mua hàng này? Hành động này không thể hoàn tác."
+        description="Bạn có chắc chắn muốn xóa đơn mua hàng này? Bản ghi được xoá mềm và chỉ Super Admin có thể khôi phục."
       />
     </div>
   );

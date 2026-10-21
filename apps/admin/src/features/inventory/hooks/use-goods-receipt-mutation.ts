@@ -1,10 +1,12 @@
+import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
+import type { ClientGoodsReceipt } from '@/features/inventory/types/inventory.types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { goodsReceiptApi } from '../api/goods-receipt.api';
 import { GoodsReceiptFormValues } from '../schemas/goods-receipt.schema';
 import { getApiErrorMessage } from '@/constants/errorMessages';
 
-export function useGoodsReceipts() {
+export function useGoodsReceipts(): UseQueryResult<ClientGoodsReceipt[], Error> {
   return useQuery({
     queryKey: ['goods-receipts'],
     queryFn: () => goodsReceiptApi.getAll(),
@@ -12,7 +14,7 @@ export function useGoodsReceipts() {
   });
 }
 
-export function useGoodsReceipt(id: string) {
+export function useGoodsReceipt(id: string): UseQueryResult<ClientGoodsReceipt, Error> {
   return useQuery({
     queryKey: ['goods-receipts', id],
     queryFn: () => goodsReceiptApi.getById(id),
@@ -21,7 +23,7 @@ export function useGoodsReceipt(id: string) {
   });
 }
 
-export function useCreateGoodsReceipt() {
+export function useCreateGoodsReceipt(): UseMutationResult<ClientGoodsReceipt, unknown, GoodsReceiptFormValues> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -30,7 +32,11 @@ export function useCreateGoodsReceipt() {
       toast.success('Tạo phiếu nhập kho mới thành công!');
       queryClient.invalidateQueries({ queryKey: ['goods-receipts'] });
       queryClient.invalidateQueries({ queryKey: ['stocks'] });
-      queryClient.invalidateQueries({ queryKey: ['ledger'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-ledgers'] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product-composite-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['skus'] });
     },
     onError: (error: unknown) => {
       console.error('Create goods receipt error:', error);
@@ -40,7 +46,7 @@ export function useCreateGoodsReceipt() {
   });
 }
 
-export function useConfirmGoodsReceipt() {
+export function useConfirmGoodsReceipt(): UseMutationResult<ClientGoodsReceipt, unknown, string> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -50,7 +56,11 @@ export function useConfirmGoodsReceipt() {
       queryClient.invalidateQueries({ queryKey: ['goods-receipts'] });
       queryClient.invalidateQueries({ queryKey: ['goods-receipts', id] });
       queryClient.invalidateQueries({ queryKey: ['stocks'] });
-      queryClient.invalidateQueries({ queryKey: ['ledger'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-ledgers'] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product-composite-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['skus'] });
     },
     onError: (error: unknown) => {
       console.error('Confirm goods receipt error:', error);
@@ -60,7 +70,7 @@ export function useConfirmGoodsReceipt() {
   });
 }
 
-export function useUpdateGoodsReceiptStatus() {
+export function useUpdateGoodsReceiptStatus(): UseMutationResult<ClientGoodsReceipt, unknown, { id: string; status: string }> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -77,3 +87,27 @@ export function useUpdateGoodsReceiptStatus() {
     },
   });
 }
+
+export const useDeleteGoodsReceipt = (): UseMutationResult<void, unknown, string> => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: goodsReceiptApi.delete,
+    onSuccess: async () => {
+      toast.success('Đã xoá phiếu nhập nháp');
+      await queryClient.invalidateQueries({ queryKey: ['goods-receipts'] });
+    },
+    onError: (error: unknown) => { toast.error(getApiErrorMessage(error, 'Xoá phiếu nhập thất bại')); },
+  });
+};
+
+export const useUpdateGoodsReceipt = (): UseMutationResult<ClientGoodsReceipt, unknown, { id: string; values: GoodsReceiptFormValues }> => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, values }: { id: string; values: GoodsReceiptFormValues }) => goodsReceiptApi.update(id, values),
+    onSuccess: async () => {
+      toast.success('Đã cập nhật phiếu nhập nháp');
+      await queryClient.invalidateQueries({ queryKey: ['goods-receipts'] });
+    },
+    onError: (error: unknown) => { toast.error(getApiErrorMessage(error, 'Cập nhật phiếu nhập thất bại')); },
+  });
+};

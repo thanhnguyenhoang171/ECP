@@ -1,10 +1,12 @@
+import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
+import type { ClientPurchaseOrder } from '@/features/inventory/types/inventory.types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { purchaseOrderApi } from '../api/purchase-order.api';
 import { PurchaseOrderFormValues } from '../schemas/purchase-order.schema';
 import { getApiErrorMessage } from '@/constants/errorMessages';
 
-export function usePurchaseOrders() {
+export function usePurchaseOrders(): UseQueryResult<ClientPurchaseOrder[], Error> {
   return useQuery({
     queryKey: ['purchase-orders'],
     queryFn: () => purchaseOrderApi.getAll(),
@@ -12,7 +14,7 @@ export function usePurchaseOrders() {
   });
 }
 
-export function usePurchaseOrder(id: string) {
+export function usePurchaseOrder(id: string): UseQueryResult<ClientPurchaseOrder, Error> {
   return useQuery({
     queryKey: ['purchase-orders', id],
     queryFn: () => purchaseOrderApi.getById(id),
@@ -21,7 +23,7 @@ export function usePurchaseOrder(id: string) {
   });
 }
 
-export function useCreatePurchaseOrder() {
+export function useCreatePurchaseOrder(): UseMutationResult<ClientPurchaseOrder, unknown, PurchaseOrderFormValues> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -38,11 +40,11 @@ export function useCreatePurchaseOrder() {
   });
 }
 
-export function useUpdatePurchaseOrder() {
+export function useUpdatePurchaseOrder(): UseMutationResult<ClientPurchaseOrder, unknown, { id: string; values: PurchaseOrderFormValues }> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, values }: { id: string; values: PurchaseOrderFormValues }) => 
+    mutationFn: ({ id, values }: { id: string; values: PurchaseOrderFormValues }) =>
       purchaseOrderApi.update(id, values),
     onSuccess: (_, variables) => {
       toast.success('Cập nhật Đơn mua hàng thành công!');
@@ -57,7 +59,7 @@ export function useUpdatePurchaseOrder() {
   });
 }
 
-export function useUpdatePOStatus() {
+export function useUpdatePOStatus(): UseMutationResult<ClientPurchaseOrder, unknown, { id: string; status: string }> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -74,3 +76,15 @@ export function useUpdatePOStatus() {
     },
   });
 }
+
+export const useDeletePurchaseOrder = (): UseMutationResult<void, unknown, string> => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: purchaseOrderApi.delete,
+    onSuccess: async () => {
+      toast.success('Đã xoá đơn mua hàng nháp');
+      await queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+    },
+    onError: (error: unknown) => { toast.error(getApiErrorMessage(error, 'Xoá đơn mua hàng thất bại')); },
+  });
+};

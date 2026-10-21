@@ -35,4 +35,7 @@ public class InventoryAdjustmentRequest {
     private Integer quantityChange;
 
     private String note;
+
+    @Min(0)
+    private Integer expectedQuantityOnHand;
 }

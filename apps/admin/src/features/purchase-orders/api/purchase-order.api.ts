@@ -1,159 +1,32 @@
-import { clientFetch } from '@/lib/clientFetch';
-import { clientDb, ClientPurchaseOrder } from '@/lib/clientDb';
-import { useAuthStore } from '@/store/authStore';
-import { ApiError } from '@/constants/errorMessages';
+import { warehouseList, warehouseRequest } from '@/features/inventory/api/warehouse-request';
+import type { ClientPurchaseOrder, ClientPurchaseOrderItem } from '@/features/inventory/types/inventory.types';
+import type { PurchaseOrderFormValues } from '../schemas/purchase-order.schema';
+
+type ApiPurchaseOrder = Omit<ClientPurchaseOrder, 'items'> & {
+  items: (ClientPurchaseOrderItem & { orderQuantity: number })[];
+};
+
+const normalize = (order: ApiPurchaseOrder): ClientPurchaseOrder => {
+  const items = order.items.map((item) => ({ ...item, orderedQuantity: item.orderQuantity,
+    skuName: [item.productName, item.variantName].filter(Boolean).join(' · ') || item.skuCode }));
+  return { ...order, code: order.poCode, items, totalItems: items.length,
+    totalQuantity: items.reduce((total, item) => total + item.orderedQuantity, 0),
+    totalAmount: items.reduce((total, item) => total + item.orderedQuantity * item.unitPrice, 0) };
+};
+
+const payload = (data: PurchaseOrderFormValues): unknown => ({
+  poCode: data.code || `PO-${crypto.randomUUID()}`,
+  supplierId: data.supplierId, warehouseId: data.warehouseId,
+  expectedDeliveryDate: data.expectedDeliveryDate ? `${data.expectedDeliveryDate.slice(0, 10)}T00:00:00` : null,
+  note: data.note || '',
+  items: data.items.map((item) => ({ skuId: item.skuId, orderQuantity: item.orderedQuantity, unitPrice: item.unitPrice })),
+});
 
 export const purchaseOrderApi = {
-  // Lấy danh sách Đơn mua hàng
-  getAll: async (): Promise<ClientPurchaseOrder[]> => {
-    try {
-      const res = await clientFetch('v1/purchase-orders');
-      if (res.status === 403) {
-        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem danh sách đơn mua hàng', 403);
-      }
-      if (res.ok) {
-        const result = await res.json();
-        if (Array.isArray(result.data)) {
-          return result.data;
-        } else if (result.data && Array.isArray(result.data.data)) {
-          return result.data.data;
-        } else if (Array.isArray(result)) {
-          return result;
-        }
-      }
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 403) {
-        throw e;
-      }
-      console.warn('Backend getAll purchase-orders failed, using mock fallback', e);
-    }
-
-    return clientDb.getPurchaseOrders();
-  },
-
-  // Lấy chi tiết Đơn mua hàng
-  getById: async (id: string): Promise<ClientPurchaseOrder | null> => {
-    try {
-      const res = await clientFetch(`v1/purchase-orders/${id}`);
-      if (res.ok) {
-        const result = await res.json();
-        return result.data || result;
-      }
-    } catch (e) {
-      console.warn('Backend getById purchase-order failed, using mock fallback', e);
-    }
-
-    const data = clientDb.getPurchaseOrders().find(p => p.id === id);
-    return data || null;
-  },
-
-  // Tạo mới Đơn mua hàng (PO)
-  create: async (data: any): Promise<ClientPurchaseOrder> => {
-    try {
-      const nowStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      const defaultPoCode = `PO-${nowStr}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-      const payload = {
-        poCode: data.code || data.poCode || defaultPoCode,
-        supplierId: data.supplierId,
-        warehouseId: data.warehouseId,
-        expectedDeliveryDate: data.expectedDeliveryDate 
-          ? new Date(data.expectedDeliveryDate).toISOString() 
-          : undefined,
-        note: data.note || '',
-        items: (data.items || []).map((item: any) => ({
-          skuId: item.skuId,
-          orderQuantity: Number(item.orderedQuantity ?? item.orderQuantity ?? 1),
-          unitPrice: Number(item.unitPrice ?? 0),
-          note: item.note || ''
-        }))
-      };
-
-      const res = await clientFetch('v1/purchase-orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        const result = await res.json();
-        return result.data || result;
-      } else {
-        const errJson = await res.json().catch(() => ({}));
-        if (errJson?.validationErrors) {
-          const detail = Object.values(errJson.validationErrors).join(', ');
-          throw new ApiError(errJson.code, detail, res.status, errJson);
-        }
-        throw new ApiError(errJson.code, errJson?.message || 'Tạo đơn mua hàng thất bại', res.status, errJson);
-      }
-    } catch (e: any) {
-      if (e instanceof ApiError || (e?.message && e.message !== 'Failed to fetch')) {
-        throw e;
-      }
-      console.warn('Backend create purchase-order failed, using mock fallback', e);
-    }
-
-    return clientDb.savePurchaseOrder(data);
-  },
-
-  // Cập nhật Đơn mua hàng (PO)
-  update: async (id: string, data: any): Promise<ClientPurchaseOrder> => {
-    try {
-      const payload = {
-        poCode: data.code || data.poCode,
-        supplierId: data.supplierId,
-        warehouseId: data.warehouseId,
-        expectedDeliveryDate: data.expectedDeliveryDate 
-          ? new Date(data.expectedDeliveryDate).toISOString() 
-          : undefined,
-        note: data.note || '',
-        status: data.status,
-        items: (data.items || []).map((item: any) => ({
-          skuId: item.skuId,
-          orderQuantity: Number(item.orderedQuantity ?? item.orderQuantity ?? 1),
-          unitPrice: Number(item.unitPrice ?? 0),
-          note: item.note || ''
-        }))
-      };
-
-      const res = await clientFetch(`v1/purchase-orders/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        const result = await res.json();
-        return result.data || result;
-      } else {
-        const errJson = await res.json().catch(() => ({}));
-        if (errJson?.validationErrors) {
-          const detail = Object.values(errJson.validationErrors).join(', ');
-          throw new ApiError(errJson.code, detail, res.status, errJson);
-        }
-        throw new ApiError(errJson.code, errJson?.message || 'Cập nhật đơn mua hàng thất bại', res.status, errJson);
-      }
-    } catch (e: any) {
-      if (e instanceof ApiError || (e?.message && e.message !== 'Failed to fetch')) {
-        throw e;
-      }
-      console.warn('Backend update purchase-order failed', e);
-    }
-
-    return clientDb.savePurchaseOrder({ ...data, id });
-  },
-
-  // Cập nhật trạng thái Đơn mua hàng (PO)
-  updateStatus: async (id: string, status: string): Promise<ClientPurchaseOrder> => {
-    try {
-      // First fetch current PO to build request payload with updated status
-      const currentPo = await purchaseOrderApi.getById(id);
-      if (currentPo) {
-        return await purchaseOrderApi.update(id, { ...currentPo, status });
-      }
-    } catch (e) {
-      console.warn('Backend updateStatus purchase-order failed', e);
-    }
-    return clientDb.savePurchaseOrder({ id, status } as any);
-  },
+  getAll: async (): Promise<ClientPurchaseOrder[]> => (await warehouseList<ApiPurchaseOrder>('v1/purchase-orders')).map(normalize),
+  getById: async (id: string): Promise<ClientPurchaseOrder> => normalize(await warehouseRequest<ApiPurchaseOrder>(`v1/purchase-orders/${id}`)),
+  create: async (data: PurchaseOrderFormValues): Promise<ClientPurchaseOrder> => normalize(await warehouseRequest<ApiPurchaseOrder>('v1/purchase-orders', 'POST', payload(data))),
+  update: async (id: string, data: PurchaseOrderFormValues): Promise<ClientPurchaseOrder> => normalize(await warehouseRequest<ApiPurchaseOrder>(`v1/purchase-orders/${id}`, 'PATCH', payload(data))),
+  updateStatus: async (id: string, status: string): Promise<ClientPurchaseOrder> => normalize(await warehouseRequest<ApiPurchaseOrder>(`v1/purchase-orders/${id}/status`, 'PATCH', { status })),
+  delete: async (id: string): Promise<void> => { await warehouseRequest<null>(`v1/purchase-orders/${id}`, 'DELETE'); },
 };

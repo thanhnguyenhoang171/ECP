@@ -7,10 +7,8 @@ import com.example.ecp_api.dto.response.ApiResponse;
 import com.example.ecp_api.dto.response.PageResponse;
 import com.example.ecp_api.dto.response.UserResponse;
 import com.example.ecp_api.dto.response.UserStatisticsResponse;
-import com.example.ecp_api.service.TokenService;
 import com.example.ecp_api.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,9 +31,8 @@ import java.util.UUID;
 public class UserController {
 
     private final UserService userService;
-    private final TokenService tokenService;
 
-    @PostMapping(consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(consumes = { MediaType.APPLICATION_JSON_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("(hasAuthority('user:create') or hasRole('SUPER_ADMIN')) and @userSecurityEvaluator.canAssignRoles(authentication, #request.roles)")
     @Operation(summary = "Create a new user account")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody UserRequest request) {
@@ -77,8 +74,8 @@ public class UserController {
                 .build());
     }
 
-    @PatchMapping(value = "/{id}", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAuthority('user:update') or hasRole('SUPER_ADMIN')")
+    @PatchMapping(value = "/{id}", consumes = { MediaType.APPLICATION_JSON_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("(hasAuthority('user:update') or hasRole('SUPER_ADMIN')) and @userSecurityEvaluator.canManageUser(authentication, #id) and (#request.roles == null or @userSecurityEvaluator.canAssignRoles(authentication, #request.roles))")
     @Operation(summary = "Update user details by ID")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable UUID id,
@@ -92,12 +89,10 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('user:delete') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("(hasAuthority('user:delete') or hasRole('SUPER_ADMIN')) and @userSecurityEvaluator.canManageUser(authentication, #id)")
     @Operation(summary = "Delete user account")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable UUID id) {
-        UserResponse user = userService.getUserById(id);
         userService.deleteUser(id);
-        tokenService.revokeUserTokens(user.getEmail());
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
                 .code("USER_DELETED_SUCCESS")

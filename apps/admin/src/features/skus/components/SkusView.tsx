@@ -215,6 +215,7 @@ export default function SkusView() {
         }
       >
         <DataTable
+          auditTrail
           columns={columns}
           data={apiSkus}
           isLoading={isFetching}

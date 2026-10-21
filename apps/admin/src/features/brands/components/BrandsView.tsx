@@ -389,6 +389,8 @@ export default function BrandsView({ initialData }: BrandsViewProps): React.JSX.
         }
       >
         <DataTable
+          auditTrail
+          recoveryModule="brands"
           columns={columns}
           data={brands}
           isLoading={isLoading && !brands.length}
@@ -412,7 +414,7 @@ export default function BrandsView({ initialData }: BrandsViewProps): React.JSX.
         onClose={() => setDeleteConfirmId(null)}
         isLoading={deleteMutation.isPending}
         onConfirm={confirmDelete}
-        description={`Bạn có chắc chắn muốn xóa thương hiệu "${brandToDelete?.name || ''}" không? Hành động này không thể hoàn tác.`}
+        description={`Bạn có chắc chắn muốn xóa thương hiệu "${brandToDelete?.name || ''}" không? Bản ghi được xoá mềm và chỉ Super Admin có thể khôi phục.`}
       />
     </div>
   );

@@ -12,7 +12,13 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class PermissionResponse {
+    private String createdBy;
+    private String updatedBy;
+
     private UUID id;
+    private boolean system;
+    private boolean editable;
+    private boolean deletable;
     private String code;
     private String name;
     private String module;

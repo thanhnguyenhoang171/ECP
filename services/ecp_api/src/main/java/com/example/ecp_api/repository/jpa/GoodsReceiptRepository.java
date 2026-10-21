@@ -13,4 +13,9 @@ public interface GoodsReceiptRepository extends JpaRepository<GoodsReceipt, UUID
     Optional<GoodsReceipt> findByReceiptCode(String receiptCode);
     boolean existsByReceiptCode(String receiptCode);
     boolean existsByWarehouseId(UUID warehouseId);
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select e from GoodsReceipt e where e.id = :id")
+    java.util.Optional<GoodsReceipt> findForUpdate(@org.springframework.data.repository.query.Param("id") UUID id);
+
+    boolean existsByWarehouseIdAndDeletedAtIsNull(java.util.UUID warehouseId);
 }

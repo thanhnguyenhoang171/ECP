@@ -2,42 +2,45 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  ShieldCheck, 
-  Key, 
-  Layers 
+import {
+  ShieldCheck,
+  Key,
+  Layers
 } from 'lucide-react';
-import { 
-  PageHeader, 
-  DataCard, 
-  DataTable, 
-  type ColumnDef, 
-  Badge, 
+import {
+  PageHeader,
+  DataCard,
+  DataTable,
+  type ColumnDef,
+  Badge,
   Breadcrumbs
 } from '@/components/common';
-import { 
-  SearchInput, 
-  AddNewButton, 
+import {
+  SearchInput,
+  AddNewButton,
   FilterPopover,
   SortPopover,
   ResetFiltersButton,
   ViewActionButton,
-  EditActionButton, 
-  DeleteActionButton, 
-  DeleteConfirmDialog 
+  EditActionButton,
+  DeleteActionButton,
+  DeleteConfirmDialog
 } from '@/components/common/view-control';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Role, Permission } from '../types/role.interface';
-import { 
-  useRoles, 
-  usePermissions, 
+import {
+  useRoles,
+  usePermissions,
   useDeleteRole,
+  useRoleAccess,
 } from '../hooks/use-roles';
 import { useViewParams, useDebounceSearch } from '@/hooks/use-view-params';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { isForbiddenError } from '@/constants/errorMessages';
+import PermissionsPanel from './PermissionsPanel';
+import { getApiErrorMessage } from '@/constants/errorMessages';
 import { UI } from '@/constants/uiMessages';
 
 interface RolesViewProps {
@@ -60,11 +63,12 @@ const getModuleName = (moduleKey: string): string => {
   return MODULE_NAMES[upper] || `Module ${upper}`;
 };
 
-export default function RolesView({ initialRoles }: RolesViewProps) {
+export default function RolesView({ initialRoles }: RolesViewProps): React.JSX.Element {
   const router = useRouter();
+  const { data: access } = useRoleAccess();
 
   // Fetch Roles & Permissions từ Backend
-  const { data: roles = [], isLoading: isRolesLoading, isFetching: isRolesFetching, error: rolesError } = useRoles(initialRoles);
+  const { data: roles = [], isLoading: isRolesLoading, isFetching: isRolesFetching, error: rolesError, refetch: refetchRoles } = useRoles(initialRoles);
   const { data: permissions = [], isLoading: isPermissionsLoading } = usePermissions();
 
   const isForbidden = isForbiddenError(rolesError);
@@ -105,8 +109,8 @@ export default function RolesView({ initialRoles }: RolesViewProps) {
 
   // Page-based CRUD Navigation Handlers
   const handleCreateRole = useCallback(() => {
-    router.push('/roles/create');
-  }, [router]);
+    if (access?.create) { router.push('/roles/create'); }
+  }, [router, access?.create]);
 
   const handleEditRole = useCallback((role: Role) => {
     router.push(`/roles/${role.id}/edit`);
@@ -196,8 +200,8 @@ export default function RolesView({ initialRoles }: RolesViewProps) {
             'p-2.5 rounded-xl border flex items-center justify-center shrink-0 shadow-2xs',
             role.code === 'SUPER_ADMIN'
               ? 'bg-amber-50 text-amber-600 border-amber-200'
-              : role.isSystem 
-                ? 'bg-purple-50 text-purple-600 border-purple-200' 
+              : role.isSystem
+                ? 'bg-purple-50 text-purple-600 border-purple-200'
                 : 'bg-blue-50 text-blue-600 border-blue-200'
           )}>
             <ShieldCheck size={18} />
@@ -255,8 +259,8 @@ export default function RolesView({ initialRoles }: RolesViewProps) {
             className="group inline-flex items-center gap-1.5 focus:outline-none"
             title="Bấm để xem chi tiết phân quyền"
           >
-            <Badge 
-              variant='outline' 
+            <Badge
+              variant='outline'
               className={cn(
                 'border transition-all text-xs font-mono font-bold py-1 px-3 flex items-center gap-1.5 cursor-pointer shadow-2xs',
                 role.code === 'SUPER_ADMIN'
@@ -282,22 +286,22 @@ export default function RolesView({ initialRoles }: RolesViewProps) {
       skeleton: <Skeleton className='h-8 w-24 ml-auto rounded-lg' />,
       cell: (role) => (
         <div className='flex justify-end gap-1.5'>
-          <ViewActionButton 
-            onClick={() => handleViewRoleDetail(role)} 
-            disabled={isRolesLoading || isRolesFetching} 
+          <ViewActionButton
+            onClick={() => handleViewRoleDetail(role)}
+            disabled={isRolesLoading || isRolesFetching}
           />
-          <EditActionButton 
-            onClick={() => handleEditRole(role)} 
-            disabled={isRolesLoading || isRolesFetching} 
+          <EditActionButton
+            onClick={() => handleEditRole(role)}
+            disabled={isRolesLoading || isRolesFetching || !access?.update || role.editable === false}
           />
-          <DeleteActionButton 
-            onClick={() => setDeleteConfirmId(role.id)} 
-            disabled={isRolesLoading || isRolesFetching || role.isSystem || role.code === 'SUPER_ADMIN'} 
+          <DeleteActionButton
+            onClick={() => setDeleteConfirmId(role.id)}
+            disabled={isRolesLoading || isRolesFetching || !access?.delete || role.deletable === false || role.isSystem || role.code === 'SUPER_ADMIN'}
           />
         </div>
       ),
     },
-  ], [handleEditRole, handleViewRoleDetail, isRolesFetching, isRolesLoading, permissions.length]);
+  ], [handleEditRole, handleViewRoleDetail, isRolesFetching, isRolesLoading, permissions.length, access?.update, access?.delete]);
 
   const breadcrumbItems = [
     { label: 'Hệ thống' },
@@ -318,13 +322,13 @@ export default function RolesView({ initialRoles }: RolesViewProps) {
             <Button
               variant="outline"
               onClick={() => router.push('/roles/permissions/create')}
-              disabled={isPermissionsLoading}
+              disabled={isPermissionsLoading || !access?.create}
               className="text-xs font-bold h-9 rounded-xl border-slate-200 hover:bg-slate-50 flex items-center gap-1.5 shadow-2xs cursor-pointer"
             >
               <Key size={14} className="text-primary" />
               <span>Thêm quyền mới</span>
             </Button>
-            <AddNewButton onClick={handleCreateRole} disabled={isRolesLoading || isRolesFetching} label="Tạo vai trò mới" />
+            <AddNewButton onClick={handleCreateRole} disabled={isRolesLoading || isRolesFetching || !access?.create} label="Tạo vai trò mới" />
           </div>
         }
       />
@@ -401,15 +405,16 @@ export default function RolesView({ initialRoles }: RolesViewProps) {
         </div>
       </div>
 
+      {rolesError && !isForbidden && <div role="alert" className="rounded-lg border border-red-300 p-4 text-sm text-red-500">{getApiErrorMessage(rolesError, 'Không thể tải vai trò.')} <Button variant="outline" onClick={() => { void refetchRoles(); }}>Thử lại</Button></div>}
       {/* Main Data Table Card */}
       <DataCard
         isLoading={isRolesLoading}
         isFetching={isRolesFetching}
         search={
-          <SearchInput 
-            value={searchTerm} 
-            onChange={setSearchTerm} 
-            placeholder='Tìm kiếm vai trò theo tên, mã vai trò, mô tả...' 
+          <SearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder='Tìm kiếm vai trò theo tên, mã vai trò, mô tả...'
             isLoading={isRolesLoading || isRolesFetching}
           />
         }
@@ -459,6 +464,7 @@ export default function RolesView({ initialRoles }: RolesViewProps) {
         }
       >
         <DataTable
+          auditTrail
           columns={columns}
           data={processedRoles}
           isLoading={isRolesLoading}
@@ -470,12 +476,14 @@ export default function RolesView({ initialRoles }: RolesViewProps) {
           }}
           emptyState={{
             title: searchTerm || typeFilter !== 'all' ? 'Không tìm thấy vai trò phù hợp' : 'Chưa có vai trò nào',
-            description: searchTerm || typeFilter !== 'all' 
+            description: searchTerm || typeFilter !== 'all'
               ? 'Không có vai trò nào khớp với từ khóa tìm kiếm hoặc bộ lọc hiện tại.'
               : 'Bắt đầu bằng cách tạo vai trò mới cho hệ thống.',
           }}
         />
       </DataCard>
+
+      <PermissionsPanel />
 
       {/* DELETE CONFIRM DIALOG */}
       <DeleteConfirmDialog
@@ -484,7 +492,7 @@ export default function RolesView({ initialRoles }: RolesViewProps) {
         onConfirm={handleDeleteRole}
         isLoading={deleteMutation.isPending}
         title="Xác nhận xóa vai trò"
-        description="Bạn có chắc chắn muốn xóa vai trò tùy chỉnh này khỏi hệ thống? Các tài khoản đang gán vai trò này sẽ cần được phân lại vai trò mới."
+        description="Bạn có chắc chắn muốn xóa vai trò tùy chỉnh này khỏi hệ thống? Chỉ xoá được vai trò chưa gán cho tài khoản nào."
       />
 
 

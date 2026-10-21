@@ -1,6 +1,5 @@
 package com.example.ecp_api.security;
 
-import com.example.ecp_api.entity.jpa.User;
 import com.example.ecp_api.repository.jpa.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -34,8 +33,7 @@ public class UserSecurityEvaluator {
         }
 
         // If target user is SUPER_ADMIN, non-SUPER_ADMIN cannot modify
-        User targetUser = userRepository.findById(targetUserId).orElse(null);
-        if (targetUser != null && targetUser.hasRole("SUPER_ADMIN")) {
+        if (userRepository.existsByIdAndRolesCode(targetUserId, "SUPER_ADMIN")) {
             return false;
         }
 
@@ -53,16 +51,18 @@ public class UserSecurityEvaluator {
     }
 
     public boolean canAssignRoles(Authentication authentication, Set<String> targetRoleCodes) {
-        if (authentication == null || !authentication.isAuthenticated() || targetRoleCodes == null) {
+        if (authentication == null || !authentication.isAuthenticated()) {
             return false;
         }
         if (isSuperAdmin(authentication)) {
             return true;
         }
 
+        if (targetRoleCodes == null) { return true; } // Creation defaults to USER.
+
         // Non-super-admins cannot assign SUPER_ADMIN role
         boolean containsSuperAdmin = targetRoleCodes.stream()
-                .anyMatch(code -> code.equalsIgnoreCase("SUPER_ADMIN"));
+                .anyMatch(code -> code != null && code.trim().replaceFirst("(?i)^ROLE_", "").equalsIgnoreCase("SUPER_ADMIN"));
 
         return !containsSuperAdmin;
     }

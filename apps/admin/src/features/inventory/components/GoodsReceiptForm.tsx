@@ -1,103 +1,47 @@
 'use client';
 
-import React, { useState } from 'react';
+import { WarehouseRequestError } from '@/features/inventory/components/WarehouseRequestError';
+import Link from 'next/link';
+
+import React, { useState, useCallback, useRef } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { 
-  Plus, 
-  Trash2, 
-  Package, 
-  Calculator, 
-  Calendar, 
-  FileText, 
-  Building2, 
-  ScanBarcode, 
-  Sparkles,
-  CheckCircle2,
-  Info
-} from 'lucide-react';
+import { Plus, Trash2, Package, FileText, ScanBarcode, CheckCircle2, Info } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { 
-  FormSection, 
-  FormGrid, 
-  AdminFormLabel, 
+import {
+  FormSection,
+  FormGrid,
+  AdminFormLabel,
   FormActionsBar,
   FormattedNumberInput,
   DateInput
 } from '@/components/common';
 import { goodsReceiptSchema, GoodsReceiptFormValues } from '../schemas/goods-receipt.schema';
-import { useSkus } from '@/features/skus/hooks/use-skus';
+import { useInventorySkus } from '@/features/inventory/hooks/use-inventory-skus';
 import { useWarehouses } from '@/features/warehouses/hooks/use-warehouses';
 import { usePurchaseOrders } from '@/features/purchase-orders/hooks/use-purchase-order-mutation';
-import { useCreateGoodsReceipt } from '../hooks/use-goods-receipt-mutation';
+import { useCreateGoodsReceipt, useUpdateGoodsReceipt } from '../hooks/use-goods-receipt-mutation';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription,
-} from "@/components/ui/dialog";
-
-// Fallback Mock Warehouses
-const mockWarehouses = [
-  { id: 'wh-1', name: 'Kho Chính Quận 1 (TP.HCM)' },
-  { id: 'wh-2', name: 'Kho Phụ Quận 7 (TP.HCM)' },
-  { id: 'wh-3', name: 'Kho Cầu Giấy (Hà Nội)' },
-];
-
-// Fallback Mock SKUs
-const mockSkus = [
-  { id: 'sku-1', barcode: '8850123456781', skuCode: 'BENTO-20G-RED', name: 'Mực Sấy Bento Thái Lan Vị Cay Ngọt 20g', price: 12000 },
-  { id: 'sku-2', barcode: '8850123456783', skuCode: 'CHATRAMUE-GREEN-200G', name: 'Trà Thái Xanh ChaTraMue Đậm Vị 200g', price: 45000 },
-  { id: 'sku-3', barcode: '8850123456784', skuCode: 'LAYS-SHRIMP-48G', name: "Snack Khoai Tây Lay's Thái Lan Vị Tôm Căng Cay 48g", price: 15000 },
-  { id: 'sku-4', barcode: '8850123456786', skuCode: 'REDBULL-THAI-150ML', name: 'Nước Tăng Lực Red Bull Thái Chai Thủy Tinh 150ml', price: 8500 },
-];
-
-// Fallback Mock Purchase Orders (PO)
-const mockPurchaseOrders = [
-  {
-    id: 'po-2026-001',
-    code: 'PO-20260701-01',
-    supplierName: 'Công ty TNHH Nhập Khẩu Bánh Kẹo ThaiLand Inter Trade',
-    warehouseId: 'wh-1',
-    items: [
-      { skuId: 'sku-1', quantity: 10, unitCost: 27500000, batchCode: 'LOT-APL-202607', manufactureDate: '2026-06-01', expiryDate: '2028-06-01' },
-      { skuId: 'sku-3', quantity: 3, unitCost: 58000000, batchCode: 'LOT-APL-202607', manufactureDate: '2026-06-10', expiryDate: '2028-06-10' },
-    ]
-  },
-  {
-    id: 'po-2026-002',
-    code: 'PO-20260705-02',
-    supplierName: 'Samsung Electronics Việt Nam',
-    warehouseId: 'wh-2',
-    items: [
-      { skuId: 'sku-2', quantity: 15, unitCost: 24800000, batchCode: 'LOT-SAM-202607', manufactureDate: '2026-07-01', expiryDate: '2028-07-01' },
-    ]
-  }
-];
+import { BarcodeScannerDialog } from './BarcodeScannerDialog';
+import { barcodeApi } from '../api/barcode.api';
+import { addScannedReceiptItem } from '../lib/scanned-receipt';
+import type { BarcodeLookup } from '../types/barcode';
+import type { Sku } from '@/features/skus/types/sku.interface';
+import { getApiErrorMessage } from '@/constants/errorMessages';
 
 interface GoodsReceiptFormProps {
   onSuccess?: () => void;
@@ -109,49 +53,30 @@ export default function GoodsReceiptForm({
   onSuccess,
   initialData,
   isDialog = false,
-}: GoodsReceiptFormProps) {
+}: GoodsReceiptFormProps) : React.JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
   const poIdParam = searchParams.get('poId');
 
   const [activeTab, setActiveTab] = useState<'general' | 'items'>('general');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [scannedCode, setScannedCode] = useState('');
+  const [scannedSkus, setScannedSkus] = useState<Array<Sku & { costPrice: number; price: number }>>([]);
+  const prefillApplied = useRef(false);
 
   const createMutation = useCreateGoodsReceipt();
-  const isSubmitting = createMutation.isPending;
+  const updateMutation = useUpdateGoodsReceipt();
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
-  const { data: warehousesRes } = useWarehouses();
-  const { data: posRes } = usePurchaseOrders();
-  const { data: skuResponse, isLoading: isLoadingSkus } = useSkus({
-    page: 1,
-    size: 100,
-    isActive: true,
-  });
+  const { data: warehousesRes, error: sourceError0, isPending: sourceLoading0, refetch: refetchSource0 } = useWarehouses();
+  const { data: posRes, error: sourceError1, isPending: sourceLoading1, refetch: refetchSource1 } = usePurchaseOrders();
+  const { data: skuResponse, error: sourceError2, isPending: sourceLoading2, refetch: refetchSource2 } = useInventorySkus();
+  const isLoadingSkus = sourceLoading2;
 
-  const fetchedWarehouses = (warehousesRes as any)?.data || (Array.isArray(warehousesRes) ? warehousesRes : []);
-  const fetchedPOs = (posRes as any)?.data || (Array.isArray(posRes) ? posRes : []);
-
-  const warehouses = fetchedWarehouses.length > 0 ? fetchedWarehouses : mockWarehouses;
-  const purchaseOrders = fetchedPOs.length > 0 ? fetchedPOs : mockPurchaseOrders;
-
-  const activeSkus = React.useMemo(() => {
-    const apiItems = skuResponse?.data || [];
-    if (apiItems.length > 0) {
-      return apiItems.map((item: any) => {
-        const costPrice = item.costPrice ?? item.cost_price ?? item.compareAtPrice ?? item.compare_at_price ?? item.price ?? 0;
-        return {
-          id: item.id,
-          barcode: item.barcode || item.skuCode,
-          name: `${item.productName || 'Sản phẩm'} - ${item.variantName || item.skuCode}`,
-          price: costPrice,
-          costPrice,
-          skuCode: item.skuCode,
-        };
-      });
-    }
-    return mockSkus;
-  }, [skuResponse]);
+  const warehouses = (warehousesRes ?? []).filter((item) => item.isActive || item.id === initialData?.warehouseId);
+  const purchaseOrders = React.useMemo(() => (posRes ?? []).filter((order) => order.status === 'ORDERED' || order.status === 'PARTIALLY_RECEIVED'), [posRes]);
+  const activeSkus = React.useMemo(() => [...(skuResponse ?? []).filter(item => !scannedSkus.some(scanned => scanned.id === item.id)), ...scannedSkus].map(item => ({ ...item,
+    name: `${item.productName} · ${item.variantName || item.skuCode}`, price: 'price' in item ? Number(item.price) : 0, costPrice: 'costPrice' in item ? Number(item.costPrice) : 0,
+  })), [skuResponse, scannedSkus]);
 
   const form = useForm<GoodsReceiptFormValues>({
     resolver: zodResolver(goodsReceiptSchema),
@@ -176,24 +101,24 @@ export default function GoodsReceiptForm({
     name: 'purchaseOrderId'
   });
 
-  const selectedPO = purchaseOrders.find((po: any) => po.id === selectedPOId);
+  const selectedPO = purchaseOrders.find((po) => po.id === selectedPOId);
 
   // Handle PO selection and auto-filling
   const handlePOSelect = (poId: string) => {
     form.setValue('purchaseOrderId', poId);
-    const po = purchaseOrders.find((p: any) => p.id === poId);
+    const po = purchaseOrders.find((p) => p.id === poId);
     if (po) {
       if (po.warehouseId) {
         form.setValue('warehouseId', po.warehouseId);
       }
       if (po.items && po.items.length > 0) {
-        const mappedItems = po.items.map((it: any) => ({
+        const mappedItems = po.items.filter((it) => it.orderedQuantity > it.receivedQuantity).map((it) => ({
           skuId: it.skuId,
-          quantity: it.orderedQuantity || it.quantity || 1,
-          unitCost: it.unitPrice || it.unitCost || 0,
-          batchCode: it.batchCode || '',
-          manufactureDate: it.manufactureDate || '',
-          expiryDate: it.expiryDate || '',
+          quantity: it.orderedQuantity - it.receivedQuantity,
+          unitCost: it.unitPrice,
+          batchCode: '',
+          manufactureDate: '',
+          expiryDate: '',
         }));
         form.setValue('items', mappedItems);
       }
@@ -202,11 +127,17 @@ export default function GoodsReceiptForm({
   };
 
   React.useEffect(() => {
-    if (poIdParam) {
-      handlePOSelect(poIdParam);
+    if (!poIdParam || form.getValues('purchaseOrderId') === poIdParam) { return; }
+    const order = purchaseOrders.find((item) => item.id === poIdParam);
+    if (order) {
+      form.setValue('purchaseOrderId', order.id);
+      form.setValue('warehouseId', order.warehouseId);
+      form.setValue('items', order.items.filter((item) => item.orderedQuantity > item.receivedQuantity).map((item) => ({
+        skuId: item.skuId, quantity: item.orderedQuantity - item.receivedQuantity, unitCost: item.unitPrice,
+        batchCode: '', manufactureDate: '', expiryDate: '',
+      })));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [poIdParam]);
+  }, [poIdParam, purchaseOrders, form]);
 
   const handleClearPO = () => {
     form.setValue('purchaseOrderId', '');
@@ -215,58 +146,62 @@ export default function GoodsReceiptForm({
 
   const handleSkuSelect = (index: number, skuId: string) => {
     form.setValue(`items.${index}.skuId`, skuId);
-    const selectedSku = (activeSkus as any[]).find((s: any) => s.id === skuId);
+    const selectedSku = activeSkus.find((s) => s.id === skuId);
     if (selectedSku) {
-      const suggestedPrice = selectedSku.costPrice ?? selectedSku.cost_price ?? selectedSku.compareAtPrice ?? selectedSku.compare_at_price ?? selectedSku.price ?? 0;
+      const suggestedPrice = selectedSku.costPrice;
       form.setValue(`items.${index}.unitCost`, suggestedPrice);
     }
   };
 
-  const handleScanBarcodeSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!scannedCode.trim()) return;
+  const handleScannedItem = useCallback((found: BarcodeLookup): void => {
+    if (!form.getValues('warehouseId')) { throw new Error('Chọn kho nhận hàng trước khi quét mã.'); }
+    const items = addScannedReceiptItem(form.getValues('items'), found, selectedPO);
+    form.setValue('items', items, { shouldDirty: true, shouldValidate: true });
+    setScannedSkus(current => [...current.filter(item => item.id !== found.sku.id), { ...found.sku, costPrice: found.costPrice, price: found.price }]);
+  }, [form, selectedPO]);
 
-    const matchedSku = activeSkus.find(s => s.barcode === scannedCode.trim() || s.id === scannedCode.trim() || s.skuCode === scannedCode.trim());
-    if (matchedSku) {
-      const currentItems = form.getValues('items');
-      const existingIndex = currentItems.findIndex(i => i.skuId === matchedSku.id);
-
-      if (existingIndex >= 0) {
-        const currentQty = currentItems[existingIndex].quantity || 0;
-        form.setValue(`items.${existingIndex}.quantity`, currentQty + 1);
-        toast.success(`Đã tăng số lượng +1 cho sản phẩm: ${matchedSku.name}`);
-      } else {
-        append({
-          skuId: matchedSku.id,
-          quantity: 1,
-          unitCost: matchedSku.price,
-          batchCode: '',
-          manufactureDate: '',
-          expiryDate: ''
-        });
-        toast.success(`Đã thêm sản phẩm: ${matchedSku.name}`);
+  const prefillCode = searchParams.get('barcode');
+  const prefillWarehouse = searchParams.get('warehouseId') || undefined;
+  React.useEffect(() => {
+    if (!prefillCode || initialData?.id || poIdParam || prefillApplied.current) { return; }
+    const controller = new AbortController();
+    const prefill = async (): Promise<void> => {
+      try {
+        const found = await barcodeApi.lookup(prefillCode, prefillWarehouse, controller.signal);
+        if (controller.signal.aborted || prefillApplied.current || form.formState.isDirty) { return; }
+        if (!found.sku.active) { throw new Error('SKU đã ngừng hoạt động.'); }
+        prefillApplied.current = true;
+        setScannedSkus([{ ...found.sku, costPrice: found.costPrice, price: found.price }]);
+        if (prefillWarehouse) { form.setValue('warehouseId', prefillWarehouse); }
+        form.setValue('items', [{ skuId: found.sku.id, quantity: 1, unitCost: found.costPrice, batchCode: '', manufactureDate: '', expiryDate: '' }]);
+        setActiveTab('items');
+      } catch (cause: unknown) {
+        if (!controller.signal.aborted) { toast.error(getApiErrorMessage(cause, 'Không thể nạp mặt hàng đã quét')); }
       }
-      setScannedCode('');
-      setIsScannerOpen(false);
-    } else {
-      toast.error(`Không tìm thấy SKU có mã vạch: ${scannedCode}`);
-    }
-  };
+    };
+    void prefill();
+    return () => controller.abort();
+  }, [prefillCode, prefillWarehouse, initialData?.id, poIdParam, form]);
 
   async function onSubmit(values: GoodsReceiptFormValues) {
+    if (isScannerOpen) { return; }
     try {
-      await createMutation.mutateAsync(values);
+      if (initialData?.id) {
+        await updateMutation.mutateAsync({ id: initialData.id, values });
+      } else {
+        await createMutation.mutateAsync(values);
+      }
       if (onSuccess) {
         onSuccess();
       } else {
         router.push('/goods-receipt');
       }
     } catch (error) {
-      // Handled in mutation onError toast
+      console.error('Goods receipt save failed', error);
     }
   }
 
-  const onErrors = (errors: any) => {
+  const onErrors = (errors: import('react-hook-form').FieldErrors<GoodsReceiptFormValues>) => {
     toast.error('Vui lòng kiểm tra lại các thông tin bắt buộc');
     if (errors.receiptCode || errors.purchaseOrderId || errors.warehouseId || errors.note) {
       setActiveTab('general');
@@ -303,11 +238,20 @@ export default function GoodsReceiptForm({
 
   return (
     <Form {...form}>
-      <form 
-        onSubmit={form.handleSubmit(onSubmit, onErrors)} 
+      <form
+        onSubmit={form.handleSubmit(onSubmit, onErrors)}
         className={cn(isDialog ? 'flex flex-col flex-1 overflow-hidden' : 'space-y-6 pb-24')}
       >
         <div className={cn('space-y-6', isDialog ? 'flex-1 overflow-y-auto custom-scrollbar px-6 pb-6 pt-2' : '')}>
+          <WarehouseRequestError error={sourceError0} retry={() => { void refetchSource0(); }} />
+          <WarehouseRequestError error={sourceError1} retry={() => { void refetchSource1(); }} />
+          <WarehouseRequestError error={sourceError2} retry={() => { void refetchSource2(); }} />
+          <div className='flex flex-wrap gap-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-600'>
+            <span>Cần có kho hàng và SKU đang hoạt động trước khi lập chứng từ.</span>
+            <Link href='/warehouses/create' className='font-semibold text-blue-600 hover:underline'>Thêm kho</Link>
+            <Link href='/products/create' className='font-semibold text-blue-600 hover:underline'>Thêm sản phẩm</Link>
+            <Link href='/suppliers/create' className='font-semibold text-blue-600 hover:underline'>Thêm nhà cung cấp</Link>
+          </div>
           {/* Navigation Tabs */}
           <div className="flex border-b border-slate-200 gap-1 overflow-x-auto pb-px scrollbar-none bg-slate-50/50 p-1.5 rounded-xl">
             {tabs.map((tab) => {
@@ -351,10 +295,10 @@ export default function GoodsReceiptForm({
                           <AdminFormLabel>Mã phiếu nhập kho</AdminFormLabel>
                           <FormControl>
                             <div className="relative group">
-                              <Input 
-                                placeholder="Tự động tạo (Ví dụ: GR-202607-001)" 
-                                className="h-11 bg-slate-50/50 font-mono text-xs pr-16 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
-                                {...field} 
+                              <Input
+                                placeholder="Tự động tạo (Ví dụ: GR-202607-001)"
+                                className="h-11 bg-slate-50/50 font-mono text-xs pr-16 border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                {...field}
                               />
                               <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded tracking-wider">
                                 {field.value ? 'CUSTOM' : 'AUTO'}
@@ -375,10 +319,10 @@ export default function GoodsReceiptForm({
                           <div className="flex items-center justify-between">
                             <AdminFormLabel>Đơn mua hàng (PO)</AdminFormLabel>
                             {field.value && (
-                              <Button 
-                                type="button" 
-                                variant="ghost" 
-                                size="sm" 
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
                                 onClick={handleClearPO}
                                 className="h-auto p-0 text-[10px] text-red-600 hover:text-red-700 font-bold"
                               >
@@ -386,8 +330,8 @@ export default function GoodsReceiptForm({
                               </Button>
                             )}
                           </div>
-                          <Select 
-                            onValueChange={(val) => handlePOSelect(val)} 
+                          <Select
+                            onValueChange={(val) => handlePOSelect(val)}
                             value={field.value || undefined}
                           >
                             <FormControl>
@@ -396,7 +340,7 @@ export default function GoodsReceiptForm({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {purchaseOrders.map((po: any) => (
+                              {purchaseOrders.map((po) => (
                                 <SelectItem key={po.id} value={po.id}>
                                   <span className="font-mono font-bold text-blue-600 mr-2">{po.code}</span>
                                   <span className="text-xs text-slate-600">({po.supplierName || 'Nhà cung cấp'})</span>
@@ -436,7 +380,7 @@ export default function GoodsReceiptForm({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {warehouses.map((wh: any) => (
+                              {warehouses.map((wh) => (
                                 <SelectItem key={wh.id} value={wh.id}>{wh.name}</SelectItem>
                               ))}
                             </SelectContent>
@@ -510,43 +454,25 @@ export default function GoodsReceiptForm({
                 title="Danh sách sản phẩm nhập kho"
                 description="Chọn mặt hàng, số lượng, đơn giá nhập thực tế và thông tin lô/hạn sử dụng."
               >
-                <div className="flex justify-between items-center mb-4">
-                  {/* Barcode Scanner Modal Trigger */}
-                  <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
-                    <DialogTrigger asChild>
-                      <Button type="button" variant="outline" size="sm" className="gap-2 text-xs border-slate-300 font-medium">
-                        <ScanBarcode size={16} className="text-blue-600" /> Quét mã vạch ngẫu nhiên
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-base font-bold">
-                          <ScanBarcode className="text-blue-600" /> Quét nhanh mã vạch / SKU
-                        </DialogTitle>
-                        <DialogDescription className="text-xs">
-                          Nhập hoặc quét mã vạch SKU để tự động thêm vào danh sách nhập kho.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <form onSubmit={handleScanBarcodeSubmit} className="space-y-4 pt-2">
-                        <Input 
-                          placeholder="Nhập mã barcode (Vd: 893123456781)" 
-                          value={scannedCode} 
-                          onChange={e => setScannedCode(e.target.value)} 
-                          className="font-mono text-sm h-11"
-                          autoFocus
-                        />
-                        <div className="flex justify-end gap-2">
-                          <Button type="button" variant="ghost" onClick={() => setIsScannerOpen(false)}>Hủy</Button>
-                          <Button type="submit" className="bg-blue-600 hover:bg-blue-700">Xác nhận quét</Button>
-                        </div>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
+                {selectedPO && <p className="mb-3 text-xs text-slate-500">Phiếu đang nạp sẵn số lượng cần nhận từ đơn mua. “Đếm lại PO bằng quét mã” sẽ xoá các dòng nhập hiện tại để nhập đúng số lượng thực tế được quét.</p>}
+                <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
+                  <div>
+                    <Button type="button" variant="outline" size="sm" className="gap-2 text-xs border-slate-300 font-medium"
+                      disabled={isSubmitting || !form.watch('warehouseId')} onClick={() => setIsScannerOpen(true)}>
+                      <ScanBarcode size={16} className="text-blue-600" /> Quét mã nhập kho
+                    </Button>
+                    {!form.watch('warehouseId') && <p className="mt-1 text-xs text-amber-700">Chọn kho nhận hàng ở tab thông tin chung trước khi quét.</p>}
+                  </div>
+                  {selectedPO && <Button type="button" variant="outline" size="sm" disabled={isSubmitting || !form.watch('warehouseId')}
+                    onClick={() => { form.setValue('items', [], { shouldDirty: true }); setIsScannerOpen(true); }}>
+                    Đếm lại PO bằng quét mã
+                  </Button>}
+                  <BarcodeScannerDialog open={isScannerOpen} onOpenChange={setIsScannerOpen} warehouseId={form.watch('warehouseId') || undefined} onAdd={handleScannedItem} />
 
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => append({ skuId: '', quantity: 1, unitCost: 0, batchCode: '', manufactureDate: '', expiryDate: '' })}
                     className="gap-1.5 border-blue-600 text-blue-600 hover:bg-blue-50 bg-white font-bold text-xs"
                   >
@@ -561,8 +487,8 @@ export default function GoodsReceiptForm({
                     const itemSubtotal = itemQuantity * itemUnitCost;
 
                     return (
-                      <div 
-                        key={fieldItem.id} 
+                      <div
+                        key={fieldItem.id}
                         className="relative p-5 rounded-2xl border border-slate-200 bg-slate-50/40 space-y-4 transition-all hover:border-slate-300 shadow-sm"
                       >
                         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -573,10 +499,10 @@ export default function GoodsReceiptForm({
                             <span className="text-xs text-slate-500">
                               Thành tiền: <strong className="text-blue-700 font-semibold text-sm">{formatCurrency(itemSubtotal)}</strong>
                             </span>
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="icon" 
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
                               onClick={() => remove(index)}
                               className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                               disabled={fields.length === 1}
@@ -596,8 +522,8 @@ export default function GoodsReceiptForm({
                               render={({ field }) => (
                                 <FormItem>
                                   <AdminFormLabel required className="text-center block w-full">Sản phẩm (SKU)</AdminFormLabel>
-                                  <Select 
-                                    onValueChange={(val) => handleSkuSelect(index, val)} 
+                                  <Select
+                                    onValueChange={(val) => handleSkuSelect(index, val)}
                                     value={field.value || undefined}
                                   >
                                     <FormControl>
@@ -607,8 +533,8 @@ export default function GoodsReceiptForm({
                                     </FormControl>
                                     <SelectContent>
                                       {activeSkus.map(sku => (
-                                        <SelectItem 
-                                          key={sku.id} 
+                                        <SelectItem
+                                          key={sku.id}
                                           value={sku.id}
                                           className="justify-center text-center [&>span]:w-full [&>span]:flex [&>span]:flex-col [&>span]:items-center"
                                         >
@@ -633,7 +559,7 @@ export default function GoodsReceiptForm({
                                 <FormItem>
                                   <AdminFormLabel required className="text-center block w-full">Số lượng</AdminFormLabel>
                                   <FormControl>
-                                    <FormattedNumberInput 
+                                    <FormattedNumberInput
                                       value={field.value}
                                       onChange={field.onChange}
                                       placeholder="1"
@@ -656,7 +582,7 @@ export default function GoodsReceiptForm({
                                 <FormItem>
                                   <AdminFormLabel required className="text-center block w-full">Đơn giá nhập (VND)</AdminFormLabel>
                                   <FormControl>
-                                    <FormattedNumberInput 
+                                    <FormattedNumberInput
                                       value={field.value}
                                       onChange={field.onChange}
                                       placeholder="0"
@@ -724,6 +650,7 @@ export default function GoodsReceiptForm({
         <FormActionsBar
           onCancel={handleCancel}
           isSubmitting={isSubmitting}
+          submitDisabled={sourceLoading0 || sourceLoading1 || sourceLoading2 || Boolean(sourceError0 || sourceError1 || sourceError2)}
           submitText={initialData?.id ? 'Cập nhật phiếu nhập' : 'Lưu phiếu nhập kho'}
           activeTabLabel={tabs.find(t => t.id === activeTab)?.label}
           isDialog={isDialog}

@@ -1,36 +1,33 @@
 'use client';
 
+import { WarehouseRequestError } from '@/features/inventory/components/WarehouseRequestError';
+
+import type { ClientGoodsReceipt } from '@/features/inventory/types/inventory.types';
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { PackagePlus } from "lucide-react";
 import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination, type ColumnDef } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { useGoodsReceipts, useConfirmGoodsReceipt, useUpdateGoodsReceiptStatus } from '../hooks/use-goods-receipt-mutation';
-import { CheckCircle2, XCircle, ChevronDown, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+
+import { useGoodsReceipts, useConfirmGoodsReceipt, useUpdateGoodsReceiptStatus, useDeleteGoodsReceipt } from '../hooks/use-goods-receipt-mutation';
+import { CheckCircle2, XCircle, ChevronDown } from 'lucide-react';
+
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { 
-  SearchInput, 
-  AddNewButton, 
-  FilterPopover, 
-  ViewActionButton, 
-  DeleteActionButton, 
-  DeleteConfirmDialog 
-} from '@/components/common/view-control';
-import { toast } from 'sonner';
+import { SearchInput, AddNewButton, ViewActionButton, DeleteActionButton, DeleteConfirmDialog } from '@/components/common/view-control';
 import { isForbiddenError } from '@/constants/errorMessages';
 
-export default function GoodsReceiptView() {
+export default function GoodsReceiptView() : React.JSX.Element {
   const router = useRouter();
-  const { data: receiptsData, isLoading, error } = useGoodsReceipts();
+  const { data: receiptsData, isLoading, error, refetch } = useGoodsReceipts();
   const isForbidden = isForbiddenError(error);
+  const deleteMutation = useDeleteGoodsReceipt();
   const confirmMutation = useConfirmGoodsReceipt();
   const updateStatusMutation = useUpdateGoodsReceiptStatus();
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -43,24 +40,10 @@ export default function GoodsReceiptView() {
     updateStatusMutation.mutate({ id, status });
   }, [updateStatusMutation]);
 
-  const receiptsList = React.useMemo(() => {
-    if (Array.isArray(receiptsData)) {
-      return receiptsData.map((item: any) => ({
-        id: item.id || item._id,
-        receiptCode: item.receiptCode || item.code || `GR-${item.id}`,
-        warehouseName: item.warehouseName || item.warehouse?.name || 'Kho Chính',
-        purchaseOrderCode: item.purchaseOrderCode || item.purchaseOrder?.code || null,
-        totalItems: Array.isArray(item.items) ? item.items.length : item.totalItems || 1,
-        status: item.status || 'RECEIVED',
-        createdAt: item.createdAt || new Date().toISOString(),
-        createdBy: item.createdBy || 'Thủ kho'
-      }));
-    }
-    return [];
-  }, [receiptsData]);
+  const receiptsList = React.useMemo(() => receiptsData ?? [], [receiptsData]);
 
   const filteredReceipts = React.useMemo(() => {
-    return receiptsList.filter((item: any) =>
+    return receiptsList.filter((item: ClientGoodsReceipt) =>
       item.receiptCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.warehouseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.purchaseOrderCode && item.purchaseOrderCode.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -68,16 +51,15 @@ export default function GoodsReceiptView() {
   }, [receiptsList, searchTerm]);
 
   const paginatedReceipts = React.useMemo(() => {
-    const start = (page - 1) * size;
+    const start = Math.min(page - 1, Math.max(0, Math.ceil(filteredReceipts.length / size) - 1)) * size;
     return filteredReceipts.slice(start, start + size);
   }, [filteredReceipts, page, size]);
 
   const totalPages = Math.ceil(filteredReceipts.length / size) || 1;
 
-  const renderStatusDropdown = useCallback((item: any) => {
+  const renderStatusDropdown = useCallback((item: ClientGoodsReceipt) => {
     const status = item.status;
-    const isDraft = status === 'DRAFT';
-    const isReceived = status === 'RECEIVED' || status === 'COMPLETED';
+    const isReceived = status === 'RECEIVED';
     const isCancelled = status === 'CANCELLED';
 
     let badgeClass = "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200";
@@ -105,18 +87,11 @@ export default function GoodsReceiptView() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="center" className="w-40 p-1 font-sans">
           <DropdownMenuItem
-            onClick={() => handleUpdateStatus(item.id, 'COMPLETED')}
-            disabled={updateStatusMutation.isPending || item.status === 'COMPLETED'}
+            onClick={() => confirmMutation.mutate(item.id)}
+            disabled={confirmMutation.isPending}
             className="text-xs gap-2 font-medium text-emerald-700 hover:bg-emerald-50 cursor-pointer"
           >
-            <CheckCircle2 size={14} /> Hoàn thành
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => handleUpdateStatus(item.id, 'DRAFT')}
-            disabled={updateStatusMutation.isPending || item.status === 'DRAFT'}
-            className="text-xs gap-2 font-medium text-slate-700 hover:bg-slate-100 cursor-pointer"
-          >
-            <Clock size={14} /> Nháp
+            <CheckCircle2 size={14} /> Xác nhận nhập kho
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => handleUpdateStatus(item.id, 'CANCELLED')}
@@ -128,16 +103,15 @@ export default function GoodsReceiptView() {
         </DropdownMenuContent>
       </DropdownMenu>
     );
-  }, [handleUpdateStatus, updateStatusMutation.isPending]);
+  }, [handleUpdateStatus, updateStatusMutation.isPending, confirmMutation]);
 
-  const columns: ColumnDef<any>[] = useMemo(() => [
+  const columns: ColumnDef<ClientGoodsReceipt>[] = useMemo(() => [
     {
       accessorKey: 'receiptCode',
       header: 'Mã nhập kho',
-      cell: ({ row }: any) => {
-        const item = row.original;
+      cell: (item) => {
         return (
-          <span 
+          <span
             onClick={() => router.push(`/goods-receipt/${item.id}`)}
             className="font-mono font-bold text-xs text-blue-600 hover:underline cursor-pointer"
           >
@@ -149,48 +123,48 @@ export default function GoodsReceiptView() {
     {
       accessorKey: 'warehouseName',
       header: 'Kho thực nhận',
-      cell: ({ row }: any) => <span className="text-xs font-semibold text-slate-800">{row.original.warehouseName}</span>
+      cell: (item) => <span className="text-xs font-semibold text-slate-800">{item.warehouseName}</span>
     },
     {
       accessorKey: 'purchaseOrderCode',
       header: 'Đơn mua (PO)',
-      cell: ({ row }: any) => <span className="text-xs font-mono text-slate-600">{row.original.purchaseOrderCode || '---'}</span>
+      cell: (item) => <span className="text-xs font-mono text-slate-600">{item.purchaseOrderCode || '---'}</span>
     },
     {
       accessorKey: 'totalItems',
       header: 'Số SKU nhập',
-      cell: ({ row }: any) => <span className="text-xs font-bold text-slate-700">{row.original.totalItems} sản phẩm</span>
+      cell: (item) => <span className="text-xs font-bold text-slate-700">{item.totalItems} sản phẩm</span>
     },
     {
       accessorKey: 'status',
       header: 'Trạng thái',
-      cell: ({ row }: any) => renderStatusDropdown(row.original)
+      cell: (item) => renderStatusDropdown(item)
     },
     {
       accessorKey: 'createdAt',
       header: 'Ngày nhập',
-      cell: ({ row }: any) => (
+      cell: (item) => (
         <div className="flex flex-col">
           <span className="text-xs font-medium text-slate-600">
-            {new Date(row.original.createdAt).toLocaleDateString('vi-VN')}
+            {new Date(item.createdAt).toLocaleDateString('vi-VN')}
           </span>
-          <span className="text-[10px] text-slate-400 italic">{row.original.createdBy}</span>
+          <span className="text-[10px] text-slate-400 italic">{item.createdBy}</span>
         </div>
       )
     },
     {
       id: 'actions',
       header: 'Thao tác',
-      cell: ({ row }: any) => (
+      cell: (item) => (
         <div className="flex justify-end gap-1">
-          <ViewActionButton 
-            onClick={() => router.push(`/goods-receipt/${row.original.id}`)} 
-            disabled={isLoading} 
+          <ViewActionButton
+            onClick={() => router.push(`/goods-receipt/${item.id}`)}
+            disabled={isLoading}
           />
-          <DeleteActionButton 
-            onClick={() => setDeleteConfirmId(row.original.id)} 
-            disabled={isLoading} 
-          />
+          {item.status === 'DRAFT' && <DeleteActionButton
+            onClick={() => setDeleteConfirmId(item.id)}
+            disabled={isLoading}
+          />}
         </div>
       )
     }
@@ -203,36 +177,39 @@ export default function GoodsReceiptView() {
   return (
     <div className="space-y-6">
       <Breadcrumbs items={breadcrumbItems} />
-      <PageHeader 
+      <PageHeader
         title="Quản lý Nhập kho"
         description="Theo dõi và quản lý các phiếu nhập hàng vào kho thực tế."
         actions={
-          <AddNewButton 
-            onClick={() => router.push('/goods-receipt/new')} 
-            label="Nhập kho mới" 
+          <AddNewButton
+            onClick={() => router.push('/goods-receipt/new')}
+            label="Nhập kho mới"
           />
         }
       />
 
+      <WarehouseRequestError error={error} retry={() => { void refetch(); }} />
       <DataCard
         search={<SearchInput placeholder="Tìm mã phiếu nhập, kho..." value={searchTerm} onChange={(val) => { setSearchTerm(val); setPage(1); }} />}
         footer={
           !isForbidden && (isLoading || filteredReceipts.length > 0) && (
             <NextPagination
               isLoading={isLoading}
-              currentPage={page}
+              currentPage={Math.min(page, totalPages)}
               totalPages={totalPages}
               totalItems={filteredReceipts.length}
               itemsPerPage={size}
-              onItemsPerPageChange={setSize}
+              onItemsPerPageChange={(value) => { setSize(value); setPage(1); }}
               onPageChange={setPage}
             />
           )
         }
       >
-        <DataTable 
-          columns={columns} 
-          data={paginatedReceipts} 
+        <DataTable
+          auditTrail
+          recoveryModule="goods-receipt"
+          columns={columns}
+          data={paginatedReceipts}
           isLoading={isLoading && !filteredReceipts.length}
           loadingRows={size}
           isForbidden={isForbidden}
@@ -252,12 +229,11 @@ export default function GoodsReceiptView() {
       <DeleteConfirmDialog
         isOpen={!!deleteConfirmId}
         onClose={() => setDeleteConfirmId(null)}
-        isLoading={false}
+        isLoading={deleteMutation.isPending}
         onConfirm={() => {
-          toast.success('Đã hủy/xóa phiếu nhập kho thành công');
-          setDeleteConfirmId(null);
+          if (deleteConfirmId) { deleteMutation.mutate(deleteConfirmId, { onSuccess: () => setDeleteConfirmId(null) }); }
         }}
-        description="Bạn có chắc chắn muốn hủy/xóa phiếu nhập kho này? Hành động này không thể hoàn tác."
+        description="Bạn có chắc chắn muốn hủy/xóa phiếu nhập kho này? Bản ghi được xoá mềm và chỉ Super Admin có thể khôi phục."
       />
     </div>
   );
