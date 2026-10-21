@@ -60,14 +60,14 @@ public class SystemController {
     }
 
     @PostMapping("/purge")
-    @Operation(summary = "Purge system data and reinitialize default accounts; requires the current user's purge password")
+    @Operation(summary = "Purge system data and uploaded cloud files, then reinitialize default accounts; requires the current user's purge password")
     public ResponseEntity<ApiResponse<String>> purgeData(@Valid @RequestBody PurgeDataRequest request) {
         systemService.purgeAllData(request.getPassword());
         return ResponseEntity.ok(ApiResponse.<String>builder()
                 .success(true)
                 .code("SYSTEM_PURGED_SUCCESS")
-                .message("All business data has been successfully purged")
-                .data("Business data purged successfully")
+                .message("All business data and uploaded cloud files have been successfully purged")
+                .data("Business data and uploaded cloud files purged successfully")
                 .build());
     }
 }

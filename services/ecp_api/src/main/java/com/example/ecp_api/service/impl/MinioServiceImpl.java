@@ -158,6 +158,35 @@ public class MinioServiceImpl implements MinioService {
     }
 
     @Override
+    public void purgeUploads() {
+        try {
+            List<io.minio.messages.DeleteObject> batch = new ArrayList<>();
+            for (var result : minioClient.listObjects(ListObjectsArgs.builder()
+                    .bucket(minioConfig.getBucketName()).prefix("ecp_uploads/").recursive(true).build())) {
+                batch.add(new io.minio.messages.DeleteObject(result.get().objectName()));
+                if (batch.size() == 500) {
+                    deleteUploadBatch(batch);
+                    batch = new ArrayList<>();
+                }
+            }
+            if (!batch.isEmpty()) { deleteUploadBatch(batch); }
+            log.info("Purged MinIO uploads under ecp_uploads/");
+        } catch (Exception ex) {
+            log.error("MinIO upload purge failed", ex);
+            throw new AppException("STORAGE_PURGE_FAILED", "Không thể xoá hết file upload trên MinIO. Hãy kiểm tra dịch vụ lưu trữ rồi thử lại.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void deleteUploadBatch(List<io.minio.messages.DeleteObject> batch) throws Exception {
+        for (var result : minioClient.removeObjects(RemoveObjectsArgs.builder()
+                .bucket(minioConfig.getBucketName()).objects(batch).build())) {
+            var error = result.get();
+            log.error("MinIO purge failed for {}: {}", error.objectName(), error.message());
+            throw new IllegalStateException("MinIO batch deletion failed: " + error.code());
+        }
+    }
+
+    @Override
     public Map<String, Object> generateUploadSignature(String folder) {
         try {
             String objectName = buildObjectName(folder, UUID.randomUUID() + ".bin");
@@ -375,13 +404,24 @@ public class MinioServiceImpl implements MinioService {
 
     private String extractObjectNameFromUrl(String url) {
         if (!StringUtils.hasText(url)) return null;
-        String bucketName = minioConfig.getBucketName();
-        String bucketTarget = "/" + bucketName + "/";
-        if (url.contains(bucketTarget)) {
-            return url.substring(url.indexOf(bucketTarget) + bucketTarget.length());
-        }
-        if (url.contains("ecp_uploads/")) {
-            return url.substring(url.indexOf("ecp_uploads/"));
+        try {
+            java.net.URI uri = java.net.URI.create(url);
+            java.net.URI publicBase = java.net.URI.create(getPublicUrl(""));
+            String endpoint = minioConfig.getEndpoint();
+            java.net.URI internalBase = java.net.URI.create(endpoint.contains("://") ? endpoint : "http://" + endpoint);
+            if (uri.getHost() == null || (!uri.getHost().equalsIgnoreCase(publicBase.getHost())
+                    && !uri.getHost().equalsIgnoreCase(internalBase.getHost()))) {
+                return null;
+            }
+            // URI.getPath decodes escaped filenames and excludes signed query parameters.
+            String path = uri.getPath();
+            String bucketTarget = "/" + minioConfig.getBucketName() + "/";
+            if (path.contains(bucketTarget)) {
+                return path.substring(path.indexOf(bucketTarget) + bucketTarget.length());
+            }
+            if (path.startsWith("/ecp_uploads/")) { return path.substring(1); }
+        } catch (IllegalArgumentException ex) {
+            log.warn("Invalid MinIO asset URL: {}", url);
         }
         return null;
     }

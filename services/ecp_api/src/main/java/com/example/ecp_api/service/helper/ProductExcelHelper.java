@@ -56,6 +56,7 @@ public class ProductExcelHelper {
             product = existingProduct; // update
         } else {
             product = new Product(); //creat new product
+            product.setId(new org.bson.types.ObjectId().toHexString());
             product.setSku(sku);
         }
 
@@ -94,7 +95,7 @@ public class ProductExcelHelper {
         }
 
         if (dto.getEmbeddedImageBytes() != null && dto.getEmbeddedImageBytes().length > 0) {
-            CloudinaryAsset asset = cloudinaryService.uploadSafely(dto.getEmbeddedImageBytes(), "products");
+            CloudinaryAsset asset = cloudinaryService.uploadSafely(dto.getEmbeddedImageBytes(), "products/" + product.getId());
             if (asset == null) {
                 throw new AppException("IMAGE_UPLOAD_FAILDED", "Failed to upload image to Cloudinary for product '" + dto.getName() + "'. Please check Cloudinary configuration or netword connection.", HttpStatus.BAD_REQUEST);
             }
@@ -103,7 +104,7 @@ public class ProductExcelHelper {
                     .publicId(asset.publicId())
                     .build());
         } else if (StringUtils.hasText(dto.getImageUrl())) {
-            CloudinaryAsset asset = cloudinaryService.uploadFromUrlSafely(dto.getImageUrl(), "products");
+            CloudinaryAsset asset = cloudinaryService.uploadFromUrlSafely(dto.getImageUrl(), "products/" + product.getId());
             if (asset != null) {
                 product.setThumbnail(ProductImage.builder()
                         .url(asset.url())

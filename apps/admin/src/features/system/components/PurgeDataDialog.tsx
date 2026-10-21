@@ -61,7 +61,7 @@ export const PurgeDataDialog = ({ open, onClose }: PurgeDataDialogProps): React.
       <DialogContent onEscapeKeyDown={(event) => { if (isBusy) { event.preventDefault(); } }} onPointerDownOutside={(event) => { if (isBusy) { event.preventDefault(); } }}>
         <DialogHeader>
           <DialogTitle className='flex items-center gap-2 text-red-600'><Trash2 className='h-5 w-5' />Xoá dữ liệu hệ thống</DialogTitle>
-          <DialogDescription>Thao tác này xoá vĩnh viễn dữ liệu nghiệp vụ và các tài khoản hiện tại, sau đó khởi tạo lại tài khoản mặc định. Bạn sẽ được đăng xuất sau khi hoàn tất.</DialogDescription>
+          <DialogDescription>Thao tác này xoá vĩnh viễn dữ liệu nghiệp vụ, các tài khoản hiện tại và toàn bộ ảnh, video, file trên các dịch vụ cloud đang bật, kể cả file không còn được dùng. Sau đó hệ thống khởi tạo lại tài khoản mặc định và đăng xuất bạn.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className='space-y-5'>
           {status.isPending && <p role='status' className='text-sm text-slate-500'>Đang kiểm tra mật khẩu xoá dữ liệu...</p>}

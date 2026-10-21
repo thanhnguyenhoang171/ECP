@@ -142,8 +142,18 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public ProductResponse createProduct(ProductRequest request, MultipartFile thumbnailFile, List<MultipartFile> imageFiles) {
-        com.example.ecp_api.dto.response.CloudinaryAsset uploadedThumbnail = cloudinaryService.uploadSafely(thumbnailFile, "products");
-        List<com.example.ecp_api.dto.response.CloudinaryAsset> uploadedGallery = cloudinaryService.uploadMultipleSafely(imageFiles, "products");
+        String productId = request.getCreationId();
+        if (productId == null) {
+            productId = new org.bson.types.ObjectId().toHexString();
+        } else if (!productId.matches("[0-9a-f]{24}")) {
+            throw new AppException("INVALID_PRODUCT_ID", "Invalid product creation ID", HttpStatus.BAD_REQUEST);
+        }
+        if (productRepository.existsById(productId)) {
+            throw new AppException("PRODUCT_ID_EXISTS", "Product creation ID already exists", HttpStatus.CONFLICT);
+        }
+        String mediaFolder = "products/" + productId;
+        com.example.ecp_api.dto.response.CloudinaryAsset uploadedThumbnail = cloudinaryService.uploadSafely(thumbnailFile, mediaFolder);
+        List<com.example.ecp_api.dto.response.CloudinaryAsset> uploadedGallery = cloudinaryService.uploadMultipleSafely(imageFiles, mediaFolder);
 
         try {
             // Set thumbnail if uploaded
@@ -204,6 +214,7 @@ public class ProductServiceImpl implements ProductService {
 
         // Map and save Product Master (MongoDB)
         Product product = productMapper.toEntity(request);
+        product.setId(productId);
         product.setSku(finalSku);
         product.setSlug(finalSlug);
         if (StringUtils.hasText(brandName)) {
@@ -212,7 +223,7 @@ public class ProductServiceImpl implements ProductService {
 
         product.setPublished(request.getIsPublished() != null ? request.getIsPublished() : false);
 
-        product = productRepository.save(product); // Temp storage to get ID
+        product = productRepository.insert(product); // Insert only: never overwrite an existing creation ID
 
         final String finalProductId = product.getId();
         final String productName = product.getName();
@@ -393,6 +404,7 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponse updateProduct(String id, ProductRequest request) {
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product Not Found", "PRODUCT_NOT_FOUND"));
+        Map<String, String> previousMedia = ProductMediaUtils.collect(existingProduct);
 
         if (StringUtils.hasText(request.getName())) {
             existingProduct.setName(request.getName());
@@ -488,7 +500,43 @@ public class ProductServiceImpl implements ProductService {
 
         ProductResponse resp = productMapper.toResponse(existingProduct);
         enrichCategoryInfo(resp);
+        deleteRemovedMediaAfterCommit(previousMedia, ProductMediaUtils.collect(existingProduct));
         return resp;
+    }
+
+    private void deleteRemovedMediaAfterCommit(Map<String, String> previous, Map<String, String> current) {
+        previous.entrySet().removeIf(entry -> current.containsKey(entry.getKey())
+                || (StringUtils.hasText(entry.getValue()) && current.containsValue(entry.getValue())));
+        if (previous.isEmpty()) { return; }
+        Runnable cleanup = () -> previous.forEach((url, publicId) -> {
+            try {
+                // A legacy URL can be shared by several products. Check persisted references before deleting.
+                List<Criteria> references = new ArrayList<>(List.of(
+                        Criteria.where("thumbnail.url").is(url), Criteria.where("images.url").is(url),
+                        Criteria.where("videos.url").is(url), Criteria.where("variants.image.url").is(url),
+                        Criteria.where("description").regex(java.util.regex.Pattern.quote(url)),
+                        Criteria.where("description").regex(java.util.regex.Pattern.quote(org.springframework.web.util.HtmlUtils.htmlEscape(url)))));
+                if (StringUtils.hasText(publicId)) {
+                    for (String field : List.of("thumbnail.publicId", "images.publicId", "videos.publicId", "variants.image.publicId")) {
+                        references.add(Criteria.where(field).is(publicId));
+                    }
+                }
+                if (!mongoTemplate.exists(Query.query(new Criteria().orOperator(references)), Product.class)) {
+                    cloudinaryService.deleteByUrl(url);
+                }
+            } catch (Exception ex) {
+                log.error("Failed to delete removed product media {}: {}", url, ex.getMessage(), ex);
+            }
+        });
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() { cleanup.run(); }
+                    });
+        } else {
+            cleanup.run();
+        }
     }
 
     private void synchronizeVariants(Product product, List<ProductRequest.ProductVariantRequest> requests) {
@@ -571,6 +619,7 @@ public class ProductServiceImpl implements ProductService {
         productRepository.delete(product);
 
         auditLogService.log("PRODUCT_DELETE", operatorEmail, "Hard deleted product: " + product.getName() + " (ID: " + product.getId() + ")");
+        deleteRemovedMediaAfterCommit(ProductMediaUtils.collect(product), Map.of());
     }
 
     @Override

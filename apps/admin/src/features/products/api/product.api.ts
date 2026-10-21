@@ -35,11 +35,11 @@ export interface ProductListParams {
   isBestSeller?: boolean;
 }
 
-const toImage = async (image: unknown, task?: UploadTaskContext): Promise<ProductImage | null> => {
+const toImage = async (image: unknown, folder: string, task?: UploadTaskContext): Promise<ProductImage | null> => {
   image = imageValueSchema.parse(image);
   if (isImageFile(image)) {
-    if (task) { return task.upload(image, 'products'); }
-    const result = await fileApi.uploadFile(image, 'products');
+    if (task) { return task.upload(image, folder); }
+    const result = await fileApi.uploadFile(image, folder);
     const url = result.data?.secure_url || result.data?.url;
     if (!result.success || !url) {
       throw new Error('Tải ảnh sản phẩm thất bại');
@@ -53,12 +53,19 @@ const toImage = async (image: unknown, task?: UploadTaskContext): Promise<Produc
 const toRecord = (items: readonly { key: string; value: string }[]): Record<string, string> =>
   Object.fromEntries(items.filter((item) => item.key.trim()).map(({ key, value }) => [key.trim(), value]));
 
-const toPayload = async (data: ProductFormValues, clearThumbnail = false, task?: UploadTaskContext) => {
+const createProductId = (): string => {
+  const bytes = crypto.getRandomValues(new Uint8Array(12));
+  new DataView(bytes.buffer).setUint32(0, Math.floor(Date.now() / 1000));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+};
+
+const toPayload = async (data: ProductFormValues, productId: string, clearThumbnail = false, task?: UploadTaskContext) => {
+  const folder = `products/${productId}`;
   const { descriptionImages = [], ...values } = data;
   let description = data.description || '';
   for (const item of descriptionImages) {
     if (!description.includes(item.src)) { continue; }
-    const image = await toImage(item.file, task);
+    const image = await toImage(item.file, folder, task);
     if (image) {
       const escapedUrl = image.url.replaceAll('&', '&amp;').replaceAll('"', '&quot;');
       description = description.replaceAll(item.src, escapedUrl);
@@ -66,22 +73,22 @@ const toPayload = async (data: ProductFormValues, clearThumbnail = false, task?:
   }
   const images: ProductImage[] = [];
   for (const item of data.images) {
-    const image = await toImage(item, task);
+    const image = await toImage(item, folder, task);
     if (image) { images.push(image); }
   }
   const variants = [];
   for (const variant of data.variants) {
-    variants.push({ ...variant, image: await toImage(variant.image, task), attributes: toRecord(variant.attributes) });
+    variants.push({ ...variant, image: await toImage(variant.image, folder, task), attributes: toRecord(variant.attributes) });
   }
   const videos: ProductImage[] = [];
   for (const item of data.videos) {
-    const video = await toImage(item, task);
+    const video = await toImage(item, folder, task);
     if (video) { videos.push(video); }
   }
   return {
     ...values,
     description,
-    thumbnail: await toImage(data.thumbnail, task) || (clearThumbnail ? { url: '' } : null),
+    thumbnail: await toImage(data.thumbnail, folder, task) || (clearThumbnail ? { url: '' } : null),
     images, videos, variants,
     specifications: toRecord(data.specifications),
   };
@@ -150,7 +157,9 @@ export const productApi = {
   },
 
   create: async (data: ProductFormValues, task?: UploadTaskContext): Promise<Product> => {
-    const payload = await toPayload(data, false, task);
+    // Allocate the final MongoDB ID before uploading so every media file shares its folder.
+    const creationId = createProductId();
+    const payload = { ...await toPayload(data, creationId, false, task), creationId };
     task?.saving();
     const response = await clientFetch('v1/products', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
@@ -160,7 +169,7 @@ export const productApi = {
   },
 
   update: async (id: string, data: ProductFormValues, task?: UploadTaskContext): Promise<Product> => {
-    const payload = await toPayload(data, true, task);
+    const payload = await toPayload(data, id, true, task);
     task?.saving();
     const response = await clientFetch(`v1/products/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),

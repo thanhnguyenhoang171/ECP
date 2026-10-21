@@ -3,6 +3,7 @@ package com.example.ecp_api.service.impl;
 import com.example.ecp_api.config.DataInitializer;
 import com.example.ecp_api.service.AuditLogService;
 import com.example.ecp_api.service.SystemService;
+import com.example.ecp_api.service.StorageService;
 import com.example.ecp_api.service.PurgePasswordService;
 import com.example.ecp_api.entity.mongodb.AuditLog;
 import com.example.ecp_api.exception.AppException;
@@ -28,6 +29,7 @@ public class SystemServiceImpl implements SystemService {
     private final MongoTemplate mongoTemplate;
     private final DataInitializer dataInitializer;
     private final AuditLogService auditLogService;
+    private final StorageService storageService;
 
     @Override
     @Transactional
@@ -43,9 +45,10 @@ public class SystemServiceImpl implements SystemService {
         }
 
         auditLogService.log("SYSTEM_PURGE_STARTED", currentEmail,
-                "Đã xác nhận mật khẩu và bắt đầu xoá dữ liệu hệ thống. Nhật ký kiểm toán được giữ lại.", "IN_PROGRESS");
+                "Đã xác nhận mật khẩu và bắt đầu xoá file upload trên cloud cùng dữ liệu hệ thống. Nhật ký kiểm toán được giữ lại.", "IN_PROGRESS");
         log.warn("PURGING ALL DATA FROM SYSTEM triggered by {}...", currentEmail);
         try {
+            storageService.purgeUploads();
             purgeJpaData();
             purgeMongoData();
             dataInitializer.initializeDefaults();
@@ -56,7 +59,7 @@ public class SystemServiceImpl implements SystemService {
         }
 
         auditLogService.log("SYSTEM_PURGE_ALL_DATA", currentEmail,
-                "Đã xoá dữ liệu hệ thống và khởi tạo lại tài khoản mặc định. Nhật ký kiểm toán được giữ lại.");
+                "Đã xoá file upload trên cloud, xoá dữ liệu hệ thống và khởi tạo lại tài khoản mặc định. Nhật ký kiểm toán được giữ lại.");
         log.info("SYSTEM PURGE COMPLETED SUCCESSFULLY.");
     }
 
