@@ -25,6 +25,10 @@ import java.util.Map;
 @Schema(description = "Request object for creating a product")
 public class ProductRequest {
 
+    @jakarta.validation.constraints.Pattern(regexp = "[0-9a-f]{24}", message = "Creation ID must be a lowercase MongoDB ObjectId")
+    @Schema(description = "Optional ID allocated before uploading media. Used only on creation.")
+    private String creationId;
+
     @Schema(description = "Product SKU. Auto-generated if empty.", example = "APPLE-IP15-A1B2")
     private String sku;
 

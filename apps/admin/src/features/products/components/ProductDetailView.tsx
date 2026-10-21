@@ -119,13 +119,6 @@ export default function ProductDetailView(): React.JSX.Element {
         </div>
       </header>
 
-      <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
-        {metrics.map(({ label, value, suffix, icon: Icon, color }) => <div key={label} className='min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5'>
-          <div className='mb-3 flex items-center justify-between gap-2'><span className='text-xs font-semibold text-slate-500'>{label}</span><span className={`rounded-lg p-2 ${color}`}><Icon size={16} /></span></div>
-          <p className='break-words text-xl font-black tracking-tight text-slate-900 sm:text-2xl'>{value}</p><p className='mt-1 text-xs text-slate-400'>{suffix}</p>
-        </div>)}
-      </div>
-
       <div className='grid items-start gap-6 lg:grid-cols-12'>
         <div className='min-w-0 lg:col-span-5'><ProductMediaGallery key={product.id} product={product} /></div>
         <div className='min-w-0 space-y-6 lg:col-span-7'>
@@ -144,9 +137,16 @@ export default function ProductDetailView(): React.JSX.Element {
               {[['SKU chính', product.sku], ['Thương hiệu', brand], ['Danh mục', category], ['Nhà cung cấp', query.data?.supplier?.name || query.data?.supplier?.supplierName], ['Đường dẫn', product.slug], ['ID sản phẩm', product.id]].map(([label, value]) => <div key={label} className='min-w-0'><dt className='mb-1 text-xs font-medium text-slate-400'>{label}</dt><dd className='break-all font-medium text-slate-700'>{value || 'Chưa có thông tin'}</dd></div>)}
             </dl>
           </DetailSection>
-          <DetailSection title='Mô tả sản phẩm'><RichTextContent value={product.description} /></DetailSection>
+          <div className='grid grid-cols-2 gap-3'>
+            {metrics.map(({ label, value, suffix, icon: Icon, color }) => <div key={label} className='min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5'>
+              <div className='mb-3 flex items-center justify-between gap-2'><span className='text-xs font-semibold text-slate-500'>{label}</span><span className={`rounded-lg p-2 ${color}`}><Icon size={16} /></span></div>
+              <p className='break-words text-xl font-black tracking-tight text-slate-900 sm:text-2xl'>{value}</p><p className='mt-1 text-xs text-slate-400'>{suffix}</p>
+            </div>)}
+          </div>
         </div>
       </div>
+
+      <DetailSection title='Mô tả sản phẩm'><RichTextContent value={product.description} /></DetailSection>
 
       <DetailSection title={`Biến thể & tồn kho (${rows.length})`}>
         <div className='flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500'><p>Giá bán, mã vạch và tồn kho hiện tại theo từng SKU.</p><Link href={`/products/${id}/skus`} className='inline-flex items-center gap-1 font-semibold text-blue-600 hover:underline'>Quản lý SKU<ArrowUpRight size={14} /></Link></div>
