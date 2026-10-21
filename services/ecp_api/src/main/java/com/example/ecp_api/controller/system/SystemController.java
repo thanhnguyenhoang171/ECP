@@ -60,14 +60,14 @@ public class SystemController {
     }
 
     @PostMapping("/purge")
-    @Operation(summary = "Purge system data and uploaded cloud files, then reinitialize default accounts; requires the current user's purge password")
+    @Operation(summary = "Purge catalog and inventory data/media while preserving accounts, access controls, sessions and audit logs")
     public ResponseEntity<ApiResponse<String>> purgeData(@Valid @RequestBody PurgeDataRequest request) {
         systemService.purgeAllData(request.getPassword());
         return ResponseEntity.ok(ApiResponse.<String>builder()
                 .success(true)
                 .code("SYSTEM_PURGED_SUCCESS")
-                .message("All business data and uploaded cloud files have been successfully purged")
-                .data("Business data and uploaded cloud files purged successfully")
+                .message("Đã xoá dữ liệu sản phẩm và kho hàng; giữ nguyên tài khoản, phân quyền, phiên đăng nhập và audit log")
+                .data("Catalog and inventory data/media purged successfully")
                 .build());
     }
 }

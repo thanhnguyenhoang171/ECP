@@ -17,9 +17,11 @@ const orderColumns: ColumnDef<RecentOrder>[] = [
     className: 'w-[20%] min-w-[120px]',
     headerClassName: 'w-[20%] min-w-[120px]',
     cell: (order) => (
-      <span className="font-mono text-xs font-bold text-blue-600 hover:underline cursor-pointer">
-        {order.id}
-      </span>
+      <Link href={`/purchase-orders`}>
+        <span className="font-mono text-xs font-bold text-blue-600 hover:underline cursor-pointer">
+          {order.orderCode || order.id}
+        </span>
+      </Link>
     ),
   },
   {
@@ -55,9 +57,10 @@ const orderColumns: ColumnDef<RecentOrder>[] = [
     className: 'w-[15%] min-w-[110px]',
     headerClassName: 'w-[15%] min-w-[110px]',
     cell: (order) => {
-      const isCompleted = order.status === 'Completed';
-      const isPending = order.status === 'Pending';
-      const isProcessing = order.status === 'Processing';
+      const s = (order.status || '').toUpperCase();
+      const isCompleted = s === 'COMPLETED';
+      const isProcessing = s === 'APPROVED' || s === 'ORDERED' || s === 'PARTIALLY_RECEIVED' || s === 'PROCESSING';
+      const isPending = s === 'PENDING' || s === 'DRAFT';
 
       return (
         <Badge

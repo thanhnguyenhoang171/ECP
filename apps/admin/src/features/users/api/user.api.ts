@@ -1,11 +1,9 @@
-import { getImageReference, imageValueSchema, isImageFile } from '@/lib/image-value';
-import { resolveCatalogImage } from '@/lib/catalog-api';
+import { resolveCatalogImage, readCatalogResult } from '@/lib/catalog-api';
 import type { UserFormValues } from '../schemas/user.schema';
-import { User } from '../types/user.interface';
-import { PageResponse, PaginationInfo } from '@/types/pagination';
+import type { User } from '../types/user.interface';
+import type { PageResponse } from '@/types/pagination';
 import { clientFetch } from '@/lib/clientFetch';
 import { toApiPage } from '@/lib/utils';
-import { ApiError, ErrorMessages } from '@/constants/errorMessages';
 
 export interface UserMutationData extends Partial<UserFormValues> {
   firstName?: string;
@@ -19,320 +17,156 @@ export interface UserMutationData extends Partial<UserFormValues> {
 export interface BackendUserResponse {
   id: string;
   email: string;
+  roles?: string[];
+  role?: string;
   phoneNumber?: string;
-  role: 'SUPER_ADMIN' | 'MANAGER' | 'USER';
-  isActive?: boolean;
   active?: boolean;
+  isActive?: boolean;
   isOnline?: boolean;
+  online?: boolean;
   lastLoginAt?: string;
   firstName?: string;
   lastName?: string;
   avatarUrl?: string;
   avatarPublicId?: string;
+  provider?: string;
   createdAt?: string;
   updatedAt?: string;
   createdBy?: string;
   updatedBy?: string;
+  deletedBy?: string;
+  deletedAt?: string;
 }
 
-export const normalizeRole = (b: unknown): User['role'] => {
-  const item = b as Record<string, unknown>;
-  let rawRole: string = '';
+const record = (value: unknown): Record<string, unknown> => value && typeof value === 'object' ? value as Record<string, unknown> : {};
 
-  if (typeof item?.role === 'string' && item.role) {
-    rawRole = item.role;
-  } else if (item?.role && typeof item.role === 'object' && 'name' in (item.role as Record<string, unknown>)) {
-    rawRole = String((item.role as { name?: string }).name || '');
-  } else if (Array.isArray(item?.roles) && item.roles.length > 0) {
-    const firstRole = item.roles[0];
-    if (typeof firstRole === 'string') {
-      rawRole = firstRole;
-    } else if (firstRole && typeof firstRole === 'object') {
-      rawRole = String(firstRole.name || firstRole.role || firstRole.authority || '');
-    }
-  } else if (Array.isArray(item?.authorities) && item.authorities.length > 0) {
-    const firstAuth = item.authorities[0];
-    if (typeof firstAuth === 'string') {
-      rawRole = firstAuth;
-    } else if (firstAuth && typeof firstAuth === 'object') {
-      rawRole = String(firstAuth.authority || firstAuth.role || '');
-    }
-  }
-
-  const cleanRole = rawRole.toUpperCase().replace(/^ROLE_/, '').trim();
-
-  if (cleanRole === 'SUPER_ADMIN' || cleanRole === 'ADMIN') return 'SUPER_ADMIN';
-  if (cleanRole === 'MANAGER' || cleanRole === 'STAFF' || cleanRole === 'ADMINISTRATOR') return 'MANAGER';
+export const normalizeRole = (value: unknown): User['role'] => {
+  const item = record(value);
+  const roles = (Array.isArray(item.roles) ? item.roles : [item.role]).map((role: unknown) => {
+    const source = typeof role === 'string' ? role : record(role).code || record(role).authority || record(role).name;
+    return String(source || '').trim().toUpperCase().replace(/^ROLE_/, '');
+  });
+  if (roles.includes('SUPER_ADMIN')) { return 'SUPER_ADMIN'; }
+  if (roles.includes('MANAGER')) { return 'MANAGER'; }
   return 'USER';
 };
 
-export const normalizeOnlineStatus = (b: unknown): boolean => {
-  const item = b as Record<string, unknown>;
-  if (typeof item?.isOnline === 'boolean') return item.isOnline;
-  if (typeof item?.online === 'boolean') return item.online;
-  if (typeof item?.is_online === 'boolean') return item.is_online;
-
-  const statusStr = String(item?.sessionStatus || item?.onlineStatus || item?.userStatus || '').toUpperCase();
-  if (statusStr === 'ONLINE' || statusStr === 'ACTIVE_SESSION') return true;
-
-  return false;
+export const normalizeOnlineStatus = (value: unknown): boolean => {
+  const item = record(value);
+  return item.isOnline === true || item.online === true;
 };
 
-export const normalizeLastActive = (b: unknown): string => {
-  const item = b as Record<string, unknown>;
-  const val = (item?.lastActive || item?.lastActiveAt || item?.lastLoginAt || item?.last_login_at || item?.updatedAt) as string | undefined;
-  if (!val) return 'Không rõ';
-  if (typeof val === 'string' && val.includes('T')) {
-    return val.split('T')[0];
-  }
-  return String(val);
+export const normalizeLastActive = (value: unknown): string => {
+  const item = record(value);
+  return typeof item.lastLoginAt === 'string' ? item.lastLoginAt : 'Chưa đăng nhập';
 };
 
-export const mapBackendUserToFrontend = (b: BackendUserResponse): User => {
-  const isAct = b.active !== undefined ? b.active : (b.isActive !== undefined ? b.isActive : true);
-  const rawObj = b as unknown as Record<string, unknown>;
-  const avatar = getImageReference(b.avatarUrl || rawObj.avatar_url || rawObj.avatar).url;
-  const userRole = normalizeRole(b);
-  const onlineStatus = normalizeOnlineStatus(b);
-  const lastActiveStatus = normalizeLastActive(b);
+export const mapBackendUserToFrontend = (user: BackendUserResponse): User => ({
+  id: user.id, email: user.email,
+  fullName: [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.email,
+  firstName: user.firstName, lastName: user.lastName, phone: user.phoneNumber || '',
+  role: normalizeRole(user), roles: user.roles || (user.role ? [user.role] : ['USER']),
+  status: (user.active ?? user.isActive ?? false) ? 'active' : 'inactive',
+  isOnline: normalizeOnlineStatus(user), lastActive: normalizeLastActive(user),
+  avatarUrl: user.avatarUrl || '', avatarPublicId: user.avatarPublicId || '', provider: user.provider,
+  createdAt: user.createdAt || '', updatedAt: user.updatedAt, createdBy: user.createdBy, updatedBy: user.updatedBy, deletedBy: user.deletedBy, deletedAt: user.deletedAt,
+});
 
-  return {
-    id: b.id,
-    fullName: [b.firstName, b.lastName].filter(Boolean).join(' ').trim() || b.email,
-    email: b.email,
-    phone: b.phoneNumber || '',
-    role: userRole,
-    status: isAct ? 'active' : 'inactive',
-    isOnline: onlineStatus,
-    lastActive: lastActiveStatus,
-    createdAt: b.createdAt ? b.createdAt.split('T')[0] : '',
-    firstName: b.firstName,
-    lastName: b.lastName,
-    avatarUrl: avatar,
-    avatarPublicId: b.avatarPublicId,
-    updatedAt: b.updatedAt,
-    createdBy: b.createdBy || '',
-    updatedBy: b.updatedBy || '',
-  };
+export interface UserListParams {
+  page: number;
+  size: number;
+  sort?: string;
+  keyword?: string;
+  role?: User['role'];
+  roles?: string[] | string;
+  active?: boolean;
+}
+
+export const userQuery = (params: UserListParams): URLSearchParams => {
+  const query = new URLSearchParams({ page: String(toApiPage(params.page)), size: String(params.size) });
+  if (params.sort) { query.set('sort', params.sort); }
+  if (params.keyword?.trim()) { query.set('keyword', params.keyword.trim()); }
+  const roles = params.roles ? (Array.isArray(params.roles) ? params.roles : params.roles.split(',')) : params.role ? [params.role] : [];
+  for (const role of roles) { if (role.trim()) { query.append('roles', role.trim()); } }
+  if (params.active !== undefined) { query.set('active', String(params.active)); }
+  return query;
+};
+
+const readUser = async (response: Response): Promise<User> => mapBackendUserToFrontend(
+  (await readCatalogResult<BackendUserResponse>(response, 'Không thể lưu hoặc tải tài khoản')).data,
+);
+
+const nameParts = (fullName: string): { firstName: string; lastName: string } => {
+  const parts = fullName.trim().split(/\s+/);
+  return { firstName: parts.length > 1 ? parts.slice(0, -1).join(' ') : parts[0], lastName: parts.length > 1 ? parts[parts.length - 1] : '' };
 };
 
 export const userApi = {
-  // Lấy danh sách phân trang (kết nối Backend API /v1/users)
-  getPaged: async (params: {
-    page: number;
-    size: number;
-    sort?: string;
-    keyword?: string;
-    role?: 'SUPER_ADMIN' | 'MANAGER' | 'USER';
-    roles?: string[] | string;
-    active?: boolean;
-  }): Promise<PageResponse<User>> => {
-    const apiPage = toApiPage(params.page);
-    const queryParams = new URLSearchParams();
-    queryParams.append('page', apiPage.toString());
-    queryParams.append('size', params.size.toString());
-    if (params.sort) queryParams.append('sort', params.sort);
-    if (params.keyword) queryParams.append('keyword', params.keyword);
-
-    if (params.roles) {
-      const rolesList = Array.isArray(params.roles) ? params.roles : params.roles.split(',');
-      rolesList.forEach(r => queryParams.append('roles', r.trim()));
-    } else if (params.role) {
-      queryParams.append('roles', params.role);
-    }
-
-    if (params.active !== undefined) queryParams.append('active', params.active.toString());
-
-    const res = await clientFetch(`v1/users?${queryParams.toString()}`);
-    if (!res.ok) {
-      if (res.status === 403) {
-        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem danh sách người dùng', 403);
-      }
-      throw new Error('Lỗi tải danh sách người dùng');
-    }
-
-    const result = await res.json();
-    const items = (result.data || []).map(mapBackendUserToFrontend);
-    const bePg = result.pagination || {};
-    const pg: PaginationInfo = {
-      currentPage: bePg.currentPage || params.page,
-      totalPages: bePg.totalPages || 1,
-      totalElements: bePg.totalElements || items.length,
-      pageSize: bePg.pageSize || params.size,
-      first: bePg.first ?? bePg.isFirst ?? (params.page === 1),
-      last: bePg.last ?? bePg.isLast ?? (params.page >= (bePg.totalPages || 1)),
-    };
-
-    return {
-      success: true,
-      message: result.message || ErrorMessages.USER_LIST_SUCCESS,
-      data: items,
-      pagination: pg,
-    };
+  getPaged: async (params: UserListParams): Promise<PageResponse<User>> => {
+    const response = await clientFetch(`v1/users?${userQuery(params)}`);
+    const result = await readCatalogResult<BackendUserResponse[]>(response, 'Không thể tải danh sách tài khoản');
+    const page = result as typeof result & { pagination: PageResponse<User>['pagination'] };
+    return { ...result, data: result.data.map(mapBackendUserToFrontend), pagination: page.pagination };
   },
-
-  // Lấy thông tin chi tiết 1 người dùng theo ID
-  getById: async (id: string): Promise<User> => {
-    const res = await clientFetch(`v1/users/${id}`);
-    if (!res.ok) {
-      throw new Error('Không tìm thấy người dùng');
-    }
-    const result = await res.json();
-    return mapBackendUserToFrontend(result.data);
-  },
-
-  // Tạo mới nhân viên / người dùng (Gửi đến /api/users/create với phân quyền & audit log)
+  getById: async (id: string): Promise<User> => readUser(await clientFetch(`v1/users/${id}`)),
   create: async (data: UserMutationData): Promise<User> => {
-    const names = (data.fullName || '').trim().split(' ');
-    const lastName = names.length > 1 ? names[names.length - 1] : '';
-    const firstName = names.length > 1 ? names.slice(0, names.length - 1).join(' ') : (data.fullName || '');
-
     const avatar = await resolveCatalogImage(data.avatarFile || data.avatarUrl, 'avatars');
-    const payload = {
-      email: data.email,
-      firstName: data.firstName || firstName,
-      lastName: data.lastName || lastName,
-      phoneNumber: data.phoneNumber || data.phone,
-      role: data.role || 'USER',
-      active: data.active !== undefined ? data.active : (data.status === 'active'),
-      avatarUrl: avatar.url,
-      avatarPublicId: avatar.publicId || data.avatarPublicId || '',
-      password: data.password || '',
-    };
-
-    const res = await clientFetch(`/api/users/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new ApiError(errJson.code, errJson.message || ErrorMessages.USER_CREATE_FAILED, res.status, errJson);
-    }
-
-    const result = await res.json();
-    return mapBackendUserToFrontend(result.data);
+    const names = nameParts(data.fullName || '');
+    return readUser(await clientFetch('v1/users', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: data.email?.trim().toLowerCase(), password: data.password,
+        firstName: data.firstName ?? names.firstName, lastName: data.lastName ?? names.lastName,
+        phoneNumber: data.phoneNumber ?? data.phone ?? '', roles: data.roles ?? [data.role || 'USER'],
+        active: data.active ?? (data.status ? data.status === 'active' : true), avatarUrl: avatar.url,
+        avatarPublicId: avatar.publicId || data.avatarPublicId || '' }),
+    }));
   },
-
-  // Chỉnh sửa nhân viên / người dùng (Hỗ trợ Partial Update & Avatar File Upload)
   update: async (id: string, data: UserMutationData): Promise<User> => {
     const payload: Record<string, unknown> = {};
-
-    const avatar = imageValueSchema.parse(data.avatarFile || data.avatarUrl);
-    const avatarFile = isImageFile(avatar) ? avatar : undefined;
-    const reference = avatarFile ? undefined : getImageReference(avatar);
-
-    if (data.email !== undefined && data.email !== '') payload.email = data.email;
-
-    if (data.fullName !== undefined) {
-      const names = (data.fullName || '').trim().split(' ');
-      const lastName = names.length > 1 ? names[names.length - 1] : '';
-      const firstName = names.length > 1 ? names.slice(0, names.length - 1).join(' ') : data.fullName;
-      if (firstName) payload.firstName = firstName;
-      if (lastName) payload.lastName = lastName;
+    if (data.fullName !== undefined) { Object.assign(payload, nameParts(data.fullName)); }
+    if (data.firstName !== undefined) { payload.firstName = data.firstName; }
+    if (data.lastName !== undefined) { payload.lastName = data.lastName; }
+    if (data.phoneNumber !== undefined || data.phone !== undefined) { payload.phoneNumber = data.phoneNumber ?? data.phone; }
+    if (data.roles !== undefined) { payload.roles = data.roles; }
+    else if (data.role !== undefined) { payload.roles = [data.role]; }
+    if (data.active !== undefined) { payload.active = data.active; }
+    else if (data.status !== undefined) { payload.active = data.status === 'active'; }
+    if (data.password) { payload.password = data.password; }
+    if (data.avatarFile || data.avatarUrl !== undefined) {
+      const avatar = await resolveCatalogImage(data.avatarFile || data.avatarUrl, `avatars/${id}`);
+      payload.avatarUrl = avatar.url;
+      payload.avatarPublicId = avatar.publicId || data.avatarPublicId || '';
     }
-    if (data.firstName !== undefined) payload.firstName = data.firstName;
-    if (data.lastName !== undefined) payload.lastName = data.lastName;
-
-    if (data.phoneNumber !== undefined || data.phone !== undefined) {
-      payload.phoneNumber = data.phoneNumber !== undefined ? data.phoneNumber : data.phone;
-    }
-
-    if (data.roles !== undefined) {
-      payload.roles = Array.isArray(data.roles) ? data.roles : [data.roles];
-    } else if (data.role !== undefined) {
-      payload.roles = [data.role];
-      payload.role = data.role;
-    }
-    if (data.active !== undefined) payload.active = data.active;
-    else if (data.status !== undefined) payload.active = data.status === 'active';
-
-    if (data.avatarUrl !== undefined && reference) { payload.avatarUrl = reference.url; }
-    const publicId = reference?.publicId || data.avatarPublicId;
-    if (publicId !== undefined) { payload.avatarPublicId = publicId; }
-
-    let res: Response;
-    if (avatarFile) {
-      const formData = new FormData();
-      formData.append('user', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-      formData.append('avatarFile', avatarFile);
-
-      res = await clientFetch(`v1/users/${id}`, {
-        method: 'PUT',
-        body: formData,
-      });
-    } else {
-      res = await clientFetch(`v1/users/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-    }
-
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new ApiError(errJson.code, errJson.message || ErrorMessages.USER_UPDATE_FAILED, res.status, errJson);
-    }
-
-    const result = await res.json();
-    return mapBackendUserToFrontend(result.data);
+    return readUser(await clientFetch(`v1/users/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }));
   },
-
-  // Xóa/Ngừng hoạt động người dùng
   delete: async (id: string): Promise<{ success: boolean }> => {
-    const res = await clientFetch(`v1/users/${id}`, {
-      method: 'DELETE',
-    });
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new ApiError(errJson.code, errJson.message || ErrorMessages.USER_DELETE_FAILED, res.status, errJson);
-    }
+    await readCatalogResult<null>(await clientFetch(`v1/users/${id}`, { method: 'DELETE' }), 'Không thể xoá tài khoản');
     return { success: true };
   },
-
-  // Lấy thống kê số lượng người dùng (MySQL + Redis)
-  getStatistics: async (): Promise<UserStatistics> => {
-    const defaultStats: UserStatistics = {
-      totalUsers: 0,
-      onlineUsers: 0,
-      offlineUsers: 0,
-      managementUsers: 0,
-      customerUsers: 0,
-      activeUsers: 0,
-      inactiveUsers: 0,
-    };
-
-    const res = await clientFetch('v1/users/statistics');
-    if (!res.ok) {
-      return defaultStats;
+  getStatistics: async (): Promise<UserStatistics> => (await readCatalogResult<UserStatistics>(
+    await clientFetch('v1/users/statistics'), 'Không thể tải thống kê tài khoản',
+  )).data,
+  export: async (params: Omit<UserListParams, 'page' | 'size'>): Promise<Blob> => {
+    const { Workbook } = await import('exceljs');
+    const workbook = new Workbook();
+    const sheet = workbook.addWorksheet('Tài khoản', { views: [{ state: 'frozen', ySplit: 1 }] });
+    sheet.columns = [
+      { header: 'Họ và tên', key: 'name', width: 30 }, { header: 'Email', key: 'email', width: 35 },
+      { header: 'Số điện thoại', key: 'phone', width: 20 }, { header: 'Vai trò', key: 'roles', width: 30 },
+      { header: 'Trạng thái', key: 'status', width: 20 }, { header: 'Tạo lúc', key: 'created', width: 25 },
+      { header: 'Đăng nhập lần cuối', key: 'lastLogin', width: 25 },
+    ];
+    for (let page = 1; ; page += 1) {
+      const result = await userApi.getPaged({ ...params, page, size: 100 });
+      for (const user of result.data) {
+        sheet.addRow({ name: user.fullName, email: user.email, phone: user.phone, roles: (user.roles || [user.role]).join(', '),
+          status: user.status === 'active' ? 'Hoạt động' : 'Đã khoá', created: user.createdAt, lastLogin: user.lastActive });
+      }
+      if (page >= result.pagination.totalPages || result.data.length === 0) { break; }
     }
-    const result = await res.json();
-    if (result.success && result.data) {
-      const stats = result.data as Record<string, unknown>;
-      const total = Number(stats.totalUsers || stats.total || 0);
-      const online = Number(stats.onlineUsers || stats.online || 0);
-      const mgmt = Number(stats.managementUsers || stats.management || stats.staffUsers || 0);
-      const cust = Number(stats.customerUsers || stats.customers || (total - mgmt > 0 ? total - mgmt : 0));
-      const offline = Number(stats.offlineUsers || stats.offline || (total - online > 0 ? total - online : 0));
-      const active = Number(stats.activeUsers || stats.active || 0);
-      const inactive = Number(stats.inactiveUsers || stats.inactive || stats.lockedUsers || (total - active > 0 ? total - active : 0));
-      const superAdmin = stats.superAdminUsers !== undefined ? Number(stats.superAdminUsers) : (stats.superAdmins !== undefined ? Number(stats.superAdmins) : undefined);
-      const manager = stats.managerUsers !== undefined ? Number(stats.managerUsers) : (stats.managers !== undefined ? Number(stats.managers) : undefined);
-
-      return {
-        totalUsers: total,
-        onlineUsers: online,
-        offlineUsers: offline,
-        managementUsers: mgmt,
-        customerUsers: cust,
-        activeUsers: active,
-        inactiveUsers: inactive,
-        superAdminUsers: superAdmin,
-        managerUsers: manager,
-      };
-    }
-    return defaultStats;
+    sheet.getRow(1).font = { bold: true };
+    sheet.autoFilter = 'A1:G1';
+    const bytes = new Uint8Array(await workbook.xlsx.writeBuffer());
+    return new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   },
 };
 

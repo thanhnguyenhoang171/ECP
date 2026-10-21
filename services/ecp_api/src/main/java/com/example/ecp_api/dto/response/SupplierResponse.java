@@ -14,6 +14,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Schema(description = "Response object representing a supplier")
 public class SupplierResponse {
+    private String deletedBy;
+    private java.time.LocalDateTime deletedAt;
+
     @Schema(description = "Unique supplier ID")
     private String id;
 

@@ -1,4 +1,4 @@
-import { Role, Permission, RoleRequest, PermissionRequest } from '../types/role.interface';
+import { Role, Permission, RoleRequest, PermissionRequest, RoleAccess } from '../types/role.interface';
 import { clientFetch } from '@/lib/clientFetch';
 import { ApiError, ErrorMessages } from '@/constants/errorMessages';
 
@@ -14,6 +14,22 @@ const normalizeRole = (role: ApiRole): Role => ({
 });
 
 export const roleApi = {
+  getAccess: async (): Promise<RoleAccess> => {
+    const response = await clientFetch('v1/roles/access', { skipToast: true });
+    if (!response.ok) { throw new ApiError('AUTH_ACCESS_DENIED', 'Không thể kiểm tra quyền truy cập.', response.status); }
+    const result: { data: RoleAccess } = await response.json();
+    return result.data;
+  },
+  updatePermission: async (id: string, data: PermissionRequest): Promise<Permission> => {
+    const response = await clientFetch(`v1/permissions/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), skipToast: true });
+    const result = await response.json();
+    if (!response.ok) { throw new ApiError(result.code, result.message || 'Không thể cập nhật quyền.', response.status); }
+    return result.data;
+  },
+  deletePermission: async (id: string): Promise<void> => {
+    const response = await clientFetch(`v1/permissions/${encodeURIComponent(id)}`, { method: 'DELETE', skipToast: true });
+    if (!response.ok) { const result = await response.json(); throw new ApiError(result.code, result.message || 'Không thể xoá quyền.', response.status); }
+  },
   // Lấy tất cả vai trò trong hệ thống kèm quyền hạn
   getAll: async (): Promise<Role[]> => {
     const res = await clientFetch('v1/roles');

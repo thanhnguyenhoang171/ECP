@@ -16,5 +16,6 @@ public interface PurchaseOrderService {
     PurchaseOrderAdminResponse getPurchaseOrderByIdAdmin(String id);
     PageResponse<PurchaseOrderResponse> getAllPurchaseOrders(PurchaseOrderFilterRequest filter, Pageable pageable);
     PageResponse<PurchaseOrderAdminResponse> getAllPurchaseOrdersAdmin(PurchaseOrderFilterRequest filter, Pageable pageable);
+    PurchaseOrderResponse updateStatus(String id, com.example.ecp_api.enums.common.PurchaseOrderStatus status);
     void deletePurchaseOrder(String id);
 }

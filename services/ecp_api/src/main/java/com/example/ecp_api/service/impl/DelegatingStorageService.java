@@ -131,13 +131,13 @@ public class DelegatingStorageService implements StorageService, MinioService, C
     }
 
     @Override
-    public void purgeUploads() {
+    public void purgeBusinessUploads() {
         if (!minioEnabled && !cloudinaryEnabled) {
             throw new AppException("STORAGE_DISABLED", "Không thể dọn file khi tất cả dịch vụ lưu trữ đang tắt.", HttpStatus.SERVICE_UNAVAILABLE);
         }
         // Clean both providers when enabled, including files uploaded before a provider switch.
-        if (minioEnabled) { minioService.purgeUploads(); }
-        if (cloudinaryEnabled) { cloudinaryService.purgeUploads(); }
+        if (minioEnabled) { minioService.purgeBusinessUploads(); }
+        if (cloudinaryEnabled) { cloudinaryService.purgeBusinessUploads(); }
     }
 
     @Override

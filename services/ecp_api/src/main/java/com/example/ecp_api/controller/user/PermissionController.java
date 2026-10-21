@@ -26,7 +26,7 @@ public class PermissionController {
     private final RoleService roleService;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('role:read') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Get all system and custom permissions")
     public ResponseEntity<ApiResponse<List<PermissionResponse>>> getAllPermissions() {
         return ResponseEntity.ok(ApiResponse.<List<PermissionResponse>>builder()
@@ -38,7 +38,7 @@ public class PermissionController {
     }
 
     @GetMapping("/grouped")
-    @PreAuthorize("hasAuthority('role:read') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Get all permissions grouped by functional module (PRODUCT, USER, ROLE, INVENTORY, etc.)")
     public ResponseEntity<ApiResponse<Map<String, List<PermissionResponse>>>> getGroupedPermissions() {
         return ResponseEntity.ok(ApiResponse.<Map<String, List<PermissionResponse>>>builder()
@@ -49,9 +49,22 @@ public class PermissionController {
                 .build());
     }
 
+    @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<PermissionResponse>> updatePermission(@PathVariable java.util.UUID id, @Valid @RequestBody PermissionRequest request) {
+        return ResponseEntity.ok(ApiResponse.<PermissionResponse>builder().success(true).data(roleService.updatePermission(id, request)).build());
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> deletePermission(@PathVariable java.util.UUID id) {
+        roleService.deletePermission(id);
+        return ResponseEntity.ok(ApiResponse.<Void>builder().success(true).build());
+    }
+
     @PostMapping(consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    @Operation(summary = "Create a new dynamic custom permission (SUPER_ADMIN only)")
+    @Operation(summary = "Create a custom permission within the current account scope")
     public ResponseEntity<ApiResponse<PermissionResponse>> createPermission(@Valid @RequestBody PermissionRequest request) {
         return new ResponseEntity<>(ApiResponse.<PermissionResponse>builder()
                 .success(true)

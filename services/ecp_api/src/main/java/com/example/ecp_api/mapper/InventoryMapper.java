@@ -29,6 +29,9 @@ public interface InventoryMapper {
 
     List<InventoryResponse> toResponseList(List<Inventory> entities);
 
+    @Mapping(source = "warehouse.id", target = "warehouseId")
+    @Mapping(source = "sku.id", target = "skuId")
+    @Mapping(source = "sku.productName", target = "productName")
     @Mapping(source = "warehouse.name", target = "warehouseName")
     @Mapping(source = "sku.skuCode", target = "skuCode")
     InventoryLedgerResponse toLedgerResponse(InventoryLedger entity);

@@ -15,6 +15,10 @@ import java.util.UUID;
 @Builder
 public class InventoryLedgerResponse {
     private UUID id;
+    private UUID warehouseId;
+    private UUID skuId;
+    private String productName;
+    private String createdBy;
     private String warehouseName;
     private String skuCode;
     private String batchCode;

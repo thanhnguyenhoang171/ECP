@@ -1,12 +1,14 @@
 'use client';
 
+import { WarehouseRequestError } from '@/features/inventory/components/WarehouseRequestError';
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Warehouse, MapPin } from "lucide-react";
 import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination, type ColumnDef } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
-import { 
-  SearchInput, 
+import {
+  SearchInput,
   AddNewButton,
   ViewActionButton,
   EditActionButton,
@@ -15,20 +17,20 @@ import {
 } from '@/components/common/view-control';
 import WarehouseDetailDialog from './WarehouseDetailDialog';
 import { useWarehouses, useDeleteWarehouse } from '../hooks/use-warehouses';
-import { ClientWarehouse } from '@/lib/clientDb';
+import { ClientWarehouse } from '@/features/inventory/types/inventory.types';
 import { isForbiddenError } from '@/constants/errorMessages';
 import { UI } from '@/constants/uiMessages';
 
-export default function WarehousesView() {
+export default function WarehousesView() : React.JSX.Element {
   const router = useRouter();
-  const { data: warehouses = [], isLoading, error } = useWarehouses();
+  const { data: warehouses = [], isLoading, error, refetch } = useWarehouses();
   const isForbidden = isForbiddenError(error);
   const deleteMutation = useDeleteWarehouse();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(10);
-  
+
   // Detail Dialog State
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -67,7 +69,7 @@ export default function WarehousesView() {
   }, [warehouses, searchTerm]);
 
   const paginatedWarehouses = useMemo(() => {
-    const start = (page - 1) * size;
+    const start = Math.min(page - 1, Math.max(0, Math.ceil(filteredWarehouses.length / size) - 1)) * size;
     return filteredWarehouses.slice(start, start + size);
   }, [filteredWarehouses, page, size]);
 
@@ -132,31 +134,34 @@ export default function WarehousesView() {
   return (
     <div className="space-y-6">
       <Breadcrumbs items={breadcrumbItems} />
-      <PageHeader 
+      <PageHeader
         title="Quản lý Kho bãi"
         description="Quản lý các địa điểm lưu kho và tình trạng hoạt động."
         actions={<AddNewButton onClick={handleCreate} label="Thêm kho mới" />}
       />
 
-      <DataCard 
+      <WarehouseRequestError error={error} retry={() => { void refetch(); }} />
+      <DataCard
         search={<SearchInput placeholder="Tìm tên kho, mã kho..." value={searchTerm} onChange={(val) => { setSearchTerm(val); setPage(1); }} />}
         footer={
           !isForbidden && (isLoading || filteredWarehouses.length > 0) && (
             <NextPagination
               isLoading={isLoading}
-              currentPage={page}
+              currentPage={Math.min(page, totalPages)}
               totalPages={totalPages}
               totalItems={filteredWarehouses.length}
               itemsPerPage={size}
-              onItemsPerPageChange={setSize}
+              onItemsPerPageChange={(value) => { setSize(value); setPage(1); }}
               onPageChange={setPage}
             />
           )
         }
       >
-        <DataTable 
-          columns={columns} 
-          data={paginatedWarehouses} 
+        <DataTable
+          auditTrail
+          recoveryModule="warehouses"
+          columns={columns}
+          data={paginatedWarehouses}
           isLoading={isLoading && !filteredWarehouses.length}
           loadingRows={size}
           isForbidden={isForbidden}
@@ -174,7 +179,7 @@ export default function WarehousesView() {
       </DataCard>
 
       {/* Modal Xem chi tiết */}
-      <WarehouseDetailDialog 
+      <WarehouseDetailDialog
         warehouseId={selectedWarehouseId}
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
@@ -186,7 +191,7 @@ export default function WarehousesView() {
         onClose={() => setDeleteConfirmId(null)}
         isLoading={deleteMutation.isPending}
         onConfirm={handleDeleteConfirm}
-        description="Bạn có chắc chắn muốn xóa địa điểm kho bãi này khỏi hệ thống?"
+        description="Kho bãi sẽ được xoá mềm. Chỉ Super Admin có thể khôi phục."
       />
     </div>
   );

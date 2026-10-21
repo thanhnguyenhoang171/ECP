@@ -158,19 +158,21 @@ public class MinioServiceImpl implements MinioService {
     }
 
     @Override
-    public void purgeUploads() {
+    public void purgeBusinessUploads() {
         try {
-            List<io.minio.messages.DeleteObject> batch = new ArrayList<>();
-            for (var result : minioClient.listObjects(ListObjectsArgs.builder()
-                    .bucket(minioConfig.getBucketName()).prefix("ecp_uploads/").recursive(true).build())) {
-                batch.add(new io.minio.messages.DeleteObject(result.get().objectName()));
-                if (batch.size() == 500) {
-                    deleteUploadBatch(batch);
-                    batch = new ArrayList<>();
+            for (String prefix : com.example.ecp_api.service.helper.BusinessMediaScope.PREFIXES) {
+                List<io.minio.messages.DeleteObject> batch = new ArrayList<>();
+                for (var result : minioClient.listObjects(ListObjectsArgs.builder()
+                        .bucket(minioConfig.getBucketName()).prefix(prefix).recursive(true).build())) {
+                    batch.add(new io.minio.messages.DeleteObject(result.get().objectName()));
+                    if (batch.size() == 500) {
+                        deleteUploadBatch(batch);
+                        batch = new ArrayList<>();
+                    }
                 }
+                if (!batch.isEmpty()) { deleteUploadBatch(batch); }
+                log.info("Purged MinIO business uploads under {}", prefix);
             }
-            if (!batch.isEmpty()) { deleteUploadBatch(batch); }
-            log.info("Purged MinIO uploads under ecp_uploads/");
         } catch (Exception ex) {
             log.error("MinIO upload purge failed", ex);
             throw new AppException("STORAGE_PURGE_FAILED", "Không thể xoá hết file upload trên MinIO. Hãy kiểm tra dịch vụ lưu trữ rồi thử lại.", HttpStatus.INTERNAL_SERVER_ERROR);

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -11,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { getApiErrorMessage } from '@/constants/errorMessages';
-import { useLogout } from '@/features/auth/hooks/use-auth-mutation';
+import { refreshPurgedBusinessData } from '../utils/purge-cache';
 import { systemApi } from '../api/system.api';
 import { usePurgePasswordStatus } from '../hooks/use-purge-password-status';
 
@@ -23,23 +24,25 @@ interface PurgeDataDialogProps {
 export const PurgeDataDialog = ({ open, onClose }: PurgeDataDialogProps): React.JSX.Element => {
   const status = usePurgePasswordStatus(open);
   const queryClient = useQueryClient();
-  const logout = useLogout();
+  const router = useRouter();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const mutation = useMutation({
     mutationFn: systemApi.purge,
     onSuccess: async () => {
       setPassword('');
-      toast.success('Đã xoá dữ liệu. Vui lòng đăng nhập lại.');
-      queryClient.clear();
-      await logout.mutateAsync();
+      setError('');
+      onClose();
+      toast.success('Đã xoá dữ liệu sản phẩm và kho hàng. Bạn vẫn đang đăng nhập.');
+      await refreshPurgedBusinessData(queryClient);
+      router.refresh();
     },
     onError: (cause: Error) => {
       setPassword('');
       setError(getApiErrorMessage(cause, 'Không thể xoá dữ liệu'));
     },
   });
-  const isBusy = mutation.isPending || logout.isPending;
+  const isBusy = mutation.isPending;
   const canPurge = status.isSuccess && status.data.configured && status.data.approved && Boolean(password.trim()) && !isBusy;
 
   const handleClose = (): void => {
@@ -60,8 +63,8 @@ export const PurgeDataDialog = ({ open, onClose }: PurgeDataDialogProps): React.
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) { handleClose(); } }}>
       <DialogContent onEscapeKeyDown={(event) => { if (isBusy) { event.preventDefault(); } }} onPointerDownOutside={(event) => { if (isBusy) { event.preventDefault(); } }}>
         <DialogHeader>
-          <DialogTitle className='flex items-center gap-2 text-red-600'><Trash2 className='h-5 w-5' />Xoá dữ liệu hệ thống</DialogTitle>
-          <DialogDescription>Thao tác này xoá vĩnh viễn dữ liệu nghiệp vụ, các tài khoản hiện tại và toàn bộ ảnh, video, file trên các dịch vụ cloud đang bật, kể cả file không còn được dùng. Sau đó hệ thống khởi tạo lại tài khoản mặc định và đăng xuất bạn.</DialogDescription>
+          <DialogTitle className='flex items-center gap-2 text-red-600'><Trash2 className='h-5 w-5' />Xoá dữ liệu sản phẩm và kho hàng</DialogTitle>
+          <DialogDescription>Xoá vĩnh viễn sản phẩm, danh mục, thương hiệu, tồn kho, phiếu nhập kho, đơn mua hàng, nhà cung cấp, kho bãi, sổ cái kho và ảnh/video/file thuộc các mục này. Giữ nguyên tài khoản, role, permission, audit log, ảnh hồ sơ và phiên đăng nhập của bạn.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className='space-y-5'>
           {status.isPending && <p role='status' className='text-sm text-slate-500'>Đang kiểm tra mật khẩu xoá dữ liệu...</p>}

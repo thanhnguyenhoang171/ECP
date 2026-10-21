@@ -26,6 +26,16 @@ import java.util.Map;
 @Builder
 public class Product {
 
+    @Field("deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Field("deleted_by")
+    private String deletedBy;
+
+    @Field("is_deleted")
+    @Builder.Default
+    private boolean deleted = false;
+
     @Id
     private String id; // MongoDB ObjectId
 

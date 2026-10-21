@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
+import { useAuthStore } from '@/store/authStore';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 declare global {
@@ -12,11 +13,13 @@ declare global {
 }
 
 export default function Providers({ children }: { children: React.ReactNode }): React.ReactElement {
-  const [queryClient] = useState(
+  const identity = useAuthStore(state => state.user ? `${state.user.id}:${[...(state.user.roles || []), state.user.role || ''].sort().join(',')}` : 'anonymous');
+  const queryClient = useMemo(
     () =>
       new QueryClient({
         defaultOptions: {
           queries: {
+            meta: { authIdentity: identity },
             staleTime: 60 * 1000,
             refetchOnWindowFocus: false,
             refetchOnReconnect: false,
@@ -39,12 +42,14 @@ export default function Providers({ children }: { children: React.ReactNode }): 
           },
         },
       }),
+    [identity],
   );
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.__TANSTACK_QUERY_CLIENT__ = queryClient;
     }
+    return () => { void queryClient.cancelQueries(); queryClient.clear(); };
   }, [queryClient]);
 
   return (

@@ -14,10 +14,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { FormSection, FormGrid, AdminFormLabel, FormActionsBar } from '@/components/common';
 import { cn } from '@/lib/utils';
-import { usePermissions, useCreatePermission } from '../hooks/use-roles';
+import { usePermissions, useCreatePermission, useUpdatePermission, useRoleAccess } from '../hooks/use-roles';
+import { Permission } from '../types/role.interface';
 import { permissionSchema, PermissionFormValues } from '../schemas/permission.schema';
 
 interface PermissionFormProps {
+  readonly initialData?: Permission;
+  readonly isDialog?: boolean;
   readonly onSuccess: () => void;
   readonly onCancel: () => void;
 }
@@ -35,17 +38,22 @@ const DEFAULT_MODULES = [
 export default function PermissionForm({
   onSuccess,
   onCancel,
+  initialData,
+  isDialog = false,
 }: PermissionFormProps): React.JSX.Element {
   const { data: permissions = [] } = usePermissions();
   const createMutation = useCreatePermission();
+  const updateMutation = useUpdatePermission();
+  const { data: access } = useRoleAccess();
+  const allowed = initialData ? access?.update && initialData.editable !== false : access?.create;
 
   const form = useForm<PermissionFormValues>({
     resolver: zodResolver(permissionSchema),
     defaultValues: {
-      code: '',
-      name: '',
-      module: 'SYSTEM',
-      description: '',
+      code: initialData?.code || '',
+      name: initialData?.name || '',
+      module: initialData?.module || 'SYSTEM',
+      description: initialData?.description || '',
     },
   });
 
@@ -63,26 +71,17 @@ export default function PermissionForm({
   }, [permissions]);
 
   const onSubmit = (values: PermissionFormValues): void => {
-    createMutation.mutate(
-      {
-        code: values.code.trim().toLowerCase(),
-        name: values.name.trim(),
-        module: values.module.trim().toUpperCase(),
-        description: values.description?.trim() || undefined,
-      },
-      {
-        onSuccess: () => {
-          onSuccess();
-        },
-      }
-    );
+    if (!allowed) { return; }
+    const data = { code: values.code.trim().toLowerCase(), name: values.name.trim(), module: values.module.trim().toUpperCase(), description: values.description?.trim() || undefined };
+    if (initialData) { updateMutation.mutate({ id: initialData.id, data }, { onSuccess }); }
+    else { createMutation.mutate(data, { onSuccess }); }
   };
 
-  const isSubmitting = createMutation.isPending;
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-28">
+      <form onSubmit={form.handleSubmit(onSubmit)} className={isDialog ? "space-y-6" : "space-y-6 pb-28"}>
         {/* Section 1: Định danh đặc quyền */}
         <FormSection
           title="Thông tin định danh đặc quyền"
@@ -93,7 +92,7 @@ export default function PermissionForm({
             <div className="text-xs space-y-0.5">
               <p className="font-bold">Quy chuẩn mã quyền hạn</p>
               <p className="text-blue-700">
-                Mã quyền hạn nên tuân thủ cú pháp <code className="font-mono font-semibold bg-blue-100/80 px-1 py-0.5 rounded">module:action</code> (ví dụ: <code className="font-mono font-semibold">product:create</code>, <code className="font-mono font-semibold">order:export</code>, <code className="font-mono font-semibold">report:view</code>) để thuận tiện cho việc kiểm soát phân quyền qua API Gateway và Middleware.
+                Mã quyền hạn nên tuân thủ cú pháp <code className="font-mono font-semibold bg-blue-100/80 px-1 py-0.5 rounded">module:action</code> (ví dụ: <code className="font-mono font-semibold">product:create</code>, <code className="font-mono font-semibold">order:export</code>, <code className="font-mono font-semibold">report:view</code>) và chỉ có hiệu lực khi tác vụ tương ứng đã được ứng dụng hỗ trợ.
               </p>
             </div>
           </div>
@@ -110,7 +109,7 @@ export default function PermissionForm({
                     <div className="relative">
                       <Input
                         placeholder="ví dụ: product:export"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || !allowed || Boolean(initialData)}
                         className="h-11 pl-9 border-slate-200 font-mono text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
                         {...field}
                         onChange={(e) =>
@@ -123,7 +122,7 @@ export default function PermissionForm({
                     </div>
                   </FormControl>
                   <p className="text-[10px] text-slate-400">
-                    Chữ thường, không dấu, phân cách bằng dấu hai chấm hoặc gạch dưới.
+                    Dạng module:action; mã được giữ cố định sau khi tạo.
                   </p>
                   <FormMessage />
                 </FormItem>
@@ -140,7 +139,7 @@ export default function PermissionForm({
                   <FormControl>
                     <Input
                       placeholder="ví dụ: Xuất dữ liệu sản phẩm"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || !allowed}
                       className="h-11 border-slate-200 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
                       {...field}
                     />
@@ -164,7 +163,7 @@ export default function PermissionForm({
                     <div className="relative">
                       <Input
                         placeholder="ví dụ: PRODUCT, ORDER, REPORT..."
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || !allowed}
                         className="h-11 pl-9 border-slate-200 font-mono text-xs uppercase focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
                         {...field}
                         onChange={(e) =>
@@ -222,7 +221,7 @@ export default function PermissionForm({
                 <FormControl>
                   <textarea
                     placeholder="Mô tả cụ thể tác vụ được phép thực hiện, giới hạn truy cập hoặc điều kiện kiểm tra..."
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !allowed}
                     rows={4}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-700 shadow-2xs placeholder:text-slate-400 focus-visible:outline-none focus-visible:border-blue-500 focus-visible:ring-1 focus-visible:ring-blue-500"
                     {...field}
@@ -236,9 +235,11 @@ export default function PermissionForm({
 
         {/* Sticky Form Actions Bar */}
         <FormActionsBar
+          isDialog={isDialog}
           onCancel={onCancel}
           isSubmitting={isSubmitting}
-          submitText="Tạo quyền hạn mới"
+          submitText={initialData ? "Lưu thay đổi" : "Tạo quyền hạn mới"}
+          submitDisabled={!allowed}
         />
       </form>
     </Form>

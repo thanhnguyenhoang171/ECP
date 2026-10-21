@@ -1,7 +1,6 @@
 package com.example.ecp_api.dto.request;
 
 import com.example.ecp_api.enums.users.UserGender;
-import com.example.ecp_api.enums.users.UserRole;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
@@ -22,10 +21,10 @@ public class UserRequest {
     private String email;
 
     @NotBlank(message = "Password cannot be blank")
-    @Size(min = 8, message = "Password must be at least 8 characters")
+    @Size(min = 8, max = 72, message = "Password must be between 8 and 72 characters")
     private String password;
 
-    @Pattern(regexp = "^(0[3|5|7|8|9])+([0-9]{8})$", message = "Phone number is invalid")
+    @Pattern(regexp = "^$|^0[35789][0-9]{8}$", message = "Phone number is invalid")
     private String phoneNumber;
 
     @Size(max = 100, message = "First name must not exceed 100 characters")

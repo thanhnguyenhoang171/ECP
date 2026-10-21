@@ -18,5 +18,6 @@ public interface GoodsReceiptService {
     PageResponse<GoodsReceiptAdminResponse> getAllGoodsReceiptsAdmin(GoodsReceiptFilterRequest filter, Pageable pageable);
     void deleteGoodsReceipt(String id);
     GoodsReceiptResponse confirmReceipt(String id);
+    GoodsReceiptResponse cancelReceipt(String id);
     GoodsReceiptAdminResponse confirmReceiptAdmin(String id);
 }

@@ -26,8 +26,19 @@ public class RoleController {
 
     private final RoleService roleService;
 
+    @GetMapping("/access")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Boolean>>> getAccess(org.springframework.security.core.Authentication authentication) {
+        boolean admin = com.example.ecp_api.util.SecurityUtils.isSuperAdmin();
+        java.util.Map<String, Boolean> access = new java.util.HashMap<>();
+        for (String action : java.util.List.of("read", "create", "update", "delete")) {
+            access.put(action, admin);
+        }
+        return ResponseEntity.ok(ApiResponse.<java.util.Map<String, Boolean>>builder().success(true).data(access).build());
+    }
+
     @GetMapping
-    @PreAuthorize("hasAuthority('role:read') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Get all system and custom roles with permissions")
     public ResponseEntity<ApiResponse<List<RoleResponse>>> getAllRoles() {
         return ResponseEntity.ok(ApiResponse.<List<RoleResponse>>builder()
@@ -39,7 +50,7 @@ public class RoleController {
     }
 
     @GetMapping("/permissions")
-    @PreAuthorize("hasAuthority('role:read') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Get all available system permissions")
     public ResponseEntity<ApiResponse<List<PermissionResponse>>> getAllPermissions() {
         return ResponseEntity.ok(ApiResponse.<List<PermissionResponse>>builder()
@@ -51,7 +62,7 @@ public class RoleController {
     }
 
     @GetMapping("/{code}")
-    @PreAuthorize("hasAuthority('role:read') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Get role details by role code")
     public ResponseEntity<ApiResponse<RoleResponse>> getRoleByCode(@PathVariable String code) {
         return ResponseEntity.ok(ApiResponse.<RoleResponse>builder()
@@ -63,7 +74,7 @@ public class RoleController {
     }
 
     @PostMapping(consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAuthority('role:create') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Create a new custom system role with assigned permissions")
     public ResponseEntity<ApiResponse<RoleResponse>> createRole(@Valid @RequestBody RoleRequest request) {
         return new ResponseEntity<>(ApiResponse.<RoleResponse>builder()
@@ -75,7 +86,7 @@ public class RoleController {
     }
 
     @PatchMapping(value = "/{id}", consumes = { MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE }, produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAuthority('role:update') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Update an existing role and its permissions")
     public ResponseEntity<ApiResponse<RoleResponse>> updateRole(
             @PathVariable UUID id, @Valid @RequestBody RoleRequest request) {
@@ -88,7 +99,7 @@ public class RoleController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('role:delete') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Delete a custom system role")
     public ResponseEntity<ApiResponse<Void>> deleteRole(@PathVariable UUID id) {
         roleService.deleteRole(id);

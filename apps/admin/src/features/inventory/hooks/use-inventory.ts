@@ -1,9 +1,11 @@
+import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
+import type { InventoryItemResponse, InventoryLedgerItemResponse } from '../api/inventory.api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { inventoryApi } from '../api/inventory.api';
+import { inventoryApi, type StockAdjustment } from '../api/inventory.api';
 import { getApiErrorMessage } from '@/constants/errorMessages';
 
-export function useStocks() {
+export function useStocks(): UseQueryResult<InventoryItemResponse[], Error> {
   return useQuery({
     queryKey: ['stocks'],
     queryFn: () => inventoryApi.getStocks(),
@@ -11,7 +13,7 @@ export function useStocks() {
   });
 }
 
-export function useInventoryLedgers() {
+export function useInventoryLedgers(): UseQueryResult<InventoryLedgerItemResponse[], Error> {
   return useQuery({
     queryKey: ['inventory-ledgers'],
     queryFn: () => inventoryApi.getLedgers(),
@@ -19,16 +21,19 @@ export function useInventoryLedgers() {
   });
 }
 
-export function useAdjustStock() {
+export function useAdjustStock(): UseMutationResult<InventoryItemResponse, unknown, StockAdjustment> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: { warehouseId: string; skuId: string; batchCode?: string; quantityDelta: number; reason?: string }) => 
+    mutationFn: (data: StockAdjustment) =>
       inventoryApi.adjustStock(data),
     onSuccess: () => {
       toast.success('Điều chỉnh tồn kho thành công!');
       queryClient.invalidateQueries({ queryKey: ['stocks'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-ledgers'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product-composite-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['skus'] });
     },
     onError: (error: unknown) => {
       console.error('Adjust stock error:', error);

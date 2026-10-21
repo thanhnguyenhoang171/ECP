@@ -1,6 +1,6 @@
-import { clientFetch } from '@/lib/clientFetch';
-import { clientDb } from '@/lib/clientDb';
 import { ApiError } from '@/constants/errorMessages';
+import { clientFetch } from '@/lib/clientFetch';
+import { warehouseList, warehouseRequest } from './warehouse-request';
 
 export interface InventoryItemResponse {
   id: string;
@@ -30,9 +30,8 @@ export interface InventoryLedgerItemResponse {
   productName: string;
   batchCode?: string;
   transactionType: string;
-  quantityBefore: number;
-  quantityChanged: number;
-  quantityAfter: number;
+  quantityChange: number;
+  balanceAfter: number;
   referenceId?: string;
   referenceType?: string;
   note?: string;
@@ -40,149 +39,43 @@ export interface InventoryLedgerItemResponse {
   createdBy?: string;
 }
 
+export interface StockAdjustment {
+  warehouseId: string;
+  skuId: string;
+  batchCode?: string;
+  quantityDelta: number;
+  reason?: string;
+  expectedQuantityOnHand?: number;
+}
+
+export interface StockExportFilters {
+  readonly warehouseId?: string;
+  readonly keyword?: string;
+  readonly stockStatus?: string;
+  readonly sort?: string;
+}
+
 export const inventoryApi = {
-  // Lấy mức tồn kho hiện tại (Stock)
-  getStocks: async (): Promise<InventoryItemResponse[]> => {
-    try {
-      const res = await clientFetch('v1/inventory/stocks');
-      if (res.status === 403) {
-        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem tồn kho', 403);
-      }
-      if (res.ok) {
-        const result = await res.json();
-        let items: any[] = [];
-        if (Array.isArray(result.data)) {
-          items = result.data;
-        } else if (result.data && Array.isArray(result.data.data)) {
-          items = result.data.data;
-        } else if (result.data && Array.isArray(result.data.content)) {
-          items = result.data.content;
-        } else if (Array.isArray(result.content)) {
-          items = result.content;
-        } else if (Array.isArray(result)) {
-          items = result;
-        }
-
-        if (items.length > 0) {
-          return items.map((item: any) => ({
-            ...item,
-            id: item.id?.toString(),
-            warehouseId: item.warehouseId?.toString(),
-            skuId: item.skuId?.toString(),
-          }));
-        }
-      }
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 403) {
-        throw e;
-      }
-      console.warn('Backend getStocks failed, using mock fallback', e);
+  exportStocks: async (filters: StockExportFilters): Promise<Blob> => {
+    const query = new URLSearchParams();
+    if (filters.warehouseId && filters.warehouseId !== 'all') { query.set('warehouseId', filters.warehouseId); }
+    if (filters.keyword?.trim()) { query.set('keyword', filters.keyword.trim()); }
+    if (filters.stockStatus && filters.stockStatus !== 'all') { query.set('stockStatus', filters.stockStatus); }
+    query.set('sort', filters.sort || 'sku,asc');
+    const response = await clientFetch(`v1/inventory/stocks/export?${query}`, { skipToast: true });
+    if (!response.ok) {
+      const result: { code?: string; message?: string } = await response.json();
+      throw new ApiError(result.code || 'INVENTORY_EXPORT_FAILED', result.message || 'Không thể xuất tồn kho', response.status, result);
     }
-
-    return clientDb.getStockItems() as any;
+    if (!response.headers.get('content-type')?.includes('spreadsheetml.sheet')) {
+      throw new Error('Máy chủ không trả về file Excel hợp lệ');
+    }
+    return response.blob();
   },
-
-  // Lấy mức tồn kho lọc theo Product ID
-  getStocksByProduct: async (productId: string): Promise<InventoryItemResponse[]> => {
-    if (!productId) return [];
-    try {
-      const res = await clientFetch(`v1/inventory/stocks?productId=${encodeURIComponent(productId)}`);
-      if (res.ok) {
-        const result = await res.json();
-        let items: any[] = [];
-        if (Array.isArray(result.data)) {
-          items = result.data;
-        } else if (result.data && Array.isArray(result.data.content)) {
-          items = result.data.content;
-        } else if (Array.isArray(result.content)) {
-          items = result.content;
-        } else if (Array.isArray(result)) {
-          items = result;
-        }
-
-        return items.map((item: any) => ({
-          ...item,
-          id: item.id?.toString(),
-          warehouseId: item.warehouseId?.toString(),
-          skuId: item.skuId?.toString(),
-        }));
-      }
-    } catch (e) {
-      console.warn('Backend getStocksByProduct failed, falling back to getStocks', e);
-    }
-
-    return inventoryApi.getStocks();
-  },
-
-  // Thao tác điều chỉnh tồn kho thủ công
-  adjustStock: async (data: { warehouseId: string; skuId: string; batchCode?: string; quantityDelta: number; reason?: string }) => {
-    try {
-      const res = await clientFetch('v1/inventory/adjust', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      if (res.ok) {
-        const result = await res.json();
-        return result.data || result;
-      }
-      const errJson = await res.json().catch(() => ({}));
-      throw new ApiError(errJson.code, errJson?.message || 'Điều chỉnh tồn kho thất bại', res.status, errJson);
-    } catch (e: any) {
-      if (e instanceof ApiError || (e?.message && e.message !== 'Failed to fetch')) {
-        throw e;
-      }
-      console.warn('Backend adjustStock failed, using clientDb fallback', e);
-    }
-
-    return clientDb.addLedgerEntry({
-      skuName: 'Điều chỉnh tồn kho',
-      warehouseName: 'Kho hàng',
-      type: 'ADJUSTMENT',
-      quantityChange: data.quantityDelta,
-      balanceAfter: 0,
-      referenceCode: 'ADJ-' + Date.now()
-    });
-  },
-
-  // Lấy sổ nhật ký biến động kho (Ledger)
-  getLedgers: async (): Promise<InventoryLedgerItemResponse[]> => {
-    try {
-      const res = await clientFetch('v1/inventory/ledgers');
-      if (res.status === 403) {
-        throw new ApiError('AUTH_ACCESS_DENIED', 'Không có quyền xem sổ nhật ký biến động kho', 403);
-      }
-      if (res.ok) {
-        const result = await res.json();
-        let items: any[] = [];
-        if (Array.isArray(result.data)) {
-          items = result.data;
-        } else if (result.data && Array.isArray(result.data.data)) {
-          items = result.data.data;
-        } else if (result.data && Array.isArray(result.data.content)) {
-          items = result.data.content;
-        } else if (Array.isArray(result.content)) {
-          items = result.content;
-        } else if (Array.isArray(result)) {
-          items = result;
-        }
-
-        if (items.length > 0) {
-          return items.map((item: any) => ({
-            ...item,
-            id: item.id?.toString(),
-            warehouseId: item.warehouseId?.toString(),
-            skuId: item.skuId?.toString(),
-          }));
-        }
-      }
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 403) {
-        throw e;
-      }
-      console.warn('Backend getLedgers failed, using mock fallback', e);
-    }
-
-    return clientDb.getLedger() as any;
-  }
+  getStocks: async (): Promise<InventoryItemResponse[]> => warehouseList<InventoryItemResponse>('v1/inventory/stocks'),
+  getStocksByProduct: async (productId: string): Promise<InventoryItemResponse[]> => warehouseList<InventoryItemResponse>(`v1/inventory/stocks?productId=${encodeURIComponent(productId)}`),
+  getLedgers: async (): Promise<InventoryLedgerItemResponse[]> => warehouseList<InventoryLedgerItemResponse>('v1/inventory/ledgers'),
+  adjustStock: async (data: StockAdjustment): Promise<InventoryItemResponse> => warehouseRequest<InventoryItemResponse>('v1/inventory/adjust', 'POST', {
+    warehouseId: data.warehouseId, skuId: data.skuId, batchCode: data.batchCode || '', quantityChange: data.quantityDelta, note: data.reason, expectedQuantityOnHand: data.expectedQuantityOnHand,
+  }),
 };

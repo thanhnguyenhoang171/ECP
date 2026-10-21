@@ -17,6 +17,9 @@ import java.util.UUID;
 @Builder
 @Schema(description = "Response object representing a goods receipt (Admin view with full audit info)")
 public class GoodsReceiptAdminResponse {
+    private String deletedBy;
+    private java.time.LocalDateTime deletedAt;
+
 
     private UUID id;
     private String receiptCode;

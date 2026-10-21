@@ -21,6 +21,7 @@ import com.example.ecp_api.service.BrandService;
 import com.example.ecp_api.service.CloudinaryService;
 import com.example.ecp_api.util.PaginationUtils;
 import com.example.ecp_api.util.SecurityUtils;
+import com.example.ecp_api.security.DataOwnership;
 import com.example.ecp_api.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,6 +57,7 @@ import java.util.stream.Stream;
 @Slf4j
 public class BrandServiceImpl implements BrandService {
 
+    private final com.example.ecp_api.security.MediaOwnership mediaOwnership;
     private final BrandRepository brandRepository;
     private final BrandMapper brandMapper;
     private final MongoTemplate mongoTemplate;
@@ -115,7 +117,7 @@ public class BrandServiceImpl implements BrandService {
 
             String newLogo = brand.getLogo();
             if (StringUtils.hasText(oldLogo) && StringUtils.hasText(newLogo) && !oldLogo.equals(newLogo)) {
-                cloudinaryService.deleteByUrl(oldLogo);
+                if (mediaOwnership.canDelete(oldLogo)) { cloudinaryService.deleteByUrl(oldLogo); }
             }
 
             Brand updated = brandRepository.save(brand);
@@ -153,7 +155,7 @@ public class BrandServiceImpl implements BrandService {
 
     @Override
     public List<BrandResponse> getActiveBrands() {
-        return brandRepository.findByActiveTrueAndDeletedFalse()
+        return mongoTemplate.find(DataOwnership.mongo(Query.query(Criteria.where("is_active").is(true).and("is_deleted").is(false))), Brand.class)
                 .stream().map(brandMapper::toResponse).collect(Collectors.toList());
     }
 
@@ -161,10 +163,10 @@ public class BrandServiceImpl implements BrandService {
     @Transactional
     public void deleteBrand(String id) {
         Brand brand = findActiveBrand(id);
-        if (StringUtils.hasText(brand.getLogo())) {
-            cloudinaryService.deleteByUrl(brand.getLogo());
-        }
         brand.setDeleted(true);
+        brand.setActive(false);
+        brand.setDeletedAt(java.time.LocalDateTime.now());
+        brand.setDeletedBy(SecurityUtils.getCurrentUserEmail());
         brand.setUpdatedBy(SecurityUtils.getCurrentUserEmail());
         brandRepository.save(brand);
         auditLogService.log("BRAND_DELETE", SecurityUtils.getCurrentUserEmail(), "Deleted brand: " + brand.getName());
@@ -282,7 +284,7 @@ public class BrandServiceImpl implements BrandService {
     @Override
     @Transactional(readOnly = true)
     public void exportAllBrandsToExcel(OutputStream outputStream) {
-        try (Stream<Brand> brandStream = brandRepository.findAllByDeletedFalse()) {
+        try (Stream<Brand> brandStream = mongoTemplate.stream(DataOwnership.mongo(Query.query(Criteria.where("is_deleted").is(false))), Brand.class)) {
             List<Brand> allBrands = brandStream.toList();
             AtomicInteger index = new AtomicInteger(1);
 
@@ -321,7 +323,7 @@ public class BrandServiceImpl implements BrandService {
 
     private Brand findActiveBrand(String id) {
         return brandRepository.findById(id)
-                .filter(b -> !b.isDeleted())
+                .filter(b -> !b.isDeleted() && DataOwnership.visible(b.getCreatedBy()))
                 .orElseThrow(() -> new ResourceNotFoundException("Brand Not Found", "BRAND_NOT_FOUND"));
     }
 
@@ -344,7 +346,7 @@ public class BrandServiceImpl implements BrandService {
     }
 
     private Query buildFilterQuery(BrandFilterRequest filter, Pageable pageable) {
-        Query query = new Query().with(pageable);
+        Query query = DataOwnership.mongo(new Query()).with(pageable);
         if (filter != null) {
             if (StringUtils.hasText(filter.getId())) {
                 query.addCriteria(Criteria.where("_id").is(filter.getId()));

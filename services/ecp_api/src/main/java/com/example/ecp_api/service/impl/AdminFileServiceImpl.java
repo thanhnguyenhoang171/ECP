@@ -1,4 +1,5 @@
 package com.example.ecp_api.service.impl;
+import com.example.ecp_api.security.DataOwnership;
 
 import com.example.ecp_api.dto.response.AdminFileResponse;
 import com.example.ecp_api.dto.response.PageResponse;
@@ -23,6 +24,7 @@ public class AdminFileServiceImpl implements AdminFileService {
     private final CategoryRepository categoryRepository;
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public PageResponse<AdminFileResponse> getAllMediaFiles(String type, String keyword, int page, int size) {
         List<AdminFileResponse> allFiles = new ArrayList<>();
 
@@ -31,7 +33,7 @@ public class AdminFileServiceImpl implements AdminFileService {
 
         // 1. Scan User Avatars (MySQL / JPA)
         if (!StringUtils.hasText(type) || "ALL".equalsIgnoreCase(type) || "USER_AVATAR".equalsIgnoreCase(type)) {
-            userRepository.findAll().forEach(user -> {
+            userRepository.findAll().stream().filter(user -> !DataOwnership.restricted() || user.getDeletedAt() == null).filter(user -> DataOwnership.visible(user.getEmail()) || user.getCreatedBy() != null && DataOwnership.visible(user.getCreatedBy().getEmail())).forEach(user -> {
                 if (user.getProfile() != null && StringUtils.hasText(user.getProfile().getAvatarUrl())) {
                     String firstName = user.getFirstName() != null ? user.getFirstName() : "";
                     String lastName = user.getLastName() != null ? user.getLastName() : "";
@@ -55,7 +57,7 @@ public class AdminFileServiceImpl implements AdminFileService {
 
         // 2. Scan Product Thumbnails & Images (MongoDB)
         if (!StringUtils.hasText(type) || "ALL".equalsIgnoreCase(type) || "PRODUCT".equalsIgnoreCase(type)) {
-            productRepository.findAll().forEach(product -> {
+            productRepository.findAll().stream().filter(product -> !DataOwnership.restricted() || !product.isDeleted()).filter(product -> DataOwnership.visible(product.getCreatedBy())).forEach(product -> {
                 if (product.getThumbnail() != null && StringUtils.hasText(product.getThumbnail().getUrl())) {
                     allFiles.add(AdminFileResponse.builder()
                             .refId(product.getId())
@@ -87,7 +89,7 @@ public class AdminFileServiceImpl implements AdminFileService {
 
         // 3. Scan Category Images (MongoDB)
         if (!StringUtils.hasText(type) || "ALL".equalsIgnoreCase(type) || "CATEGORY".equalsIgnoreCase(type)) {
-            categoryRepository.findAll().forEach(category -> {
+            categoryRepository.findAll().stream().filter(category -> !DataOwnership.restricted() || !category.isDeleted()).filter(category -> DataOwnership.visible(category.getCreatedBy())).forEach(category -> {
                 if (category.getImage() != null && StringUtils.hasText(category.getImage().getUrl())) {
                     allFiles.add(AdminFileResponse.builder()
                             .refId(category.getId())

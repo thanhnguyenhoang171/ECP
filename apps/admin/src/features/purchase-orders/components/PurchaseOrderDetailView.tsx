@@ -1,12 +1,16 @@
 'use client';
 
+import { useSupplier } from '@/features/suppliers/hooks/use-suppliers';
+
+import { WarehouseRequestError } from '@/features/inventory/components/WarehouseRequestError';
+
 import React from 'react';
-import { 
-  FileText, 
-  PackagePlus, 
-  ArrowLeft, 
-  Building2, 
-  Calendar, 
+import {
+  FileText,
+  PackagePlus,
+  ArrowLeft,
+  Building2,
+  Calendar,
   Edit,
   CheckCircle2,
   XCircle
@@ -20,54 +24,24 @@ import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/formatters';
 
 import { usePurchaseOrder, useUpdatePOStatus } from '../hooks/use-purchase-order-mutation';
-import { UI } from '@/constants/uiMessages';
 
 interface Props {
   poId: string;
 }
 
-interface POItemDetail {
-  id: string;
-  skuCode: string;
-  skuName: string;
-  orderedQuantity: number;
-  unitPrice: number;
-}
 
-export default function PurchaseOrderDetailView({ poId }: Props) {
+export default function PurchaseOrderDetailView({ poId }: Props) : React.JSX.Element {
   const router = useRouter();
-  const { data: poResponse, isLoading } = usePurchaseOrder(poId);
+  const { data: poResponse, isLoading, error, refetch } = usePurchaseOrder(poId);
+  const { data: supplier } = useSupplier(poResponse?.supplierId || '');
   const updateStatusMutation = useUpdatePOStatus();
 
-  const poDetail = React.useMemo(() => {
-    if (poResponse) {
-      const p = poResponse as any;
-      const items: POItemDetail[] = (p.items || []).map((it: any, idx: number) => ({
-        id: it.id || String(idx + 1),
-        skuCode: it.skuCode || it.sku?.skuCode || it.skuId || `SKU-${idx + 1}`,
-        skuName: it.skuName || it.sku?.productName || it.name || `Sản phẩm #${idx + 1}`,
-        orderedQuantity: Number(it.orderQuantity || it.orderedQuantity || it.quantity || 1),
-        unitPrice: Number(it.unitPrice || 0)
-      }));
+  const poDetail = React.useMemo(() => poResponse ? ({ ...poResponse,
+    supplierCode: supplier?.taxCode || '—', supplierPhone: supplier?.phone || '—', supplierEmail: supplier?.email || '—',
+    items: poResponse.items.map((item, index) => ({ ...item, id: item.id || String(index) })),
+  }) : null, [poResponse, supplier]);
 
-      return {
-        id: p.id || poId,
-        code: p.code || p.poCode || `PO-${p.id}`,
-        supplierName: p.supplierName || p.supplier?.name || UI.UNKNOWN_SUPPLIER,
-        supplierCode: p.supplierCode || p.supplier?.code || UI.NA,
-        supplierPhone: p.supplierPhone || p.supplier?.phone || UI.NA,
-        supplierEmail: p.supplierEmail || p.supplier?.email || UI.NA,
-        warehouseName: p.warehouseName || p.warehouse?.name || UI.UNKNOWN_WAREHOUSE_RECEIVE,
-        status: p.status || 'APPROVED',
-        expectedDeliveryDate: p.expectedDeliveryDate || new Date().toISOString(),
-        createdAt: p.createdAt || new Date().toISOString(),
-        createdBy: p.createdBy || UI.ADMIN,
-        note: p.note || '',
-        items
-      };
-    }
-    return null;
-  }, [poResponse, poId]);
+  if (error) { return <WarehouseRequestError error={error} retry={() => { void refetch(); }} />; }
 
   if (isLoading) {
     return (
@@ -101,12 +75,10 @@ export default function PurchaseOrderDetailView({ poId }: Props) {
   }
 
   const items = poDetail?.items || [];
-  const totalAmount = items.reduce((acc: number, item: POItemDetail) => acc + ((item.orderedQuantity || 0) * (item.unitPrice || 0)), 0);
-  const isDraft = poDetail.status === 'DRAFT' || poDetail.status === 'PENDING';
-  const isOrdered = poDetail.status === 'ORDERED' || poDetail.status === 'APPROVED';
+  const totalAmount = items.reduce((acc: number, item: (NonNullable<typeof poDetail>['items'][number])) => acc + ((item.orderedQuantity || 0) * (item.unitPrice || 0)), 0);
+  const isDraft = poDetail.status === 'DRAFT';
+  const isOrdered = poDetail.status === 'ORDERED';
   const isPartial = poDetail.status === 'PARTIALLY_RECEIVED';
-  const isCompleted = poDetail.status === 'COMPLETED';
-  const isCancelled = poDetail.status === 'CANCELLED';
 
   return (
     <div className="space-y-6 pb-20">
@@ -115,7 +87,7 @@ export default function PurchaseOrderDetailView({ poId }: Props) {
         { label: poDetail.code }
       ]} />
 
-      <PageHeader 
+      <PageHeader
         title={`Đơn mua hàng #${poDetail.code}`}
         description={`Lập ngày ${new Date(poDetail.createdAt).toLocaleDateString('vi-VN')} bởi ${poDetail.createdBy}`}
         actions={
@@ -123,17 +95,17 @@ export default function PurchaseOrderDetailView({ poId }: Props) {
             <Button variant="outline" onClick={() => router.back()} className="gap-2 border-slate-300">
               <ArrowLeft size={16} /> Quay lại
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => router.push(`/purchase-orders/${poDetail.id}/edit`)} 
+            {isDraft && <Button
+              variant="outline"
+              onClick={() => router.push(`/purchase-orders/${poDetail.id}/edit`)}
               className="gap-2 border-slate-300"
             >
               <Edit size={16} /> Chỉnh sửa đơn PO
-            </Button>
+            </Button>}
 
             {isDraft && (
-              <Button 
-                onClick={() => updateStatusMutation.mutate({ id: poDetail.id, status: 'ORDERED' })} 
+              <Button
+                onClick={() => updateStatusMutation.mutate({ id: poDetail.id, status: 'ORDERED' })}
                 disabled={updateStatusMutation.isPending}
                 className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
               >
@@ -143,25 +115,19 @@ export default function PurchaseOrderDetailView({ poId }: Props) {
 
             {(isOrdered || isPartial) && (
               <>
-                <Button 
+                <Button
                   onClick={() => router.push(`/goods-receipt/new?poId=${poDetail.id}`)}
                   className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"
                 >
                   <PackagePlus size={18} /> Tạo phiếu nhập kho từ PO
                 </Button>
-                <Button 
-                  onClick={() => updateStatusMutation.mutate({ id: poDetail.id, status: 'COMPLETED' })} 
-                  disabled={updateStatusMutation.isPending}
-                  className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <CheckCircle2 size={16} /> Đánh dấu hoàn thành
-                </Button>
+
               </>
             )}
 
-            {!isCancelled && !isCompleted && (
-              <Button 
-                onClick={() => updateStatusMutation.mutate({ id: poDetail.id, status: 'CANCELLED' })} 
+            {(isDraft || isOrdered) && (
+              <Button
+                onClick={() => updateStatusMutation.mutate({ id: poDetail.id, status: 'CANCELLED' })}
                 disabled={updateStatusMutation.isPending}
                 variant="outline"
                 className="gap-2 border-red-200 text-red-600 hover:bg-red-50"
@@ -204,7 +170,7 @@ export default function PurchaseOrderDetailView({ poId }: Props) {
               <span className="text-[10px] font-bold uppercase text-slate-400">Ngày giao hàng dự kiến</span>
               <div className="font-medium text-slate-700 flex items-center gap-1.5 pt-0.5">
                 <Calendar size={14} className="text-amber-600" />
-                {new Date(poDetail.expectedDeliveryDate).toLocaleDateString('vi-VN')}
+                {poDetail.expectedDeliveryDate ? new Date(poDetail.expectedDeliveryDate).toLocaleDateString('vi-VN') : 'Chưa có lịch giao'}
               </div>
             </div>
 
@@ -232,20 +198,20 @@ export default function PurchaseOrderDetailView({ poId }: Props) {
                   <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px] bg-slate-50/50">
                     <th className="py-2.5 px-3">STT</th>
                     <th className="py-2.5 px-3">Sản phẩm (SKU)</th>
-                    <th className="py-2.5 px-3 text-center">Số lượng</th>
+                    <th className="py-2.5 px-3 text-center">Đặt mua</th><th className="py-2.5 px-3 text-center">Đã nhận</th><th className="py-2.5 px-3 text-center">Còn lại</th>
                     <th className="py-2.5 px-3 text-right">Giá đặt mua</th>
                     <th className="py-2.5 px-3 text-right">Thành tiền</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {poDetail.items.map((item: POItemDetail, index: number) => (
+                  {poDetail.items.map((item: (NonNullable<typeof poDetail>['items'][number]), index: number) => (
                     <tr key={item.id} className="hover:bg-slate-50/50">
                       <td className="py-3 px-3 text-slate-400 font-mono">{index + 1}</td>
                       <td className="py-3 px-3">
                         <div className="font-semibold text-slate-800">{item.skuName}</div>
                         <div className="text-[10px] text-slate-400 font-mono">{item.skuCode}</div>
                       </td>
-                      <td className="py-3 px-3 text-center font-bold text-slate-700">{item.orderedQuantity}</td>
+                      <td className="py-3 px-3 text-center font-bold text-slate-700">{item.orderedQuantity}</td><td className="py-3 px-3 text-center font-semibold text-emerald-700">{item.receivedQuantity}</td><td className="py-3 px-3 text-center font-semibold text-amber-700">{item.orderedQuantity - item.receivedQuantity}</td>
                       <td className="py-3 px-3 text-right font-mono">{formatCurrency(item.unitPrice)}</td>
                       <td className="py-3 px-3 text-right font-mono font-bold text-indigo-700">
                         {formatCurrency(item.orderedQuantity * item.unitPrice)}
@@ -267,7 +233,7 @@ export default function PurchaseOrderDetailView({ poId }: Props) {
                 <div className="flex justify-between text-slate-500">
                   <span>Tổng số sản phẩm đặt:</span>
                   <span className="font-semibold text-slate-700">
-                    {poDetail.items.reduce((a: number, b: POItemDetail) => a + b.orderedQuantity, 0)} sản phẩm
+                    {poDetail.items.reduce((a: number, b: (NonNullable<typeof poDetail>['items'][number])) => a + b.orderedQuantity, 0)} sản phẩm
                   </span>
                 </div>
                 <div className="flex justify-between text-base font-bold text-slate-900 border-t border-slate-200 pt-2">

@@ -25,6 +25,7 @@ import com.example.ecp_api.util.DateTimeUtils;
 import com.example.ecp_api.util.ExcelImageExtractor;
 import com.example.ecp_api.util.PaginationUtils;
 import com.example.ecp_api.util.SecurityUtils;
+import com.example.ecp_api.security.DataOwnership;
 import com.example.ecp_api.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
@@ -58,6 +59,7 @@ import com.example.ecp_api.entity.mongodb.embedded.ProductImage;
 public class CategoryServiceImpl implements CategoryService {
 
 
+    private final com.example.ecp_api.security.MediaOwnership mediaOwnership;
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
     private final MongoTemplate mongoTemplate;
@@ -95,6 +97,7 @@ public class CategoryServiceImpl implements CategoryService {
             }
 
             Category category = categoryMapper.toEntity(request);
+            category.setCreatedBy(SecurityUtils.getCurrentUserEmail());
             category.setSlug(slugGenerated);
 
             // Ensure we use the value from request if provided, otherwise default to true
@@ -134,7 +137,7 @@ public class CategoryServiceImpl implements CategoryService {
                 Sort.Order.desc("createdAt"), 
                 Sort.Order.asc("id"));
 
-        Query query = new Query().with(finalPageable);
+        Query query = DataOwnership.mongo(new Query()).with(finalPageable);
         if (filter != null) {
             if (StringUtils.hasText(filter.getKeyword())) {
                 String pattern = filter.getKeyword();
@@ -184,6 +187,10 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional
     public CategoryResponse updateCategory(String id, CategoryRequest request, MultipartFile imageFile) {
+        Category category = categoryRepository.findById(id)
+                .filter(c -> !c.isDeleted() && DataOwnership.visible(c.getCreatedBy()))
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
+        DataOwnership.require(category.getCreatedBy());
         com.example.ecp_api.dto.response.CloudinaryAsset uploadedAsset = cloudinaryService.uploadSafely(imageFile, "categories");
         try {
             if (uploadedAsset != null) {
@@ -193,11 +200,8 @@ public class CategoryServiceImpl implements CategoryService {
                         .build());
             }
 
-            Category category = categoryRepository.findById(id)
-                    .filter(c -> !c.isDeleted())
-                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
-
             String oldPublicId = (category.getImage() != null) ? category.getImage().getPublicId() : null;
+            String oldImageUrl = category.getImage() != null ? category.getImage().getUrl() : null;
             String oldParentId = category.getParentId();
             String oldName = category.getName();
             String oldSlug = category.getSlug();
@@ -209,7 +213,7 @@ public class CategoryServiceImpl implements CategoryService {
 
             // Delete old image from Cloudinary if replaced
             if (uploadedAsset != null && StringUtils.hasText(oldPublicId)) {
-                cloudinaryService.rollbackSafely(oldPublicId);
+                if (mediaOwnership.canDelete(oldPublicId) && mediaOwnership.canDelete(oldImageUrl)) { cloudinaryService.rollbackSafely(oldPublicId); }
             }
 
             // Handle Slug Update (if not provided, check if name changed to regenerate)
@@ -270,14 +274,19 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     public void deleteCategory(String id) {
         Category category = categoryRepository.findById(id)
+                .filter(value -> !value.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
 
+        DataOwnership.require(category.getCreatedBy());
         // Check exist child categories
         if (categoryRepository.existsByParentIdAndDeletedFalse(id)) {
             throw new AppException("CATEGORY_HAS_CHILDREN", "Cannot delete category that has sub-categories", HttpStatus.BAD_REQUEST);
         }
 
         category.setDeleted(true);
+        category.setActive(false);
+        category.setDeletedAt(java.time.LocalDateTime.now());
+        category.setDeletedBy(SecurityUtils.getCurrentUserEmail());
         categoryRepository.save(category);
 
         auditLogService.log("CATEGORY_DELETE", SecurityUtils.getCurrentUserEmail(), "Soft deleted category with ID: " + category.getId());
@@ -287,7 +296,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryResponse getCategoryById(String id) {
         Category category = categoryRepository.findById(id)
-                .filter(c -> !c.isDeleted())
+                .filter(c -> !c.isDeleted() && DataOwnership.visible(c.getCreatedBy()))
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found or deleted with id: " + id));
         return categoryMapper.toResponse(category);
     }
@@ -306,7 +315,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public List<CategoryResponse> getParentCategories() {
         Sort sort = Sort.by(Sort.Order.asc("order"), Sort.Order.desc("createdAt"));
-        return categoryRepository.findByParentIdIsNullAndActiveTrueAndDeletedFalse(sort).stream()
+        return mongoTemplate.find(DataOwnership.mongo(Query.query(Criteria.where("parent_id").is(null).and("is_active").is(true).and("is_deleted").is(false))).with(sort), Category.class).stream()
                 .map(categoryMapper::toResponse)
                 .toList();
     }
@@ -315,7 +324,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional(readOnly = true)
     public void exportAllCategoriesToExcel(OutputStream outputStream) {
-        try (Stream<Category> categoryStream = categoryRepository.findAllByDeletedFalse()) {
+        try (Stream<Category> categoryStream = mongoTemplate.stream(DataOwnership.mongo(Query.query(Criteria.where("is_deleted").is(false))), Category.class)) {
             List<Category> allCategories = categoryStream.toList();
             
             // Build a map for quick parent slug lookup to avoid N+1 queries

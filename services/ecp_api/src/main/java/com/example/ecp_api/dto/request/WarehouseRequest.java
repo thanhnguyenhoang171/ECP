@@ -25,6 +25,7 @@ public class WarehouseRequest {
     private String address;
 
     @Schema(description = "Assigned Manager email (optional, for Admin assignment)", example = "yen@gmail.com")
+    @jakarta.validation.constraints.Email(message = "Invalid manager email")
     private String managerEmail;
 
     @Schema(description = "Active status", example = "true")

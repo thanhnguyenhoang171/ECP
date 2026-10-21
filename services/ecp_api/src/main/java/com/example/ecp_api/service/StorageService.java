@@ -11,7 +11,8 @@ public interface StorageService {
     List<Map<String, Object>> uploadMultiple(MultipartFile[] files, String folder);
     void delete(String publicId);
     void deleteByUrl(String url);
-    void purgeUploads();
+    /** Remove only catalog media; never account avatars, banners or unrelated uploads. */
+    void purgeBusinessUploads();
     Map<String, Object> generateUploadSignature(String folder);
 
     CloudinaryAsset uploadSafely(MultipartFile file, String folder);

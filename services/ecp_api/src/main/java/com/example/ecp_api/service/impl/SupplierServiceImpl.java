@@ -13,6 +13,7 @@ import com.example.ecp_api.repository.jpa.SupplierRepository;
 import com.example.ecp_api.service.AuditLogService;
 import com.example.ecp_api.service.SupplierService;
 import com.example.ecp_api.util.SecurityUtils;
+import com.example.ecp_api.security.DataOwnership;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -50,6 +51,7 @@ public class SupplierServiceImpl implements SupplierService {
         }
 
         Supplier supplier = supplierMapper.toEntity(request);
+        supplier.setCreatedBy(SecurityUtils.getCurrentUserEmail());
         supplier = supplierRepository.save(supplier);
         auditLogService.log("SUPPLIER_CREATE", SecurityUtils.getCurrentUserEmail(), "Created supplier: " + supplier.getName());
         return supplierMapper.toResponse(supplier);
@@ -68,6 +70,7 @@ public class SupplierServiceImpl implements SupplierService {
             throw new AppException("SUPPLIER_TAX_CODE_EXISTS", "Mã số thuế đã tồn tại: " + request.getTaxCode(), HttpStatus.BAD_REQUEST);
         }
         Supplier supplier = supplierMapper.toEntity(request);
+        supplier.setCreatedBy(SecurityUtils.getCurrentUserEmail());
         supplier = supplierRepository.save(supplier);
         auditLogService.log("SUPPLIER_CREATE", SecurityUtils.getCurrentUserEmail(), "Created supplier: " + supplier.getName());
         return supplierMapper.toAdminResponse(supplier);
@@ -77,7 +80,9 @@ public class SupplierServiceImpl implements SupplierService {
     @Transactional
     public SupplierResponse updateSupplier(String id, SupplierRequest request) {
         Supplier supplier = supplierRepository.findById(UUID.fromString(id))
+                .filter(value -> value.getDeletedAt() == null)
                 .orElseThrow(() -> new AppException("SUPPLIER_NOT_FOUND", "Không tìm thấy nhà cung cấp với ID: " + id, HttpStatus.NOT_FOUND));
+        DataOwnership.require(supplier.getCreatedBy());
         
         if (StringUtils.hasText(request.getName()) && !supplier.getName().equals(request.getName()) && supplierRepository.existsByName(request.getName())) {
             throw new AppException("SUPPLIER_NAME_EXISTS", "Tên nhà cung cấp đã tồn tại: " + request.getName(), HttpStatus.BAD_REQUEST);
@@ -99,7 +104,9 @@ public class SupplierServiceImpl implements SupplierService {
     @Transactional
     public SupplierAdminResponse updateSupplierAdmin(String id, SupplierRequest request) {
         Supplier supplier = supplierRepository.findById(UUID.fromString(id))
+                .filter(value -> value.getDeletedAt() == null)
                 .orElseThrow(() -> new AppException("SUPPLIER_NOT_FOUND", "Không tìm thấy nhà cung cấp với ID: " + id, HttpStatus.NOT_FOUND));
+        DataOwnership.require(supplier.getCreatedBy());
         if (StringUtils.hasText(request.getName()) && !supplier.getName().equals(request.getName()) && supplierRepository.existsByName(request.getName())) {
             throw new AppException("SUPPLIER_NAME_EXISTS", "Tên nhà cung cấp đã tồn tại: " + request.getName(), HttpStatus.BAD_REQUEST);
         }
@@ -119,7 +126,9 @@ public class SupplierServiceImpl implements SupplierService {
     @Transactional(readOnly = true)
     public SupplierResponse getSupplierById(String id) {
         Supplier supplier = supplierRepository.findById(UUID.fromString(id))
+                .filter(value -> value.getDeletedAt() == null)
                 .orElseThrow(() -> new AppException("SUPPLIER_NOT_FOUND", "Không tìm thấy nhà cung cấp với ID: " + id, HttpStatus.NOT_FOUND));
+        DataOwnership.require(supplier.getCreatedBy());
         
         return supplierMapper.toResponse(supplier);
     }
@@ -128,7 +137,9 @@ public class SupplierServiceImpl implements SupplierService {
     @Transactional(readOnly = true)
     public SupplierAdminResponse getSupplierByIdForAdmin(String id) {
         Supplier supplier = supplierRepository.findById(UUID.fromString(id))
+                .filter(value -> value.getDeletedAt() == null)
                 .orElseThrow(() -> new AppException("SUPPLIER_NOT_FOUND", "Không tìm thấy nhà cung cấp với ID: " + id, HttpStatus.NOT_FOUND));
+        DataOwnership.require(supplier.getCreatedBy());
 
         return supplierMapper.toAdminResponse(supplier);
     }
@@ -168,20 +179,25 @@ public class SupplierServiceImpl implements SupplierService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
-        return supplierRepository.findAll(spec, pageable);
+        return supplierRepository.findAll(spec.and(DataOwnership.sql()), pageable);
     }
 
     @Override
     @Transactional
     public void deleteSupplier(String id) {
         Supplier supplier = supplierRepository.findById(UUID.fromString(id))
+                .filter(value -> value.getDeletedAt() == null)
                 .orElseThrow(() -> new AppException("SUPPLIER_NOT_FOUND", "Không tìm thấy nhà cung cấp với ID: " + id, HttpStatus.NOT_FOUND));
+        DataOwnership.require(supplier.getCreatedBy());
         
-        if (purchaseOrderRepository.existsBySupplierId(supplier.getId())) {
+        if (purchaseOrderRepository.existsBySupplierIdAndDeletedAtIsNull(supplier.getId())) {
             throw new AppException("SUPPLIER_HAS_TRANSACTIONS", "Không thể xóa nhà cung cấp đã có đơn mua hàng", HttpStatus.BAD_REQUEST);
         }
 
-        supplierRepository.delete(supplier);
+        supplier.setDeletedAt(java.time.LocalDateTime.now());
+        supplier.setDeletedBy(SecurityUtils.getCurrentUserEmail());
+        supplier.setActive(false);
+        supplierRepository.save(supplier);
         auditLogService.log("SUPPLIER_DELETE", SecurityUtils.getCurrentUserEmail(), "Deleted supplier: " + supplier.getName());
     }
 }

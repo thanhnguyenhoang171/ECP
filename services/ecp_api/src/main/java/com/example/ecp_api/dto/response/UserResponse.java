@@ -17,6 +17,9 @@ import java.util.UUID;
 @Builder
 @Schema(description = "Response object containing detailed user and profile information")
 public class UserResponse {
+    private String deletedBy;
+    private java.time.LocalDateTime deletedAt;
+
     @Schema(description = "Unique user ID (UUID)", example = "550e8400-e29b-41d4-a716-446655440000")
     private UUID id;
 

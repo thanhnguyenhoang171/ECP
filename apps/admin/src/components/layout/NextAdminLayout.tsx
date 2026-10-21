@@ -50,6 +50,7 @@ import { PurgeDataDialog } from '@/features/system/components/PurgeDataDialog';
 import { PurgeApprovalNotifications } from '@/features/system/components/PurgeApprovalNotifications';
 
 interface SubMenuItem {
+  requiredRoles?: string[];
   key: string;
   label: string;
   icon?: LucideIcon;
@@ -94,7 +95,7 @@ const menuItems: MenuItem[] = [
     label: 'Hệ thống',
     icon: Settings,
     children: [
-      { key: '/roles', label: 'Vai trò & Phân quyền', icon: ShieldCheck },
+      { key: '/roles', label: 'Vai trò & Phân quyền', icon: ShieldCheck, requiredRoles: ['ROLE_SUPER_ADMIN'] },
       { key: '/audit-logs', label: 'Nhật ký kiểm toán', icon: ShieldCheck },
     ],
   },
@@ -271,6 +272,9 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
   }, [pathname, router]);
 
   const user = useAuthStore((state) => state.user);
+  const currentRoles = [...(user?.roles || []), user?.role || ''].map(role => role.trim().replace(/^ROLE_/, ''));
+  const canSeeAllData = currentRoles.includes('SUPER_ADMIN');
+  const ownDataOnly = !canSeeAllData && currentRoles.includes('MANAGER');
   const logoutMutation = useLogout();
 
   const handleLogout = useCallback(() => {
@@ -308,14 +312,13 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
 
   const renderSidebarContent = (mobile = false) => {
     // Filter sidebar menu items based on authorized user roles
-    const filteredMenuItems = menuItems.filter(item => {
-      if (!item.requiredRoles) return true;
-      if (!user?.roles) return false;
-      if (!user?.roles?.length) return false;
-      return item.requiredRoles.some(reqRole => 
-        user.roles.includes(reqRole) || user.roles.includes(reqRole.replace('ROLE_', ''))
-      );
-    });
+    const canViewItem = (item: Pick<MenuItem, 'requiredRoles'>): boolean => !item.requiredRoles || item.requiredRoles.some(role =>
+      currentRoles.includes(role.replace(/^ROLE_/, '')),
+    );
+    const filteredMenuItems = menuItems.filter(canViewItem).map(item => ({
+      ...item,
+      children: item.children?.filter(canViewItem),
+    })).filter(item => !item.children || item.children.length > 0);
 
     return (
       <div className="flex flex-col h-full bg-slate-900">
@@ -447,9 +450,9 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
                 }} className="cursor-pointer py-2 px-3 rounded-lg focus:bg-slate-800 focus:text-white font-medium text-slate-300">
                   <span className="text-sm font-medium">Hồ sơ cá nhân</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setIsPurgeOpen(true)} className="text-amber-400 focus:text-amber-300 focus:bg-amber-950/40 cursor-pointer py-2 px-3 rounded-lg font-semibold flex items-center gap-2">
+                {canSeeAllData && <DropdownMenuItem onSelect={() => setIsPurgeOpen(true)} className="text-amber-400 focus:text-amber-300 focus:bg-amber-950/40 cursor-pointer py-2 px-3 rounded-lg font-semibold flex items-center gap-2">
                   <Trash2 size={14} /><span className="text-sm font-medium">Xoá dữ liệu</span>
-                </DropdownMenuItem>
+                </DropdownMenuItem>}
                 <DropdownMenuSeparator className="my-1 bg-slate-800" />
                 <DropdownMenuItem 
                   disabled={logoutMutation.isPending}
@@ -474,6 +477,10 @@ export default function NextAdminLayout({ children }: { children: React.ReactNod
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 custom-scrollbar" style={{ scrollbarGutter: 'stable' }}>
           <div className="max-w-[1600px] mx-auto min-h-full">
             <div className="animate-page-fade-in">
+              {(canSeeAllData || ownDataOnly) && <div className="mb-5 rounded-xl border border-slate-700/30 bg-slate-500/5 px-4 py-3 text-sm text-muted-foreground">
+                <span className="font-semibold">Phạm vi: {canSeeAllData ? 'Toàn bộ dữ liệu hệ thống' : 'Dữ liệu do bạn tạo'}</span>
+                {ownDataOnly && <p className="mt-1 text-xs">Bạn chỉ xem và thao tác trên dữ liệu của tài khoản mình trong các mục quản lý.</p>}
+              </div>}
               {children}
             </div>
           </div>

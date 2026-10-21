@@ -7,6 +7,7 @@ import com.example.ecp_api.exception.AppException;
 import com.example.ecp_api.repository.mongodb.BrandRepository;
 import com.example.ecp_api.service.CloudinaryService;
 import com.example.ecp_api.util.SecurityUtils;
+import com.example.ecp_api.security.DataOwnership;
 import com.example.ecp_api.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import org.springframework.util.StringUtils;
 @Slf4j
 public class BrandExcelHelper {
 
+    private final com.example.ecp_api.security.MediaOwnership mediaOwnership;
     private final BrandRepository brandRepository;
     private final CloudinaryService cloudinaryService;
 
@@ -33,6 +35,7 @@ public class BrandExcelHelper {
         // 2. Find by ID if provided
         if (StringUtils.hasText(dto.getId())) {
             existingBrand = brandRepository.findById(dto.getId())
+                    .map(item -> { DataOwnership.require(item.getCreatedBy()); if (item.isDeleted()) { throw new AppException("RECORD_DELETED", "Bản ghi đã bị xoá mềm. Hãy khôi phục trước khi nhập Excel.", HttpStatus.CONFLICT); } return item; })
                     .filter(b -> !b.isDeleted())
                     .orElse(null);
         }
@@ -47,6 +50,7 @@ public class BrandExcelHelper {
         boolean isNew = false;
 
         if (existingBrand != null) {
+            DataOwnership.require(existingBrand.getCreatedBy());
             brand = existingBrand;
         } else {
             brand = new Brand();
@@ -94,14 +98,14 @@ public class BrandExcelHelper {
             }
             brand.setLogo(asset.url());
             if (StringUtils.hasText(oldLogo) && !oldLogo.equals(asset.url())) {
-                cloudinaryService.deleteByUrl(oldLogo);
+                if (mediaOwnership.canDelete(oldLogo)) { cloudinaryService.deleteByUrl(oldLogo); }
             }
         } else if (StringUtils.hasText(dto.getLogo())) {
             CloudinaryAsset asset = cloudinaryService.uploadFromUrlSafely(dto.getLogo(), "brands");
             if (asset != null) {
                 brand.setLogo(asset.url());
                 if (StringUtils.hasText(oldLogo) && !oldLogo.equals(asset.url())) {
-                    cloudinaryService.deleteByUrl(oldLogo);
+                    if (mediaOwnership.canDelete(oldLogo)) { cloudinaryService.deleteByUrl(oldLogo); }
                 }
             } else if (dto.getLogo().trim().startsWith("http")) {
                 brand.setLogo(dto.getLogo().trim());

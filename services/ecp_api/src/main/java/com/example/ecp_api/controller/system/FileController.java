@@ -27,6 +27,7 @@ import java.util.Map;
 @Tag(name = "Files", description = "File Upload & Media Management APIs")
 public class FileController {
 
+    private final com.example.ecp_api.security.MediaOwnership mediaOwnership;
     private final MinioService minioService;
     private final AdminFileService adminFileService;
 
@@ -121,9 +122,11 @@ public class FileController {
         );
     }
 
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     @DeleteMapping("/delete")
     @Operation(summary = "Delete a file by public_id")
     public ResponseEntity<ApiResponse<Void>> deleteFile(@RequestParam("public_id") String publicId) {
+        mediaOwnership.requireManagedFile(publicId);
         minioService.delete(publicId);
         return ResponseEntity.ok(
                 ApiResponse.<Void>builder()
@@ -134,9 +137,11 @@ public class FileController {
         );
     }
 
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'MANAGER')")
     @DeleteMapping("/delete-by-url")
     @Operation(summary = "Delete a file by URL")
     public ResponseEntity<ApiResponse<Void>> deleteFileByUrl(@RequestParam("url") String url) {
+        mediaOwnership.requireManagedFile(url);
         minioService.deleteByUrl(url);
         return ResponseEntity.ok(
                 ApiResponse.<Void>builder()

@@ -21,6 +21,14 @@ import java.util.UUID;
 @EntityListeners(AuditingEntityListener.class)
 public class Inventory {
 
+    @org.springframework.data.annotation.CreatedBy
+    @Column(name = "created_by", updatable = false)
+    private String createdBy;
+
+    @org.springframework.data.annotation.LastModifiedBy
+    @Column(name = "updated_by")
+    private String updatedBy;
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.VARCHAR)

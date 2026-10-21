@@ -1,27 +1,29 @@
 'use client';
 
+import { WarehouseRequestError } from '@/features/inventory/components/WarehouseRequestError';
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, Phone, Mail, Building2 } from "lucide-react";
 import { PageHeader, DataTable, DataCard, Breadcrumbs, NextPagination, type ColumnDef } from '@/components/common';
 import { Badge } from '@/components/ui/badge';
-import { 
-  SearchInput, 
-  AddNewButton, 
-  ViewActionButton, 
-  EditActionButton, 
-  DeleteActionButton, 
-  DeleteConfirmDialog 
+import {
+  SearchInput,
+  AddNewButton,
+  ViewActionButton,
+  EditActionButton,
+  DeleteActionButton,
+  DeleteConfirmDialog
 } from '@/components/common/view-control';
-import { ClientSupplier } from '@/lib/clientDb';
+import { ClientSupplier } from '@/features/inventory/types/inventory.types';
 import { useSuppliers, useDeleteSupplier } from '../hooks/use-suppliers';
 import SupplierDetailDialog from './SupplierDetailDialog';
 import { isForbiddenError } from '@/constants/errorMessages';
 import { UI } from '@/constants/uiMessages';
 
-export default function SuppliersView() {
+export default function SuppliersView() : React.JSX.Element {
   const router = useRouter();
-  const { data: suppliers = [], isLoading, error } = useSuppliers();
+  const { data: suppliers = [], isLoading, error, refetch } = useSuppliers();
   const isForbidden = isForbiddenError(error);
   const deleteMutation = useDeleteSupplier();
   const [searchTerm, setSearchTerm] = useState('');
@@ -117,7 +119,7 @@ export default function SuppliersView() {
   const [size, setSize] = useState(10);
 
   const paginatedSuppliers = useMemo(() => {
-    const start = (page - 1) * size;
+    const start = Math.min(page - 1, Math.max(0, Math.ceil(filteredSuppliers.length / size) - 1)) * size;
     return filteredSuppliers.slice(start, start + size);
   }, [filteredSuppliers, page, size]);
 
@@ -130,31 +132,34 @@ export default function SuppliersView() {
   return (
     <div className="space-y-6">
       <Breadcrumbs items={breadcrumbItems} />
-      <PageHeader 
+      <PageHeader
         title="Nhà cung cấp"
         description="Quản lý thông tin đối tác và các nhà cung cấp hàng hóa."
         actions={<AddNewButton onClick={handleCreate} label="Thêm NCC mới" />}
       />
 
-      <DataCard 
+      <WarehouseRequestError error={error} retry={() => { void refetch(); }} />
+      <DataCard
         search={<SearchInput placeholder="Tìm tên NCC, SĐT..." value={searchTerm} onChange={(val) => { setSearchTerm(val); setPage(1); }} />}
         footer={
           !isForbidden && (isLoading || filteredSuppliers.length > 0) && (
             <NextPagination
               isLoading={isLoading}
-              currentPage={page}
+              currentPage={Math.min(page, totalPages)}
               totalPages={totalPages}
               totalItems={filteredSuppliers.length}
               itemsPerPage={size}
-              onItemsPerPageChange={setSize}
+              onItemsPerPageChange={(value) => { setSize(value); setPage(1); }}
               onPageChange={setPage}
             />
           )
         }
       >
-        <DataTable 
-          columns={columns} 
-          data={paginatedSuppliers} 
+        <DataTable
+          auditTrail
+          recoveryModule="suppliers"
+          columns={columns}
+          data={paginatedSuppliers}
           isLoading={isLoading && !filteredSuppliers.length}
           loadingRows={size}
           isForbidden={isForbidden}
@@ -171,7 +176,7 @@ export default function SuppliersView() {
         />
       </DataCard>
 
-      <SupplierDetailDialog 
+      <SupplierDetailDialog
         supplierId={selectedSupplierId}
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
@@ -188,7 +193,7 @@ export default function SuppliersView() {
             });
           }
         }}
-        description="Bạn có chắc chắn muốn xóa nhà cung cấp này? Hành động này không thể hoàn tác."
+        description="Bạn có chắc chắn muốn xóa nhà cung cấp này? Bản ghi được xoá mềm và chỉ Super Admin có thể khôi phục."
       />
     </div>
   );

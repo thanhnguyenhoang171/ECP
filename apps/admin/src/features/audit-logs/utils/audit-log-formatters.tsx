@@ -9,6 +9,14 @@ import { Badge } from '@/components/common';
 export const getActionBadge = (action: string): React.ReactNode => {
   const normalizedAction = action.toUpperCase();
   const purgeActions: Record<string, string> = {
+    API_REQUEST: 'Yêu cầu API',
+    SYSTEM_AUDIT_DELETE: 'Xoá nhật ký kiểm toán',
+    ROLE_CREATE: 'Tạo vai trò',
+    ROLE_UPDATE: 'Cập nhật vai trò',
+    ROLE_DELETE: 'Xoá vai trò',
+    PERMISSION_CREATE: 'Tạo quyền',
+    PERMISSION_UPDATE: 'Cập nhật quyền',
+    PERMISSION_DELETE: 'Xoá quyền',
     SYSTEM_PURGE_PASSWORD_APPROVAL_REQUESTED: 'Yêu cầu duyệt mật khẩu xoá',
     SYSTEM_PURGE_PASSWORD_APPROVED: 'Duyệt mật khẩu xoá',
     SYSTEM_PURGE_PASSWORD_CREATED: 'Tạo mật khẩu xoá',
@@ -24,15 +32,15 @@ export const getActionBadge = (action: string): React.ReactNode => {
     return <Badge className="bg-rose-50 text-rose-600 border-rose-100 font-medium">{purgeLabel}</Badge>;
   }
   
-  if (normalizedAction.startsWith('CREATE')) {
+  if (normalizedAction.startsWith('CREATE') || normalizedAction.endsWith('_CREATE')) {
     return <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-medium">Tạo mới</Badge>;
   }
   
-  if (normalizedAction.startsWith('UPDATE')) {
+  if (normalizedAction.startsWith('UPDATE') || normalizedAction.endsWith('_UPDATE')) {
     return <Badge className="bg-blue-50 text-blue-600 border-blue-100 font-medium">Cập nhật</Badge>;
   }
   
-  if (normalizedAction.startsWith('DELETE')) {
+  if (normalizedAction.startsWith('DELETE') || normalizedAction.endsWith('_DELETE')) {
     return <Badge className="bg-rose-50 text-rose-600 border-rose-100 font-medium">Xóa</Badge>;
   }
   
@@ -55,5 +63,5 @@ export const getActionBadge = (action: string): React.ReactNode => {
     return <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-medium">Nhập dữ liệu</Badge>;
   }
   
-  return <Badge className="bg-indigo-50 text-indigo-600 border-indigo-100 font-medium">Khác</Badge>;
+  return <Badge className="bg-indigo-50 text-indigo-600 border-indigo-100 font-medium">{action}</Badge>;
 };

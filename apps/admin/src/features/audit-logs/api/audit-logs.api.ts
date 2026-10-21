@@ -1,69 +1,40 @@
-import { PageResponse } from "@/types/pagination";
-import { AuditLog } from "../types/audit-logs.interface";
-import { clientFetch } from "@/lib/clientFetch";
-import { toApiPage, syncPagination } from "@/lib/utils";
+import { ApiError } from '@/constants/errorMessages';
+import { clientFetch } from '@/lib/clientFetch';
+import { syncPagination, toApiPage } from '@/lib/utils';
+import { PageResponse } from '@/types/pagination';
+import { AuditLog, AuditLogParams } from '../types/audit-logs.interface';
+
+interface AuditError {
+  code?: string;
+  message?: string;
+}
+
+const checkResponse = async (response: Response): Promise<void> => {
+  if (!response.ok) {
+    const error: AuditError = await response.json();
+    throw new ApiError(error.code || 'AUDIT_REQUEST_FAILED', error.message || 'Không thể tải nhật ký kiểm toán.', response.status);
+  }
+};
 
 export const auditLogsApi = {
-  getPaged: async (params: {
-    page: number;
-    size: number;
-    sort?: string;
-    action?: string;
-    username?: string;
-  }): Promise<PageResponse<AuditLog>> => {
-    const query = new URLSearchParams();
-
-    // Pageable params
-    query.append('page', toApiPage(params.page).toString());
-    query.append('size', params.size.toString());
-
-    if (params.sort) query.append('sort', params.sort);
-    if (params.action) query.append('action', params.action);
-    if (params.username) query.append('username', params.username);
-
-    const res = await clientFetch(`v1/audit-logs?${query.toString()}`, {
-      cache: 'no-store',
-    });
-    
-    if (!res.ok) {
-      return {
-        success: false,
-        data: [],
-        pagination: {
-          currentPage: params.page,
-          totalPages: 0,
-          totalElements: 0,
-          pageSize: params.size,
-          first: true,
-          last: true
-        }
-      };
+  getPaged: async (params: AuditLogParams): Promise<PageResponse<AuditLog>> => {
+    const query = new URLSearchParams({ page: String(toApiPage(params.page)), size: String(params.size) });
+    for (const [key, value] of Object.entries(params)) {
+      if (key !== 'page' && key !== 'size' && value) { query.set(key, String(value)); }
     }
-
-    const body = await res.json();
-    const inner = body?.data?.data ? body.data : body;
-    const items = Array.isArray(inner?.data) 
-      ? inner.data 
-      : Array.isArray(body?.data) 
-        ? body.data 
-        : Array.isArray(body) 
-          ? body 
-          : [];
-
-    const pagination = inner?.pagination || body?.pagination || {
-      currentPage: params.page,
-      totalPages: 1,
-      totalElements: items.length,
-      pageSize: params.size,
-      first: true,
-      last: true
-    };
-
-    return syncPagination<PageResponse<AuditLog>>({
-      success: body?.success ?? true,
-      message: body?.message || inner?.message,
-      data: items,
-      pagination
-    });
+    const response = await clientFetch(`v1/audit-logs?${query}`, { cache: 'no-store', skipToast: true });
+    await checkResponse(response);
+    const result: PageResponse<AuditLog> = await response.json();
+    return syncPagination(result);
+  },
+  getById: async (id: string): Promise<AuditLog> => {
+    const response = await clientFetch(`v1/audit-logs/${encodeURIComponent(id)}`, { cache: 'no-store', skipToast: true });
+    await checkResponse(response);
+    const result: { data: AuditLog } = await response.json();
+    return result.data;
+  },
+  delete: async (id: string): Promise<void> => {
+    const response = await clientFetch(`v1/audit-logs/${encodeURIComponent(id)}`, { method: 'DELETE', skipToast: true });
+    await checkResponse(response);
   },
 };

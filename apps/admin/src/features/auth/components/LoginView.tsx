@@ -22,7 +22,6 @@ import { PasswordInput } from '@/components/ui/password-input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorMessages } from '@/constants/errorMessages';
-import { useAuthStore } from '@/store/authStore';
 
 import { loginSchema, LoginFormValues } from '@/features/auth/schemas/auth.schema';
 import { useLogin, useGoogleLogin } from '../hooks/use-auth-mutation';
@@ -84,24 +83,8 @@ export default function LoginView(): React.ReactElement {
       isExpiredQuery = params.get('reason') === 'session_expired' || params.get('expired') === '1';
     }
 
-    let hadStaleSession = false;
-    try {
-      const stored = localStorage.getItem('cacao-auth-storage');
-      if (stored) {
-        const parsed = JSON.parse(stored) as { state?: { isAuthenticated?: boolean; user?: unknown } };
-        if (parsed?.state?.isAuthenticated || Boolean(parsed?.state?.user)) {
-          hadStaleSession = true;
-        }
-      }
-    } catch (e) {
-      console.error('[LoginView] Error parsing local auth storage:', e);
-    }
-
-    if (isExpiredSession || isExpiredQuery || hadStaleSession) {
+    if (isExpiredSession || isExpiredQuery) {
       sessionStorage.removeItem('session_expired');
-      if (hadStaleSession) {
-        useAuthStore.getState().clearAuth();
-      }
       toast.error(ErrorMessages['AUTH_TOKEN_EXPIRED'], { id: 'session-expired' });
 
       if (isExpiredQuery && typeof window !== 'undefined') {

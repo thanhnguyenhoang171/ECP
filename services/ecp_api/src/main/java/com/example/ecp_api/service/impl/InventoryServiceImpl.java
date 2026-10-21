@@ -1,4 +1,5 @@
 package com.example.ecp_api.service.impl;
+import com.example.ecp_api.security.DataOwnership;
 
 import com.example.ecp_api.dto.request.InventoryAdjustmentRequest;
 import com.example.ecp_api.dto.response.InventoryLedgerResponse;
@@ -37,10 +38,12 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Service
+@lombok.extern.slf4j.Slf4j
 @RequiredArgsConstructor
 public class InventoryServiceImpl implements InventoryService {
 
     private final InventoryRepository inventoryRepository;
+    private final com.example.ecp_api.service.helper.InventoryExcelExporter inventoryExcelExporter;
     private final InventoryLedgerRepository inventoryLedgerRepository;
     private final WarehouseRepository warehouseRepository;
     private final SkuRepository skuRepository;
@@ -53,21 +56,19 @@ public class InventoryServiceImpl implements InventoryService {
     public InventoryResponse adjustInventory(InventoryAdjustmentRequest request, TransactionType type, String refId, String refType) {
         UUID warehouseId = UUID.fromString(request.getWarehouseId());
         UUID skuId = UUID.fromString(request.getSkuId());
-        String batchCode = request.getBatchCode();
+        String batchCode = request.getBatchCode() == null ? "" : request.getBatchCode().trim();
+        if (request.getQuantityChange() == null || request.getQuantityChange() == 0) {
+            throw new AppException("INVALID_QUANTITY", "Số lượng điều chỉnh phải khác 0.", HttpStatus.BAD_REQUEST);
+        }
 
-        Warehouse warehouse = warehouseRepository.findById(warehouseId)
+        Warehouse warehouse = warehouseRepository.findForUpdate(warehouseId)
                 .orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Không tìm thấy kho hàng.", HttpStatus.NOT_FOUND));
 
-        if (!com.example.ecp_api.util.SecurityUtils.isSuperAdmin() && com.example.ecp_api.util.SecurityUtils.isManager()) {
-            String currentUserEmail = com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail();
-            if (!isWarehouseAccessible(warehouse, currentUserEmail)) {
-                throw new AppException("FORBIDDEN", "Bạn không có quyền điều chỉnh tồn kho thuộc kho của Manager khác.", HttpStatus.FORBIDDEN);
-            }
-        }
-        
         Sku sku = skuRepository.findById(skuId)
                 .orElseThrow(() -> new AppException("SKU_NOT_FOUND", "Không tìm thấy SKU.", HttpStatus.NOT_FOUND));
 
+        DataOwnership.require(warehouse.getCreatedBy());
+        DataOwnership.requireSku(sku, mongoTemplate);
         Inventory inventory = inventoryRepository.findByWarehouseIdAndSkuIdAndBatchCode(warehouseId, skuId, batchCode)
                 .orElseGet(() -> Inventory.builder()
                         .warehouse(warehouse)
@@ -85,9 +86,16 @@ public class InventoryServiceImpl implements InventoryService {
         }
 
         int oldBalance = inventory.getQuantityOnHand();
-        int newBalance = oldBalance + request.getQuantityChange();
+        if (request.getExpectedQuantityOnHand() != null && request.getExpectedQuantityOnHand() != oldBalance) {
+            throw new AppException("STOCK_CHANGED", "Tồn kho đã thay đổi. Hãy tải lại dữ liệu trước khi điều chỉnh.", HttpStatus.CONFLICT);
+        }
+        long computedBalance = (long) oldBalance + request.getQuantityChange();
+        if (computedBalance > Integer.MAX_VALUE) {
+            throw new AppException("INVALID_QUANTITY", "Số lượng vượt giới hạn cho phép.", HttpStatus.BAD_REQUEST);
+        }
+        int newBalance = (int) computedBalance;
 
-        if (newBalance < 0) {
+        if (newBalance < inventory.getQuantityLocked()) {
             throw new AppException("INSUFFICIENT_STOCK", "Tồn kho không đủ để thực hiện giao dịch.", HttpStatus.BAD_REQUEST);
         }
 
@@ -106,10 +114,10 @@ public class InventoryServiceImpl implements InventoryService {
                 .referenceType(refType)
                 .note(request.getNote())
                 .build();
-        
+
         inventoryLedgerRepository.save(ledger);
 
-        auditLogService.log("INVENTORY_ADJUST", com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail(), 
+        auditLogService.log("INVENTORY_ADJUST", com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail(),
                 "Adjusted stock in warehouse " + warehouse.getName() + ": SKU " + sku.getSkuCode() + " change: " + request.getQuantityChange());
 
         InventoryResponse response = inventoryMapper.toResponse(inventory);
@@ -122,13 +130,7 @@ public class InventoryServiceImpl implements InventoryService {
     public InventoryResponse getInventoryById(String id) {
         Inventory inventory = inventoryRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("INVENTORY_NOT_FOUND", "Không tìm thấy thông tin tồn kho.", HttpStatus.NOT_FOUND));
-
-        if (!com.example.ecp_api.util.SecurityUtils.isSuperAdmin() && com.example.ecp_api.util.SecurityUtils.isManager()) {
-            String currentUserEmail = com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail();
-            if (!isWarehouseAccessible(inventory.getWarehouse(), currentUserEmail)) {
-                throw new AppException("FORBIDDEN", "Bạn không có quyền xem thông tin tồn kho của Manager khác.", HttpStatus.FORBIDDEN);
-            }
-        }
+        DataOwnership.requireStock(inventory, mongoTemplate);
 
         InventoryResponse response = inventoryMapper.toResponse(inventory);
         enrichInventoryResponses(List.of(response));
@@ -138,38 +140,7 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<InventoryResponse> getAllInventory(com.example.ecp_api.dto.request.InventoryFilterRequest filter, Pageable pageable) {
-        org.springframework.data.jpa.domain.Specification<Inventory> spec = (root, query, cb) -> {
-            java.util.List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
-
-            if (!com.example.ecp_api.util.SecurityUtils.isSuperAdmin() && com.example.ecp_api.util.SecurityUtils.isManager()) {
-                String currentUserEmail = com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail();
-                if (org.springframework.util.StringUtils.hasText(currentUserEmail)) {
-                    predicates.add(cb.or(
-                            cb.equal(root.get("warehouse").get("createdBy"), currentUserEmail),
-                            cb.equal(root.get("warehouse").get("managerEmail"), currentUserEmail)
-                    ));
-                }
-            }
-
-            if (filter != null) {
-                if (org.springframework.util.StringUtils.hasText(filter.getWarehouseId())) {
-                    predicates.add(cb.equal(root.get("warehouse").get("id"), UUID.fromString(filter.getWarehouseId())));
-                }
-                if (org.springframework.util.StringUtils.hasText(filter.getSkuId())) {
-                    predicates.add(cb.equal(root.get("sku").get("id"), UUID.fromString(filter.getSkuId())));
-                }
-                if (org.springframework.util.StringUtils.hasText(filter.getBatchCode())) {
-                    predicates.add(cb.like(root.get("batchCode"), "%" + filter.getBatchCode() + "%"));
-                }
-                if (org.springframework.util.StringUtils.hasText(filter.getSkuCode())) {
-                    predicates.add(cb.equal(root.get("sku").get("skuCode"), filter.getSkuCode()));
-                }
-                if (org.springframework.util.StringUtils.hasText(filter.getProductName())) {
-                    predicates.add(cb.like(root.get("sku").get("productName"), "%" + filter.getProductName() + "%"));
-                }
-            }
-            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
-        };
+        var spec = com.example.ecp_api.service.helper.InventorySpecifications.matching(filter).and(DataOwnership.stock(mongoTemplate));
 
         Page<Inventory> page = inventoryRepository.findAll(spec, pageable);
         PageResponse<InventoryResponse> pageResponse = inventoryMapper.toPageResponse(page);
@@ -177,6 +148,12 @@ public class InventoryServiceImpl implements InventoryService {
             enrichInventoryResponses(pageResponse.getData());
         }
         return pageResponse;
+    }
+
+    @Override
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
+    public byte[] exportInventory(com.example.ecp_api.dto.request.InventoryFilterRequest filter, String sort) {
+        return inventoryExcelExporter.export(filter, sort);
     }
 
     private void enrichInventoryResponses(List<InventoryResponse> responses) {
@@ -220,7 +197,7 @@ public class InventoryServiceImpl implements InventoryService {
                 }
             }
         } catch (Exception e) {
-            // Logging failure gracefully without crashing
+            log.warn("Could not enrich stock costs and selling prices from product variants", e);
         }
     }
 
@@ -229,21 +206,15 @@ public class InventoryServiceImpl implements InventoryService {
     public void deleteInventory(String id) {
         Inventory inventory = inventoryRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("INVENTORY_NOT_FOUND", "Không tìm thấy thông tin tồn kho.", HttpStatus.NOT_FOUND));
+        DataOwnership.requireStock(inventory, mongoTemplate);
 
-        if (!com.example.ecp_api.util.SecurityUtils.isSuperAdmin() && com.example.ecp_api.util.SecurityUtils.isManager()) {
-            String currentUserEmail = com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail();
-            if (!isWarehouseAccessible(inventory.getWarehouse(), currentUserEmail)) {
-                throw new AppException("FORBIDDEN", "Bạn không có quyền xóa bản ghi tồn kho thuộc kho của Manager khác.", HttpStatus.FORBIDDEN);
-            }
-        }
-        
         if (inventory.getQuantityOnHand() > 0 || inventory.getQuantityLocked() > 0) {
             throw new AppException("INVENTORY_NOT_EMPTY", "Không thể xóa bản ghi tồn kho vẫn còn số dư.", HttpStatus.BAD_REQUEST);
         }
-        
+
         inventoryRepository.delete(inventory);
 
-        auditLogService.log("INVENTORY_DELETE", com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail(), 
+        auditLogService.log("INVENTORY_DELETE", com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail(),
                 "Deleted inventory record " + inventory.getId() + " for SKU " + inventory.getSku().getSkuCode());
     }
 
@@ -252,13 +223,8 @@ public class InventoryServiceImpl implements InventoryService {
     public InventoryLedgerResponse getLedgerById(String id) {
         InventoryLedger ledger = inventoryLedgerRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new AppException("LEDGER_NOT_FOUND", "Không tìm thấy nhật ký kho.", HttpStatus.NOT_FOUND));
-
-        if (!com.example.ecp_api.util.SecurityUtils.isSuperAdmin() && com.example.ecp_api.util.SecurityUtils.isManager()) {
-            String currentUserEmail = com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail();
-            if (!isWarehouseAccessible(ledger.getWarehouse(), currentUserEmail)) {
-                throw new AppException("FORBIDDEN", "Bạn không có quyền xem nhật ký kho của Manager khác.", HttpStatus.FORBIDDEN);
-            }
-        }
+        DataOwnership.require(ledger.getWarehouse().getCreatedBy());
+        DataOwnership.requireSkuHistory(ledger.getSku(), mongoTemplate);
 
         return inventoryMapper.toLedgerResponse(ledger);
     }
@@ -268,16 +234,6 @@ public class InventoryServiceImpl implements InventoryService {
     public PageResponse<InventoryLedgerResponse> getAllLedgers(com.example.ecp_api.dto.request.InventoryLedgerFilterRequest filter, Pageable pageable) {
         org.springframework.data.jpa.domain.Specification<InventoryLedger> spec = (root, query, cb) -> {
             java.util.List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
-
-            if (!com.example.ecp_api.util.SecurityUtils.isSuperAdmin() && com.example.ecp_api.util.SecurityUtils.isManager()) {
-                String currentUserEmail = com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail();
-                if (org.springframework.util.StringUtils.hasText(currentUserEmail)) {
-                    predicates.add(cb.or(
-                            cb.equal(root.get("warehouse").get("createdBy"), currentUserEmail),
-                            cb.equal(root.get("warehouse").get("managerEmail"), currentUserEmail)
-                    ));
-                }
-            }
 
             if (filter != null) {
                 if (org.springframework.util.StringUtils.hasText(filter.getWarehouseId())) {
@@ -302,8 +258,8 @@ public class InventoryServiceImpl implements InventoryService {
             return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
         };
 
-        Page<InventoryLedger> page = inventoryLedgerRepository.findAll(spec, pageable);
-        
+        Page<InventoryLedger> page = inventoryLedgerRepository.findAll(spec.and(DataOwnership.stock(mongoTemplate)), pageable);
+
         PaginationResponse pagination = PaginationResponse.builder()
                 .currentPage(page.getNumber() + 1)
                 .totalPages(page.getTotalPages())
@@ -325,14 +281,9 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     @Transactional(readOnly = true)
     public List<InventoryLedgerResponse> getHistory(String warehouseId, String skuId, String batchCode) {
-        if (!com.example.ecp_api.util.SecurityUtils.isSuperAdmin() && com.example.ecp_api.util.SecurityUtils.isManager()) {
-            String currentUserEmail = com.example.ecp_api.util.SecurityUtils.getCurrentUserEmail();
-            Warehouse wh = warehouseRepository.findById(UUID.fromString(warehouseId)).orElse(null);
-            if (wh != null && !isWarehouseAccessible(wh, currentUserEmail)) {
-                throw new AppException("FORBIDDEN", "Bạn không có quyền xem lịch sử tồn kho của Manager khác.", HttpStatus.FORBIDDEN);
-            }
-        }
 
+        DataOwnership.requireSkuHistory(skuRepository.findById(UUID.fromString(skuId)).orElseThrow(() -> new AppException("SKU_NOT_FOUND", "SKU not found", HttpStatus.NOT_FOUND)), mongoTemplate);
+        DataOwnership.require(warehouseRepository.findById(UUID.fromString(warehouseId)).orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Warehouse not found", HttpStatus.NOT_FOUND)).getCreatedBy());
         List<InventoryLedger> ledgers = inventoryLedgerRepository.findByWarehouseIdAndSkuIdAndBatchCodeOrderByCreatedAtDesc(
                 UUID.fromString(warehouseId), UUID.fromString(skuId), batchCode);
         return inventoryMapper.toLedgerResponseList(ledgers);
@@ -344,6 +295,6 @@ public class InventoryServiceImpl implements InventoryService {
         }
         boolean isCreator = warehouse.getCreatedBy() != null && warehouse.getCreatedBy().equalsIgnoreCase(currentUserEmail);
         boolean isAssigned = warehouse.getManagerEmail() != null && warehouse.getManagerEmail().equalsIgnoreCase(currentUserEmail);
-        return isCreator || isAssigned;
+        return isCreator;
     }
 }

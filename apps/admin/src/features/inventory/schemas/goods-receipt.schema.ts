@@ -6,7 +6,7 @@ export const goodsReceiptItemSchema = z.object({
   batchCode: z.string().optional(),
   manufactureDate: z.string().optional(),
   expiryDate: z.string().optional(),
-  quantity: z.number().min(1, 'Số lượng phải ít nhất là 1'),
+  quantity: z.number().int('Số lượng phải là số nguyên').max(2147483647, 'Số lượng vượt giới hạn').min(1, 'Số lượng phải ít nhất là 1'),
   unitCost: z.number().min(0, 'Đơn giá không được âm'),
 });
 

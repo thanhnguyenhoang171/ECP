@@ -7,7 +7,8 @@ import com.example.ecp_api.entity.mongodb.AuditLog;
 import com.example.ecp_api.mapper.AuditLogMapper;
 import com.example.ecp_api.repository.mongodb.AuditLogRepository;
 import com.example.ecp_api.repository.jpa.UserRepository;
-import com.example.ecp_api.enums.users.UserRole;
+import com.example.ecp_api.exception.AppException;
+import org.springframework.http.HttpStatus;
 import com.example.ecp_api.service.AuditLogService;
 import com.example.ecp_api.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +26,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import com.example.ecp_api.util.IpUtils;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -61,9 +61,8 @@ public class AuditLogServiceImpl implements AuditLogService {
     private String determineModule(String action) {
         if (!StringUtils.hasText(action)) return "SYSTEM";
         String upperAction = action.toUpperCase();
-        if (upperAction.startsWith("SYSTEM_") || upperAction.contains("LOGIN") || upperAction.contains("LOGOUT") || upperAction.contains("AUTH")
-                || upperAction.contains("USER") || upperAction.contains("ACCOUNT") || upperAction.contains("REGISTER")
-                || upperAction.contains("ROLE") || upperAction.contains("PERMISSION") || upperAction.contains("PASSWORD")
+        if (upperAction.startsWith("API_") || upperAction.startsWith("SYSTEM_") || upperAction.contains("LOGIN") || upperAction.contains("LOGOUT") || upperAction.contains("AUTH")
+                || upperAction.contains("REGISTER") || upperAction.contains("PASSWORD")
                 || upperAction.contains("TOKEN") || upperAction.contains("SECURITY")) {
             return "SYSTEM";
         }
@@ -114,14 +113,16 @@ public class AuditLogServiceImpl implements AuditLogService {
     @Override
     public void log(String action, String userEmail, String details, String status) {
         String module = determineModule(action);
+        String currentActor = SecurityUtils.getCurrentUserEmail();
+        String actor = "SYSTEM".equals(currentActor) ? userEmail : currentActor;
         AuditLog auditLog = AuditLog.builder()
                 .action(action)
-                .email(userEmail)
-                .username(userEmail)
+                .email(actor)
+                .username(actor)
                 .details(details)
                 .timestamp(LocalDateTime.now())
                 .status(status)
-                .logType(determineLogType(userEmail))
+                .logType(determineLogType(actor))
                 .module(module)
                 .category(module)
                 .domain(determineDomain(action))
@@ -150,46 +151,12 @@ public class AuditLogServiceImpl implements AuditLogService {
 
     @Override
     public PageResponse<AuditLogResponse> getAllLogs(AuditLogFilterRequest filter, Pageable pageable) {
-        Query query = new Query().with(pageable);
-
-        if (StringUtils.hasText(filter.getKeyword())) {
-            String pattern = filter.getKeyword();
-            query.addCriteria(new Criteria().orOperator(
-                    Criteria.where("action").regex(pattern, "i"),
-                    Criteria.where("email").regex(pattern, "i"),
-                    Criteria.where("username").regex(pattern, "i"),
-                    Criteria.where("details").regex(pattern, "i"),
-                    Criteria.where("ipAddress").regex(pattern, "i")
-            ));
+        validateReader();
+        if (pageable.getSort().stream().anyMatch(order -> !java.util.Set.of("timestamp", "action", "email", "status", "module", "domain", "logType").contains(order.getProperty()))) {
+            throw new AppException("INVALID_SORT", "Trường sắp xếp nhật ký không hợp lệ.", HttpStatus.BAD_REQUEST);
         }
-
-        if (StringUtils.hasText(filter.getAction())) {
-            query.addCriteria(Criteria.where("action").regex(filter.getAction(), "i"));
-        }
-
-        if (StringUtils.hasText(filter.getEmail())) {
-            String targetEmail = filter.getEmail();
-            query.addCriteria(new Criteria().orOperator(
-                    Criteria.where("email").regex(targetEmail, "i"),
-                    Criteria.where("username").regex(targetEmail, "i")
-            ));
-        }
-
-        if (StringUtils.hasText(filter.getLogType())) {
-            query.addCriteria(Criteria.where("logType").is(filter.getLogType()));
-        }
-
-        if (StringUtils.hasText(filter.getModule())) {
-            query.addCriteria(Criteria.where("module").is(filter.getModule()));
-        }
-
-        if (StringUtils.hasText(filter.getCategory())) {
-            query.addCriteria(Criteria.where("category").is(filter.getCategory()));
-        }
-
-        if (StringUtils.hasText(filter.getDomain())) {
-            query.addCriteria(Criteria.where("domain").is(filter.getDomain()));
-        }
+        pageable = PageRequest.of(pageable.getPageNumber(), Math.min(pageable.getPageSize(), 200), pageable.getSort());
+        Query query = buildQuery(filter).with(pageable);
 
         long count = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), AuditLog.class);
         List<AuditLog> auditLogs = mongoTemplate.find(query, AuditLog.class);
@@ -201,9 +168,84 @@ public class AuditLogServiceImpl implements AuditLogService {
 
     @Override
     public List<AuditLogResponse> getLogsByEmail(String email) {
-        return auditLogRepository.findByEmail(email).stream()
-                .map(auditLogMapper::toResponse)
-                .collect(Collectors.toList());
+        validateReader();
+        if (!SecurityUtils.isSuperAdmin() && !SecurityUtils.getCurrentUserEmail().equalsIgnoreCase(email)) { return List.of(); }
+        Query query = buildQuery(new AuditLogFilterRequest(), email);
+        query.with(Sort.by(Sort.Direction.DESC, "timestamp")).limit(200);
+        return mongoTemplate.find(query, AuditLog.class).stream().map(auditLogMapper::toResponse).toList();
+    }
+
+    @Override
+    public AuditLogResponse getLogById(String id) {
+        validateReader();
+        Query query = buildQuery(new AuditLogFilterRequest());
+        query.addCriteria(Criteria.where("id").is(id));
+        AuditLog entry = mongoTemplate.findOne(query, AuditLog.class);
+        if (entry == null) { throw new AppException("AUDIT_NOT_FOUND", "Không tìm thấy nhật ký trong phạm vi của bạn.", HttpStatus.NOT_FOUND); }
+        return auditLogMapper.toResponse(entry);
+    }
+
+    @Override
+    public void deleteLog(String id) {
+        if (!SecurityUtils.isSuperAdmin()) { throw new AppException("DATA_ACCESS_DENIED", "Chỉ Super Admin được xoá nhật ký.", HttpStatus.FORBIDDEN); }
+        AuditLog entry = mongoTemplate.findById(id, AuditLog.class);
+        if (entry == null) { throw new AppException("AUDIT_NOT_FOUND", "Không tìm thấy nhật ký.", HttpStatus.NOT_FOUND); }
+        mongoTemplate.remove(entry);
+        log("SYSTEM_AUDIT_DELETE", SecurityUtils.getCurrentUserEmail(), "Deleted audit log " + id + " (" + entry.getAction() + ")");
+    }
+
+    private void validateReader() {
+        if (!SecurityUtils.isSuperAdmin() && !SecurityUtils.isManager()) {
+            throw new AppException("DATA_ACCESS_DENIED", "Bạn không có quyền xem nhật ký kiểm toán.", HttpStatus.FORBIDDEN);
+        }
+    }
+
+    private Query buildQuery(AuditLogFilterRequest filter) {
+        return buildQuery(filter, null);
+    }
+
+    private Query buildQuery(AuditLogFilterRequest filter, String exactEmail) {
+        List<Criteria> criteria = new java.util.ArrayList<>();
+        if (exactEmail != null) {
+            criteria.add(new Criteria().orOperator(Criteria.where("email").is(exactEmail),
+                    new Criteria().andOperator(Criteria.where("email").is(null), Criteria.where("username").is(exactEmail))));
+        }
+        if (!SecurityUtils.isSuperAdmin()) {
+            String actor = SecurityUtils.getCurrentUserEmail();
+            // email is authoritative; username is only a fallback for legacy records.
+            criteria.add(new Criteria().orOperator(Criteria.where("email").is(actor),
+                    new Criteria().andOperator(Criteria.where("email").is(null), Criteria.where("username").is(actor))));
+            criteria.add(new Criteria().orOperator(
+                    new Criteria().andOperator(Criteria.where("module").is("MANAGEMENT"),
+                            new Criteria().orOperator(Criteria.where("category").is("MANAGEMENT"), Criteria.where("category").is(null))),
+                    new Criteria().andOperator(Criteria.where("module").is(null), Criteria.where("category").is("MANAGEMENT"))));
+        }
+        if (StringUtils.hasText(filter.getKeyword())) {
+            String pattern = java.util.regex.Pattern.quote(filter.getKeyword());
+            criteria.add(new Criteria().orOperator(Criteria.where("action").regex(pattern, "i"), Criteria.where("email").regex(pattern, "i"),
+                    Criteria.where("username").regex(pattern, "i"), Criteria.where("details").regex(pattern, "i"), Criteria.where("ipAddress").regex(pattern, "i")));
+        }
+        String email = StringUtils.hasText(filter.getEmail()) ? filter.getEmail() : filter.getUsername();
+        if (StringUtils.hasText(email)) {
+            String pattern = java.util.regex.Pattern.quote(email);
+            criteria.add(new Criteria().orOperator(Criteria.where("email").regex(pattern, "i"), Criteria.where("username").regex(pattern, "i")));
+        }
+        if (StringUtils.hasText(filter.getAction())) { criteria.add(Criteria.where("action").regex(java.util.regex.Pattern.quote(filter.getAction()), "i")); }
+        if (StringUtils.hasText(filter.getLogType())) { criteria.add(Criteria.where("logType").is(filter.getLogType())); }
+        if (StringUtils.hasText(filter.getModule())) { criteria.add(Criteria.where("module").is(filter.getModule())); }
+        if (StringUtils.hasText(filter.getCategory())) { criteria.add(Criteria.where("category").is(filter.getCategory())); }
+        if (StringUtils.hasText(filter.getDomain())) { criteria.add(Criteria.where("domain").is(filter.getDomain())); }
+        if (StringUtils.hasText(filter.getStatus())) { criteria.add(Criteria.where("status").is(filter.getStatus())); }
+        if (filter.getFrom() != null && filter.getTo() != null && filter.getFrom().isAfter(filter.getTo())) {
+            throw new AppException("INVALID_DATE_RANGE", "Ngày bắt đầu phải trước ngày kết thúc.", HttpStatus.BAD_REQUEST);
+        }
+        if (filter.getFrom() != null || filter.getTo() != null) {
+            Criteria timestamp = Criteria.where("timestamp");
+            if (filter.getFrom() != null) { timestamp.gte(filter.getFrom()); }
+            if (filter.getTo() != null) { timestamp.lte(filter.getTo()); }
+            criteria.add(timestamp);
+        }
+        return criteria.isEmpty() ? new Query() : Query.query(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
     }
 
     @Override

@@ -519,6 +519,8 @@ export default function ProductView(): React.ReactElement {
         }
       >
         <DataTable
+          auditTrail
+          recoveryModule="products"
           columns={columns}
           data={paginatedProducts}
           isLoading={isLoading && paginatedProducts.length === 0}
@@ -548,7 +550,7 @@ export default function ProductView(): React.ReactElement {
             });
           }
         }}
-        description="Bạn có chắc chắn muốn xóa sản phẩm này không?"
+        description="Sản phẩm sẽ được xoá mềm và giữ nguyên ảnh/video. Chỉ Super Admin có thể khôi phục."
       />
     </div>
   );

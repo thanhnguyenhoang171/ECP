@@ -1,4 +1,5 @@
 package com.example.ecp_api.service.helper;
+import com.example.ecp_api.security.DataOwnership;
 
 import com.example.ecp_api.dto.request.GoodsReceiptRequest;
 import com.example.ecp_api.entity.jpa.GoodsReceipt;
@@ -16,6 +17,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class GoodsReceiptHelper {
 
+    private final org.springframework.data.mongodb.core.MongoTemplate ownershipMongo;
     private final SkuRepository skuRepository;
 
     public void processGoodsReceiptItems(GoodsReceiptRequest request, GoodsReceipt goodsReceipt) {
@@ -25,10 +27,18 @@ public class GoodsReceiptHelper {
                 Sku sku = skuRepository.findById(UUID.fromString(itemDto.getSkuId()))
                         .orElseThrow(() -> new AppException("SKU_NOT_FOUND", "Không tìm thấy SKU ID: " + itemDto.getSkuId(), HttpStatus.NOT_FOUND));
 
+                DataOwnership.requireSku(sku, ownershipMongo);
+                if (!sku.isActive()) {
+                    throw new AppException("SKU_INACTIVE", "SKU đã ngừng hoạt động.", HttpStatus.BAD_REQUEST);
+                }
+                if (itemDto.getManufactureDate() != null && itemDto.getExpiryDate() != null
+                        && !itemDto.getExpiryDate().isAfter(itemDto.getManufactureDate())) {
+                    throw new AppException("INVALID_EXPIRY_DATE", "Hạn sử dụng phải sau ngày sản xuất.", HttpStatus.BAD_REQUEST);
+                }
                 GoodsReceiptItem grItem = GoodsReceiptItem.builder()
                         .sku(sku)
                         .goodsReceipt(goodsReceipt)
-                        .batchCode(itemDto.getBatchCode())
+                        .batchCode(itemDto.getBatchCode() == null ? "" : itemDto.getBatchCode().trim())
                         .manufactureDate(itemDto.getManufactureDate())
                         .expiryDate(itemDto.getExpiryDate())
                         .quantity(itemDto.getQuantity())

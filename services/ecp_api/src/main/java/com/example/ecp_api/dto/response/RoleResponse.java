@@ -13,10 +13,15 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class RoleResponse {
+    private String createdBy;
+    private String updatedBy;
+
     private UUID id;
     private String code;
     private String name;
     private String description;
     private boolean isSystem;
+    private boolean editable;
+    private boolean deletable;
     private Set<PermissionResponse> permissions;
 }

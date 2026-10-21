@@ -10,6 +10,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserStatisticsResponse {
+    private long activeUsers;
+    private long inactiveUsers;
+    private long superAdminUsers;
+    private long managerUsers;
     private long totalUsers;
     private long onlineUsers;
     private long offlineUsers;

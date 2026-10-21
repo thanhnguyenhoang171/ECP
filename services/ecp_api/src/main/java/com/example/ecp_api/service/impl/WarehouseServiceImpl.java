@@ -16,6 +16,7 @@ import com.example.ecp_api.service.AuditLogService;
 import com.example.ecp_api.service.WarehouseService;
 import com.example.ecp_api.util.PaginationUtils;
 import com.example.ecp_api.util.SecurityUtils;
+import com.example.ecp_api.security.DataOwnership;
 import com.example.ecp_api.util.SlugUtils;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +61,7 @@ public class WarehouseServiceImpl implements WarehouseService {
         }
 
         Warehouse warehouse = warehouseMapper.toEntity(request);
+        warehouse.setCreatedBy(SecurityUtils.getCurrentUserEmail());
         if (request.getIsActive() == null) {
             warehouse.setActive(true);
         }
@@ -85,6 +87,7 @@ public class WarehouseServiceImpl implements WarehouseService {
             throw new AppException("WAREHOUSE_NAME_EXISTS", "Tên kho đã tồn tại: " + request.getName(), HttpStatus.BAD_REQUEST);
         }
         Warehouse warehouse = warehouseMapper.toEntity(request);
+        warehouse.setCreatedBy(SecurityUtils.getCurrentUserEmail());
         if (request.getIsActive() == null) { warehouse.setActive(true); }
         warehouse = warehouseRepository.saveAndFlush(warehouse);
         auditLogService.log("WAREHOUSE_CREATE", SecurityUtils.getCurrentUserEmail(), "Created warehouse: " + warehouse.getName() + " (" + warehouse.getCode() + ")");
@@ -95,14 +98,9 @@ public class WarehouseServiceImpl implements WarehouseService {
     @Transactional
     public WarehouseResponse updateWarehouse(String id, WarehouseRequest request) {
         Warehouse warehouse = warehouseRepository.findById(UUID.fromString(id))
+                .filter(value -> value.getDeletedAt() == null)
                 .orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Không tìm thấy kho hàng với ID: " + id, HttpStatus.NOT_FOUND));
-
-        if (!SecurityUtils.isSuperAdmin() && SecurityUtils.isManager()) {
-            String currentUserEmail = SecurityUtils.getCurrentUserEmail();
-            if (!isWarehouseAccessible(warehouse, currentUserEmail)) {
-                throw new AppException("FORBIDDEN", "Bạn không có quyền thao tác trên kho hàng của Manager khác", HttpStatus.FORBIDDEN);
-            }
-        }
+        DataOwnership.require(warehouse.getCreatedBy());
 
         if (StringUtils.hasText(request.getCode()) && !warehouse.getCode().equals(request.getCode()) && warehouseRepository.existsByCode(request.getCode())) {
             throw new AppException("WAREHOUSE_CODE_EXISTS", "Mã kho đã tồn tại: " + request.getCode(), HttpStatus.BAD_REQUEST);
@@ -135,7 +133,9 @@ public class WarehouseServiceImpl implements WarehouseService {
     @Transactional
     public WarehouseAdminResponse updateWarehouseAdmin(String id, WarehouseRequest request) {
         Warehouse warehouse = warehouseRepository.findById(UUID.fromString(id))
+                .filter(value -> value.getDeletedAt() == null)
                 .orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Không tìm thấy kho hàng với ID: " + id, HttpStatus.NOT_FOUND));
+        DataOwnership.require(warehouse.getCreatedBy());
         if (StringUtils.hasText(request.getCode()) && !warehouse.getCode().equals(request.getCode()) && warehouseRepository.existsByCode(request.getCode())) {
             throw new AppException("WAREHOUSE_CODE_EXISTS", "Mã kho đã tồn tại: " + request.getCode(), HttpStatus.BAD_REQUEST);
         }
@@ -158,14 +158,11 @@ public class WarehouseServiceImpl implements WarehouseService {
     @Transactional(readOnly = true)
     public WarehouseResponse getWarehouseById(String id) {
         Warehouse warehouse = warehouseRepository.findById(UUID.fromString(id))
+                .filter(value -> value.getDeletedAt() == null)
                 .orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Không tìm thấy kho hàng với ID: " + id, HttpStatus.NOT_FOUND));
+        DataOwnership.require(warehouse.getCreatedBy());
+
         
-        if (!SecurityUtils.isSuperAdmin() && SecurityUtils.isManager()) {
-            String currentUserEmail = SecurityUtils.getCurrentUserEmail();
-            if (!isWarehouseAccessible(warehouse, currentUserEmail)) {
-                throw new AppException("FORBIDDEN", "Bạn không có quyền xem kho hàng của Manager khác", HttpStatus.FORBIDDEN);
-            }
-        }
 
         return warehouseMapper.toResponse(warehouse);
     }
@@ -174,7 +171,9 @@ public class WarehouseServiceImpl implements WarehouseService {
     @Transactional(readOnly = true)
     public WarehouseAdminResponse getWarehouseByIdForAdmin(String id) {
         Warehouse warehouse = warehouseRepository.findById(UUID.fromString(id))
+                .filter(value -> value.getDeletedAt() == null)
                 .orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Không tìm thấy kho hàng với ID: " + id, HttpStatus.NOT_FOUND));
+        DataOwnership.require(warehouse.getCreatedBy());
 
         return warehouseMapper.toAdminResponse(warehouse);
     }
@@ -196,16 +195,6 @@ public class WarehouseServiceImpl implements WarehouseService {
     private Page<Warehouse> searchWarehouses(WarehouseFilterRequest filter, Pageable pageable) {
         Specification<Warehouse> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-
-            if (!SecurityUtils.isSuperAdmin() && SecurityUtils.isManager()) {
-                String currentUserEmail = SecurityUtils.getCurrentUserEmail();
-                if (StringUtils.hasText(currentUserEmail)) {
-                    predicates.add(cb.or(
-                            cb.equal(root.get("createdBy"), currentUserEmail),
-                            cb.equal(root.get("managerEmail"), currentUserEmail)
-                    ));
-                }
-            }
 
             if (filter != null) {
                 if (StringUtils.hasText(filter.getId())) {
@@ -241,36 +230,34 @@ public class WarehouseServiceImpl implements WarehouseService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
-        return warehouseRepository.findAll(spec, pageable);
+        return warehouseRepository.findAll(spec.and(DataOwnership.sql()), pageable);
     }
 
     @Override
     @Transactional
     public void deleteWarehouse(String id) {
         Warehouse warehouse = warehouseRepository.findById(UUID.fromString(id))
+                .filter(value -> value.getDeletedAt() == null)
                 .orElseThrow(() -> new AppException("WAREHOUSE_NOT_FOUND", "Không tìm thấy kho hàng với ID: " + id, HttpStatus.NOT_FOUND));
-
-        if (!SecurityUtils.isSuperAdmin() && SecurityUtils.isManager()) {
-            String currentUserEmail = SecurityUtils.getCurrentUserEmail();
-            if (!isWarehouseAccessible(warehouse, currentUserEmail)) {
-                throw new AppException("FORBIDDEN", "Bạn không có quyền xóa kho hàng của Manager khác", HttpStatus.FORBIDDEN);
-            }
-        }
+        DataOwnership.require(warehouse.getCreatedBy());
 
         // Check dependencies before deletion
         if (inventoryRepository.existsByWarehouseId(warehouse.getId())) {
             throw new AppException("WAREHOUSE_HAS_INVENTORY", "Không thể xóa kho vẫn còn tồn kho", HttpStatus.BAD_REQUEST);
         }
 
-        if (goodsReceiptRepository.existsByWarehouseId(warehouse.getId())) {
+        if (goodsReceiptRepository.existsByWarehouseIdAndDeletedAtIsNull(warehouse.getId())) {
             throw new AppException("WAREHOUSE_HAS_TRANSACTIONS", "Không thể xóa kho đã có giao dịch nhập hàng", HttpStatus.BAD_REQUEST);
         }
 
-        if (purchaseOrderRepository.existsByWarehouseId(warehouse.getId())) {
+        if (purchaseOrderRepository.existsByWarehouseIdAndDeletedAtIsNull(warehouse.getId())) {
             throw new AppException("WAREHOUSE_HAS_TRANSACTIONS", "Không thể xóa kho đã có đơn mua hàng", HttpStatus.BAD_REQUEST);
         }
 
-        warehouseRepository.delete(warehouse);
+        warehouse.setDeletedAt(java.time.LocalDateTime.now());
+        warehouse.setDeletedBy(SecurityUtils.getCurrentUserEmail());
+        warehouse.setActive(false);
+        warehouseRepository.save(warehouse);
 
         auditLogService.log("WAREHOUSE_DELETE", SecurityUtils.getCurrentUserEmail(), "Deleted warehouse: " + warehouse.getName() + " (" + warehouse.getCode() + ")");
     }
@@ -281,6 +268,6 @@ public class WarehouseServiceImpl implements WarehouseService {
         }
         boolean isCreator = warehouse.getCreatedBy() != null && warehouse.getCreatedBy().equalsIgnoreCase(currentUserEmail);
         boolean isAssigned = warehouse.getManagerEmail() != null && warehouse.getManagerEmail().equalsIgnoreCase(currentUserEmail);
-        return isCreator || isAssigned;
+        return isCreator;
     }
 }

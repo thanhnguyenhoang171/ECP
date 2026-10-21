@@ -22,6 +22,15 @@ public class AuditLogFilterRequest {
     @Schema(description = "Email of the actor performing the action", example = "admin@example.com")
     private String email;
 
+    private String username;
+    private String status;
+
+    @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
+    private java.time.LocalDateTime from;
+
+    @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
+    private java.time.LocalDateTime to;
+
     @Schema(description = "Actor role type filter: SYSTEM, ADMIN, MANAGER, USER", example = "ADMIN")
     private String logType;
 

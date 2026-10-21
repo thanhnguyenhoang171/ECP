@@ -1,20 +1,9 @@
 'use client';
 
+import { WarehouseRequestError } from '@/features/inventory/components/WarehouseRequestError';
+
 import React from 'react';
-import { 
-  PackagePlus, 
-  ArrowLeft, 
-  Building2, 
-  Calendar, 
-  FileText, 
-  UserCircle, 
-  CheckCircle2, 
-  XCircle,
-  Clock, 
-  Printer,
-  Package,
-  Layers
-} from 'lucide-react';
+import { PackagePlus, ArrowLeft, Building2, FileText, UserCircle, CheckCircle2, XCircle, Printer, Package } from 'lucide-react';
 import { PageHeader, Breadcrumbs } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,11 +18,13 @@ interface Props {
   receiptId: string;
 }
 
-export default function GoodsReceiptDetailView({ receiptId }: Props) {
+export default function GoodsReceiptDetailView({ receiptId }: Props) : React.JSX.Element {
   const router = useRouter();
-  const { data: receipt, isLoading } = useGoodsReceipt(receiptId);
+  const { data: receipt, isLoading, error, refetch } = useGoodsReceipt(receiptId);
   const confirmMutation = useConfirmGoodsReceipt();
   const updateStatusMutation = useUpdateGoodsReceiptStatus();
+
+  if (error) { return <WarehouseRequestError error={error} retry={() => { void refetch(); }} />; }
 
   if (isLoading) {
     return (
@@ -69,7 +60,7 @@ export default function GoodsReceiptDetailView({ receiptId }: Props) {
   const items = receipt.items || [];
   const totalAmount = items.reduce((acc, item) => acc + (Number(item.quantity || 0) * Number(item.unitCost || 0)), 0);
   const totalQuantity = items.reduce((acc, item) => acc + Number(item.quantity || 0), 0);
-  const isConfirmed = (receipt.status as string) === 'RECEIVED' || receipt.status === 'COMPLETED';
+  const isConfirmed = receipt.status === 'RECEIVED';
   const isCancelled = receipt.status === 'CANCELLED';
 
   const formattedDateString = receipt.createdAt ? new Date(receipt.createdAt).toLocaleDateString('vi-VN') : '';
@@ -81,7 +72,7 @@ export default function GoodsReceiptDetailView({ receiptId }: Props) {
         { label: receipt.receiptCode || receipt.id }
       ]} />
 
-      <PageHeader 
+      <PageHeader
         title={`Phiếu nhập kho #${receipt.receiptCode || receipt.id}`}
         description={`Ngày nhập ${formattedDateString} bởi ${receipt.createdBy || 'Hệ thống'}`}
         actions={
@@ -90,16 +81,17 @@ export default function GoodsReceiptDetailView({ receiptId }: Props) {
               <ArrowLeft size={16} /> Quay lại
             </Button>
 
+            {receipt.status === 'DRAFT' && <Button variant='outline' onClick={() => router.push(`/goods-receipt/${receipt.id}/edit`)}>Chỉnh sửa phiếu nhập</Button>}
             {!isConfirmed && !isCancelled && (
               <>
-                <Button 
-                  onClick={() => confirmMutation.mutate(receipt.id)} 
+                <Button
+                  onClick={() => confirmMutation.mutate(receipt.id)}
                   disabled={confirmMutation.isPending}
                   className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"
                 >
                   <CheckCircle2 size={16} /> {confirmMutation.isPending ? 'Đang nhập...' : 'Xác nhận nhập kho'}
                 </Button>
-                <Button 
+                <Button
                   onClick={() => updateStatusMutation.mutate({ id: receipt.id, status: 'CANCELLED' })}
                   disabled={updateStatusMutation.isPending}
                   variant="outline"
@@ -110,8 +102,8 @@ export default function GoodsReceiptDetailView({ receiptId }: Props) {
               </>
             )}
 
-            <Button 
-              onClick={() => window.print()} 
+            <Button
+              onClick={() => window.print()}
               variant="outline"
               className="gap-2 border-slate-300"
             >
@@ -131,16 +123,16 @@ export default function GoodsReceiptDetailView({ receiptId }: Props) {
               </CardTitle>
               <Badge className={cn(
                 "text-xs border",
-                ((receipt.status as string) === 'RECEIVED' || receipt.status === 'COMPLETED')
+                (receipt.status === 'RECEIVED')
                   ? "bg-emerald-100 text-emerald-700 border-emerald-200"
                   : receipt.status === 'CANCELLED'
                   ? "bg-red-100 text-red-700 border-red-200"
                   : "bg-slate-100 text-slate-700 border-slate-200"
               )}>
-                {((receipt.status as string) === 'RECEIVED' || receipt.status === 'COMPLETED') 
-                  ? 'Đã nhập kho' 
-                  : receipt.status === 'CANCELLED' 
-                  ? 'Đã hủy' 
+                {(receipt.status === 'RECEIVED')
+                  ? 'Đã nhập kho'
+                  : receipt.status === 'CANCELLED'
+                  ? 'Đã hủy'
                   : 'Bản nháp'}
               </Badge>
             </div>
@@ -219,7 +211,7 @@ export default function GoodsReceiptDetailView({ receiptId }: Props) {
                         <div className="flex flex-col items-center">
                           <span className="font-mono font-bold text-slate-700">{item.batchCode || 'N/A'}</span>
                           <span className="text-[10px] text-slate-400">
-                            {item.manufactureDate ? `NSX: ${item.manufactureDate}` : ''} 
+                            {item.manufactureDate ? `NSX: ${item.manufactureDate}` : ''}
                             {item.expiryDate ? ` | HSD: ${item.expiryDate}` : ''}
                           </span>
                         </div>

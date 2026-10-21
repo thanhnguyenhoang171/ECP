@@ -79,13 +79,14 @@ public interface UserMapper {
     @Mapping(target = "gender", source = "profile.gender")
 //    @Mapping(target = "loyaltyPoints", source = "profile.loyaltyPoints")
 //    @Mapping(target = "membershipTier", source = "profile.membershipTier")
-    @Mapping(target = "createdBy", ignore = true)
-    @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "createdBy", source = "createdBy.email")
+    @Mapping(target = "updatedBy", source = "updatedBy.email")
     @Mapping(target = "isEmailVerified", source = "emailVerified")
     @Mapping(target = "isPhoneVerified", source = "phoneVerified")
     @Mapping(target = "lastLoginAt", source = "lastLoginAt")
     @Mapping(target = "isOnline", ignore = true)
     @Mapping(target = "roles", ignore = true)
+    @Mapping(target = "deletedBy", source = "deletedBy.email")
     UserResponse toResponse(User user);
 
     @org.mapstruct.AfterMapping

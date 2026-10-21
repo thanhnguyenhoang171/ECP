@@ -13,6 +13,7 @@ import {
 } from '@/components/common';
 import { Layers, Eye, Plus, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import DeletedRecordsDialog from '@/components/common/DeletedRecordsDialog';
 import { CategoryTreeView } from './CategoryTreeView';
 import {
  SearchInput,
@@ -353,6 +354,7 @@ export default function CategoriesView({
 
  return (
   <div className='space-y-6'>
+      <DeletedRecordsDialog module="categories" />
    <Breadcrumbs items={breadcrumbItems} />
    <PageHeader
     title='Quản lý danh mục'
@@ -480,6 +482,7 @@ export default function CategoriesView({
    >
         {isForbidden ? (
           <DataTable
+          auditTrail
            columns={columns}
            data={[]}
            isLoading={false}
@@ -500,6 +503,7 @@ export default function CategoriesView({
           </div>
         ) : (
           <DataTable
+          auditTrail
            columns={columns}
            data={categories}
            isLoading={isLoading && !categories.length}
@@ -526,7 +530,7 @@ export default function CategoriesView({
       onSuccess: () => setDeleteConfirmId(null),
      })
     }
-    description='Bạn có chắc chắn muốn xóa danh mục này? Hành động này không thể hoàn tác và có thể ảnh hưởng đến các sản phẩm thuộc danh mục này.'
+    description='Bạn có chắc chắn muốn xóa danh mục này? Danh mục được xoá mềm và chỉ Super Admin có thể khôi phục.'
    />
   </div>
  );

@@ -26,7 +26,7 @@ import { Badge, FormSection, FormGrid, AdminFormLabel, FormActionsBar } from '@/
 import { cn } from '@/lib/utils';
 import { getApiErrorMessage } from '@/constants/errorMessages';
 import { Role, Permission, RoleRequest } from '../types/role.interface';
-import { usePermissions, useCreateRole, useUpdateRole } from '../hooks/use-roles';
+import { usePermissions, useCreateRole, useUpdateRole, useRoleAccess } from '../hooks/use-roles';
 import { roleSchema, RoleFormValues } from '../schemas/role.schema';
 
 interface RoleFormProps {
@@ -59,7 +59,9 @@ export default function RoleForm({
   roleId,
   isLoadingData = false,
 }: RoleFormProps): React.JSX.Element {
+  const { data: access } = useRoleAccess();
   const isEdit = !!initialData || !!roleId;
+  const allowed = isEdit ? access?.update && initialData?.editable !== false : access?.create;
   const isSystem = initialData?.isSystem ?? false;
 
   const permissionQuery = usePermissions();
@@ -163,7 +165,7 @@ export default function RoleForm({
   const coveragePercent = Math.round((assignedCount / totalCount) * 100);
 
   const onSubmit = (values: RoleFormValues): void => {
-    if (permissionsUnavailable || createMutation.isPending || updateMutation.isPending) {
+    if (!allowed || permissionsUnavailable || createMutation.isPending || updateMutation.isPending) {
       return;
     }
     const payload: RoleRequest = {
@@ -483,7 +485,7 @@ export default function RoleForm({
         <FormActionsBar
           onCancel={onCancel}
           isSubmitting={isSubmitting}
-          submitDisabled={permissionsUnavailable}
+          submitDisabled={permissionsUnavailable || !allowed}
           submitText={isEdit ? 'Lưu thay đổi vai trò' : 'Tạo vai trò mới'}
         />
       </form>

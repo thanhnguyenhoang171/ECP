@@ -1,4 +1,5 @@
 package com.example.ecp_api.service.impl;
+import com.example.ecp_api.security.DataOwnership;
 
 import com.example.ecp_api.dto.request.SkuFilterRequest;
 import com.example.ecp_api.dto.response.PageResponse;
@@ -27,6 +28,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SkuServiceImpl implements SkuService {
 
+    private final org.springframework.data.mongodb.core.MongoTemplate ownershipMongo;
     private final SkuRepository skuRepository;
     private final SkuMapper skuMapper;
 
@@ -57,6 +59,7 @@ public class SkuServiceImpl implements SkuService {
             throw new ResourceNotFoundException("SKU not found with ID: " + skuId, "SKU_NOT_FOUND");
         }
         return skuRepository.findById(uuid)
+                .map(sku -> { DataOwnership.requireSku(sku, ownershipMongo); return sku; })
                 .orElseThrow(() -> new ResourceNotFoundException("SKU not found with ID: " + skuId, "SKU_NOT_FOUND"));
     }
 
@@ -66,7 +69,7 @@ public class SkuServiceImpl implements SkuService {
     public PageResponse<SkuResponse> getAllSkus(SkuFilterRequest filter, Pageable pageable) {
         Pageable finalPageable = PaginationUtils.applyStableSort(pageable,
                 Sort.Order.desc("createdAt"), Sort.Order.asc("id"));
-        Page<Sku> skuPage = skuRepository.findAll(buildSpec(filter), finalPageable);
+        Page<Sku> skuPage = skuRepository.findAll(buildSpec(filter).and(DataOwnership.skus(ownershipMongo)), finalPageable);
         return skuMapper.toPageResponse(skuPage);
     }
 
@@ -81,7 +84,7 @@ public class SkuServiceImpl implements SkuService {
     public PageResponse<SkuAdminResponse> getAllSkusAdmin(SkuFilterRequest filter, Pageable pageable) {
         Pageable finalPageable = PaginationUtils.applyStableSort(pageable,
                 Sort.Order.desc("createdAt"), Sort.Order.asc("id"));
-        Page<Sku> skuPage = skuRepository.findAll(buildSpec(filter), finalPageable);
+        Page<Sku> skuPage = skuRepository.findAll(buildSpec(filter).and(DataOwnership.skus(ownershipMongo)), finalPageable);
         return skuMapper.toAdminPageResponse(skuPage);
     }
 

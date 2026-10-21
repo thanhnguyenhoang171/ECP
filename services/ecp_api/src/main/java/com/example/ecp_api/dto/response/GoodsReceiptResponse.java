@@ -16,6 +16,9 @@ import java.util.UUID;
 @Builder
 @Schema(description = "Response object representing a goods receipt details")
 public class GoodsReceiptResponse {
+    private String deletedBy;
+    private java.time.LocalDateTime deletedAt;
+
 
     @Schema(description = "Unique ID of the goods receipt")
     private UUID id;
